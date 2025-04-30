@@ -1,11 +1,11 @@
 use crate::config::AppConfig;
 use crate::key_action::{KeyAction, KeyTransition};
 use crate::key_id::{Key, KeyIdentifier, MAX_KEY_ID};
+use crate::key_modifier::KeyModifiers;
 use crate::transform::TransformMap;
-use crate::key_modifier::{KeyModifiers};
+use log::{debug, warn};
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
-use log::debug;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
 
@@ -66,13 +66,13 @@ impl KeyboardEvent {
 
     pub(crate) fn is_valid(&self) -> bool {
         if self.kb.scanCode > MAX_KEY_ID as u32 {
-            debug!("Ignored invalid scancode: 0x{:X}.", self.kb.scanCode);
+            warn!("Ignored invalid scancode: 0x{:04X}.", self.kb.scanCode);
             false
         } else if self.kb.vkCode > MAX_KEY_ID as u32 {
-            debug!("Ignored invalid virtual key: 0x{:X}.", self.kb.vkCode);
+            warn!("Ignored invalid virtual key: 0x{:04X}.", self.kb.vkCode);
             false
         } else if self.kb.time == 0 {
-            debug!("Ignored invalid time: {}.", self.kb.time);
+            warn!("Ignored invalid time: {}.", self.kb.time);
             false
         } else {
             true
@@ -88,14 +88,20 @@ impl Display for KeyboardEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let scancode = self.action.key.scancode.unwrap();
         let virtual_key = self.action.key.virtual_key.unwrap();
+        let modifiers = &format!("{}", self.action.modifiers);
+        // let modifiers = if let Some(m) = self.action.modifiers {
+        //     &format!("{}", m)
+        // } else {
+        //     "ANY"
+        // };
         write!(
             f,
-            "T: {} | {:18} | SC: {} | VK: {} | M: {} | F: {:08b} | {}",
+            "T: {:>8} | {:18} | SC: {} | VK: {} | M: {} | F: {:08b} | {}",
             self.time(),
             scancode.name(),
             scancode,
             virtual_key,
-            self.action.modifiers,
+            modifiers,
             self.flags(),
             if self.is_private() { "PRIVATE" } else { "" }
         )

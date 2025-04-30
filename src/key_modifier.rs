@@ -149,7 +149,7 @@ impl<'de> Deserialize<'de> for KeyModifiers {
 
 impl Display for KeyModifiers {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:->10b}", &self.0)
+        write!(f, "{:_>10b}", &self.0)
     }
 }
 
