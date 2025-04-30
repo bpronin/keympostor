@@ -1,7 +1,8 @@
+use crate::config::ConfigDefaults;
 use crate::key_action::KeyTransition::{Down, Up};
 use crate::key_hook::SELF_MARKER;
 use crate::key_id::{KeyIdentifier, ScanCode, VirtualKey};
-use crate::key_modifier::{KeyModifiers, KM_NONE};
+use crate::key_modifier::KeyModifiers;
 use crate::util::slices_equal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -39,7 +40,7 @@ impl KeyTransition {
 pub(crate) struct KeyAction {
     pub(crate) key: KeyIdentifier,
     pub(crate) transition: KeyTransition,
-    #[serde(default = "km_none")]
+    #[serde(default = "ConfigDefaults::km_none")]
     pub(crate) modifiers: KeyModifiers,
 }
 
@@ -128,10 +129,6 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         Ok(Self::from(Vec::deserialize(deserializer)?))
     }
-}
-
-fn km_none() -> KeyModifiers {
-    KM_NONE
 }
 
 #[cfg(test)]

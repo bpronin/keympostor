@@ -2,8 +2,8 @@ use serde::Deserialize;
 use std::fs;
 use std::sync::LazyLock;
 
-pub(crate) const SOUND_GAME_LOCK_ON: &str = "./res/sound/game_lock_on.wav";
-pub(crate) const SOUND_GAME_LOCK_OFF: &str = "./res/sound/game_lock_off.wav";
+// pub(crate) const SOUND_GAME_LOCK_ON: &str = "./res/sound/game_lock_on.wav";
+// pub(crate) const SOUND_GAME_LOCK_OFF: &str = "./res/sound/game_lock_off.wav";
 
 #[derive(Deserialize)]
 pub(crate) struct ResourceStrings {
@@ -32,13 +32,13 @@ macro_rules! rs {
     };
 }
 
-#[cfg(test)]
-mod test {
-    use crate::res::SOUND_GAME_LOCK_OFF;
-    use crate::util::play_sound;
-
-    #[test]
-    fn test_play_sound() {
-        play_sound(SOUND_GAME_LOCK_OFF);
-    }
-}
+// #[cfg(test)]
+// mod test {
+//     use crate::res::SOUND_GAME_LOCK_OFF;
+//     use crate::util::play_sound;
+// 
+//     #[test]
+//     fn test_play_sound() {
+//         play_sound(SOUND_GAME_LOCK_OFF);
+//     }
+// }

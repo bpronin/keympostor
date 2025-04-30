@@ -2,7 +2,7 @@ use crate::config::AppConfig;
 use crate::key_action::{KeyAction, KeyTransition};
 use crate::key_id::{Key, KeyIdentifier, MAX_KEY_ID};
 use crate::transform::TransformMap;
-use crate::key_modifier::KeyModifiers;
+use crate::key_modifier::{KeyModifiers};
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
 use log::debug;
