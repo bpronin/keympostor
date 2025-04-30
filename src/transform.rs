@@ -6,7 +6,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 struct ScancodeTransformMap {
-    map: HashMap<(KeyTransition, ScanCode, KeyModifiers), KeyActionSequence>,
+    map: HashMap<ScanCode, HashMap<KeyTransition, HashMap<KeyModifiers, KeyActionSequence>>>,
 }
 
 impl ScancodeTransformMap {
@@ -22,8 +22,7 @@ impl ScancodeTransformMap {
         scancode: ScanCode,
         modifiers: KeyModifiers,
     ) -> Option<&KeyActionSequence> {
-        let map_key = (transition, scancode, modifiers);
-        self.map.get(&map_key)
+        self.map.get(&scancode)?.get(&transition)?.get(&modifiers)
     }
 
     fn put(
@@ -33,14 +32,18 @@ impl ScancodeTransformMap {
         modifiers: KeyModifiers,
         target: KeyActionSequence,
     ) {
-        let map_key = (transition, scancode, modifiers);
-        self.map.insert(map_key, target);
+        self.map
+            .entry(scancode)
+            .or_default()
+            .entry(transition)
+            .or_default()
+            .insert(modifiers, target);
     }
 }
 
 #[derive(Debug)]
 struct VirtualKeyTransformMap {
-    map: HashMap<(KeyTransition, VirtualKey, KeyModifiers), KeyActionSequence>,
+    map: HashMap<VirtualKey, HashMap<KeyTransition, HashMap<KeyModifiers, KeyActionSequence>>>,
 }
 
 impl VirtualKeyTransformMap {
@@ -56,8 +59,7 @@ impl VirtualKeyTransformMap {
         virtual_key: VirtualKey,
         modifiers: KeyModifiers,
     ) -> Option<&KeyActionSequence> {
-        let map_key = (transition, virtual_key, modifiers);
-        self.map.get(&map_key)
+        self.map.get(&virtual_key)?.get(&transition)?.get(&modifiers)
     }
 
     fn put(
@@ -67,8 +69,12 @@ impl VirtualKeyTransformMap {
         modifiers: KeyModifiers,
         target: KeyActionSequence,
     ) {
-        let map_key = (transition, virtual_key, modifiers);
-        self.map.insert(map_key, target);
+        self.map
+            .entry(virtual_key)
+            .or_default()
+            .entry(transition)
+            .or_default()
+            .insert(modifiers, target);
     }
 }
 
