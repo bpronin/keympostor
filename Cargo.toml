@@ -1,0 +1,18 @@
+[package]
+name = "keympostor"
+version = "0.1.0"
+edition = "2024"
+
+[build-dependencies]
+embed-resource = "3.0.2"
+
+[dependencies]
+windows = { version = "0.61.1", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_Media", "Win32_Media_Audio"] }
+native-windows-gui = { version = "1.0.13" }
+serde_json = { version = "1.0.140" }
+serde = { version = "1.0.219", features = ["derive"] }
+log = { version = "0.4.27"}
+simple_logger ={version = "5.0.0"}
+
+[features]
+dev = []

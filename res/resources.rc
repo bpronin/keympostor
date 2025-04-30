@@ -1,0 +1,14 @@
+#define RT_MANIFEST 24
+1 RT_MANIFEST "application.manifest"
+
+#define IDI_ICON_APP 1001
+IDI_ICON_APP ICON "res/img/app.ico"
+
+#define IDI_ICON_GAME_LOCK_ON 1002
+IDI_ICON_GAME_LOCK_ON ICON "res/img/GameLockOn.ico"
+
+#define IDI_ICON_GAME_LOCK_OFF 1003
+IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
+
+#define IDI_ICON_NUM_LOCK 1004
+IDI_ICON_NUM_LOCK ICON "res/img/NumLock.ico"

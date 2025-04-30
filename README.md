@@ -1,2 +1,2 @@
 # keympostor
-A Windows app to switch keyboard scancodes
+A Windows app to replace keyboard scancodes.

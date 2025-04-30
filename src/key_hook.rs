@@ -1,0 +1,218 @@
+use crate::config::AppConfig;
+use crate::key_action::{KeyAction, KeyTransition};
+use crate::key_id::{Key, KeyIdentifier, MAX_KEY_ID};
+use crate::transform::TransformMap;
+use crate::key_modifier::KeyModifiers;
+use std::cell::RefCell;
+use std::fmt::{Display, Formatter};
+use log::debug;
+use windows::Win32::Foundation::*;
+use windows::Win32::UI::WindowsAndMessaging::*;
+
+/// A marker to detect self generated keyboard events.
+/// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
+/// Content does not matter.
+pub static SELF_MARKER: &str = "self";
+
+pub(crate) struct KeyboardEvent {
+    kb: KBDLLHOOKSTRUCT,
+    pub(crate) action: KeyAction,
+}
+
+struct Statics {
+    transform_map: TransformMap,
+    handle: Option<HHOOK>,
+    callback: Option<Box<dyn Fn(&KeyboardEvent)>>,
+    silent_processing: bool,
+}
+
+thread_local! {
+    static STATICS: RefCell<Statics> = RefCell::new(Statics {
+        transform_map: TransformMap::new(),
+        handle: None,
+        callback: None,
+        silent_processing: false
+    });
+}
+
+impl KeyboardEvent {
+    fn from(l_param: LPARAM, modifiers: KeyModifiers) -> Self {
+        let kb = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
+        Self {
+            kb,
+            action: KeyAction {
+                key: KeyIdentifier::from_kb(&kb),
+                transition: KeyTransition::from_kb(&kb),
+                modifiers,
+            },
+        }
+    }
+
+    pub(crate) fn flags(&self) -> u32 {
+        self.kb.flags.0
+    }
+
+    pub(crate) fn time(&self) -> u32 {
+        self.kb.time
+    }
+
+    pub(crate) fn is_injected(&self) -> bool {
+        self.kb.flags.contains(LLKHF_INJECTED)
+    }
+
+    pub(crate) fn is_private(&self) -> bool {
+        self.is_injected() && (self.kb.dwExtraInfo as *const u8 == SELF_MARKER.as_ptr())
+    }
+
+    pub(crate) fn is_valid(&self) -> bool {
+        if self.kb.scanCode > MAX_KEY_ID as u32 {
+            debug!("Ignored invalid scancode: 0x{:X}.", self.kb.scanCode);
+            false
+        } else if self.kb.vkCode > MAX_KEY_ID as u32 {
+            debug!("Ignored invalid virtual key: 0x{:X}.", self.kb.vkCode);
+            false
+        } else if self.kb.time == 0 {
+            debug!("Ignored invalid time: {}.", self.kb.time);
+            false
+        } else {
+            true
+        }
+    }
+
+    pub(crate) fn is_processable(&self) -> bool {
+        STATICS.with_borrow(|g| !g.transform_map.get(&self.action).is_some())
+    }
+}
+
+impl Display for KeyboardEvent {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let scancode = self.action.key.scancode.unwrap();
+        let virtual_key = self.action.key.virtual_key.unwrap();
+        write!(
+            f,
+            "T: {} | {:18} | SC: {} | VK: {} | M: {} | F: {:08b} | {}",
+            self.time(),
+            scancode.name(),
+            scancode,
+            virtual_key,
+            self.action.modifiers,
+            self.flags(),
+            if self.is_private() { "PRIVATE" } else { "" }
+        )
+    }
+}
+
+pub(crate) struct KeyboardHandler {}
+
+impl KeyboardHandler {
+    pub(crate) fn from(config: AppConfig) -> Result<KeyboardHandler, String> {
+        let transform_map = TransformMap::from_config(config.transform_rules)?;
+        STATICS.with_borrow_mut(|g| g.transform_map = transform_map);
+
+        let this = Self {};
+        this.set_enabled(config.app_state.key_processing_enabled);
+        this.set_silent(config.app_state.silent_key_processing);
+        Ok(this)
+    }
+
+    pub(crate) fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyboardEvent)>>) {
+        STATICS.with_borrow_mut(|g| {
+            g.callback = callback;
+            if g.callback.is_some() {
+                debug!("Callback set");
+            } else {
+                debug!("Callback removed");
+            }
+        });
+    }
+
+    // pub(crate) fn set_callback<F>(&self, callback: Option<Box<F>>)
+    // where
+    //     F: Fn(&KeyboardEvent) + 'static,
+    // {
+    //     GLOBALS.with_borrow_mut(|g| {
+    //         g.callback = callback;
+    //         if g.callback.is_some() {
+    //             debug!("Callback set");
+    //         } else {
+    //             debug!("Callback removed");
+    //         }
+    //     });
+    // }
+
+    pub(crate) fn is_enabled(&self) -> bool {
+        STATICS.with_borrow(|g| g.handle.is_some())
+    }
+
+    pub(crate) fn set_enabled(&self, enabled: bool) {
+        if enabled {
+            self.install_hook()
+        } else {
+            self.uninstall_hook()
+        }
+    }
+
+    pub(crate) fn is_silent(&self) -> bool {
+        STATICS.with_borrow(|g| g.silent_processing)
+    }
+
+    pub(crate) fn set_silent(&self, silent: bool) {
+        STATICS.with_borrow_mut(|g| g.silent_processing = silent)
+    }
+
+    fn install_hook(&self) {
+        STATICS.with_borrow_mut(|g| {
+            g.handle = Some(
+                unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(Self::keyboard_proc), None, 0) }
+                    .expect("Failed to install keyboard hook"),
+            )
+        });
+
+        debug!("Keyboard hook installed");
+    }
+
+    fn uninstall_hook(&self) {
+        STATICS.with_borrow_mut(|g| {
+            if let Some(hook_handle) = g.handle {
+                unsafe { UnhookWindowsHookEx(hook_handle) }
+                    .expect("Failed to uninstall keyboard hook");
+                g.handle = None;
+
+                debug!("Keyboard hook uninstalled");
+            }
+        });
+    }
+
+    extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+        STATICS.with_borrow(|g| {
+            if code == HC_ACTION as i32 {
+                let event = KeyboardEvent::from(l_param, KeyModifiers::capture_state());
+
+                debug!("{}", event);
+
+                if event.is_valid() {
+                    if !g.silent_processing {
+                        if let Some(callback) = &g.callback {
+                            callback(&event)
+                        }
+                    }
+
+                    if !event.is_private() {
+                        if let Some(target) = g.transform_map.get(&event.action) {
+                            target.send();
+                            return LRESULT(1);
+                        }
+                    }
+                }
+            }
+
+            unsafe { CallNextHookEx(g.handle, code, w_param, l_param) }
+        })
+    }
+}
+
+impl Drop for KeyboardHandler {
+    fn drop(&mut self) {
+        self.uninstall_hook()
+    }
+}

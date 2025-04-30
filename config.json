@@ -1,0 +1,72 @@
+{
+  "app_state": {
+    "key_processing_enabled": true,
+    "silent_key_processing": false
+  },
+  "transform_rules": [
+    {
+      "source": {
+        "key": "SC_CAPS_LOCK",
+        "transition": "Down"
+      },
+      "target": [
+        {
+          "key": "SC_LEFT_WINDOWS",
+          "transition": "Down"
+        },
+        {
+          "key": "SC_SPACE",
+          "transition": "Down"
+        }
+      ]
+    },
+    {
+      "source": {
+        "key": "SC_CAPS_LOCK",
+        "transition": "Up"
+      },
+      "target": [
+        {
+          "key": "SC_SPACE",
+          "transition": "Up"
+        },
+        {
+          "key": "SC_LEFT_WINDOWS",
+          "transition": "Up"
+        }
+      ]
+    },
+    {
+      "source": {
+        "key": "VK_F1",
+        "transition": "Down"
+      },
+      "target": [
+        {
+          "key": "VK_CONTROL",
+          "transition": "Down"
+        },
+        {
+          "key": "VK_C",
+          "transition": "Down"
+        }
+      ]
+    },
+    {
+      "source": {
+        "key": "VK_F1",
+        "transition": "Up"
+      },
+      "target": [
+        {
+          "key": "VK_CONTROL",
+          "transition": "Up"
+        },
+        {
+          "key": "VK_C",
+          "transition": "Up"
+        }
+      ]
+    }
+  ]
+}
