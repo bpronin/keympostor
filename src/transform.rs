@@ -59,7 +59,10 @@ impl VirtualKeyTransformMap {
         virtual_key: VirtualKey,
         modifiers: KeyModifiers,
     ) -> Option<&KeyActionSequence> {
-        self.map.get(&virtual_key)?.get(&transition)?.get(&modifiers)
+        self.map
+            .get(&virtual_key)?
+            .get(&transition)?
+            .get(&modifiers)
     }
 
     fn put(
@@ -130,46 +133,65 @@ mod tests {
     use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::key_id::KeyIdentifier;
     use crate::key_id::VirtualKey;
-    use crate::key_modifier::{KM_LEFT_ALT, KM_LEFT_CONTROL, KM_LEFT_SHIFT, KM_NONE};
+    use crate::key_modifier::{KM_LEFT_CONTROL, KM_LEFT_SHIFT, KM_NONE};
     use crate::transform::TransformMap;
 
     #[test]
-    fn test_map() {
-        let enter_key = VirtualKey::by_name("VK_RETURN").unwrap();
-        let a_key = VirtualKey::by_name("VK_A").unwrap();
-        let b_key = VirtualKey::by_name("VK_B").unwrap();
+    fn test_get() {
+        let a_key = KeyIdentifier::from_virtual_key(VirtualKey::by_name("VK_A").unwrap());
+        let b_key = KeyIdentifier::from_virtual_key(VirtualKey::by_name("VK_B").unwrap());
+        let c_key = KeyIdentifier::from_virtual_key(VirtualKey::by_name("VK_C").unwrap());
 
         let mut map = TransformMap::new();
+        map.put(
+            KeyAction {
+                key: a_key,
+                transition: KeyTransition::Up,
+                modifiers: KM_NONE,
+            },
+            KeyActionSequence::from(vec![KeyAction {
+                key: b_key,
+                transition: KeyTransition::Up,
+                modifiers: KM_NONE,
+            }]),
+        );
+
+        assert_eq!(
+            map.get(&KeyAction {
+                key: a_key,
+                transition: KeyTransition::Up,
+                modifiers: KM_NONE,
+            }),
+            Some(&KeyActionSequence::from(vec![KeyAction {
+                key: b_key,
+                transition: KeyTransition::Up,
+                modifiers: KM_NONE,
+            }]))
+        );
+
         let source = KeyAction {
-            key: KeyIdentifier::from_virtual_key(enter_key),
-            transition: KeyTransition::Up,
-            modifiers: KM_LEFT_SHIFT | KM_LEFT_CONTROL,
+            key: c_key, /* differs */
+            transition: KeyTransition::Up, 
+            modifiers: KM_NONE,
         };
-
-        let target = KeyActionSequence::from(vec![
-            KeyAction {
-                key: KeyIdentifier::from_virtual_key(a_key),
-                transition: KeyTransition::Up,
-                modifiers: KM_LEFT_ALT,
-            },
-            KeyAction {
-                key: KeyIdentifier::from_virtual_key(b_key),
-                transition: KeyTransition::Up,
-                modifiers: KM_LEFT_CONTROL,
-            },
-        ]);
-        // let expected = target.clone();
-
-        map.put(source, target);
-
-        // dbg!(map.virtual_key_map.map.keys());
-        let actual = map.get(&source);
-        //
-        dbg!(&actual);
-        // assert_eq!(actual, &expected);
+        assert!(map.get(&source).is_none());
+        
+        let source = KeyAction {
+            key: a_key,
+            transition: KeyTransition::Down, /* differs */
+            modifiers: KM_NONE,
+        };
+        assert!(map.get(&source).is_none());
+        
+        let source = KeyAction {
+            key: a_key,
+            transition: KeyTransition::Up, 
+            modifiers: KM_LEFT_SHIFT,  /* differs */
+        };
+        assert!(map.get(&source).is_none());
     }
+    
     #[test]
-
     fn test_any_modifier() {
         let a_key = VirtualKey::by_name("VK_A").unwrap();
         let b_key = VirtualKey::by_name("VK_B").unwrap();
@@ -178,32 +200,26 @@ mod tests {
         let source = KeyAction {
             key: KeyIdentifier::from_virtual_key(a_key),
             transition: KeyTransition::Up,
-            modifiers:KM_NONE,
+            modifiers: KM_NONE,
         };
 
-        let target = KeyActionSequence::from(vec![
-            KeyAction {
-                key: KeyIdentifier::from_virtual_key(b_key),
-                transition: KeyTransition::Up,
-                modifiers: KM_LEFT_CONTROL,
-            },
-        ]);
+        let target = KeyActionSequence::from(vec![KeyAction {
+            key: KeyIdentifier::from_virtual_key(b_key),
+            transition: KeyTransition::Up,
+            modifiers: KM_LEFT_CONTROL,
+        }]);
 
         let expected = target.clone();
-        
+
         map.put(source, target);
-        
+
         assert_eq!(map.get(&source).unwrap(), &expected);
 
         let source = KeyAction {
             key: KeyIdentifier::from_virtual_key(a_key),
             transition: KeyTransition::Down,
-            modifiers:KM_NONE,
+            modifiers: KM_NONE,
         };
         assert!(map.get(&source).is_none());
-
-        // dbg!(map.virtual_key_map.map.keys());
-        //
-        // dbg!(&actual);
     }
 }
