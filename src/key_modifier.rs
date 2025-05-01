@@ -149,7 +149,34 @@ impl<'de> Deserialize<'de> for KeyModifiers {
 
 impl Display for KeyModifiers {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:_>10b}", &self.0)
+        let mut values = ['_'; 8];
+        if self.contains(KM_LEFT_SHIFT) {
+            values[0] = 'S'
+        }
+        if self.contains(KM_RIGHT_SHIFT) {
+            values[7] = 'S'
+        }
+        if self.contains(KM_LEFT_CONTROL) {
+            values[1] = 'C'
+        }
+        if self.contains(KM_RIGHT_CONTROL) {
+            values[6] = 'C'
+        }
+        if self.contains(KM_LEFT_ALT) {
+            values[2] = 'A'
+        }
+        if self.contains(KM_RIGHT_ALT) {
+            values[5] = 'A'
+        }
+        if self.contains(KM_LEFT_WIN) {
+            values[3] = 'W'
+        }
+        if self.contains(KM_RIGHT_WIN) {
+            values[4] = 'W'
+        }
+        f.serialize_str(&values.iter().collect::<String>())
+        
+        // write!(f, "{:_>10b}", &self.0)
     }
 }
 
