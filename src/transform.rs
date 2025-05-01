@@ -130,7 +130,7 @@ mod tests {
     use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::key_id::KeyIdentifier;
     use crate::key_id::VirtualKey;
-    use crate::key_modifier::{KM_LEFT_ALT, KM_LEFT_CONTROL, KM_LEFT_SHIFT};
+    use crate::key_modifier::{KM_LEFT_ALT, KM_LEFT_CONTROL, KM_LEFT_SHIFT, KM_NONE};
     use crate::transform::TransformMap;
 
     #[test]
@@ -167,5 +167,43 @@ mod tests {
         //
         dbg!(&actual);
         // assert_eq!(actual, &expected);
+    }
+    #[test]
+
+    fn test_any_modifier() {
+        let a_key = VirtualKey::by_name("VK_A").unwrap();
+        let b_key = VirtualKey::by_name("VK_B").unwrap();
+
+        let mut map = TransformMap::new();
+        let source = KeyAction {
+            key: KeyIdentifier::from_virtual_key(a_key),
+            transition: KeyTransition::Up,
+            modifiers:KM_NONE,
+        };
+
+        let target = KeyActionSequence::from(vec![
+            KeyAction {
+                key: KeyIdentifier::from_virtual_key(b_key),
+                transition: KeyTransition::Up,
+                modifiers: KM_LEFT_CONTROL,
+            },
+        ]);
+
+        let expected = target.clone();
+        
+        map.put(source, target);
+        
+        assert_eq!(map.get(&source).unwrap(), &expected);
+
+        let source = KeyAction {
+            key: KeyIdentifier::from_virtual_key(a_key),
+            transition: KeyTransition::Down,
+            modifiers:KM_NONE,
+        };
+        assert!(map.get(&source).is_none());
+
+        // dbg!(map.virtual_key_map.map.keys());
+        //
+        // dbg!(&actual);
     }
 }

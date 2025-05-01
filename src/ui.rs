@@ -1,9 +1,9 @@
 use super::*;
+use crate::res_ids::IDI_ICON_GAME_LOCK_OFF;
 use native_windows_gui as nwg;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::res_ids::IDI_ICON_GAME_LOCK_OFF;
 
 pub(crate) struct AppUi {
     inner: Rc<App>,
@@ -15,12 +15,11 @@ impl NativeUi<AppUi> for App {
         nwg::init().expect("Failed to init Native Windows GUI");
         nwg::Font::set_global_default(default_font(17).into());
 
-        let mut window_flags = nwg::WindowFlags::MAIN_WINDOW;
-        
+        #[cfg(not(feature = "dev"))]
+        let window_flags = nwg::WindowFlags::MAIN_WINDOW;
+
         #[cfg(feature = "dev")]
-        {
-            window_flags |= nwg::WindowFlags::VISIBLE;
-        }
+        let window_flags = nwg::WindowFlags::MAIN_WINDOW | nwg::WindowFlags::VISIBLE;
 
         nwg::Window::builder()
             .size((700, 300))
@@ -215,7 +214,6 @@ impl NativeUi<AppUi> for App {
 
         Ok(ui)
     }
-
 }
 
 impl Drop for AppUi {
