@@ -3,14 +3,14 @@ use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
 use crate::key_id::{ScanCode, VirtualKey};
 use crate::key_modifier::KeyModifiers;
 use std::collections::HashMap;
+use std::hash::Hash;
 
 #[derive(Debug)]
-struct ScancodeTransformMap {
-    map:
-        HashMap<ScanCode, HashMap<KeyTransition, HashMap<Option<KeyModifiers>, KeyActionSequence>>>,
+struct KeyTransformMap<K: Hash + Eq> {
+    map: HashMap<K, HashMap<KeyTransition, HashMap<Option<KeyModifiers>, KeyActionSequence>>>,
 }
 
-impl ScancodeTransformMap {
+impl<K: Hash + Eq> KeyTransformMap<K> {
     fn new() -> Self {
         Self {
             map: HashMap::new(),
@@ -20,63 +20,22 @@ impl ScancodeTransformMap {
     fn get(
         &self,
         transition: KeyTransition,
-        scancode: ScanCode,
+        key: K,
         modifiers: Option<KeyModifiers>,
     ) -> Option<&KeyActionSequence> {
-        let submap = self.map.get(&scancode)?.get(&transition)?;
+        let submap = self.map.get(&key)?.get(&transition)?;
         submap.get(&modifiers).or(submap.get(&None))
     }
 
     fn put(
         &mut self,
         transition: KeyTransition,
-        scancode: ScanCode,
+        key: K,
         modifiers: Option<KeyModifiers>,
         target: KeyActionSequence,
     ) {
         self.map
-            .entry(scancode)
-            .or_default()
-            .entry(transition)
-            .or_default()
-            .insert(modifiers, target);
-    }
-}
-
-#[derive(Debug)]
-struct VirtualKeyTransformMap {
-    map: HashMap<
-        VirtualKey,
-        HashMap<KeyTransition, HashMap<Option<KeyModifiers>, KeyActionSequence>>,
-    >,
-}
-
-impl VirtualKeyTransformMap {
-    fn new() -> Self {
-        Self {
-            map: HashMap::new(),
-        }
-    }
-
-    fn get(
-        &self,
-        transition: KeyTransition,
-        virtual_key: VirtualKey,
-        modifiers: Option<KeyModifiers>,
-    ) -> Option<&KeyActionSequence> {
-        let submap = self.map.get(&virtual_key)?.get(&transition)?;
-        submap.get(&modifiers).or(submap.get(&None))
-    }
-
-    fn put(
-        &mut self,
-        transition: KeyTransition,
-        virtual_key: VirtualKey,
-        modifiers: Option<KeyModifiers>,
-        target: KeyActionSequence,
-    ) {
-        self.map
-            .entry(virtual_key)
+            .entry(key)
             .or_default()
             .entry(transition)
             .or_default()
@@ -86,15 +45,15 @@ impl VirtualKeyTransformMap {
 
 #[derive(Debug)]
 pub(crate) struct TransformMap {
-    scancode_map: ScancodeTransformMap,
-    virtual_key_map: VirtualKeyTransformMap,
+    scancode_map: KeyTransformMap<ScanCode>,
+    virtual_key_map: KeyTransformMap<VirtualKey>,
 }
 
 impl TransformMap {
     pub(crate) fn new() -> Self {
         Self {
-            scancode_map: ScancodeTransformMap::new(),
-            virtual_key_map: VirtualKeyTransformMap::new(),
+            scancode_map: KeyTransformMap::new(),
+            virtual_key_map: KeyTransformMap::new(),
         }
     }
 
@@ -103,20 +62,30 @@ impl TransformMap {
         for item in config {
             this.put(item.source, item.target);
         }
-        
+
         Ok(this)
     }
 
-    pub(crate) fn get(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
-        if let Some(scancode) = source.key.scancode {
+    fn get_from_scancodes(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
+        if let Some(key) = source.key.scancode {
             self.scancode_map
-                .get(source.transition, *scancode, source.modifiers)
-        } else if let Some(virtual_key) = source.key.virtual_key {
-            self.virtual_key_map
-                .get(source.transition, *virtual_key, source.modifiers)
+                .get(source.transition, *key, source.modifiers)
         } else {
-            panic!("Action key cannot be blank.");
+            None
         }
+    }
+    
+    fn get_from_virtual_keys(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
+        if let Some(key) = source.key.virtual_key {
+            self.virtual_key_map
+                .get(source.transition, *key, source.modifiers)
+        } else {
+            None
+        }
+    }
+
+    pub(crate) fn get(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
+        self.get_from_scancodes(source).or(self.get_from_virtual_keys(source))
     }
 
     fn put(&mut self, source: KeyAction, target: KeyActionSequence) {
