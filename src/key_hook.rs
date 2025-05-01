@@ -36,7 +36,7 @@ thread_local! {
 }
 
 impl KeyboardEvent {
-    fn from(l_param: LPARAM, modifiers: KeyModifiers) -> Self {
+    fn from(l_param: LPARAM, modifiers: Option<KeyModifiers>) -> Self {
         let kb = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
         Self {
             kb,
@@ -88,21 +88,21 @@ impl Display for KeyboardEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let scancode = self.action.key.scancode.unwrap();
         let virtual_key = self.action.key.virtual_key.unwrap();
-        let modifiers = &format!("{}", self.action.modifiers);
-        // let modifiers = if let Some(m) = self.action.modifiers {
-        //     &format!("{}", m)
-        // } else {
-        //     "ANY"
-        // };
+        let modifiers = if let Some(m) = self.action.modifiers {
+            &format!("{}", m)
+        } else {
+            "ANY"
+        };
         write!(
             f,
-            "T: {:>8} | {:18} | SC: {} | VK: {} | M: {} | F: {:08b} | {}",
+            "T: {:>9} | {:18} | SC: {} | VK: {} | M: {} | F: {:08b} | {:8} | {:8}",
             self.time(),
             scancode.name(),
             scancode,
             virtual_key,
             modifiers,
             self.flags(),
+            if self.is_injected() { "INJECTED" } else { "" },
             if self.is_private() { "PRIVATE" } else { "" }
         )
     }
@@ -192,7 +192,7 @@ impl KeyboardHandler {
     extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
         STATICS.with_borrow(|g| {
             if code == HC_ACTION as i32 {
-                let event = KeyboardEvent::from(l_param, KeyModifiers::capture_state());
+                let event = KeyboardEvent::from(l_param, Some(KeyModifiers::capture_state()));
 
                 debug!("{}", event);
 

@@ -1,4 +1,3 @@
-use crate::config::ConfigDefaults;
 use crate::key_action::KeyTransition::{Down, Up};
 use crate::key_hook::SELF_MARKER;
 use crate::key_id::{KeyIdentifier, ScanCode, VirtualKey};
@@ -40,8 +39,7 @@ impl KeyTransition {
 pub(crate) struct KeyAction {
     pub(crate) key: KeyIdentifier,
     pub(crate) transition: KeyTransition,
-    #[serde(default = "ConfigDefaults::km_none")]
-    pub(crate) modifiers: KeyModifiers,
+    pub(crate) modifiers: Option<KeyModifiers>,
 }
 
 impl KeyAction {

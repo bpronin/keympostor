@@ -2,7 +2,6 @@ use crate::key_action::{KeyAction, KeyActionSequence};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{env, fs};
-use crate::key_modifier::{KeyModifiers, KM_NONE};
 
 const FILE_PATH: &str = "config.json";
 
@@ -69,10 +68,6 @@ impl ConfigDefaults {
             key_processing_enabled: true,
             silent_key_processing: true,
         }
-    }
-
-    pub(crate) fn km_none() -> KeyModifiers {
-        KM_NONE
     }
 
 }
