@@ -143,6 +143,7 @@ impl<'de> Deserialize<'de> for KeyModifiers {
                 ))?,
             }
         }
+        
         Ok(this)
     }
 }

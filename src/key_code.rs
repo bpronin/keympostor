@@ -6,7 +6,7 @@ use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
 pub(crate) const MAX_KEY_ID: usize = 0x100;
 
-pub(crate) trait Key {
+pub(crate) trait KeyCode {
     fn name(&self) -> &'static str;
 }
 
@@ -38,7 +38,7 @@ impl VirtualKey {
     }
 }
 
-impl Key for VirtualKey {
+impl KeyCode for VirtualKey {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -46,7 +46,7 @@ impl Key for VirtualKey {
 
 impl Display for VirtualKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "0x{:02X}", &self.value,)
+        write!(f, "0x{:02X}", &self.value, )
     }
 }
 
@@ -101,7 +101,7 @@ impl ScanCode {
     }
 }
 
-impl Key for ScanCode {
+impl KeyCode for ScanCode {
     fn name(&self) -> &'static str {
         self.name
     }
@@ -109,17 +109,17 @@ impl Key for ScanCode {
 
 impl Display for ScanCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "0x{:04X}", &self.ext_value(),)
+        write!(f, "0x{:04X}", &self.ext_value(), )
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct KeyIdentifier {
-    pub(crate) scancode: Option<&'static ScanCode>,
+pub(crate) struct Key {
     pub(crate) virtual_key: Option<&'static VirtualKey>,
+    pub(crate) scancode: Option<&'static ScanCode>,
 }
 
-impl KeyIdentifier {
+impl Key {
     pub(crate) fn from_scancode(scancode: &'static ScanCode) -> Self {
         Self {
             scancode: Some(scancode),
@@ -207,15 +207,15 @@ impl KeyIdentifier {
     }
 }
 
-impl Serialize for KeyIdentifier {
+impl Serialize for Key {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        let text = if let Some(scancode) = self.scancode {
-            scancode.name
-        } else if let Some(virtual_key) = self.virtual_key {
+        let text = if let Some(virtual_key) = self.virtual_key {
             virtual_key.name
+        } else if let Some(scancode) = self.scancode {
+            scancode.name
         } else {
             panic!("Action key cannot be empty.");
         };
@@ -224,7 +224,7 @@ impl Serialize for KeyIdentifier {
     }
 }
 
-impl<'de> Deserialize<'de> for KeyIdentifier {
+impl<'de> Deserialize<'de> for Key {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let text = String::deserialize(deserializer)?;
         let result = Self::parse(Some(text.as_str()))
@@ -1579,7 +1579,7 @@ static SCANCODES: [ScanCode; 126] = [
 
 #[cfg(test)]
 mod tests {
-    use crate::key_id::*;
+    use crate::key_code::*;
     use std::ffi::OsString;
     use std::os::windows::ffi::OsStringExt;
     use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyNameTextW;

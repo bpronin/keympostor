@@ -1,6 +1,6 @@
 use crate::config::AppConfig;
-use crate::key_action::{KeyAction, KeyTransition};
-use crate::key_id::{Key, KeyIdentifier, MAX_KEY_ID};
+use crate::key_action::KeyAction;
+use crate::key_code::{KeyCode, Key, MAX_KEY_ID};
 use crate::key_modifier::KeyModifiers;
 use crate::transform::TransformMap;
 use log::{debug, warn};
@@ -8,6 +8,7 @@ use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::WindowsAndMessaging::*;
+use crate::key_transition::KeyTransition;
 
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
@@ -41,7 +42,7 @@ impl KeyboardEvent {
         Self {
             kb,
             action: KeyAction {
-                key: KeyIdentifier::from_kb(&kb),
+                key: Key::from_kb(&kb),
                 transition: KeyTransition::from_kb(&kb),
                 modifiers,
             },

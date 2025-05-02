@@ -1,43 +1,18 @@
-use crate::key_action::KeyTransition::{Down, Up};
 use crate::key_hook::SELF_MARKER;
-use crate::key_id::{KeyIdentifier, ScanCode, VirtualKey};
+use crate::key_code::{Key, ScanCode, VirtualKey};
 use crate::key_modifier::KeyModifiers;
 use crate::util::slices_equal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt::Display;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS,
     KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
-use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
-
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) enum KeyTransition {
-    #[serde(alias = "UP", alias = "up")]
-    Up,
-    #[serde(alias = "DOWN", alias = "down")]
-    Down,
-}
-
-impl KeyTransition {
-    pub(crate) fn from_kb(kb: &KBDLLHOOKSTRUCT) -> KeyTransition {
-        if kb.flags.contains(LLKHF_UP) {
-            Up
-        } else {
-            Down
-        }
-    }
-
-    pub(crate) fn is_up(self) -> bool {
-        match self {
-            Up => true,
-            Down => false,
-        }
-    }
-}
+use crate::key_transition::KeyTransition;
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
 pub(crate) struct KeyAction {
-    pub(crate) key: KeyIdentifier,
+    pub(crate) key: Key,
     pub(crate) transition: KeyTransition,
     pub(crate) modifiers: Option<KeyModifiers>,
 }
@@ -90,6 +65,16 @@ impl KeyAction {
             },
         }
     }
+
+    fn to_text(&self) -> String {
+        
+
+        todo!()
+    }
+
+    fn from_text(text: String) -> Self {
+        todo!()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -131,147 +116,35 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
+    use crate::key_action::KeyAction;
+    use crate::key_code::{Key, VirtualKey};
+    use crate::key_transition::KeyTransition;
 
-    //     #[test]
-    //     fn parse_key_actions_by_name() {
-    //         let actual = KeyActionSequence::parse(&[
-    //             "VK_A UP".to_string(),
-    //             "VK_B DOWN".to_string(),
-    //             "SC_A UP".to_string(),
-    //             "SC_B DOWN".to_string(),
-    //         ])
-    //             .unwrap();
-    //
-    //         let expected = KeyActionSequence::from(vec![
-    //             KeyAction {
-    //                 key_id: AsVirtualKey(VirtualKey::by_name("VK_A").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsVirtualKey(VirtualKey::by_name("VK_B").unwrap()),
-    //                 transition: Down,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_A").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_B").unwrap()),
-    //                 transition: Down,
-    //             },
-    //         ]);
-    //
-    //         assert_eq!(actual, expected)
-    //     }
-    //
-    //     #[test]
-    //     fn parse_key_actions_vk_by_code() {
-    //         let actual = KeyActionSequence::parse(&[
-    //             "VK_0x1C UP".to_string(),
-    //             "VK_0x30 DOWN".to_string(),
-    //             "SC_0xE01C UP".to_string(),
-    //             "SC_0xE030 DOWN".to_string(),
-    //         ])
-    //             .unwrap();
-    //
-    //         let expected = KeyActionSequence::from(vec![
-    //             KeyAction {
-    //                 key_id: AsVirtualKey(VirtualKey::by_name("VK_CONVERT").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsVirtualKey(VirtualKey::by_name("VK_0").unwrap()),
-    //                 transition: Down,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_NUM_ENTER").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_VOL_UP").unwrap()),
-    //                 transition: Down,
-    //             },
-    //         ]);
-    //
-    //         assert_eq!(actual, expected)
-    //     }
-    //
-    //     #[test]
-    //     fn parse_key_actions_symbols() {
-    //         let actual = KeyActionSequence::parse(&[
-    //             "] UP".to_string(),
-    //             "= UP".to_string(),
-    //             "+ UP".to_string(),
-    //             "\\ DOWN".to_string(),
-    //         ])
-    //             .unwrap();
-    //
-    //         let expected = KeyActionSequence::from(vec![
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_R_BRACKET").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_EQUALITY").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_EQUALITY").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_BACKSLASH").unwrap()),
-    //                 transition: Down,
-    //             },
-    //         ]);
-    //
-    //         assert_eq!(actual, expected)
-    //     }
-    //
-    //     #[test]
-    //     fn parse_key_actions_no_key_id_type() {
-    //         let actual = KeyActionSequence::parse(&[
-    //             "A UP".to_string(),
-    //             "ENTER UP".to_string(),
-    //             "RETURN UP".to_string(),
-    //             "0x0D UP".to_string(),
-    //             "0xE01C UP".to_string(),
-    //         ])
-    //             .unwrap();
-    //
-    //         let expected = KeyActionSequence::from(vec![
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_A").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_ENTER").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsVirtualKey(VirtualKey::by_name("VK_RETURN").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsVirtualKey(VirtualKey::by_name("VK_RETURN").unwrap()),
-    //                 transition: Up,
-    //             },
-    //             KeyAction {
-    //                 key_id: AsScanCode(ScanCode::by_name("SC_NUM_ENTER").unwrap()),
-    //                 transition: Up,
-    //             },
-    //         ]);
-    //
-    //         assert_eq!(actual, expected)
-    //     }
-    //
-    //     #[test]
-    //     #[should_panic]
-    //     fn parse_key_actions_no_transition() {
-    //         let text = ["VK_A".to_string()];
-    //         let sequence = KeyActionSequence::parse(&text).unwrap();
-    //         dbg!(sequence);
-    //         todo!();
-    //     }
-    //
+    #[test]
+    fn key_action_to_text() {
+        let action = KeyAction {
+            key: Key::from_virtual_key(VirtualKey::by_name("VK_A").unwrap()),
+            transition: KeyTransition::Down,
+            modifiers: None,
+        };
+
+        println!("{}", action.to_text());
+
+        // типа "SHIFT↓ + A↓ → A↑ + SHIFT↑"
+        // ↓ нажата                                     A↓
+        // ↑ отпущена                                   A↑
+        // → нажаты последовательно                     SHIFT↓ → A↓
+        // + нажаты вместе в любой последовательности   SHIFT↓ + A↓
+        // ↓↑ нажата и отпущена                         A↓↑ = A↓ → A↑
+
+        // запись макроса: 
+        //  начало = 
+        //              ни одна не нажата
+        //              нажата хоть одна клавиша
+        //  конец = 
+        //              нажата хоть одна клавиша
+        //              ни одна не нажата (или вышло время тамера если нужо без отпускания)  
+        //              
+
+    }
 }
