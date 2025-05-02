@@ -3,17 +3,17 @@ use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{env, fs};
 
-const FILE_PATH: &str = "config.json";
+const FILE_PATH: &str = "profiles/default.json";
 
 #[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct AppConfig {
-    #[serde(default = "ConfigDefaults::app_state")]
-    pub(crate) app_state: AppState,
+pub(crate) struct Profile {
+    pub(crate) name: String,
+    pub(crate) title: String,
     #[serde(default)]
     pub(crate) transform_rules: Vec<TransformRule>,
 }
 
-impl AppConfig {
+impl Profile {
     pub(crate) fn load() -> Result<Self, String> {
         let path = Self::file_path();
         
@@ -43,42 +43,18 @@ impl AppConfig {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub(crate) struct AppState {
-    #[serde(default = "ConfigDefaults::bool_true")]
-    pub(crate) key_processing_enabled: bool,
-    #[serde(default = "ConfigDefaults::bool_true")]
-    pub(crate) silent_key_processing: bool,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct TransformRule {
     pub(crate) source: KeyAction,
     pub(crate) target: KeyActionSequence,
 }
 
-pub(crate) struct ConfigDefaults {}
-
-impl ConfigDefaults {
-    pub(crate) fn bool_true() -> bool {
-        true
-    }
-
-    pub(crate) fn app_state() -> AppState {
-        AppState {
-            key_processing_enabled: true,
-            silent_key_processing: true,
-        }
-    }
-
-}
-
 #[cfg(test)]
 mod tests {
-    use crate::config::AppConfig;
+    use crate::profile::Profile;
 
     #[test]
     fn test_load_config() {
-        let config = AppConfig::load().unwrap();
+        let config = Profile::load().unwrap();
         dbg!(&config);
     }
 }

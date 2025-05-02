@@ -1,4 +1,4 @@
-use crate::config::TransformRule;
+use crate::profile::TransformRule;
 use crate::key_action::{KeyAction, KeyActionSequence};
 use crate::key_code::{ScanCode, VirtualKey};
 use crate::key_modifier::KeyModifiers;
@@ -58,9 +58,9 @@ impl TransformMap {
         }
     }
 
-    pub(crate) fn from_config(config: Vec<TransformRule>) -> Result<Self, String> {
+    pub(crate) fn from_rules(rules: Vec<TransformRule>) -> Result<Self, String> {
         let mut this = Self::new();
-        for item in config {
+        for item in rules {
             this.put(item.source, item.target);
         }
 

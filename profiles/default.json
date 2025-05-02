@@ -1,4 +1,6 @@
 {
+  "name": "default",
+  "title": "Default",
   "transform_rules": [
     {
       "source": {

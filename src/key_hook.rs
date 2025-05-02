@@ -1,4 +1,4 @@
-use crate::config::AppConfig;
+use crate::profile::Profile;
 use crate::key_action::KeyAction;
 use crate::key_code::{KeyCode, Key, MAX_KEY_ID};
 use crate::key_modifier::KeyModifiers;
@@ -109,17 +109,13 @@ impl Display for KeyboardEvent {
     }
 }
 
+#[derive(Debug, Default)]
 pub(crate) struct KeyboardHandler {}
 
 impl KeyboardHandler {
-    pub(crate) fn from(config: AppConfig) -> Result<KeyboardHandler, String> {
-        let transform_map = TransformMap::from_config(config.transform_rules)?;
+    
+    pub(crate) fn set_rules(&self, transform_map: TransformMap) {
         STATICS.with_borrow_mut(|g| g.transform_map = transform_map);
-
-        let this = Self {};
-        this.set_enabled(config.app_state.key_processing_enabled);
-        this.set_silent(config.app_state.silent_key_processing);
-        Ok(this)
     }
 
     pub(crate) fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyboardEvent)>>) {
@@ -218,8 +214,8 @@ impl KeyboardHandler {
     }
 }
 
-impl Drop for KeyboardHandler {
-    fn drop(&mut self) {
-        self.uninstall_hook()
-    }
-}
+// impl Drop for KeyboardHandler {
+//     fn drop(&mut self) {
+//         self.uninstall_hook()
+//     }
+// }
