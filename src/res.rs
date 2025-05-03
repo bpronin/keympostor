@@ -1,3 +1,4 @@
+extern crate native_windows_gui as nwg;
 use nwg::EmbedResource;
 use serde::Deserialize;
 use std::fs;
@@ -19,7 +20,7 @@ pub(crate) struct ResourceStrings {
     pub(crate) _logging_disabled_: String,
 }
 
-pub static RESOURCE_STRINGS: LazyLock<ResourceStrings> = LazyLock::new(|| {
+pub(crate) static RESOURCE_STRINGS: LazyLock<ResourceStrings> = LazyLock::new(|| {
     let json =
         fs::read_to_string("./res/strings.json").expect("Unable to read strings resources file");
     serde_json::from_str(&json).expect("Unable to parse strings resources file")
@@ -28,7 +29,7 @@ pub static RESOURCE_STRINGS: LazyLock<ResourceStrings> = LazyLock::new(|| {
 #[macro_export]
 macro_rules! rs {
     ($res_id:ident) => {
-        RESOURCE_STRINGS.$res_id.as_str()
+        &RESOURCE_STRINGS.$res_id
     };
 }
 

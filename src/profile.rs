@@ -25,15 +25,15 @@ impl Profile {
         Ok(config)
     }
 
-    pub(crate) fn save(&self) -> Result<(), String> {
-        let path = Self::file_path();
-        
-        let json = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("Unable to serialize {}.\n{}", path, e))?;
-        fs::write(&path, json).map_err(|e| format!("Unable to write {} file.\n{}", path, e))?;
-
-        Ok(())
-    }
+    // pub(crate) fn save(&self) -> Result<(), String> {
+    //     let path = Self::file_path();
+    //     
+    //     let json = serde_json::to_string_pretty(self)
+    //         .map_err(|e| format!("Unable to serialize {}.\n{}", path, e))?;
+    //     fs::write(&path, json).map_err(|e| format!("Unable to write {} file.\n{}", path, e))?;
+    // 
+    //     Ok(())
+    // }
 
     pub(crate) fn file_path() -> String {
         let mut args = env::args();

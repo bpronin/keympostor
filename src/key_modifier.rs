@@ -7,15 +7,15 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_RMENU, VK_RSHIFT, VK_RWIN,
 };
 
-pub const KM_NONE: KeyModifiers = KeyModifiers(0);
-pub const KM_LEFT_SHIFT: KeyModifiers = KeyModifiers(1);
-pub const KM_RIGHT_SHIFT: KeyModifiers = KeyModifiers(1 << 1);
-pub const KM_LEFT_CONTROL: KeyModifiers = KeyModifiers(1 << 2);
-pub const KM_RIGHT_CONTROL: KeyModifiers = KeyModifiers(1 << 3);
-pub const KM_LEFT_ALT: KeyModifiers = KeyModifiers(1 << 4);
-pub const KM_RIGHT_ALT: KeyModifiers = KeyModifiers(1 << 5);
-pub const KM_LEFT_WIN: KeyModifiers = KeyModifiers(1 << 6);
-pub const KM_RIGHT_WIN: KeyModifiers = KeyModifiers(1 << 7);
+pub(crate) const KM_NONE: KeyModifiers = KeyModifiers(0);
+pub(crate) const KM_LEFT_SHIFT: KeyModifiers = KeyModifiers(1);
+pub(crate) const KM_RIGHT_SHIFT: KeyModifiers = KeyModifiers(1 << 1);
+pub(crate) const KM_LEFT_CONTROL: KeyModifiers = KeyModifiers(1 << 2);
+pub(crate) const KM_RIGHT_CONTROL: KeyModifiers = KeyModifiers(1 << 3);
+pub(crate) const KM_LEFT_ALT: KeyModifiers = KeyModifiers(1 << 4);
+pub(crate) const KM_RIGHT_ALT: KeyModifiers = KeyModifiers(1 << 5);
+pub(crate) const KM_LEFT_WIN: KeyModifiers = KeyModifiers(1 << 6);
+pub(crate) const KM_RIGHT_WIN: KeyModifiers = KeyModifiers(1 << 7);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub(crate) struct KeyModifiers(u8);
@@ -121,7 +121,7 @@ impl Serialize for KeyModifiers {
 impl<'de> Deserialize<'de> for KeyModifiers {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let mut this = KM_NONE;
-        let values: Vec<String> = Vec::deserialize(deserializer)?;
+        let values= Vec::<String>::deserialize(deserializer)?;
 
         for value in values {
             match value.to_uppercase().as_str() {

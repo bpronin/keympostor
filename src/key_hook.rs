@@ -1,4 +1,3 @@
-use crate::profile::Profile;
 use crate::key_action::KeyAction;
 use crate::key_code::{KeyCode, Key, MAX_KEY_ID};
 use crate::key_modifier::KeyModifiers;

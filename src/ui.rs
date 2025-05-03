@@ -1,19 +1,246 @@
 use super::*;
-use crate::res_ids::IDI_ICON_GAME_LOCK_OFF;
+use crate::key_code::KeyCode;
+use crate::key_hook::{KeyboardEvent, KeyboardHandler};
+use crate::profile::Profile;
+use crate::res::{Resources, RESOURCE_STRINGS};
+use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
+use crate::settings::AppSettings;
+use crate::transform::TransformMap;
 use native_windows_gui as nwg;
+use nwg::NativeUi;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-pub(crate) struct AppUi {
-    inner: Rc<App>,
+thread_local! {
+    static APP: RefCell<AppUi> = RefCell::new(
+        AppControl::build_ui(Default::default()).expect("Failed to build application UI")
+    )
+}
+#[derive(Default)]
+struct AppControl {
+    keyboard_handler: KeyboardHandler,
+    resources: Resources,
+    window: nwg::Window,
+    layout: nwg::FlexboxLayout,
+    text_editor: nwg::TextInput,
+    log_view: nwg::TextBox, //todo set log max capacity
+    main_menu: MainMenu,
+    tray: nwg::TrayNotification,
+    tray_menu: TrayMenu,
+}
+
+#[derive(Default)]
+struct MainMenu {
+    menu: nwg::Menu,
+    toggle_processing_enabled_item: nwg::MenuItem,
+    toggle_logging_enabled_item: nwg::MenuItem,
+    clear_log_item: nwg::MenuItem,
+    separator: nwg::MenuSeparator,
+    exit_app_item: nwg::MenuItem,
+}
+
+#[derive(Default)]
+struct TrayMenu {
+    menu: nwg::Menu,
+    toggle_processing_enabled_item: nwg::MenuItem,
+    open_app_item: nwg::MenuItem,
+    exit_app_item: nwg::MenuItem,
+    separator: nwg::MenuSeparator,
+}
+
+impl AppControl {
+    fn default_font(size: u32) -> nwg::Font {
+        let mut font = nwg::Font::default();
+        nwg::Font::builder()
+            .family("Segoe UI")
+            .size(size)
+            .build(&mut font)
+            .expect("Failed to build font");
+        font
+    }
+
+    fn mono_font(size: u32) -> nwg::Font {
+        let mut font = nwg::Font::default();
+        nwg::Font::builder()
+            .family("Consolas")
+            .size(size)
+            .build(&mut font)
+            .expect("Failed to build font");
+        font
+    }
+
+    fn read_settings(&self) {
+        let settings = AppSettings::load().unwrap_or_else(|e| {
+            ui_panic!("{}", e);
+        });
+
+        self.keyboard_handler
+            .set_enabled(settings.key_processing_enabled);
+        self.keyboard_handler
+            .set_silent(settings.silent_key_processing);
+    }
+
+    fn write_settings(&self) {
+        let mut settings = AppSettings::load().unwrap_or_else(|e| {
+            ui_panic!("{}", e);
+        });
+
+        settings.key_processing_enabled = self.keyboard_handler.is_enabled();
+
+        settings.save().unwrap_or_else(|e| {
+            ui_warn!("{}", e);
+        });
+    }
+
+    fn read_profile(&self) {
+        let profile = Profile::load().unwrap_or_else(|e| {
+            ui_panic!("{}", e);
+        });
+        let rules = TransformMap::from_rules(profile.transform_rules).unwrap_or_else(|e| {
+            ui_panic!("{}", e);
+        });
+
+        self.keyboard_handler.set_rules(rules)
+    }
+
+    pub fn get_icon(&self, icon_id: usize) -> nwg::Icon {
+        let mut icon = nwg::Icon::default();
+        nwg::Icon::builder()
+            .source_embed(Some(&self.resources.embedded))
+            .source_embed_id(icon_id)
+            .strict(true)
+            .size(Some((16, 16)))
+            .build(&mut icon)
+            .unwrap_or_else(|e| {
+                ui_panic!("{}", e);
+            });
+        icon
+    }
+
+    pub fn run(&self) {
+        // let callback = |event: &KeyboardEvent| {self.on_log_view_update(event)};
+        // let boxed_callback = Box::new(callback);
+
+        let boxed_callback = Box::new(on_key_event);
+        self.keyboard_handler.set_callback(Some(boxed_callback));
+
+        self.read_settings();
+        self.read_profile();
+        self.update_controls();
+        self.update_controls_logging_enabled();
+
+        #[cfg(feature = "dev")]
+        {
+            self.log_view.appendln("--- Debug UI");
+            self.log_view
+                .appendln(&format!("--- {}", &Profile::file_path()));
+        }
+
+        nwg::dispatch_thread_events();
+    }
+
+    fn update_controls(&self) {
+        self.main_menu
+            .toggle_processing_enabled_item
+            .set_checked(self.keyboard_handler.is_enabled());
+
+        self.main_menu
+            .toggle_logging_enabled_item
+            .set_checked(!self.keyboard_handler.is_silent());
+
+        self.tray_menu
+            .toggle_processing_enabled_item
+            .set_checked(self.keyboard_handler.is_enabled());
+
+        if self.keyboard_handler.is_enabled() {
+            self.tray.set_icon(&self.get_icon(IDI_ICON_GAME_LOCK_ON));
+        } else {
+            self.tray.set_icon(&self.get_icon(IDI_ICON_GAME_LOCK_OFF));
+        }
+    }
+
+    fn update_controls_logging_enabled(&self) {
+        if self.keyboard_handler.is_silent() {
+            self.log_view.appendln(rs!(_logging_disabled_));
+        } else {
+            self.log_view.appendln(rs!(_logging_enabled_));
+        }
+    }
+
+    fn on_toggle_processing_enabled(&self) {
+        self.keyboard_handler
+            .set_enabled(!self.keyboard_handler.is_enabled());
+        self.update_controls();
+        self.write_settings();
+    }
+
+    fn on_toggle_logging_enabled(&self) {
+        self.keyboard_handler
+            .set_silent(!self.keyboard_handler.is_silent());
+
+        self.update_controls_logging_enabled();
+        self.update_controls();
+        self.write_settings();
+    }
+
+    fn on_app_exit(&self) {
+        self.keyboard_handler.set_enabled(false);
+        nwg::stop_thread_dispatch();
+    }
+
+    fn on_window_close(&self) {
+        #[cfg(feature = "dev")]
+        self.on_app_exit();
+    }
+
+    fn on_open_window(&self) {
+        self.window.set_visible(true);
+    }
+
+    fn on_toggle_window_visibility(&self) {
+        self.window.set_visible(!self.window.visible());
+    }
+
+    fn on_tray_menu_show(&self) {
+        let (x, y) = nwg::GlobalCursor::position();
+        self.tray_menu.menu.popup(x, y);
+    }
+
+    fn on_log_view_clear(&self) {
+        self.log_view.clear();
+    }
+
+    fn on_log_view_update(&self, event: &KeyboardEvent) {
+        let action = event.action;
+        let scancode = action.key.scancode.unwrap();
+        let virtual_key = action.key.virtual_key.unwrap();
+        let line = &format!(
+            "{}{}{} T: {} | {:20} [{}] | {:20} [{}] | {}",
+            if event.is_processable() { "!" } else { " " },
+            if event.is_injected() { ">" } else { " " },
+            if event.is_private() { "X" } else { " " },
+            event.time(),
+            scancode.name(),
+            scancode,
+            virtual_key.name(),
+            virtual_key,
+            action.transition
+        );
+
+        self.log_view.appendln(line);
+    }
+}
+
+struct AppUi {
+    inner: Rc<AppControl>,
     default_handler: RefCell<Option<nwg::EventHandler>>,
 }
 
-impl NativeUi<AppUi> for App {
-    fn build_ui(mut app: App) -> Result<AppUi, nwg::NwgError> {
+impl NativeUi<AppUi> for AppControl {
+    fn build_ui(mut app: AppControl) -> Result<AppUi, nwg::NwgError> {
         nwg::init().expect("Failed to init Native Windows GUI");
-        nwg::Font::set_global_default(default_font(17).into());
+        nwg::Font::set_global_default(Self::default_font(17).into());
 
         #[cfg(not(feature = "dev"))]
         let window_flags = nwg::WindowFlags::MAIN_WINDOW;
@@ -106,7 +333,7 @@ impl NativeUi<AppUi> for App {
         nwg::TextBox::builder()
             .parent(&app.window)
             .readonly(true)
-            .font(Some(&mono_font(15)))
+            .font(Some(&Self::mono_font(15)))
             .build(&mut app.log_view)?;
 
         // Wrap-up
@@ -227,29 +454,18 @@ impl Drop for AppUi {
 }
 
 impl Deref for AppUi {
-    type Target = App;
+    type Target = AppControl;
 
-    fn deref(&self) -> &App {
+    fn deref(&self) -> &AppControl {
         &self.inner
     }
 }
 
-fn default_font(size: u32) -> nwg::Font {
-    let mut font = nwg::Font::default();
-    nwg::Font::builder()
-        .family("Segoe UI")
-        .size(size)
-        .build(&mut font)
-        .expect("Failed to build font");
-    font
+// todo: try to get rid of it
+fn on_key_event(event: &KeyboardEvent) {
+    APP.with_borrow(|app| app.on_log_view_update(event))
 }
 
-fn mono_font(size: u32) -> nwg::Font {
-    let mut font = nwg::Font::default();
-    nwg::Font::builder()
-        .family("Consolas")
-        .size(size)
-        .build(&mut font)
-        .expect("Failed to build font");
-    font
+pub fn run_app() {
+    APP.with_borrow(|app| app.run());
 }

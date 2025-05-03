@@ -1,5 +1,6 @@
+extern crate native_windows_gui as nwg;
+use crate::res::RESOURCE_STRINGS;
 use crate::rs;
-use crate::RESOURCE_STRINGS;
 
 pub(crate) fn warn(text: &str) {
     nwg::message(&nwg::MessageParams {
@@ -13,7 +14,7 @@ pub(crate) fn warn(text: &str) {
 #[macro_export]
 macro_rules! ui_warn {
     ($($arg:tt)*) => {
-        crate::util::warn(format_str!($($arg)*));
+        crate::util::warn(&format!($($arg)*));
     }
 }
 
@@ -21,13 +22,6 @@ macro_rules! ui_warn {
 macro_rules! ui_panic {
     ($($arg:tt)*) => {
         nwg::fatal_message(rs!(app_title), &format!($($arg)*));
-    }
-}
-
-#[macro_export]
-macro_rules! format_str {
-    ($($arg:tt)*) => {
-        format!($($arg)*).as_str()
     }
 }
 

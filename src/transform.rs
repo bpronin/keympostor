@@ -1,10 +1,10 @@
-use crate::profile::TransformRule;
 use crate::key_action::{KeyAction, KeyActionSequence};
 use crate::key_code::{ScanCode, VirtualKey};
 use crate::key_modifier::KeyModifiers;
+use crate::key_transition::KeyTransition;
+use crate::profile::TransformRule;
 use std::collections::HashMap;
 use std::hash::Hash;
-use crate::key_transition::KeyTransition;
 
 #[derive(Debug)]
 struct KeyCodeTransformMap<K: Hash + Eq> {
@@ -86,7 +86,8 @@ impl TransformMap {
     }
 
     pub(crate) fn get(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
-        self.get_from_scancodes(source).or(self.get_from_virtual_keys(source))
+        self.get_from_scancodes(source)
+            .or(self.get_from_virtual_keys(source))
     }
 
     fn put(&mut self, source: KeyAction, target: KeyActionSequence) {

@@ -158,10 +158,8 @@ impl Key {
                 Self::parse_virtual_key_from_name(s)
             } else {
                 Self::parse_scancode_from_symbol(s).or_else(|_| {
-                    let vk = format!("VK_{}", s);
-                    Self::parse(Some(vk.as_str())).or_else(|_| {
-                        let sc = format!("SC_{}", s);
-                        Self::parse(Some(sc.as_str()))
+                    Self::parse(Some(&format!("VK_{}", s))).or_else(|_| {
+                        Self::parse(Some(&format!("SC_{}", s)))
                     })
                 })
             }
@@ -1775,7 +1773,7 @@ mod tests {
 
     fn fmt_scancode_name(key_name: &str) -> String {
         "SC_".to_string()
-            + key_name
+            + &key_name
             .to_uppercase()
             .replace(' ', "_")
             .replace('`', "BACKTICK")
@@ -1791,7 +1789,6 @@ mod tests {
             .replace(';', "SEMICOLON")
             .replace(',', "COMMA")
             .replace('.', "DOT")
-            .as_str()
     }
 
     #[test]

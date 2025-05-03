@@ -3,7 +3,6 @@ use crate::key_code::{Key, ScanCode, VirtualKey};
 use crate::key_modifier::KeyModifiers;
 use crate::util::slices_equal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::fmt::Display;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS,
     KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
@@ -65,16 +64,6 @@ impl KeyAction {
             },
         }
     }
-
-    fn to_text(&self) -> String {
-        
-
-        todo!()
-    }
-
-    fn from_text(text: String) -> Self {
-        todo!()
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -128,7 +117,7 @@ mod tests {
             modifiers: None,
         };
 
-        println!("{}", action.to_text());
+        // println!("{}", action.to_text());
 
         // типа "SHIFT↓ + A↓ → A↑ + SHIFT↑"
         // ↓ нажата                                     A↓
