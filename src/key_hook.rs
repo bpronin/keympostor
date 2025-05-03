@@ -1,32 +1,15 @@
-use crate::key_action::KeyAction;
-use crate::key_code::{KeyCode, Key, MAX_SC_CODE, MAX_VK_CODE};
-use crate::key_modifier::KeyModifiers;
+use crate::key_event::KeyboardEvent;
 use crate::transform::KeyTransformMap;
-use log::{debug, warn};
+use log::debug;
 use std::cell::RefCell;
-use std::fmt::{Display, Formatter};
 use windows::Win32::Foundation::*;
+use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardState;
 use windows::Win32::UI::WindowsAndMessaging::*;
-use crate::key_transition::KeyTransition;
 
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
 /// Content does not matter.
 pub static SELF_MARKER: &str = "self";
-
-thread_local! {
-    static STATICS: RefCell<Statics> = RefCell::new(Statics {
-        transform_map: KeyTransformMap::new(),
-        handle: None,
-        callback: None,
-        silent_processing: false
-    });
-}
-
-pub(crate) struct KeyboardEvent {
-    kb: KBDLLHOOKSTRUCT,
-    pub(crate) action: KeyAction,
-}
 
 struct Statics {
     transform_map: KeyTransformMap,
@@ -35,84 +18,19 @@ struct Statics {
     silent_processing: bool,
 }
 
-impl KeyboardEvent {
-    fn from(l_param: LPARAM, modifiers: Option<KeyModifiers>) -> Self {
-        let kb = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
-        Self {
-            kb,
-            action: KeyAction {
-                key: Key::from_kb(&kb),
-                transition: KeyTransition::from_kb(&kb),
-                modifiers,
-            },
-        }
-    }
-
-    pub(crate) fn flags(&self) -> u32 {
-        self.kb.flags.0
-    }
-
-    pub(crate) fn time(&self) -> u32 {
-        self.kb.time
-    }
-
-    pub(crate) fn is_injected(&self) -> bool {
-        self.kb.flags.contains(LLKHF_INJECTED)
-    }
-
-    pub(crate) fn is_private(&self) -> bool {
-        self.is_injected() && (self.kb.dwExtraInfo as *const u8 == SELF_MARKER.as_ptr())
-    }
-
-    pub(crate) fn is_valid(&self) -> bool {
-        if self.kb.scanCode > MAX_SC_CODE as u32 {
-            warn!("Ignored invalid scancode: 0x{:04X}.", self.kb.scanCode);
-            false
-        } else if self.kb.vkCode > MAX_VK_CODE as u32 {
-            warn!("Ignored invalid virtual key: 0x{:04X}.", self.kb.vkCode);
-            false
-        } else if self.kb.time == 0 {
-            warn!("Ignored invalid time: {}.", self.kb.time);
-            false
-        } else {
-            true
-        }
-    }
-
-    pub(crate) fn is_processable(&self) -> bool {
-        STATICS.with_borrow(|g| !g.transform_map.get(&self.action).is_some())
-    }
-}
-
-impl Display for KeyboardEvent {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let scancode = self.action.key.scancode.unwrap();
-        let virtual_key = self.action.key.virtual_key.unwrap();
-        let modifiers = if let Some(m) = self.action.modifiers {
-            &format!("{}", m)
-        } else {
-            "ANY"
-        };
-        write!(
-            f,
-            "T: {:>9} | {:18} | SC: {} | VK: {} | M: {} | F: {:08b} | {:8} | {:8}",
-            self.time(),
-            scancode.name(),
-            scancode,
-            virtual_key,
-            modifiers,
-            self.flags(),
-            if self.is_injected() { "INJECTED" } else { "" },
-            if self.is_private() { "PRIVATE" } else { "" }
-        )
-    }
+thread_local! {
+    static STATICS: RefCell<Statics> = RefCell::new(Statics {
+        transform_map: KeyTransformMap::new(),
+        handle: None,
+        callback: None,
+        silent_processing: false,
+    });
 }
 
 #[derive(Debug, Default)]
 pub(crate) struct KeyboardHandler {}
 
 impl KeyboardHandler {
-    
     pub(crate) fn set_rules(&self, transform_map: KeyTransformMap) {
         STATICS.with_borrow_mut(|g| g.transform_map = transform_map);
     }
@@ -188,22 +106,33 @@ impl KeyboardHandler {
     extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
         STATICS.with_borrow(|g| {
             if code == HC_ACTION as i32 {
-                let event = KeyboardEvent::from(l_param, Some(KeyModifiers::capture_state()));
+                let kb = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
+                
+                let mut kb_state = [0u8; 256];
+                unsafe { GetKeyboardState(&mut kb_state) }.unwrap();
+                
+                let mut event = KeyboardEvent::from_kb(kb, kb_state);
 
                 debug!("{}", event);
 
                 if event.is_valid() {
+                    let target = if !event.is_private() {
+                        event.is_trigger = true;
+                        g.transform_map.get(&event.action)
+                    } else {
+                        event.is_trigger = false;
+                        None
+                    };
+
                     if !g.silent_processing {
                         if let Some(callback) = &g.callback {
                             callback(&event)
                         }
                     }
 
-                    if !event.is_private() {
-                        if let Some(target) = g.transform_map.get(&event.action) {
-                            target.send();
-                            return LRESULT(1);
-                        }
+                    if let Some(t) = target {
+                        t.send();
+                        return LRESULT(1);
                     }
                 }
             }

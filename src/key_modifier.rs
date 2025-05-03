@@ -2,10 +2,7 @@ use serde::de::{Error, Unexpected};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Display, Formatter};
 use std::ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetKeyboardState, VIRTUAL_KEY, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL,
-    VK_RMENU, VK_RSHIFT, VK_RWIN,
-};
+use windows::Win32::UI::Input::KeyboardAndMouse::{VIRTUAL_KEY, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN};
 
 pub(crate) const KM_NONE: KeyModifiers = KeyModifiers(0);
 pub(crate) const KM_LEFT_SHIFT: KeyModifiers = KeyModifiers(1);
@@ -21,24 +18,21 @@ pub(crate) const KM_RIGHT_WIN: KeyModifiers = KeyModifiers(1 << 7);
 pub struct KeyModifiers(u8);
 
 impl KeyModifiers {
-    pub(crate) fn capture_state() -> Self {
-        let mut state = [0u8; 256];
-        unsafe { GetKeyboardState(&mut state) }.unwrap();
-
+    pub(crate) fn from_kb_state(kb_state: &[u8; 256]) -> Self {
         let mut this = KM_NONE;
-        this.capture_key_state(&state, VK_RSHIFT, KM_RIGHT_SHIFT);
-        this.capture_key_state(&state, VK_LSHIFT, KM_LEFT_SHIFT);
-        this.capture_key_state(&state, VK_RCONTROL, KM_RIGHT_CONTROL);
-        this.capture_key_state(&state, VK_LCONTROL, KM_LEFT_CONTROL);
-        this.capture_key_state(&state, VK_RMENU, KM_RIGHT_ALT);
-        this.capture_key_state(&state, VK_LMENU, KM_LEFT_ALT);
-        this.capture_key_state(&state, VK_RWIN, KM_RIGHT_WIN);
-        this.capture_key_state(&state, VK_LWIN, KM_LEFT_WIN);
+        this.get_key_state(kb_state, VK_RSHIFT, KM_RIGHT_SHIFT);
+        this.get_key_state(kb_state, VK_LSHIFT, KM_LEFT_SHIFT);
+        this.get_key_state(kb_state, VK_RCONTROL, KM_RIGHT_CONTROL);
+        this.get_key_state(kb_state, VK_LCONTROL, KM_LEFT_CONTROL);
+        this.get_key_state(kb_state, VK_RMENU, KM_RIGHT_ALT);
+        this.get_key_state(kb_state, VK_LMENU, KM_LEFT_ALT);
+        this.get_key_state(kb_state, VK_RWIN, KM_RIGHT_WIN);
+        this.get_key_state(kb_state, VK_LWIN, KM_LEFT_WIN);
         this
     }
 
     #[inline]
-    fn capture_key_state(&mut self, state: &[u8; 256], key: VIRTUAL_KEY, flag: KeyModifiers) {
+    fn get_key_state(&mut self, state: &[u8; 256], key: VIRTUAL_KEY, flag: KeyModifiers) {
         if (&state[key.0 as usize] & 0x80) != 0 {
             self.0 |= flag.0
         }
@@ -121,7 +115,7 @@ impl Serialize for KeyModifiers {
 impl<'de> Deserialize<'de> for KeyModifiers {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let mut this = KM_NONE;
-        let values= Vec::<String>::deserialize(deserializer)?;
+        let values = Vec::<String>::deserialize(deserializer)?;
 
         for value in values {
             match value.to_uppercase().as_str() {
@@ -143,7 +137,7 @@ impl<'de> Deserialize<'de> for KeyModifiers {
                 ))?,
             }
         }
-        
+
         Ok(this)
     }
 }
@@ -176,7 +170,7 @@ impl Display for KeyModifiers {
             values[4] = 'W'
         }
         f.serialize_str(&values.iter().collect::<String>())
-        
+
         // write!(f, "{:_>10b}", &self.0)
     }
 }

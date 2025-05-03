@@ -1,13 +1,14 @@
-use crate::key_hook::SELF_MARKER;
 use crate::key_code::{Key, ScanCode, VirtualKey};
+use crate::key_hook::SELF_MARKER;
 use crate::key_modifier::KeyModifiers;
+use crate::key_transition::KeyTransition;
 use crate::util::slices_equal;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS,
     KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
-use crate::key_transition::KeyTransition;
+use windows::Win32::UI::WindowsAndMessaging::KBDLLHOOKSTRUCT;
 
 #[derive(Serialize, Deserialize, Default, Clone, Copy, Debug, PartialEq)]
 pub struct KeyAction {
@@ -17,6 +18,14 @@ pub struct KeyAction {
 }
 
 impl KeyAction {
+    pub(crate) fn from_kb(kb: &KBDLLHOOKSTRUCT, kb_state: &[u8; 256]) -> KeyAction {
+        Self {
+            key: Key::from_kb(&kb),
+            transition: KeyTransition::from_kb(kb),
+            modifiers: Some(KeyModifiers::from_kb_state(kb_state)),
+        }
+    }
+
     fn create_input(&self) -> INPUT {
         if let Some(scancode) = self.key.scancode {
             Self::create_scancode_input(scancode, self.transition)
@@ -126,14 +135,13 @@ mod tests {
         // + нажаты вместе в любой последовательности   SHIFT↓ + A↓
         // ↓↑ нажата и отпущена                         A↓↑ = A↓ → A↑
 
-        // запись макроса: 
-        //  начало = 
+        // запись макроса:
+        //  начало =
         //              ни одна не нажата
         //              нажата хоть одна клавиша
-        //  конец = 
+        //  конец =
         //              нажата хоть одна клавиша
-        //              ни одна не нажата (или вышло время тамера если нужо без отпускания)  
-        //              
-
+        //              ни одна не нажата (или вышло время тамера если нужо без отпускания)
+        //
     }
 }

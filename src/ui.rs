@@ -1,6 +1,6 @@
 use super::*;
 use crate::key_code::KeyCode;
-use crate::key_hook::{KeyboardEvent, KeyboardHandler};
+use crate::key_hook::KeyboardHandler;
 use crate::profile::Profile;
 use crate::res::{Resources, RESOURCE_STRINGS};
 use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
@@ -11,6 +11,7 @@ use nwg::NativeUi;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
+use crate::key_event::KeyboardEvent;
 
 thread_local! {
     static APP: RefCell<AppUi> = RefCell::new(
@@ -217,7 +218,7 @@ impl AppControl {
         let virtual_key = action.key.virtual_key.unwrap();
         let line = &format!(
             "{}{}{} T: {} | {:20} [{}] | {:20} [{}] | {}",
-            if event.is_processable() { "!" } else { " " },
+            if event.is_trigger { "!" } else { " " },
             if event.is_injected() { ">" } else { " " },
             if event.is_private() { "X" } else { " " },
             event.time(),
