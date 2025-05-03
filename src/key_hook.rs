@@ -14,6 +14,15 @@ use crate::key_transition::KeyTransition;
 /// Content does not matter.
 pub static SELF_MARKER: &str = "self";
 
+thread_local! {
+    static STATICS: RefCell<Statics> = RefCell::new(Statics {
+        transform_map: KeyTransformMap::new(),
+        handle: None,
+        callback: None,
+        silent_processing: false
+    });
+}
+
 pub(crate) struct KeyboardEvent {
     kb: KBDLLHOOKSTRUCT,
     pub(crate) action: KeyAction,
@@ -24,15 +33,6 @@ struct Statics {
     handle: Option<HHOOK>,
     callback: Option<Box<dyn Fn(&KeyboardEvent)>>,
     silent_processing: bool,
-}
-
-thread_local! {
-    static STATICS: RefCell<Statics> = RefCell::new(Statics {
-        transform_map: KeyTransformMap::new(),
-        handle: None,
-        callback: None,
-        silent_processing: false
-    });
 }
 
 impl KeyboardEvent {
@@ -213,7 +213,7 @@ impl KeyboardHandler {
     }
 }
 
-// impl Drop for KeyboardHandler {
+// todo: impl Drop for KeyboardHandler {
 //     fn drop(&mut self) {
 //         self.uninstall_hook()
 //     }
