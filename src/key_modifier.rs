@@ -18,7 +18,7 @@ pub(crate) const KM_LEFT_WIN: KeyModifiers = KeyModifiers(1 << 6);
 pub(crate) const KM_RIGHT_WIN: KeyModifiers = KeyModifiers(1 << 7);
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) struct KeyModifiers(u8);
+pub struct KeyModifiers(u8);
 
 impl KeyModifiers {
     pub(crate) fn capture_state() -> Self {

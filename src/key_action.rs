@@ -9,11 +9,11 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 use crate::key_transition::KeyTransition;
 
-#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq)]
-pub(crate) struct KeyAction {
-    pub(crate) key: Key,
-    pub(crate) transition: KeyTransition,
-    pub(crate) modifiers: Option<KeyModifiers>,
+#[derive(Serialize, Deserialize, Default, Clone, Copy, Debug, PartialEq)]
+pub struct KeyAction {
+    pub key: Key,
+    pub transition: KeyTransition,
+    pub modifiers: Option<KeyModifiers>,
 }
 
 impl KeyAction {
@@ -67,12 +67,12 @@ impl KeyAction {
 }
 
 #[derive(Clone, Debug)]
-pub(crate) struct KeyActionSequence {
+pub struct KeyActionSequence {
     pub(crate) actions: Vec<KeyAction>,
 }
 
 impl KeyActionSequence {
-    pub(crate) fn from(actions: Vec<KeyAction>) -> Self {
+    pub fn from(actions: Vec<KeyAction>) -> Self {
         Self { actions }
     }
 

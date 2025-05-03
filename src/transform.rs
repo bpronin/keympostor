@@ -45,13 +45,13 @@ impl<K: Hash + Eq> KeyCodeTransformMap<K> {
 }
 
 #[derive(Debug)]
-pub(crate) struct TransformMap {
+pub struct TransformMap {
     scancode_map: KeyCodeTransformMap<ScanCode>,
     virtual_key_map: KeyCodeTransformMap<VirtualKey>,
 }
 
 impl TransformMap {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             scancode_map: KeyCodeTransformMap::new(),
             virtual_key_map: KeyCodeTransformMap::new(),
@@ -85,12 +85,12 @@ impl TransformMap {
         }
     }
 
-    pub(crate) fn get(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
+    pub fn get(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
         self.get_from_scancodes(source)
             .or(self.get_from_virtual_keys(source))
     }
 
-    fn put(&mut self, source: KeyAction, target: KeyActionSequence) {
+    pub fn put(&mut self, source: KeyAction, target: KeyActionSequence) {
         if let Some(key) = source.key.scancode {
             self.scancode_map
                 .put(source.transition, *key, source.modifiers, target);

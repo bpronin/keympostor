@@ -4,19 +4,16 @@ use serde::{Deserialize, Serialize};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
 
 #[derive(Serialize, Deserialize, Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) enum KeyTransition {
+pub enum KeyTransition {
     #[serde(alias = "UP", alias = "up")]
     Up,
     #[serde(alias = "DOWN", alias = "down")]
     Down,
 }
 
-impl Display for KeyTransition {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Up => '↑',
-            Down => '↓'
-        })
+impl Default for KeyTransition {
+    fn default() -> Self {
+        Up
     }
 }
 
@@ -37,6 +34,14 @@ impl KeyTransition {
     }
 }
 
+impl Display for KeyTransition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Up => '↑',
+            Down => '↓'
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {

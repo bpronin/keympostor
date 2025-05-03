@@ -1,5 +1,7 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
-use keympostor::*;   
+use criterion::{criterion_group, criterion_main, Criterion};
+use keympostor::key_action::*;
+use keympostor::key_code::*;
+use keympostor::transform::TransformMap;
 
 #[inline]
 fn fibonacci(n: u64) -> u64 {
@@ -10,9 +12,28 @@ fn fibonacci(n: u64) -> u64 {
     }
 }
 
-pub fn criterion_benchmark(c: &mut Criterion) {
-    c.bench_function("fib 20", |b| b.iter(|| fibonacci(black_box(20))));
+pub fn benchmark_transform_map(c: &mut Criterion) {
+    let mut map = TransformMap::new();
+
+    for key in &VIRTUAL_KEYS {
+        let source = KeyAction {
+            key: Key::from_virtual_key(key),
+            ..Default::default()
+        };
+        map.put(source, KeyActionSequence::from(vec![]));
+    }
+
+    let actual = KeyAction {
+        key: Key::from_virtual_key(&VIRTUAL_KEYS[14]),
+        ..Default::default()
+    };
+
+    c.bench_function("TransformMap.get", |b| {
+        b.iter(|| {
+            map.get(&actual);
+        })
+    });
 }
 
-criterion_group!(benches, criterion_benchmark);
+criterion_group!(benches, benchmark_transform_map);
 criterion_main!(benches);

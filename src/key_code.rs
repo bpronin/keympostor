@@ -11,7 +11,7 @@ pub(crate) trait KeyCode {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) struct VirtualKey {
+pub struct VirtualKey {
     name: &'static str,
     pub(crate) value: u8,
 }
@@ -27,7 +27,7 @@ impl VirtualKey {
         }
     }
 
-    pub(crate) fn by_name(name: &str) -> Result<&'static VirtualKey, String> {
+    pub fn by_name(name: &str) -> Result<&'static VirtualKey, String> {
         let position = VIRTUAL_KEYS.iter().position(|probe| probe.name == name);
 
         if let Some(ix) = position {
@@ -51,7 +51,7 @@ impl Display for VirtualKey {
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) struct ScanCode {
+pub struct ScanCode {
     name: &'static str,
     pub(crate) value: u8,
     pub(crate) is_extended: bool,
@@ -113,8 +113,8 @@ impl Display for ScanCode {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) struct Key {
+#[derive(Default, Clone, Copy, Debug, PartialEq)]
+pub struct Key {
     pub(crate) virtual_key: Option<&'static VirtualKey>,
     pub(crate) scancode: Option<&'static ScanCode>,
 }
@@ -127,7 +127,7 @@ impl Key {
         }
     }
 
-    pub(crate) fn from_virtual_key(virtual_key: &'static VirtualKey) -> Self {
+    pub fn from_virtual_key(virtual_key: &'static VirtualKey) -> Self {
         Self {
             scancode: None,
             virtual_key: Some(virtual_key),
@@ -235,7 +235,7 @@ static INVALID_VIRTUAL_KEY: VirtualKey = VirtualKey {
     name: "N/A",
     value: 0x00,
 };
-static VIRTUAL_KEYS: [VirtualKey; 174] = [
+pub static VIRTUAL_KEYS: [VirtualKey; 174] = [
     VirtualKey {
         name: "VK_LBUTTON",
         value: 0x01,
