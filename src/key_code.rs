@@ -4,7 +4,8 @@ use std::fmt::{Display, Formatter};
 use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
-pub(crate) const MAX_KEY_ID: usize = 0x100;
+pub(crate) const MAX_VK_CODE: usize = 255;
+pub(crate) const MAX_SC_CODE: usize = 255; //todo: check it out
 
 pub(crate) trait KeyCode {
     fn name(&self) -> &'static str;
@@ -13,11 +14,11 @@ pub(crate) trait KeyCode {
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct VirtualKey {
     name: &'static str,
-    pub(crate) value: u8,
+    pub value: u8,
 }
 
 impl VirtualKey {
-    pub(crate) fn by_code(code: u8) -> Result<&'static VirtualKey, String> {
+    pub fn by_code(code: u8) -> Result<&'static VirtualKey, String> {
         let position = VIRTUAL_KEYS.iter().position(|probe| probe.value == code);
 
         if let Some(ix) = position {
@@ -231,7 +232,7 @@ impl<'de> Deserialize<'de> for Key {
     }
 }
 
-static INVALID_VIRTUAL_KEY: VirtualKey = VirtualKey {
+pub static INVALID_VIRTUAL_KEY: VirtualKey = VirtualKey {
     name: "N/A",
     value: 0x00,
 };

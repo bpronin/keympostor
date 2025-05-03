@@ -111,7 +111,7 @@ mod tests {
 
     #[test]
     fn key_action_to_text() {
-        let action = KeyAction {
+        let _action = KeyAction {
             key: Key::from_virtual_key(VirtualKey::by_name("VK_A").unwrap()),
             transition: KeyTransition::Down,
             modifiers: None,

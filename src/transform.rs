@@ -1,60 +1,90 @@
 use crate::key_action::{KeyAction, KeyActionSequence};
-use crate::key_code::{ScanCode, VirtualKey};
+use crate::key_code::{ScanCode, VirtualKey, MAX_SC_CODE, MAX_VK_CODE};
 use crate::key_modifier::KeyModifiers;
 use crate::key_transition::KeyTransition;
 use crate::profile::TransformRule;
+use std::array::from_fn;
 use std::collections::HashMap;
-use std::hash::Hash;
 
 #[derive(Debug)]
-struct KeyCodeTransformMap<K: Hash + Eq> {
-    map: HashMap<K, HashMap<KeyTransition, HashMap<Option<KeyModifiers>, KeyActionSequence>>>,
+struct VirtualKeyTransformMap {
+    map: [[HashMap<Option<KeyModifiers>, KeyActionSequence>; MAX_VK_CODE]; 2],
 }
 
-impl<K: Hash + Eq> KeyCodeTransformMap<K> {
+impl VirtualKeyTransformMap {
     fn new() -> Self {
+        let f = |_| HashMap::new();
         Self {
-            map: HashMap::new(),
+            map: [from_fn(f), from_fn(f)],
         }
     }
 
     fn get(
         &self,
-        transition: KeyTransition,
-        key: K,
-        modifiers: Option<KeyModifiers>,
+        transition: &KeyTransition,
+        key: &VirtualKey,
+        modifiers: &Option<KeyModifiers>,
     ) -> Option<&KeyActionSequence> {
-        let submap = self.map.get(&key)?.get(&transition)?;
-        submap.get(&modifiers).or(submap.get(&None))
+        self.map[transition.is_up() as usize][key.value as usize].get(&modifiers)
     }
 
     fn put(
         &mut self,
         transition: KeyTransition,
-        key: K,
+        key: VirtualKey,
         modifiers: Option<KeyModifiers>,
         target: KeyActionSequence,
     ) {
-        self.map
-            .entry(key)
-            .or_default()
-            .entry(transition)
-            .or_default()
+        self.map[transition.is_up() as usize][key.value as usize].insert(modifiers, target);
+    }
+}
+
+#[derive(Debug)]
+struct ScanCodeTransformMap {
+    map: [[[HashMap<Option<KeyModifiers>, KeyActionSequence>; MAX_SC_CODE]; 2]; 2],
+}
+
+impl ScanCodeTransformMap {
+    fn new() -> Self {
+        let f = |_| HashMap::new();
+        Self {
+            map: [[from_fn(f), from_fn(f)], [from_fn(f), from_fn(f)]],
+        }
+    }
+
+    fn get(
+        &self,
+        transition: &KeyTransition,
+        key: &ScanCode,
+        modifiers: &Option<KeyModifiers>,
+    ) -> Option<&KeyActionSequence> {
+        self.map[transition.is_up() as usize][key.is_extended as usize][key.value as usize]
+            .get(&modifiers)
+    }
+
+    fn put(
+        &mut self,
+        transition: KeyTransition,
+        key: ScanCode,
+        modifiers: Option<KeyModifiers>,
+        target: KeyActionSequence,
+    ) {
+        self.map[transition.is_up() as usize][key.is_extended as usize][key.value as usize]
             .insert(modifiers, target);
     }
 }
 
 #[derive(Debug)]
-pub struct TransformMap {
-    scancode_map: KeyCodeTransformMap<ScanCode>,
-    virtual_key_map: KeyCodeTransformMap<VirtualKey>,
+pub struct KeyTransformMap {
+    scancode_map: ScanCodeTransformMap,
+    virtual_key_map: VirtualKeyTransformMap,
 }
 
-impl TransformMap {
+impl KeyTransformMap {
     pub fn new() -> Self {
         Self {
-            scancode_map: KeyCodeTransformMap::new(),
-            virtual_key_map: KeyCodeTransformMap::new(),
+            scancode_map: ScanCodeTransformMap::new(),
+            virtual_key_map: VirtualKeyTransformMap::new(),
         }
     }
 
@@ -67,35 +97,35 @@ impl TransformMap {
         Ok(this)
     }
 
-    fn get_from_scancodes(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
-        if let Some(key) = source.key.scancode {
-            self.scancode_map
-                .get(source.transition, *key, source.modifiers)
+    fn get_from_virtual_keys(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
+        if let Some(key) = source.key.virtual_key {
+            self.virtual_key_map
+                .get(&source.transition, &key, &source.modifiers)
         } else {
             None
         }
     }
 
-    fn get_from_virtual_keys(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
-        if let Some(key) = source.key.virtual_key {
-            self.virtual_key_map
-                .get(source.transition, *key, source.modifiers)
+    fn get_from_scancodes(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
+        if let Some(key) = source.key.scancode {
+            self.scancode_map
+                .get(&source.transition, &key, &source.modifiers)
         } else {
             None
         }
     }
 
     pub fn get(&self, source: &KeyAction) -> Option<&KeyActionSequence> {
-        self.get_from_scancodes(source)
-            .or(self.get_from_virtual_keys(source))
+        self.get_from_virtual_keys(source)
+            .or(self.get_from_scancodes(source))
     }
 
     pub fn put(&mut self, source: KeyAction, target: KeyActionSequence) {
-        if let Some(key) = source.key.scancode {
-            self.scancode_map
-                .put(source.transition, *key, source.modifiers, target);
-        } else if let Some(key) = source.key.virtual_key {
+        if let Some(key) = source.key.virtual_key {
             self.virtual_key_map
+                .put(source.transition, *key, source.modifiers, target);
+        } else if let Some(key) = source.key.scancode {
+            self.scancode_map
                 .put(source.transition, *key, source.modifiers, target);
         } else {
             panic!("Action key cannot be blank.");
@@ -110,7 +140,7 @@ mod tests {
     use crate::key_code::VirtualKey;
     use crate::key_modifier::{KM_LEFT_SHIFT, KM_NONE, KM_RIGHT_WIN};
     use crate::key_transition::KeyTransition;
-    use crate::transform::TransformMap;
+    use crate::transform::KeyTransformMap;
 
     #[test]
     fn test_get() {
@@ -123,7 +153,7 @@ mod tests {
             modifiers: Some(KM_NONE),
         }]);
 
-        let mut map = TransformMap::new();
+        let mut map = KeyTransformMap::new();
         map.put(
             KeyAction {
                 key: a_key,
@@ -174,7 +204,7 @@ mod tests {
             modifiers: Some(KM_NONE),
         }]);
 
-        let mut map = TransformMap::new();
+        let mut map = KeyTransformMap::new();
         map.put(
             KeyAction {
                 key: a_key,

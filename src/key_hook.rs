@@ -1,7 +1,7 @@
 use crate::key_action::KeyAction;
-use crate::key_code::{KeyCode, Key, MAX_KEY_ID};
+use crate::key_code::{KeyCode, Key, MAX_SC_CODE, MAX_VK_CODE};
 use crate::key_modifier::KeyModifiers;
-use crate::transform::TransformMap;
+use crate::transform::KeyTransformMap;
 use log::{debug, warn};
 use std::cell::RefCell;
 use std::fmt::{Display, Formatter};
@@ -20,7 +20,7 @@ pub(crate) struct KeyboardEvent {
 }
 
 struct Statics {
-    transform_map: TransformMap,
+    transform_map: KeyTransformMap,
     handle: Option<HHOOK>,
     callback: Option<Box<dyn Fn(&KeyboardEvent)>>,
     silent_processing: bool,
@@ -28,7 +28,7 @@ struct Statics {
 
 thread_local! {
     static STATICS: RefCell<Statics> = RefCell::new(Statics {
-        transform_map: TransformMap::new(),
+        transform_map: KeyTransformMap::new(),
         handle: None,
         callback: None,
         silent_processing: false
@@ -65,10 +65,10 @@ impl KeyboardEvent {
     }
 
     pub(crate) fn is_valid(&self) -> bool {
-        if self.kb.scanCode > MAX_KEY_ID as u32 {
+        if self.kb.scanCode > MAX_SC_CODE as u32 {
             warn!("Ignored invalid scancode: 0x{:04X}.", self.kb.scanCode);
             false
-        } else if self.kb.vkCode > MAX_KEY_ID as u32 {
+        } else if self.kb.vkCode > MAX_VK_CODE as u32 {
             warn!("Ignored invalid virtual key: 0x{:04X}.", self.kb.vkCode);
             false
         } else if self.kb.time == 0 {
@@ -113,7 +113,7 @@ pub(crate) struct KeyboardHandler {}
 
 impl KeyboardHandler {
     
-    pub(crate) fn set_rules(&self, transform_map: TransformMap) {
+    pub(crate) fn set_rules(&self, transform_map: KeyTransformMap) {
         STATICS.with_borrow_mut(|g| g.transform_map = transform_map);
     }
 

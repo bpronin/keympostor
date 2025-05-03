@@ -11,12 +11,6 @@ pub enum KeyTransition {
     Down,
 }
 
-impl Default for KeyTransition {
-    fn default() -> Self {
-        Up
-    }
-}
-
 impl KeyTransition {
     pub(crate) fn from_kb(kb: &KBDLLHOOKSTRUCT) -> KeyTransition {
         if kb.flags.contains(LLKHF_UP) {
@@ -31,6 +25,12 @@ impl KeyTransition {
             Up => true,
             Down => false,
         }
+    }
+}
+
+impl Default for KeyTransition {
+    fn default() -> Self {
+        Up
     }
 }
 

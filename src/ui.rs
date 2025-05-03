@@ -5,7 +5,7 @@ use crate::profile::Profile;
 use crate::res::{Resources, RESOURCE_STRINGS};
 use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
 use crate::settings::AppSettings;
-use crate::transform::TransformMap;
+use crate::transform::KeyTransformMap;
 use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
@@ -97,7 +97,7 @@ impl AppControl {
         let profile = Profile::load().unwrap_or_else(|e| {
             ui_panic!("{}", e);
         });
-        let rules = TransformMap::from_rules(profile.transform_rules).unwrap_or_else(|e| {
+        let rules = KeyTransformMap::from_rules(profile.transform_rules).unwrap_or_else(|e| {
             ui_panic!("{}", e);
         });
 
