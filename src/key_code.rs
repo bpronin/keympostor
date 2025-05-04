@@ -236,6 +236,7 @@ pub static INVALID_VIRTUAL_KEY: VirtualKey = VirtualKey {
     name: "N/A",
     value: 0x00,
 };
+
 pub static VIRTUAL_KEYS: [VirtualKey; 174] = [
     VirtualKey {
         name: "VK_LBUTTON",
@@ -940,6 +941,7 @@ static INVALID_SCANCODE: ScanCode = ScanCode {
     value: 0x00,
     is_extended: false,
 };
+
 static SCANCODES: [ScanCode; 126] = [
     ScanCode {
         name: "SC_ESC",
