@@ -1,6 +1,8 @@
 use crate::keys::KeyCode::{SC, VK};
+use crate::keys::KeyTransition::Up;
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::Input::KeyboardAndMouse::OemKeyScan;
+use KeyTransition::Down;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {
@@ -93,7 +95,7 @@ impl ScanCode {
             let ext_code = unsafe { OemKeyScan(ch as u16) } as u16;
             ScanCode::by_ext_code(ext_code)
         } else {
-            Err(format!("Symbol is to long: {}", symbol.len()))
+            Err(format!("Failed to parse scancode symbol: {}", symbol))
         }
     }
 
@@ -113,17 +115,35 @@ pub enum KeyCode {
 }
 
 impl KeyCode {
-    fn parse(text: &str) -> Result<Self, String> {
+    pub(crate) fn parse(text: &str) -> Result<Self, String> {
         VirtualKey::parse(text)
             .and_then(|vk| Ok(VK(vk)))
             .or_else(|_| ScanCode::parse(text).and_then(|sc| Ok(SC(sc))))
+    }
+
+    pub(crate) fn is_scancode(&self) -> bool {
+        matches!(*self, SC(_))
+    }
+
+    pub(crate) fn is_virtual_key(&self) -> bool {
+        matches!(*self, VK(_))
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum KeyTransition {
-    Down,
     Up,
+    Down,
+}
+
+impl KeyTransition {
+    pub(crate) fn is_up(&self) -> bool {
+        matches!(*self, Up)
+    }
+
+    pub(crate) fn is_down(&self) -> bool {
+        matches!(*self, Down)
+    }
 }
 
 #[derive(Debug, Eq, PartialEq)]
