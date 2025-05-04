@@ -5,34 +5,34 @@ mod tests {
     use crate::keys::{ScanCode, VirtualKey};
 
     #[test]
-    fn test_get_vk_by_code() {
+    fn test_vk_by_code() {
         assert_eq!("VK_RETURN", VirtualKey::by_code(0x0D).unwrap().name);
     }
     
     #[test]
-    fn test_get_vk_by_name() {
+    fn test_vk_by_name() {
         assert_eq!("VK_RETURN", VirtualKey::by_name("VK_RETURN").unwrap().name);
     }
     
     #[test]
-    fn test_get_vk_by_code_name() {
+    fn test_vk_by_code_name() {
         assert_eq!("VK_RETURN", VirtualKey::parse("VK_0x0D").unwrap().name);
     }
     
     #[test]
-    fn test_get_vk_parse() {
+    fn test_vk_parse() {
         assert_eq!("VK_RETURN", VirtualKey::parse("VK_RETURN").unwrap().name);
         assert_eq!("VK_RETURN", VirtualKey::parse("VK_0x0D").unwrap().name);
     }
     
     #[test]
-    fn test_get_sc_by_code() {
+    fn test_sc_by_code() {
         assert_eq!("SC_ENTER", ScanCode::by_code(0x1C, false).unwrap().name);
         assert_eq!("SC_CALCULATOR", ScanCode::by_code(0x21, true).unwrap().name);
     }
     
     #[test]
-    fn test_get_sc_by_name() {
+    fn test_sc_by_name() {
         let actual = ScanCode::by_name("SC_ENTER").unwrap();
         assert_eq!(0x1C, actual.value);
         assert_eq!(false, actual.is_extended); 
@@ -41,9 +41,22 @@ mod tests {
         assert_eq!(0x21, actual.value);
         assert_eq!(true, actual.is_extended);
     }
+
+    #[test]
+    fn test_sc_by_code_name() {
+        assert_eq!("SC_ENTER", ScanCode::parse("SC_0x001C").unwrap().name);
+        assert_eq!("SC_BACKTICK", ScanCode::parse("SC_0xE029").unwrap().name);
+    }
+
+    #[test]
+    fn test_sc_parse() {
+        assert_eq!("SC_ENTER", ScanCode::parse("SC_ENTER").unwrap().name);
+        assert_eq!("SC_ENTER", ScanCode::parse("SC_0x001C").unwrap().name);
+        assert_eq!("SC_BACKTICK", ScanCode::parse("`").unwrap().name);
+    }
     
     #[test]
-    fn test_get_sc_by_ext_code() {
+    fn test_sc_by_ext_code() {
         let actual = ScanCode::by_ext_code(0x1C).unwrap();
         assert_eq!(0x1C, actual.value);
         assert_eq!(false, actual.is_extended); 
@@ -53,21 +66,21 @@ mod tests {
         assert_eq!(true, actual.is_extended);
     }
     
-    // #[test]
-    // fn test_get_sc_by_symbol() {
-    //     let actual = ScanCode::by_symbol('A').unwrap();
-    //     assert_eq!("SC_A", actual.name);
-    //     
-    //     let actual = ScanCode::by_symbol('`').unwrap();
-    //     assert_eq!("SC_BACKTICK", actual.name);
-    //     
-    //     let actual = ScanCode::by_symbol('~').unwrap();
-    //     // must be with SHIFT pressed
-    //     assert_eq!("SC_BACKTICK", actual.name);
-    // }
+    #[test]
+    fn test_sc_by_symbol() {
+        let actual = ScanCode::by_symbol("A").unwrap();
+        assert_eq!("SC_A", actual.name);
+        
+        let actual = ScanCode::by_symbol("`").unwrap();
+        assert_eq!("SC_BACKTICK", actual.name);
+        
+        let actual = ScanCode::by_symbol("~").unwrap();
+        // todo?: must be with SHIFT pressed
+        assert_eq!("SC_BACKTICK", actual.name);
+    }
     
     #[test]
-    fn test_get_sc_ext_value() {
+    fn test_sc_ext_value() {
         let actual = ScanCode::by_ext_code(0x1C).unwrap();
         assert_eq!(0x1C, actual.ext_value());
         

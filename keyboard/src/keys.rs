@@ -1,5 +1,6 @@
 use crate::keys::KeyCode::{SC, VK};
 use std::fmt::{Display, Formatter};
+use windows::Win32::UI::Input::KeyboardAndMouse::OemKeyScan;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {
@@ -49,25 +50,8 @@ pub struct ScanCode {
 }
 
 impl ScanCode {
-    fn parse(text: &str) -> Result<&'static ScanCode, String> {
-        // .or(|e| ScanCode::parse(text))
-        // if s.starts_with("SC_0x") {
-        //     Self::parse_scancode_from_code(s)
-        // } else if s.starts_with("VK_0x") {
-        //     Self::parse_virtual_key_from_code(s)
-        // } else if s.starts_with("SC_") {
-        //     Self::parse_scancode_from_name(s)
-        // } else if s.starts_with("VK_") {
-        //     Self::parse_virtual_key_from_name(s)
-        // } else {
-        //     Self::parse_scancode_from_symbol(s).or_else(|_| {
-        //         Self::parse(Some(&format!("VK_{}", s))).or_else(|_| {
-        //             Self::parse(Some(&format!("SC_{}", s)))
-        //         })
-        //     })
-        // }
-
-        todo!()
+    pub(crate) fn parse(text: &str) -> Result<&'static ScanCode, String> {
+        Self::by_code_name(text).or_else(|_| Self::by_name(text).or_else(|_| Self::by_symbol(text)))
     }
 
     pub(crate) fn by_code(code: u8, extended: bool) -> Result<&'static ScanCode, String> {
@@ -93,14 +77,25 @@ impl ScanCode {
         Err(format!("Unsupported scancode name: `{}`.", name))
     }
 
+    pub fn by_code_name(text: &str) -> Result<&'static ScanCode, String> {
+        let code = u16::from_str_radix(text.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix")?, 16)
+            .map_err(|_| format!("Failed to parse scancode: {}.", text))?;
+        Self::by_ext_code(code)
+    }
+
     pub(crate) fn by_ext_code(ext_code: u16) -> Result<&'static ScanCode, String> {
         Self::by_code(ext_code as u8, ext_code & 0xE000 != 0)
     }
 
-    // pub(crate) fn by_symbol(symbol: char) -> Result<&'static ScanCode, String> {
-    //     let ext_code = unsafe { OemKeyScan(symbol as u16) } as u16;
-    //     ScanCode::by_ext_code(ext_code)
-    // }
+    pub(crate) fn by_symbol(symbol: &str) -> Result<&'static ScanCode, String> {
+        if symbol.len() == 1 {
+            let ch = symbol.chars().next().unwrap();
+            let ext_code = unsafe { OemKeyScan(ch as u16) } as u16;
+            ScanCode::by_ext_code(ext_code)
+        } else {
+            Err(format!("Symbol is to long: {}", symbol.len()))
+        }
+    }
 
     pub(crate) fn ext_value(&self) -> u16 {
         if self.is_extended {
