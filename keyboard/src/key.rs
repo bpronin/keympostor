@@ -56,15 +56,15 @@ impl ScanCode {
     }
 
     pub(crate) fn by_code(code: u8, extended: bool) -> Result<&'static ScanCode, String> {
-        SCANCODES
+        SCAN_CODES
             .get(code as usize)
-            .ok_or(format!("Unsupported scancode: `{}`", code))?
+            .ok_or(format!("Unsupported scan code: `{}`", code))?
             .get(extended as usize)
-            .ok_or(format!("Unsupported scancode: `{}`", code))
+            .ok_or(format!("Unsupported scan code: `{}`", code))
     }
 
     pub(crate) fn by_name(name: &str) -> Result<&'static ScanCode, String> {
-        for row in &SCANCODES {
+        for row in &SCAN_CODES {
             let sc = &row[false as usize];
             if sc.name == name {
                 return Ok(sc);
@@ -75,12 +75,12 @@ impl ScanCode {
             }
         }
 
-        Err(format!("Unsupported scancode name: `{}`.", name))
+        Err(format!("Unsupported scan code name: `{}`.", name))
     }
 
     pub fn by_code_name(text: &str) -> Result<&'static ScanCode, String> {
         let code = u16::from_str_radix(text.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix")?, 16)
-            .map_err(|_| format!("Failed to parse scancode: {}.", text))?;
+            .map_err(|_| format!("Failed to parse scan code: {}.", text))?;
         Self::by_ext_code(code)
     }
 
@@ -94,7 +94,7 @@ impl ScanCode {
             let ext_code = unsafe { OemKeyScan(ch as u16) } as u16;
             ScanCode::by_ext_code(ext_code)
         } else {
-            Err(format!("Failed to parse scancode symbol: {}", symbol))
+            Err(format!("Failed to parse scan code symbol: {}", symbol))
         }
     }
 
@@ -126,7 +126,7 @@ impl KeyCode {
             .or_else(|_| ScanCode::parse(text).and_then(|sc| Ok(SC(sc))))
     }
 
-    pub(crate) fn is_scancode(&self) -> bool {
+    pub(crate) fn is_scan_code(&self) -> bool {
         matches!(*self, SC(_))
     }
 
@@ -144,15 +144,14 @@ impl Display for KeyCode {
     }
 }
 
-impl <'de>Deserialize<'de> for KeyCode {
+impl<'de> Deserialize<'de> for KeyCode {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
     {
         let text = String::deserialize(deserializer)?;
-        let result = Self::parse(text.as_str()).map_err(|e| {
-            de::Error::custom(format!("Unable to parse key identifier.\n{}", e))
-        })?;
+        let result = Self::parse(text.as_str())
+            .map_err(|e| de::Error::custom(format!("Unable to parse key identifier.\n{}", e)))?;
 
         Ok(result)
     }
@@ -466,7 +465,7 @@ macro_rules! ext_sc {
     };
 }
 
-static SCANCODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
+static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
     [sc!(0x00, "UNASSIGNED"), ext_sc!(0x00, "UNASSIGNED")],
     [sc!(0x01, "SC_ESC"), ext_sc!(0x01, "SC_")],
     [sc!(0x02, "SC_1"), ext_sc!(0x02, "SC_1")],
@@ -604,3 +603,142 @@ static SCANCODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
     [sc!(0x86, "SC_F23"), ext_sc!(0x86, "UNASSIGNED")],
     [sc!(0x87, "SC_F24"), ext_sc!(0x87, "UNASSIGNED")],
 ];
+
+#[cfg(test)]
+mod tests {
+    use crate::key::KeyCode::{SC, VK};
+    use crate::key::{KeyCode, ScanCode, VirtualKey};
+
+    #[test]
+    fn test_vk_by_code() {
+        assert_eq!("VK_RETURN", VirtualKey::by_code(0x0D).unwrap().name);
+    }
+
+    #[test]
+    fn test_vk_by_name() {
+        assert_eq!("VK_RETURN", VirtualKey::by_name("VK_RETURN").unwrap().name);
+    }
+
+    #[test]
+    fn test_vk_by_code_name() {
+        assert_eq!("VK_RETURN", VirtualKey::parse("VK_0x0D").unwrap().name);
+    }
+
+    #[test]
+    fn test_vk_parse() {
+        assert_eq!("VK_RETURN", VirtualKey::parse("VK_RETURN").unwrap().name);
+        assert_eq!("VK_RETURN", VirtualKey::parse("VK_0x0D").unwrap().name);
+    }
+
+    #[test]
+    fn test_vk_display() {
+        assert_eq!(
+            "VK_RETURN [0x0D]",
+            format!("{}", VirtualKey::parse("VK_RETURN").unwrap())
+        );
+    }
+
+    #[test]
+    fn test_sc_by_code() {
+        assert_eq!("SC_ENTER", ScanCode::by_code(0x1C, false).unwrap().name);
+        assert_eq!("SC_CALCULATOR", ScanCode::by_code(0x21, true).unwrap().name);
+    }
+
+    #[test]
+    fn test_sc_by_name() {
+        let actual = ScanCode::by_name("SC_ENTER").unwrap();
+        assert_eq!(0x1C, actual.value);
+        assert_eq!(false, actual.is_extended);
+
+        let actual = ScanCode::by_name("SC_CALCULATOR").unwrap();
+        assert_eq!(0x21, actual.value);
+        assert_eq!(true, actual.is_extended);
+    }
+
+    #[test]
+    fn test_sc_by_code_name() {
+        assert_eq!("SC_ENTER", ScanCode::parse("SC_0x001C").unwrap().name);
+        assert_eq!("SC_BACKTICK", ScanCode::parse("SC_0xE029").unwrap().name);
+    }
+
+    #[test]
+    fn test_sc_parse() {
+        assert_eq!("SC_ENTER", ScanCode::parse("SC_ENTER").unwrap().name);
+        assert_eq!("SC_ENTER", ScanCode::parse("SC_0x001C").unwrap().name);
+        assert_eq!("SC_BACKTICK", ScanCode::parse("`").unwrap().name);
+    }
+
+    #[test]
+    fn test_sc_by_symbol() {
+        let actual = ScanCode::by_symbol("A").unwrap();
+        assert_eq!("SC_A", actual.name);
+
+        let actual = ScanCode::by_symbol("`").unwrap();
+        assert_eq!("SC_BACKTICK", actual.name);
+
+        let actual = ScanCode::by_symbol("~").unwrap();
+        // todo?: must be with SHIFT pressed
+        assert_eq!("SC_BACKTICK", actual.name);
+    }
+
+    #[test]
+    fn test_sc_by_ext_code() {
+        let actual = ScanCode::by_ext_code(0x1C).unwrap();
+        assert_eq!(0x1C, actual.value);
+        assert_eq!(false, actual.is_extended);
+
+        let actual = ScanCode::by_ext_code(0xE021).unwrap();
+        assert_eq!(0x21, actual.value);
+        assert_eq!(true, actual.is_extended);
+    }
+
+    #[test]
+    fn test_sc_ext_value() {
+        let actual = ScanCode::by_ext_code(0x1C).unwrap();
+        assert_eq!(0x1C, actual.ext_value());
+
+        let actual = ScanCode::by_ext_code(0xE021).unwrap();
+        assert_eq!(0xE021, actual.ext_value());
+    }
+
+    #[test]
+    fn test_sc_display() {
+        assert_eq!(
+            "SC_ENTER [0x001C]",
+            format!("{}", ScanCode::parse("SC_ENTER").unwrap())
+        );
+    }
+
+    #[test]
+    fn test_key_code_parse() {
+        let actual = KeyCode::parse("VK_RETURN").unwrap();
+        assert!(actual.is_virtual_key());
+        if let VK(vk) = actual {
+            assert_eq!("VK_RETURN", vk.name);
+        }
+
+        let actual = KeyCode::parse("SC_ENTER").unwrap();
+        assert!(actual.is_scan_code());
+        if let SC(sc) = actual {
+            assert_eq!("SC_ENTER", sc.name);
+        }
+
+        let actual = KeyCode::parse("`").unwrap();
+        assert!(actual.is_scan_code());
+        if let SC(sc) = actual {
+            assert_eq!("SC_BACKTICK", sc.name);
+        }
+    }
+
+    #[test]
+    fn test_key_code_display() {
+        assert_eq!(
+            "SC_ENTER [0x001C]",
+            format!("{}", KeyCode::parse("SC_ENTER").unwrap())
+        );
+        assert_eq!(
+            "VK_RETURN [0x0D]",
+            format!("{}", KeyCode::parse("VK_RETURN").unwrap())
+        );
+    }
+}
