@@ -128,7 +128,12 @@ mod tests {
 
         // println!("{}", action.to_text());
 
-        // типа "SHIFT↓ + A↓ → A↑ + SHIFT↑"
+        // типа "SHIFT↓ + A↓ → A↑ : CTRL↑ → B↓ → C↑"
+        // или  "SHIFT* + A* + A^ : CTRL^ > B* > C^"
+        // "A : B"  = "A↓ : B↓" ; "A↑ : B↑"
+        // "A : B"  = "A* : B*" ; "A^ : B^"
+        // "SHIFT + A : CTRL → B"  = "SHIFT↓ + A↓ : CTRL↓ → B↓" + "SHIFT↑ + A↑ : CTRL↑ → B↑"
+        
         // ↓ нажата                                     A↓
         // ↑ отпущена                                   A↑
         // → нажаты последовательно                     SHIFT↓ → A↓
