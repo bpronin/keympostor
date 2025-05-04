@@ -1,8 +1,7 @@
-use crate::keys::KeyCode::{SC, VK};
-use crate::keys::KeyTransition::Up;
-use std::fmt::{Display, Formatter};
+use crate::key::KeyCode::{SC, VK};
+use serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::Input::KeyboardAndMouse::OemKeyScan;
-use KeyTransition::Down;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {
@@ -40,7 +39,7 @@ impl VirtualKey {
 
 impl Display for VirtualKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "0x{:02X}", &self.value,)
+        write!(f, "{} [0x{:02X}]", &self.name, &self.value,)
     }
 }
 
@@ -108,7 +107,13 @@ impl ScanCode {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+impl Display for ScanCode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} [0x{:04X}]", &self.name, &self.ext_value(),)
+    }
+}
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum KeyCode {
     VK(&'static VirtualKey),
     SC(&'static ScanCode),
@@ -130,45 +135,44 @@ impl KeyCode {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum KeyTransition {
-    Up,
-    Down,
-}
-
-impl KeyTransition {
-    pub(crate) fn is_up(&self) -> bool {
-        matches!(*self, Up)
-    }
-
-    pub(crate) fn is_down(&self) -> bool {
-        matches!(*self, Down)
+impl Display for KeyCode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            VK(vk) => std::fmt::Display::fmt(&vk, f),
+            SC(sc) => std::fmt::Display::fmt(&sc, f),
+        }
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct KeyEvent {
-    pub virtual_key: VirtualKey,
-    pub scan_code: ScanCode,
-    pub transition: KeyTransition,
+impl <'de>Deserialize<'de> for KeyCode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let text = String::deserialize(deserializer)?;
+        let result = Self::parse(text.as_str()).map_err(|e| {
+            de::Error::custom(format!("Unable to parse key identifier.\n{}", e))
+        })?;
+
+        Ok(result)
+    }
 }
 
-#[derive(Debug, Eq, PartialEq)]
-pub enum KeyEventPattern {
-    Sequence(Vec<KeyEvent>),
-    Chord(Vec<KeyEvent>),
-}
+impl Serialize for KeyCode {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let text = if let VK(vk) = self {
+            vk.name
+        } else if let SC(sc) = self {
+            sc.name
+        } else {
+            return Err(ser::Error::custom("Unsupported key code"));
+        };
 
-#[derive(Debug, Eq, PartialEq)]
-pub struct KeyAction {
-    pub key_code: KeyCode,
-    pub transition: KeyTransition,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub struct KeyTransformRule {
-    pub trigger: KeyEventPattern,
-    pub action: Vec<KeyAction>,
+        Ok(text.serialize(serializer)?)
+    }
 }
 
 pub const MAX_VK_CODE: usize = 256;
