@@ -2,6 +2,7 @@ use crate::key::{KeyCode, ScanCode, VirtualKey};
 use crate::key_event::{KeyTransition, SELF_KEY_EVENT_MARKER};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
@@ -13,12 +14,6 @@ pub struct KeyAction {
     pub transition: KeyTransition,
 }
 
-impl Display for KeyAction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.key, self.transition)
-    }
-}
-
 impl KeyAction {
     fn create_input(&self) -> INPUT {
         match self.key {
@@ -27,7 +22,7 @@ impl KeyAction {
         }
     }
 
-    fn create_virtual_key_input(&self, virtual_key: &VirtualKey) -> INPUT {
+    fn create_virtual_key_input(&self, virtual_key: VirtualKey) -> INPUT {
         let mut flags = KEYBD_EVENT_FLAGS::default();
         if self.transition.is_up() {
             flags |= KEYEVENTF_KEYUP
@@ -45,7 +40,7 @@ impl KeyAction {
         }
     }
 
-    fn create_scancode_input(&self, scan_code: &ScanCode) -> INPUT {
+    fn create_scancode_input(&self, scan_code: ScanCode) -> INPUT {
         let mut flags = KEYEVENTF_SCANCODE;
         if scan_code.is_extended {
             flags |= KEYEVENTF_EXTENDEDKEY
@@ -67,15 +62,34 @@ impl KeyAction {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeyActionSequence {
-    actions: Vec<KeyAction>,
+impl Display for KeyAction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}{}", self.key, self.transition)
+    }
 }
 
 impl KeyActionSequence {
     fn create_input(&self) -> Vec<INPUT> {
         self.actions.iter().map(|a| a.create_input()).collect()
     }
+}
+
+impl FromStr for KeyAction {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let trimmed = s.trim();
+        let suf = trimmed.chars().last().unwrap();
+        Ok(Self {
+            key: trimmed.strip_suffix(suf).unwrap().parse()?,
+            transition: suf.to_string().parse()?,
+        })
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct KeyActionSequence {
+    actions: Vec<KeyAction>,
 }
 
 #[macro_export]
@@ -99,6 +113,15 @@ impl Display for KeyActionSequence {
     }
 }
 
+impl FromStr for KeyActionSequence {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let actions = s.split('→').map(str::parse).collect::<Result<_, _>>()?;
+        Ok(Self { actions })
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyActionPattern {
     sequence: Vec<KeyActionSequence>,
@@ -110,12 +133,6 @@ pub struct KeyTransformRule {
     pub target: KeyActionSequence,
 }
 
-impl Display for KeyTransformRule {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} : {}", self.source, self.target)
-    }
-}
-
 impl KeyTransformRule {
     pub fn trigger(&self) -> &KeyAction {
         &self.source.actions[0]
@@ -123,6 +140,24 @@ impl KeyTransformRule {
 
     pub fn modifiers(&self) -> Option<&[KeyAction]> {
         self.source.actions.get(1..self.source.actions.len() - 1)
+    }
+}
+
+impl FromStr for KeyTransformRule {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.split(":");
+        Ok(Self {
+            source: KeyActionSequence::from_str(split.next().unwrap())?,
+            target: KeyActionSequence::from_str(split.next().unwrap())?,
+        })
+    }
+}
+
+impl Display for KeyTransformRule {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} : {}", self.source, self.target)
     }
 }
 
@@ -138,19 +173,20 @@ mod tests {
     use crate::key::{KeyCode, ScanCode, VirtualKey};
     use crate::key_action::{KeyAction, KeyActionPattern, KeyActionSequence, KeyTransformRule};
     use crate::key_event::KeyTransition::{Down, Up};
+    use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
     use KeyCode::VK;
 
     #[test]
     fn test_key_action_display() {
         let actual = KeyAction {
-            key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+            key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
             transition: Down,
         };
         assert_eq!("VK_RETURN↓", format!("{}", actual));
-        
+
         let actual = KeyAction {
-            key: SC(ScanCode::by_name("SC_ENTER").unwrap()),
+            key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
             transition: Up,
         };
         assert_eq!("SC_ENTER↑", format!("{}", actual));
@@ -159,7 +195,7 @@ mod tests {
     #[test]
     fn test_key_action_serialize() {
         let source = KeyAction {
-            key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+            key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
             transition: Down,
         };
         let json = serde_json::to_string_pretty(&source).unwrap();
@@ -175,16 +211,16 @@ mod tests {
         let actual = KeyActionSequence {
             actions: vec![
                 KeyAction {
-                    key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+                    key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
                     transition: Down,
                 },
                 KeyAction {
-                    key: VK(VirtualKey::by_name("VK_SHIFT").unwrap()),
+                    key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
                     transition: Up,
                 },
             ],
         };
-        
+
         assert_eq!("VK_RETURN↓ → VK_SHIFT↑", format!("{}", actual));
     }
 
@@ -193,11 +229,11 @@ mod tests {
         let source = KeyActionSequence {
             actions: vec![
                 KeyAction {
-                    key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+                    key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
                     transition: Down,
                 },
                 KeyAction {
-                    key: VK(VirtualKey::by_name("VK_SHIFT").unwrap()),
+                    key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
                     transition: Down,
                 },
             ],
@@ -216,11 +252,11 @@ mod tests {
         let source = KeyActionSequence {
             actions: vec![
                 KeyAction {
-                    key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+                    key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
                     transition: Down,
                 },
                 KeyAction {
-                    key: SC(ScanCode::by_name("SC_NUM_ENTER").unwrap()),
+                    key: SC(ScanCode::from_name("SC_NUM_ENTER").unwrap()),
                     transition: Up,
                 },
             ],
@@ -263,18 +299,18 @@ mod tests {
                 KeyActionSequence {
                     actions: vec![
                         KeyAction {
-                            key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+                            key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
                             transition: Down,
                         },
                         KeyAction {
-                            key: VK(VirtualKey::by_name("VK_SHIFT").unwrap()),
+                            key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
                             transition: Down,
                         },
                     ],
                 },
                 KeyActionSequence {
                     actions: vec![KeyAction {
-                        key: SC(ScanCode::by_name("SC_ENTER").unwrap()),
+                        key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
                         transition: Down,
                     }],
                 },
@@ -295,18 +331,18 @@ mod tests {
             source: KeyActionSequence {
                 actions: vec![
                     KeyAction {
-                        key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+                        key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
                         transition: Down,
                     },
                     KeyAction {
-                        key: VK(VirtualKey::by_name("VK_SHIFT").unwrap()),
+                        key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
                         transition: Down,
                     },
                 ],
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
-                    key: SC(ScanCode::by_name("SC_ENTER").unwrap()),
+                    key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
                     transition: Down,
                 }],
             },
@@ -314,25 +350,53 @@ mod tests {
 
         assert_eq!("VK_RETURN↓ → VK_SHIFT↓ : SC_ENTER↓", format!("{}", source));
     }
-    
+
     #[test]
-    fn test_key_transform_rule_serialize() {
-        let source = KeyTransformRule {
+    fn test_key_transform_rule_parse() {
+        let actual = KeyTransformRule::from_str("VK_RETURN↓ → VK_SHIFT↓ : SC_ENTER↓").unwrap();
+
+        let expected = KeyTransformRule {
             source: KeyActionSequence {
                 actions: vec![
                     KeyAction {
-                        key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+                        key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
                         transition: Down,
                     },
                     KeyAction {
-                        key: VK(VirtualKey::by_name("VK_SHIFT").unwrap()),
+                        key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
                         transition: Down,
                     },
                 ],
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
-                    key: SC(ScanCode::by_name("SC_ENTER").unwrap()),
+                    key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
+                    transition: Down,
+                }],
+            },
+        };
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_key_transform_rule_serialize() {
+        let source = KeyTransformRule {
+            source: KeyActionSequence {
+                actions: vec![
+                    KeyAction {
+                        key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
+                        transition: Down,
+                    },
+                    KeyAction {
+                        key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
+                        transition: Down,
+                    },
+                ],
+            },
+            target: KeyActionSequence {
+                actions: vec![KeyAction {
+                    key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
                     transition: Down,
                 }],
             },

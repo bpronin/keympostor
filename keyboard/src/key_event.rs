@@ -4,6 +4,7 @@ use crate::key_event::KeyTransition::Up;
 use log::warn;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
@@ -47,6 +48,24 @@ impl Display for KeyTransition {
     }
 }
 
+impl FromStr for KeyTransition {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let trimmed = s.trim();
+        if trimmed.len() > 1 {
+            return Err(format!("Key transition symbols `{}` is too long", s));
+        }
+        
+        let symbol = trimmed.chars().last().unwrap();
+        match symbol {
+            '↑' | '^' => Ok(Up),
+            '↓' | '*' => Ok(Down),
+            _ => Err(format!("Error parsing key transition symbol `{}`", s)),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct KeyEvent {
     kb: KBDLLHOOKSTRUCT,
@@ -61,12 +80,12 @@ impl KeyEvent {
         self.kb.time
     }
 
-    pub fn virtual_key(&self) -> &'static VirtualKey {
-        VirtualKey::by_code(self.kb.vkCode as u8).unwrap()
+    pub fn virtual_key(&self) -> VirtualKey {
+        VirtualKey::from_code(self.kb.vkCode as u8).unwrap()
     }
 
-    pub fn scan_code(&self) -> &'static ScanCode {
-        ScanCode::by_code(
+    pub fn scan_code(&self) -> ScanCode {
+        ScanCode::from_code(
             self.kb.scanCode as u8,
             self.kb.flags.contains(LLKHF_EXTENDED),
         )
@@ -142,6 +161,26 @@ mod tests {
     }
 
     #[test]
+    fn test_key_transition_parse() {
+        assert_eq!(Down, "↓".parse().unwrap());
+        assert_eq!(Up, "↑".parse().unwrap());
+        assert_eq!(Down, "*".parse().unwrap());
+        assert_eq!(Up, "^".parse().unwrap());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_key_transition_parse_fails_illegal() {
+        assert_eq!(Down, "&".parse().unwrap());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_key_transition_parse_fails_to_long() {
+        assert_eq!(Down, "***".parse().unwrap());
+    }
+
+    #[test]
     fn test_key_transition_serialize() {
         let source = Down;
         let json = serde_json::to_string_pretty(&source).unwrap();
@@ -194,14 +233,14 @@ mod tests {
 
         let actual = KeyEvent::from_kb(kb).as_virtual_key_action();
         let expected = KeyAction {
-            key: VK(VirtualKey::by_code(0x0D).unwrap()),
+            key: VK(VirtualKey::from_code(0x0D).unwrap()),
             transition: Up,
         };
         assert_eq!(expected, actual);
 
         let actual = KeyEvent::from_kb(kb).as_scan_code_action();
         let expected = KeyAction {
-            key: SC(ScanCode::by_code(0x1C, true).unwrap()),
+            key: SC(ScanCode::from_code(0x1C, true).unwrap()),
             transition: Up,
         };
         assert_eq!(expected, actual);
