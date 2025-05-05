@@ -40,14 +40,10 @@ impl Default for KeyTransition {
 
 impl Display for KeyTransition {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Up => '↑',
-                Down => '↓',
-            }
-        )
+        match self {
+            Up => Display::fmt(&'↑', f),
+            Down => Display::fmt(&'↓', f),
+        }
     }
 }
 

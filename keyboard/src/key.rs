@@ -1,3 +1,4 @@
+use std::fmt;
 use crate::key::KeyCode::{SC, VK};
 use serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
@@ -38,8 +39,8 @@ impl VirtualKey {
 }
 
 impl Display for VirtualKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} [0x{:02X}]", &self.name, &self.value,)
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, f)
     }
 }
 
@@ -108,8 +109,8 @@ impl ScanCode {
 }
 
 impl Display for ScanCode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} [0x{:04X}]", &self.name, &self.ext_value(),)
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, f)
     }
 }
 
@@ -136,10 +137,10 @@ impl KeyCode {
 }
 
 impl Display for KeyCode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            VK(vk) => std::fmt::Display::fmt(&vk, f),
-            SC(sc) => std::fmt::Display::fmt(&sc, f),
+            VK(vk) => Display::fmt(&vk, f),
+            SC(sc) => Display::fmt(&sc, f),
         }
     }
 }
@@ -743,22 +744,22 @@ mod tests {
             format!("{}", KeyCode::parse("VK_RETURN").unwrap())
         );
     }
-    
+
     #[test]
     fn test_key_code_serialize() {
         let source = KeyCode::parse("SC_ENTER").unwrap();
         let json = serde_json::to_string_pretty(&source).unwrap();
-        
+
         println!("{}", json);
-        
+
         let actual = serde_json::from_str::<KeyCode>(&json).unwrap();
         assert_eq!(source, actual);
-        
+
         let source = KeyCode::parse("VK_RETURN").unwrap();
         let json = serde_json::to_string_pretty(&source).unwrap();
-        
+
         println!("{}", json);
-        
+
         let actual = serde_json::from_str::<KeyCode>(&json).unwrap();
         assert_eq!(source, actual);
     }
