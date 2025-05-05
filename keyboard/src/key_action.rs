@@ -181,7 +181,7 @@ impl Display for KeyTransformProfile {
 
 // impl FromStr for KeyTransformProfile {
 //     type Err = String;
-// 
+//
 //     fn from_str(s: &str) -> Result<Self, Self::Err> {
 //         let mut split = s.split(",");
 //         Ok(Self {
@@ -193,13 +193,13 @@ impl Display for KeyTransformProfile {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
     use crate::key::KeyCode::SC;
     use crate::key::{KeyCode, ScanCode, VirtualKey};
     use crate::key_action::{
         KeyAction, KeyActionPattern, KeyActionSequence, KeyTransformProfile, KeyTransformRule,
     };
     use crate::key_event::KeyTransition::{Down, Up};
-    use std::fs;
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
     use KeyCode::VK;
@@ -438,10 +438,11 @@ mod tests {
     }
 
     #[test]
-    fn test_load_transform_rules() {
-        let json = fs::read_to_string("../profiles/test.json").unwrap();
+    fn test_transform_rules_serialize() {
+        let json = fs::read_to_string("../test/profiles/test.json").unwrap();
         let actual: KeyTransformProfile = serde_json::from_str(&json).unwrap();
-
+        
+        // println!("{}", actual);
         // dbg!(&actual);
 
         let expected = KeyTransformProfile {
@@ -455,9 +456,7 @@ mod tests {
                     .unwrap(),
             ],
         };
-        
-        println!("{}", actual);
-        
+
         assert_eq!(expected, actual);
     }
 }
