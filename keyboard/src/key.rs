@@ -1,6 +1,6 @@
-use std::fmt;
 use crate::key::KeyCode::{SC, VK};
 use serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
+use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::Input::KeyboardAndMouse::OemKeyScan;
 
@@ -609,8 +609,6 @@ static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
 mod tests {
     use crate::key::KeyCode::{SC, VK};
     use crate::key::{KeyCode, ScanCode, VirtualKey};
-    use crate::key_event::KeyTransition;
-    use crate::key_event::KeyTransition::{Down, Up};
 
     #[test]
     fn test_vk_by_code() {

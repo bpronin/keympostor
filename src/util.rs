@@ -36,6 +36,7 @@ macro_rules! write_joined {
             write!($dst, "{}", item)?;
             first = false;
         }
+        Ok(())
     }};
 }
 

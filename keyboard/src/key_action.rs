@@ -89,13 +89,13 @@ macro_rules! write_joined {
             write!($dst, "{}", item)?;
             first = false;
         }
+        Ok(())
     }};
 }
 
 impl Display for KeyActionSequence {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_joined!(f, &self.actions, " + ");
-        Ok(())
+        write_joined!(f, &self.actions, " → ")
     }
 }
 
@@ -108,6 +108,12 @@ pub struct KeyActionPattern {
 pub struct KeyTransformRule {
     pub source: KeyActionSequence,
     pub target: KeyActionSequence,
+}
+
+impl Display for KeyTransformRule {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} : {}", self.source, self.target)
+    }
 }
 
 impl KeyTransformRule {
@@ -179,7 +185,7 @@ mod tests {
             ],
         };
         
-        assert_eq!("VK_RETURN↓ + VK_SHIFT↑", format!("{}", actual));
+        assert_eq!("VK_RETURN↓ → VK_SHIFT↑", format!("{}", actual));
     }
 
     #[test]
@@ -283,6 +289,32 @@ mod tests {
         assert_eq!(source, actual);
     }
 
+    #[test]
+    fn test_key_transform_rule_display() {
+        let source = KeyTransformRule {
+            source: KeyActionSequence {
+                actions: vec![
+                    KeyAction {
+                        key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+                        transition: Down,
+                    },
+                    KeyAction {
+                        key: VK(VirtualKey::by_name("VK_SHIFT").unwrap()),
+                        transition: Down,
+                    },
+                ],
+            },
+            target: KeyActionSequence {
+                actions: vec![KeyAction {
+                    key: SC(ScanCode::by_name("SC_ENTER").unwrap()),
+                    transition: Down,
+                }],
+            },
+        };
+
+        assert_eq!("VK_RETURN↓ → VK_SHIFT↓ : SC_ENTER↓", format!("{}", source));
+    }
+    
     #[test]
     fn test_key_transform_rule_serialize() {
         let source = KeyTransformRule {
