@@ -1,5 +1,5 @@
 use crate::key::KeyCode;
-use crate::key_event::{KeyEventPattern, KeyTransition};
+use crate::key_event::{KeyEvent, KeyTransition};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
@@ -15,13 +15,20 @@ pub struct KeyActionSequence {
 }
 
 #[derive(Debug, PartialEq)]
+pub enum KeyActionPattern {
+    Sequence(Vec<KeyEvent>),
+    Chord(Vec<KeyEvent>),
+}
+
+#[derive(Debug, PartialEq)]
 pub struct KeyTransformRule {
-    pub trigger: KeyEventPattern,
+    pub trigger: KeyActionPattern,
     pub action: KeyActionSequence,
 }
 
 #[cfg(test)]
 mod tests {
+    use KeyCode::VK;
     use crate::key::{KeyCode, VirtualKey};
     use crate::key_action::KeyAction;
     use crate::key_event::KeyTransition::Down;
@@ -29,7 +36,7 @@ mod tests {
     #[test]
     fn test_key_action_serialize() {
         let source = KeyAction {
-            key: KeyCode::VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+            key: VK(VirtualKey::by_name("VK_RETURN").unwrap()),
             transition: Down,
         };
         let json = serde_json::to_string_pretty(&source).unwrap();
