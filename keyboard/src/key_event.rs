@@ -1,5 +1,5 @@
 use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
-use crate::key_action::{KeyAction, KeyActionPattern};
+use crate::key_action::KeyAction;
 use crate::key_event::KeyTransition::Up;
 use log::warn;
 use serde::{Deserialize, Serialize};
@@ -126,7 +126,7 @@ impl KeyEvent {
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
 /// Content does not matter.
-static SELF_KEY_EVENT_MARKER: &str = "self";
+pub static SELF_KEY_EVENT_MARKER: &str = "self";
 
 #[cfg(test)]
 mod tests {
@@ -202,8 +202,7 @@ mod tests {
             transition: Up,
         };
         assert_eq!(expected, actual);
-        
-        
+
         let actual = KeyEvent::from_kb(kb).as_scan_code_action();
         let expected = KeyAction {
             key: SC(ScanCode::by_code(0x1C, true).unwrap()),
