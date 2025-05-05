@@ -447,6 +447,73 @@ mod tests {
     }
 
     #[test]
+    fn test_key_transform_rules_parse() {
+        let actual: KeyTransformProfile = "
+            Test profile;
+            SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
+            VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
+            "
+        .parse()
+        .unwrap();
+
+        let expected: KeyTransformProfile = "
+            Test profile;
+            SC_A* : SC_LEFT_WINDOWS* > SC_SPACE* > SC_SPACE^ > SC_LEFT_WINDOWS^;
+            VK_SHIFT* > VK_CAPITAL* : VK_CAPITAL* > VK_CAPITAL^;
+            "
+        .parse()
+        .unwrap();
+
+        println!("{}", actual);
+        println!("{}", expected);
+
+        assert_eq!(expected, actual);
+    }
+    
+    #[test]
+    fn test_key_transform_rules_parse_split_transition() {
+        let actual: KeyTransformProfile = "
+            Test profile;
+            VK_A : VK_B;
+            "
+        .parse()
+        .unwrap();
+        
+        println!("{}", actual);
+
+        let expected: KeyTransformProfile = "
+            Test profile;
+            VK_A↓ : VK_B↓;
+            VK_A↑ : VK_B↑;
+            "
+        .parse()
+        .unwrap();
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_key_transform_rules_parse_expand_transition() {
+        let actual: KeyTransformProfile = "
+            Test profile;
+            VK_A↓↑ : VK_B↓↑;
+            "
+        .parse()
+        .unwrap();
+        
+        println!("{}", actual);
+
+        let expected: KeyTransformProfile = "
+            Test profile;
+            VK_A↓ → VK_A↓: VK_B↓ → VK_B↑;
+            "
+        .parse()
+        .unwrap();
+
+        assert_eq!(expected, actual);
+    }
+    
+    #[test]
     fn test_key_transform_rules_serialize() {
         let json = fs::read_to_string("../test/profiles/test.json").unwrap();
         let actual: KeyTransformProfile = serde_json::from_str(&json).unwrap();

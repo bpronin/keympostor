@@ -5,6 +5,16 @@ use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::OemKeyScan;
 
+macro_rules! append_prefix {
+    ($s:expr, $pref:literal) => {
+        if $s.starts_with($pref) {
+            $s
+        } else {
+            &format!("{}{}", $pref, $s)
+        }
+    };
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {
     pub value: u8,
@@ -12,12 +22,6 @@ pub struct VirtualKey {
 }
 
 impl VirtualKey {
-    pub fn from_code_name(s: &str) -> Result<VirtualKey, String> {
-        let code = u8::from_str_radix(s.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix.")?, 16)
-            .map_err(|_| format!("Error parsing virtual key code `{}`.", s))?;
-        Self::from_code(code)
-    }
-
     pub fn from_code(code: u8) -> Result<VirtualKey, String> {
         VIRTUAL_KEYS
             .get(code as usize)
@@ -26,13 +30,21 @@ impl VirtualKey {
     }
 
     pub fn from_name(name: &str) -> Result<VirtualKey, String> {
-        let position = VIRTUAL_KEYS.iter().position(|probe| probe.name == name);
+        let vk_name = append_prefix!(name, "VK_");
+        let position = VIRTUAL_KEYS.iter().position(|probe| probe.name == vk_name);
 
         if let Some(ix) = position {
             Ok(VIRTUAL_KEYS[ix])
         } else {
             Err(format!("Illegal virtual key name `{}`.", name))
         }
+    }
+
+    pub fn from_code_name(s: &str) -> Result<VirtualKey, String> {
+        let src = s.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix.")?;
+        let code = u8::from_str_radix(src, 16)
+            .map_err(|_| format!("Error parsing virtual key code `{}`.", s))?;
+        Self::from_code(code)
     }
 }
 
@@ -68,18 +80,13 @@ impl ScanCode {
     }
 
     pub(crate) fn from_name(name: &str) -> Result<ScanCode, String> {
-        for row in &SCAN_CODES {
-            let sc = row[false as usize];
-            if sc.name == name {
-                return Ok(sc);
-            }
-            let sc = row[true as usize];
-            if sc.name == name {
-                return Ok(sc);
-            }
-        }
-
-        Err(format!("Illegal scan code name `{}`.", name))
+        let sc_name = append_prefix!(name, "SC_");
+        SCAN_CODES
+            .iter()
+            .flatten()
+            .find(|sc| sc.name == sc_name)
+            .ok_or(format!("Illegal scan code name `{}`.", name))
+            .copied()
     }
 
     pub fn from_code_name(s: &str) -> Result<ScanCode, String> {
@@ -123,11 +130,7 @@ impl FromStr for ScanCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.starts_with("SC_") {
-            Self::from_code_name(s).or_else(|_| Self::from_name(s))
-        } else {
-            Self::from_symbol(s)
-        }
+        Self::from_code_name(s).or_else(|_| Self::from_name(s).or_else(|_| Self::from_symbol(s)))
     }
 }
 
@@ -650,6 +653,7 @@ mod tests {
     #[test]
     fn test_vk_parse() {
         assert_eq!("VK_RETURN", VirtualKey::from_str("VK_RETURN").unwrap().name);
+        assert_eq!("VK_RETURN", VirtualKey::from_str("RETURN").unwrap().name);
         assert_eq!("VK_RETURN", VirtualKey::from_str("VK_0x0D").unwrap().name);
     }
 
@@ -719,7 +723,11 @@ mod tests {
     #[test]
     fn test_sc_parse() {
         assert_eq!("SC_ENTER", ScanCode::from_str("SC_ENTER").unwrap().name);
-        assert_eq!("SC_ENTER", ScanCode::from_str("SC_0x001C").unwrap().name);
+        assert_eq!("SC_ENTER", ScanCode::from_str("ENTER").unwrap().name);
+        assert_eq!(
+            "SC_NUM_ENTER",
+            ScanCode::from_str("SC_0xE01C").unwrap().name
+        );
         assert_eq!("SC_BACKTICK", ScanCode::from_str("`").unwrap().name);
     }
 
