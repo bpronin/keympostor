@@ -144,19 +144,6 @@ impl Display for KeyCode {
     }
 }
 
-impl<'de> Deserialize<'de> for KeyCode {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let text = String::deserialize(deserializer)?;
-        let result = Self::parse(text.as_str())
-            .map_err(|e| de::Error::custom(format!("Unable to parse key identifier.\n{}", e)))?;
-
-        Ok(result)
-    }
-}
-
 impl Serialize for KeyCode {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -171,6 +158,19 @@ impl Serialize for KeyCode {
         };
 
         Ok(text.serialize(serializer)?)
+    }
+}
+
+impl<'de> Deserialize<'de> for KeyCode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let text = String::deserialize(deserializer)?;
+        let result = Self::parse(text.as_str())
+            .map_err(|e| de::Error::custom(format!("Unable to parse key identifier.\n{}", e)))?;
+
+        Ok(result)
     }
 }
 
@@ -608,6 +608,8 @@ static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
 mod tests {
     use crate::key::KeyCode::{SC, VK};
     use crate::key::{KeyCode, ScanCode, VirtualKey};
+    use crate::key_event::KeyTransition;
+    use crate::key_event::KeyTransition::{Down, Up};
 
     #[test]
     fn test_vk_by_code() {
@@ -740,5 +742,24 @@ mod tests {
             "VK_RETURN [0x0D]",
             format!("{}", KeyCode::parse("VK_RETURN").unwrap())
         );
+    }
+    
+    #[test]
+    fn test_key_code_serialize() {
+        let source = KeyCode::parse("SC_ENTER").unwrap();
+        let json = serde_json::to_string_pretty(&source).unwrap();
+        
+        println!("{}", json);
+        
+        let actual = serde_json::from_str::<KeyCode>(&json).unwrap();
+        assert_eq!(source, actual);
+        
+        let source = KeyCode::parse("VK_RETURN").unwrap();
+        let json = serde_json::to_string_pretty(&source).unwrap();
+        
+        println!("{}", json);
+        
+        let actual = serde_json::from_str::<KeyCode>(&json).unwrap();
+        assert_eq!(source, actual);
     }
 }

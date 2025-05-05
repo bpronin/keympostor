@@ -3,21 +3,40 @@ use crate::key_event::{KeyEventPattern, KeyTransition};
 use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyAction {
-    pub key_code: KeyCode,
+    pub key: KeyCode,
     pub transition: KeyTransition,
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct KeyActionSequence {
+    actions: Vec<KeyAction>,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct KeyTransformRule {
     pub trigger: KeyEventPattern,
-    pub action: Vec<KeyAction>,
+    pub action: KeyActionSequence,
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::key::{KeyCode, VirtualKey};
+    use crate::key_action::KeyAction;
+    use crate::key_event::KeyTransition::Down;
 
     #[test]
-    fn test() {}
+    fn test_key_action_serialize() {
+        let source = KeyAction {
+            key: KeyCode::VK(VirtualKey::by_name("VK_RETURN").unwrap()),
+            transition: Down,
+        };
+        let json = serde_json::to_string_pretty(&source).unwrap();
+
+        println!("{}", json);
+
+        let actual = serde_json::from_str::<KeyAction>(&json).unwrap();
+        assert_eq!(source, actual);
+    }
 }

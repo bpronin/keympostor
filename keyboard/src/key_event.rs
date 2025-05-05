@@ -121,7 +121,7 @@ static SELF_KEY_EVENT_MARKER: &str = "self";
 #[cfg(test)]
 mod tests {
     use crate::key_event::KeyTransition::{Down, Up};
-    use crate::key_event::{KeyEvent, SELF_KEY_EVENT_MARKER};
+    use crate::key_event::{KeyEvent, KeyTransition, SELF_KEY_EVENT_MARKER};
     use windows::Win32::UI::WindowsAndMessaging::{
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
@@ -130,6 +130,25 @@ mod tests {
     fn test_key_transition_display() {
         assert_eq!("↓", format!("{}", Down));
         assert_eq!("↑", format!("{}", Up));
+    }
+
+    #[test]
+    fn test_key_transition_serialize() {
+        let source = Down;
+        let json = serde_json::to_string_pretty(&source).unwrap();
+        
+        println!("{}", json);
+        
+        let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
+        assert_eq!(source, actual);
+
+        let source = Up;
+        let json = serde_json::to_string_pretty(&source).unwrap();
+        
+        println!("{}", json);
+        
+        let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
+        assert_eq!(source, actual);
     }
 
     #[test]
