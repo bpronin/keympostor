@@ -52,16 +52,16 @@ impl FromStr for KeyTransition {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let trimmed = s.trim();
-        if trimmed.len() > 1 {
-            return Err(format!("Key transition symbols `{}` is too long", s));
-        }
-        
-        let symbol = trimmed.chars().last().unwrap();
-        match symbol {
-            '↑' | '^' => Ok(Up),
-            '↓' | '*' => Ok(Down),
-            _ => Err(format!("Error parsing key transition symbol `{}`", s)),
+        let mut chars = s.trim().chars();
+        let symbol = chars.next().expect("Key transition symbol is empty.");
+        if chars.next().is_none() {
+            match symbol {
+                '↑' | '^' => Ok(Up),
+                '↓' | '*' => Ok(Down),
+                _ => Err(format!("Illegal key transition symbol `{}`.", s)),
+            }
+        } else {
+            Err(format!("Key transition symbols `{}` is too long.", s))
         }
     }
 }
@@ -172,6 +172,12 @@ mod tests {
     #[should_panic]
     fn test_key_transition_parse_fails_illegal() {
         assert_eq!(Down, "&".parse().unwrap());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_key_transition_parse_fails_empty() {
+        assert_eq!(Down, "".parse().unwrap());
     }
 
     #[test]

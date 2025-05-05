@@ -12,16 +12,16 @@ pub struct VirtualKey {
 }
 
 impl VirtualKey {
-    pub fn from_code_name(text: &str) -> Result<VirtualKey, String> {
-        let code = u8::from_str_radix(text.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix")?, 16)
-            .map_err(|_| format!("Error parsing virtual key code: {}.", text))?;
+    pub fn from_code_name(s: &str) -> Result<VirtualKey, String> {
+        let code = u8::from_str_radix(s.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix.")?, 16)
+            .map_err(|_| format!("Error parsing virtual key code `{}`.", s))?;
         Self::from_code(code)
     }
 
     pub fn from_code(code: u8) -> Result<VirtualKey, String> {
         VIRTUAL_KEYS
             .get(code as usize)
-            .ok_or(format!("Unsupported virtual key code: `{}`", code))
+            .ok_or(format!("Illegal virtual key code `{}`.", code))
             .copied()
     }
 
@@ -31,7 +31,7 @@ impl VirtualKey {
         if let Some(ix) = position {
             Ok(VIRTUAL_KEYS[ix])
         } else {
-            Err(format!("Unsupported virtual key name: `{}`", name))
+            Err(format!("Illegal virtual key name `{}`.", name))
         }
     }
 }
@@ -61,9 +61,9 @@ impl ScanCode {
     pub(crate) fn from_code(code: u8, extended: bool) -> Result<ScanCode, String> {
         SCAN_CODES
             .get(code as usize)
-            .ok_or(format!("Unsupported scan code: `{}`", code))?
+            .ok_or(format!("Illegal scan code `{}`.", code))?
             .get(extended as usize)
-            .ok_or(format!("Unsupported scan code: `{}`", code))
+            .ok_or(format!("Illegal extended scan code `{}`.", code))
             .copied()
     }
 
@@ -79,12 +79,12 @@ impl ScanCode {
             }
         }
 
-        Err(format!("Unsupported scan code name: `{}`.", name))
+        Err(format!("Illegal scan code name `{}`.", name))
     }
 
-    pub fn from_code_name(text: &str) -> Result<ScanCode, String> {
-        let code = u16::from_str_radix(text.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix")?, 16)
-            .map_err(|_| format!("Error parsing scan code: {}.", text))?;
+    pub fn from_code_name(s: &str) -> Result<ScanCode, String> {
+        let code = u16::from_str_radix(s.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix.")?, 16)
+            .map_err(|_| format!("Error parsing scan code `{}`.", s))?;
         Self::from_ext_code(code)
     }
 
@@ -95,10 +95,12 @@ impl ScanCode {
     pub(crate) fn from_symbol(symbol: &str) -> Result<ScanCode, String> {
         if symbol.len() == 1 {
             let ch = symbol.chars().next().unwrap();
-            let ext_code = unsafe { OemKeyScan(ch as u16) } as u16;
-            ScanCode::from_ext_code(ext_code)
+            let oem_code = unsafe { OemKeyScan(ch as u16) };
+            let ext_code = oem_code as u8;
+            // let is_shift = oem_code & 0x0001_0000 != 0;
+            ScanCode::from_code(ext_code, false)
         } else {
-            Err(format!("Error parsing scan code symbol: {}", symbol))
+            Err(format!("Illegal key symbol `{}`.", symbol))
         }
     }
 
@@ -121,7 +123,11 @@ impl FromStr for ScanCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_code_name(s).or_else(|_| Self::from_name(s).or_else(|_| Self::from_symbol(s)))
+        if s.starts_with("SC_") {
+            Self::from_code_name(s).or_else(|_| Self::from_name(s))
+        } else {
+            Self::from_symbol(s)
+        }
     }
 }
 
@@ -154,9 +160,11 @@ impl FromStr for KeyCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        VirtualKey::from_str(s)
-            .and_then(|vk| Ok(VK(vk)))
-            .or_else(|_| ScanCode::from_str(s).and_then(|sc| Ok(SC(sc))))
+        if s.starts_with("VK_") {
+            VirtualKey::from_str(s).and_then(|vk| Ok(VK(vk)))
+        } else {
+            ScanCode::from_str(s).and_then(|sc| Ok(SC(sc)))
+        }
     }
 }
 
@@ -165,15 +173,13 @@ impl Serialize for KeyCode {
     where
         S: Serializer,
     {
-        let text = if let VK(vk) = self {
-            vk.name
-        } else if let SC(sc) = self {
-            sc.name
-        } else {
-            return Err(ser::Error::custom("Unsupported key code"));
+        let s = match self {
+            VK(vk) => vk.name,
+            SC(sc) => sc.name,
+            _ => return Err(ser::Error::custom("Illegal key code.")),
         };
 
-        Ok(text.serialize(serializer)?)
+        Ok(s.serialize(serializer)?)
     }
 }
 
@@ -184,7 +190,7 @@ impl<'de> Deserialize<'de> for KeyCode {
     {
         Ok(String::deserialize(deserializer)?
             .parse()
-            .map_err(|e| de::Error::custom(format!("Error parsing key identifier.\n{}", e)))?)
+            .map_err(|e| de::Error::custom(format!("Error parsing key code.\n{}", e)))?)
     }
 }
 
@@ -631,7 +637,10 @@ mod tests {
 
     #[test]
     fn test_vk_from_name() {
-        assert_eq!("VK_RETURN", VirtualKey::from_name("VK_RETURN").unwrap().name);
+        assert_eq!(
+            "VK_RETURN",
+            VirtualKey::from_name("VK_RETURN").unwrap().name
+        );
     }
 
     #[test]
@@ -646,6 +655,12 @@ mod tests {
     }
 
     #[test]
+    #[should_panic]
+    fn test_vk_parse_fails() {
+        VirtualKey::from_str("BANANA").unwrap();
+    }
+
+    #[test]
     fn test_vk_display() {
         assert_eq!(
             "VK_RETURN",
@@ -656,7 +671,10 @@ mod tests {
     #[test]
     fn test_sc_from_code() {
         assert_eq!("SC_ENTER", ScanCode::from_code(0x1C, false).unwrap().name);
-        assert_eq!("SC_CALCULATOR", ScanCode::from_code(0x21, true).unwrap().name);
+        assert_eq!(
+            "SC_CALCULATOR",
+            ScanCode::from_code(0x21, true).unwrap().name
+        );
     }
 
     #[test]
@@ -677,13 +695,6 @@ mod tests {
     }
 
     #[test]
-    fn test_sc_parse() {
-        assert_eq!("SC_ENTER", ScanCode::from_str("SC_ENTER").unwrap().name);
-        assert_eq!("SC_ENTER", ScanCode::from_str("SC_0x001C").unwrap().name);
-        assert_eq!("SC_BACKTICK", ScanCode::from_str("`").unwrap().name);
-    }
-
-    #[test]
     fn test_sc_from_symbol() {
         let actual = ScanCode::from_symbol("A").unwrap();
         assert_eq!("SC_A", actual.name);
@@ -692,7 +703,6 @@ mod tests {
         assert_eq!("SC_BACKTICK", actual.name);
 
         let actual = ScanCode::from_symbol("~").unwrap();
-        // todo?: must be with SHIFT pressed
         assert_eq!("SC_BACKTICK", actual.name);
     }
 
@@ -708,12 +718,22 @@ mod tests {
     }
 
     #[test]
-    fn test_sc_ext_value() {
-        let actual = ScanCode::from_ext_code(0x1C).unwrap();
-        assert_eq!(0x1C, actual.ext_value());
+    fn test_sc_parse() {
+        assert_eq!("SC_ENTER", ScanCode::from_str("SC_ENTER").unwrap().name);
+        assert_eq!("SC_ENTER", ScanCode::from_str("SC_0x001C").unwrap().name);
+        assert_eq!("SC_BACKTICK", ScanCode::from_str("`").unwrap().name);
+    }
 
-        let actual = ScanCode::from_ext_code(0xE021).unwrap();
-        assert_eq!(0xE021, actual.ext_value());
+    #[test]
+    #[should_panic]
+    fn test_sc_parse_fails() {
+        ScanCode::from_str("BANANA").unwrap();
+    }
+
+    #[test]
+    fn test_sc_ext_value() {
+        assert_eq!(0x1C, ScanCode::from_ext_code(0x1C).unwrap().ext_value());
+        assert_eq!(0xE021, ScanCode::from_ext_code(0xE021).unwrap().ext_value());
     }
 
     #[test]
@@ -743,6 +763,12 @@ mod tests {
         if let SC(sc) = actual {
             assert_eq!("SC_BACKTICK", sc.name);
         }
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_key_code_parse_fails() {
+        KeyCode::from_str("↑").unwrap();
     }
 
     #[test]
