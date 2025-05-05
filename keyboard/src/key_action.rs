@@ -172,9 +172,16 @@ pub struct KeyTransformProfile {
     pub rules: Vec<KeyTransformRule>,
 }
 
+impl Display for KeyTransformProfile {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{}", self.title)?;
+        write_joined!(f, &self.rules, "\n")
+    }
+}
+
 // impl FromStr for KeyTransformProfile {
 //     type Err = String;
-//
+// 
 //     fn from_str(s: &str) -> Result<Self, Self::Err> {
 //         let mut split = s.split(",");
 //         Ok(Self {
@@ -443,9 +450,14 @@ mod tests {
                 "SC_CAPS_LOCK* : SC_LEFT_WINDOWS* > SC_SPACE*> SC_SPACE^ > SC_LEFT_WINDOWS^"
                     .parse()
                     .unwrap(),
+                "VK_SHIFT* > VK_CAPITAL*: VK_CAPITAL* > VK_CAPITAL^"
+                    .parse()
+                    .unwrap(),
             ],
         };
-
+        
+        println!("{}", actual);
+        
         assert_eq!(expected, actual);
     }
 }
