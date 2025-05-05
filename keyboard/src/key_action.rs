@@ -79,9 +79,15 @@ impl FromStr for KeyAction {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let trimmed = s.trim();
-        let suf = trimmed.chars().last().unwrap();
+        let suf = trimmed
+            .chars()
+            .last()
+            .expect(&format!("Error parsing key action. String is empty. `{s}`"));
+        let key = trimmed
+            .strip_suffix(suf)
+            .expect(&format!("Invalid key action suffix: `{suf}`."));
         Ok(Self {
-            key: trimmed.strip_suffix(suf).unwrap().parse()?,
+            key: key.parse()?,
             transition: suf.to_string().parse()?,
         })
     }
@@ -174,32 +180,35 @@ pub struct KeyTransformProfile {
 
 impl Display for KeyTransformProfile {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{}", self.title)?;
-        write_joined!(f, &self.rules, "\n")
+        writeln!(f, "{};", self.title)?;
+        write_joined!(f, &self.rules, ";\n")?;
+        write!(f, ";")
     }
 }
 
-// impl FromStr for KeyTransformProfile {
-//     type Err = String;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         let mut split = s.split(",");
-//         Ok(Self {
-//             title: KeyActionSequence::from_str(split.next().unwrap())?,
-//             target: KeyActionSequence::from_str(split.next().unwrap())?,
-//         })
-//     }
-// }
+impl FromStr for KeyTransformProfile {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.trim().trim_end_matches(';').split(';');
+        let title = split.next().unwrap().trim();
+        let rules = split.map(str::parse).collect::<Result<_, _>>()?;
+        Ok(Self {
+            title: title.into(),
+            rules,
+        })
+    }
+}
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
     use crate::key::KeyCode::SC;
     use crate::key::{KeyCode, ScanCode, VirtualKey};
     use crate::key_action::{
         KeyAction, KeyActionPattern, KeyActionSequence, KeyTransformProfile, KeyTransformRule,
     };
     use crate::key_event::KeyTransition::{Down, Up};
+    use std::fs;
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
     use KeyCode::VK;
@@ -438,24 +447,22 @@ mod tests {
     }
 
     #[test]
-    fn test_transform_rules_serialize() {
+    fn test_key_transform_rules_serialize() {
         let json = fs::read_to_string("../test/profiles/test.json").unwrap();
         let actual: KeyTransformProfile = serde_json::from_str(&json).unwrap();
-        
+
         // println!("{}", actual);
         // dbg!(&actual);
 
-        let expected = KeyTransformProfile {
-            title: "Test profile".into(),
-            rules: vec![
-                "SC_CAPS_LOCK* : SC_LEFT_WINDOWS* > SC_SPACE*> SC_SPACE^ > SC_LEFT_WINDOWS^"
-                    .parse()
-                    .unwrap(),
-                "VK_SHIFT* > VK_CAPITAL*: VK_CAPITAL* > VK_CAPITAL^"
-                    .parse()
-                    .unwrap(),
-            ],
-        };
+        let expected: KeyTransformProfile = "
+            Test profile;
+            SC_CAPS_LOCK↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
+            VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
+            "
+        .parse()
+        .unwrap();
+
+        // println!("{}", expected);
 
         assert_eq!(expected, actual);
     }
