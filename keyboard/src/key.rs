@@ -1,5 +1,5 @@
 use crate::key::KeyCode::{SC, VK};
-use serde::{de, ser, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -176,7 +176,6 @@ impl Serialize for KeyCode {
         let s = match self {
             VK(vk) => vk.name,
             SC(sc) => sc.name,
-            _ => return Err(ser::Error::custom("Illegal key code.")),
         };
 
         Ok(s.serialize(serializer)?)
@@ -788,7 +787,7 @@ mod tests {
         let source = KeyCode::from_str("SC_ENTER").unwrap();
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        println!("{}", json);
+        // dbg!(&json);
 
         let actual = serde_json::from_str::<KeyCode>(&json).unwrap();
         assert_eq!(source, actual);
@@ -796,7 +795,7 @@ mod tests {
         let source = KeyCode::from_str("VK_RETURN").unwrap();
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        println!("{}", json);
+        // dbg!(&json);
 
         let actual = serde_json::from_str::<KeyCode>(&json).unwrap();
         assert_eq!(source, actual);

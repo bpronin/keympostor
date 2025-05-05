@@ -117,7 +117,11 @@ impl FromStr for KeyActionSequence {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let actions = s.split('→').map(str::parse).collect::<Result<_, _>>()?;
+        let actions = s
+            .split(|c| "→>".contains(c))
+            .map(str::parse)
+            .collect::<Result<_, _>>()?;
+
         Ok(Self { actions })
     }
 }
@@ -134,13 +138,13 @@ pub struct KeyTransformRule {
 }
 
 impl KeyTransformRule {
-    pub fn trigger(&self) -> &KeyAction {
-        &self.source.actions[0]
-    }
+    // pub fn trigger(&self) -> &KeyAction {
+    //     &self.source.actions[0]
+    // }
 
-    pub fn modifiers(&self) -> Option<&[KeyAction]> {
-        self.source.actions.get(1..self.source.actions.len() - 1)
-    }
+    // pub fn modifiers(&self) -> Option<&[KeyAction]> {
+    //     self.source.actions.get(1..self.source.actions.len() - 1)
+    // }
 }
 
 impl FromStr for KeyTransformRule {
@@ -163,16 +167,32 @@ impl Display for KeyTransformRule {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformProfile {
-    pub title: &'static str,
+    // pub title: &'static str,
+    pub title: String,
     pub rules: Vec<KeyTransformRule>,
 }
+
+// impl FromStr for KeyTransformProfile {
+//     type Err = String;
+//
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         let mut split = s.split(",");
+//         Ok(Self {
+//             title: KeyActionSequence::from_str(split.next().unwrap())?,
+//             target: KeyActionSequence::from_str(split.next().unwrap())?,
+//         })
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
     use crate::key::KeyCode::SC;
     use crate::key::{KeyCode, ScanCode, VirtualKey};
-    use crate::key_action::{KeyAction, KeyActionPattern, KeyActionSequence, KeyTransformRule};
+    use crate::key_action::{
+        KeyAction, KeyActionPattern, KeyActionSequence, KeyTransformProfile, KeyTransformRule,
+    };
     use crate::key_event::KeyTransition::{Down, Up};
+    use std::fs;
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
     use KeyCode::VK;
@@ -200,7 +220,7 @@ mod tests {
         };
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        println!("{}", json);
+        // dbg!(&json);
 
         let actual = serde_json::from_str::<KeyAction>(&json).unwrap();
         assert_eq!(source, actual);
@@ -241,7 +261,7 @@ mod tests {
 
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        println!("{}", json);
+        // dbg!(&json);
 
         let actual = serde_json::from_str::<KeyActionSequence>(&json).unwrap();
         assert_eq!(source, actual);
@@ -319,7 +339,7 @@ mod tests {
 
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        println!("{}", json);
+        // dbg!(&json);
 
         let actual = serde_json::from_str::<KeyActionPattern>(&json).unwrap();
         assert_eq!(source, actual);
@@ -404,9 +424,28 @@ mod tests {
 
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        println!("{}", json);
+        // dbg!(&json);
 
         let actual = serde_json::from_str::<KeyTransformRule>(&json).unwrap();
         assert_eq!(source, actual);
+    }
+
+    #[test]
+    fn test_load_transform_rules() {
+        let json = fs::read_to_string("../profiles/test.json").unwrap();
+        let actual: KeyTransformProfile = serde_json::from_str(&json).unwrap();
+
+        // dbg!(&actual);
+
+        let expected = KeyTransformProfile {
+            title: "Test profile".into(),
+            rules: vec![
+                "SC_CAPS_LOCK* : SC_LEFT_WINDOWS* > SC_SPACE*> SC_SPACE^ > SC_LEFT_WINDOWS^"
+                    .parse()
+                    .unwrap(),
+            ],
+        };
+
+        assert_eq!(expected, actual);
     }
 }

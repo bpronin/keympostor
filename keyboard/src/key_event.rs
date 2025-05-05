@@ -28,9 +28,9 @@ impl KeyTransition {
         matches!(*self, Up)
     }
 
-    pub fn is_down(&self) -> bool {
-        matches!(*self, Down)
-    }
+    // pub fn is_down(&self) -> bool {
+    //     matches!(*self, Down)
+    // }
 }
 
 impl Default for KeyTransition {
@@ -191,7 +191,7 @@ mod tests {
         let source = Down;
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        println!("{}", json);
+        // dbg!(&json);
 
         let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
         assert_eq!(source, actual);
@@ -199,7 +199,7 @@ mod tests {
         let source = Up;
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        println!("{}", json);
+        // dbg!(&json);
 
         let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
         assert_eq!(source, actual);
