@@ -73,13 +73,6 @@ impl FromStr for VirtualKey {
     }
 }
 
-#[macro_export]
-macro_rules! vk_key {
-    ($text:literal) => {
-        &$text.parse::<VirtualKey>().unwrap()
-    };
-}
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ScanCode {
     pub value: u8,
@@ -167,13 +160,6 @@ impl FromStr for ScanCode {
     }
 }
 
-#[macro_export]
-macro_rules! sc_key {
-    ($text:literal) => {
-        &$text.parse::<ScanCode>().unwrap()
-    };
-}
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum KeyCode {
     VK(&'static VirtualKey),
@@ -224,13 +210,6 @@ impl FromStr for KeyCode {
         };
         Ok(kc)
     }
-}
-
-#[macro_export]
-macro_rules! key {
-    ($text:literal) => {
-        $text.parse::<KeyCode>().unwrap()
-    };
 }
 
 impl Serialize for KeyCode {
@@ -690,6 +669,27 @@ mod tests {
     use crate::key::KeyCode::{SC, VK};
     use crate::key::{KeyCode, ScanCode, VirtualKey};
     use std::str::FromStr;
+
+    #[macro_export]
+    macro_rules! vk_key {
+        ($text:literal) => {
+            &$text.parse::<VirtualKey>().unwrap()
+        };
+    }
+
+    #[macro_export]
+    macro_rules! sc_key {
+        ($text:literal) => {
+            &$text.parse::<ScanCode>().unwrap()
+        };
+    }
+
+    #[macro_export]
+    macro_rules! key {
+        ($text:literal) => {
+            $text.parse::<KeyCode>().unwrap()
+        };
+    }
 
     #[test]
     fn test_vk_from_code() {

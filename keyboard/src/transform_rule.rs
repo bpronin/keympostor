@@ -1,8 +1,8 @@
-use serde::{Deserialize, Serialize};
-use std::str::FromStr;
-use std::fmt::{Display, Formatter};
 use crate::key_action::{KeyAction, KeyActionSequence};
 use crate::write_joined;
+use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformRule {
@@ -15,8 +15,9 @@ impl KeyTransformRule {
         &self.source.actions[0]
     }
 
-    pub fn modifiers(&self) -> Option<&[KeyAction]> {
-        self.source.actions.get(1..self.source.actions.len() - 1)
+    pub fn modifiers(&self) -> &[KeyAction] {
+        &self.source.actions[1..self.source.actions.len()]
+        // self.source.actions.get(1..self.source.actions.len())
     }
 }
 
@@ -36,12 +37,6 @@ impl Display for KeyTransformRule {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} : {}", self.source, self.target)
     }
-}
-#[macro_export]
-macro_rules! key_rule {
-    ($text:literal) => {
-        $text.parse::<KeyTransformRule>().unwrap()
-    };
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -75,26 +70,51 @@ impl FromStr for KeyTransformProfile {
     }
 }
 
-#[macro_export]
-macro_rules! key_profile {
-    ($text:literal) => {
-        $text.parse::<KeyTransformProfile>().unwrap()
-    };
-}
-
 #[cfg(test)]
 mod tests {
     use crate::key::KeyCode::SC;
     use crate::key::{KeyCode, ScanCode, VirtualKey};
-    use crate::key_action::{
-        KeyAction, KeyActionSequence,
-    };
+    use crate::key_action;
     use crate::key_action::KeyTransition::Down;
+    use crate::key_action::{KeyAction, KeyActionSequence};
+    use crate::transform_rule::{KeyTransformProfile, KeyTransformRule};
     use std::fs;
     use KeyCode::VK;
-    use crate::transform_rule::{KeyTransformProfile, KeyTransformRule};
 
-     #[test]
+    #[macro_export]
+    macro_rules! key_rule {
+        ($text:literal) => {
+            $text.parse::<KeyTransformRule>().unwrap()
+        };
+    }
+
+    #[macro_export]
+    macro_rules! key_profile {
+        ($text:literal) => {
+            $text.parse::<KeyTransformProfile>().unwrap()
+        };
+    }
+
+    #[test]
+    fn test_key_transform_rule_trigger() {
+        let actual = key_rule!("VK_RETURN↓ → VK_CONTROL↓ → VK_SHIFT↓ : SC_ENTER↓");
+        assert_eq!(&key_action!("VK_RETURN↓"), actual.trigger());
+    }
+
+    #[test]
+    fn test_key_transform_rule_modifiers() {
+        let actual = key_rule!("VK_RETURN↓: SC_ENTER↓");
+        assert!(actual.modifiers().is_empty());
+        
+        let actual = key_rule!("VK_RETURN↓ → VK_CONTROL↓ → VK_SHIFT↓ : SC_ENTER↓");
+        let expected = [
+            key_action!("VK_CONTROL↓"),
+            key_action!("VK_SHIFT↓")
+        ];
+        assert_eq!(expected, actual.modifiers());
+    }
+
+    #[test]
     fn test_key_transform_rule_display() {
         let source = KeyTransformRule {
             source: KeyActionSequence {
