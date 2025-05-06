@@ -22,29 +22,32 @@ pub struct VirtualKey {
 }
 
 impl VirtualKey {
-    pub fn from_code(code: u8) -> Result<VirtualKey, String> {
+    pub fn from_code(code: u8) -> Result<&'static VirtualKey, String> {
         VIRTUAL_KEYS
             .get(code as usize)
             .ok_or(format!("Illegal virtual key code `{}`.", code))
-            .copied()
     }
 
-    pub fn from_name(name: &str) -> Result<VirtualKey, String> {
+    pub fn from_name(name: &str) -> Result<&'static VirtualKey, String> {
         let vk_name = append_prefix!(name, "VK_");
         let position = VIRTUAL_KEYS.iter().position(|probe| probe.name == vk_name);
 
         if let Some(ix) = position {
-            Ok(VIRTUAL_KEYS[ix])
+            Ok(&VIRTUAL_KEYS[ix])
         } else {
             Err(format!("Illegal virtual key name `{}`.", name))
         }
     }
 
-    pub fn from_code_name(s: &str) -> Result<VirtualKey, String> {
+    pub fn from_code_name(s: &str) -> Result<&'static VirtualKey, String> {
         let src = s.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix.")?;
         let code = u8::from_str_radix(src, 16)
             .map_err(|_| format!("Error parsing virtual key code `{}`.", s))?;
         Self::from_code(code)
+    }
+
+    fn from_text(s: &str) -> Result<&'static VirtualKey, String> {
+        Self::from_code_name(s).or_else(|_| Self::from_name(s))
     }
 }
 
@@ -58,7 +61,7 @@ impl FromStr for VirtualKey {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_code_name(s).or_else(|_| Self::from_name(s))
+        Self::from_text(s).copied()
     }
 }
 
@@ -70,36 +73,35 @@ pub struct ScanCode {
 }
 
 impl ScanCode {
-    pub(crate) fn from_code(code: u8, extended: bool) -> Result<ScanCode, String> {
+    pub(crate) fn from_code(code: u8, extended: bool) -> Result<&'static ScanCode, String> {
         SCAN_CODES
             .get(code as usize)
             .ok_or(format!("Illegal scan code `{}`.", code))?
             .get(extended as usize)
             .ok_or(format!("Illegal extended scan code `{}`.", code))
-            .copied()
     }
 
-    pub(crate) fn from_name(name: &str) -> Result<ScanCode, String> {
+    pub(crate) fn from_name(name: &str) -> Result<&'static ScanCode, String> {
         let sc_name = append_prefix!(name, "SC_");
         SCAN_CODES
             .iter()
             .flatten()
             .find(|sc| sc.name == sc_name)
             .ok_or(format!("Illegal scan code name `{}`.", name))
-            .copied()
+        // .copied()
     }
 
-    pub fn from_code_name(s: &str) -> Result<ScanCode, String> {
+    pub fn from_code_name(s: &str) -> Result<&'static ScanCode, String> {
         let code = u16::from_str_radix(s.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix.")?, 16)
             .map_err(|_| format!("Error parsing scan code `{}`.", s))?;
         Self::from_ext_code(code)
     }
 
-    pub(crate) fn from_ext_code(ext_code: u16) -> Result<ScanCode, String> {
+    pub(crate) fn from_ext_code(ext_code: u16) -> Result<&'static ScanCode, String> {
         Self::from_code(ext_code as u8, ext_code & 0xE000 != 0)
     }
 
-    pub(crate) fn from_symbol(symbol: &str) -> Result<ScanCode, String> {
+    pub(crate) fn from_symbol(symbol: &str) -> Result<&'static ScanCode, String> {
         if symbol.len() == 1 {
             let ch = symbol.chars().next().unwrap();
             let oem_code = unsafe { OemKeyScan(ch as u16) };
@@ -118,6 +120,10 @@ impl ScanCode {
             self.value as u16
         }
     }
+
+    fn from_text(s: &str) -> Result<&'static ScanCode, String> {
+        Self::from_code_name(s).or_else(|_| Self::from_name(s).or_else(|_| Self::from_symbol(s)))
+    }
 }
 
 impl Display for ScanCode {
@@ -130,14 +136,14 @@ impl FromStr for ScanCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_code_name(s).or_else(|_| Self::from_name(s).or_else(|_| Self::from_symbol(s)))
+        Self::from_text(s).copied()
     }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum KeyCode {
-    VK(VirtualKey),
-    SC(ScanCode),
+    VK(&'static VirtualKey),
+    SC(&'static ScanCode),
 }
 
 impl KeyCode {
@@ -163,11 +169,12 @@ impl FromStr for KeyCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if s.starts_with("VK_") {
-            VirtualKey::from_str(s).and_then(|vk| Ok(VK(vk)))
+        let kc = if let Ok(vk) = VirtualKey::from_text(s) {
+            VK(vk)
         } else {
-            ScanCode::from_str(s).and_then(|sc| Ok(SC(sc)))
-        }
+            SC(ScanCode::from_text(s)?)
+        };
+        Ok(kc)
     }
 }
 

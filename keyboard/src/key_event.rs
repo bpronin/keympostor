@@ -80,11 +80,11 @@ impl KeyEvent {
         self.kb.time
     }
 
-    pub fn virtual_key(&self) -> VirtualKey {
+    pub fn virtual_key(&self) -> &'static VirtualKey {
         VirtualKey::from_code(self.kb.vkCode as u8).unwrap()
     }
 
-    pub fn scan_code(&self) -> ScanCode {
+    pub fn scan_code(&self) -> &'static ScanCode {
         ScanCode::from_code(
             self.kb.scanCode as u8,
             self.kb.flags.contains(LLKHF_EXTENDED),

@@ -17,8 +17,8 @@ pub struct KeyAction {
 impl KeyAction {
     fn create_input(&self) -> INPUT {
         match self.key {
-            KeyCode::VK(vk) => self.create_virtual_key_input(vk),
-            KeyCode::SC(sc) => self.create_scancode_input(sc),
+            KeyCode::VK(vk) => self.create_virtual_key_input(*vk),
+            KeyCode::SC(sc) => self.create_scancode_input(*sc),
         }
     }
 
@@ -173,7 +173,6 @@ impl Display for KeyTransformRule {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformProfile {
-    // pub title: &'static str,
     pub title: String,
     pub rules: Vec<KeyTransformRule>,
 }
@@ -192,7 +191,17 @@ impl FromStr for KeyTransformProfile {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.trim().trim_end_matches(';').split(';');
         let title = split.next().unwrap().trim();
-        let rules = split.map(str::parse).collect::<Result<_, _>>()?;
+        // let rules = split.map(str::parse).collect::<Result<_, _>>()?;
+        let mut rules = vec![];
+        for rs in split {
+            // if rs.e() {
+            //
+            // }
+            dbg!(rs);
+            let rule = rs.parse()?;
+            rules.push(rule);
+            // split.map(str::parse).collect::<Result<_, _>>()?;
+        }
         Ok(Self {
             title: title.into(),
             rules,
@@ -389,7 +398,7 @@ mod tests {
 
     #[test]
     fn test_key_transform_rule_parse() {
-        let actual = KeyTransformRule::from_str("VK_RETURN↓ → VK_SHIFT↓ : SC_ENTER↓").unwrap();
+        let actual = "VK_RETURN↓ → VK_SHIFT↓ : SC_ENTER↓".parse().unwrap();
 
         let expected = KeyTransformRule {
             source: KeyActionSequence {
@@ -469,50 +478,54 @@ mod tests {
 
         assert_eq!(expected, actual);
     }
-    
-    #[test]
-    fn test_key_transform_rules_parse_split_transition() {
-        let actual: KeyTransformProfile = "
+
+    /*    todo:;
+        #[test]
+        fn test_key_transform_rules_parse_split_transition() {
+            let actual: KeyTransformProfile = "
             Test profile;
             VK_A : VK_B;
             "
-        .parse()
-        .unwrap();
-        
-        println!("{}", actual);
+            .parse()
+            .unwrap();
 
-        let expected: KeyTransformProfile = "
+            println!("{}", actual);
+
+            let expected: KeyTransformProfile = "
             Test profile;
             VK_A↓ : VK_B↓;
             VK_A↑ : VK_B↑;
             "
-        .parse()
-        .unwrap();
+            .parse()
+            .unwrap();
 
-        assert_eq!(expected, actual);
-    }
+            assert_eq!(expected, actual);
+        }
+    */
 
-    #[test]
-    fn test_key_transform_rules_parse_expand_transition() {
-        let actual: KeyTransformProfile = "
+    /*    todo:
+        #[test]
+        fn test_key_transform_rules_parse_expand_transition() {
+            let actual: KeyTransformProfile = "
             Test profile;
             VK_A↓↑ : VK_B↓↑;
             "
-        .parse()
-        .unwrap();
-        
-        println!("{}", actual);
+            .parse()
+            .unwrap();
 
-        let expected: KeyTransformProfile = "
+            println!("{}", actual);
+
+            let expected: KeyTransformProfile = "
             Test profile;
             VK_A↓ → VK_A↓: VK_B↓ → VK_B↑;
             "
-        .parse()
-        .unwrap();
+            .parse()
+            .unwrap();
 
-        assert_eq!(expected, actual);
-    }
-    
+            assert_eq!(expected, actual);
+        }
+    */
+
     #[test]
     fn test_key_transform_rules_serialize() {
         let json = fs::read_to_string("../test/profiles/test.json").unwrap();

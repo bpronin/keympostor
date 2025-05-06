@@ -4,36 +4,6 @@ mod key_event;
 
 #[cfg(test)]
 mod tests {
-    use crate::key::ScanCode;
-
-    #[test]
-    fn main() {
-        struct Point {
-            x: i32,
-            y: i32,
-        }
-
-        let points = [
-            [Point { x: 10, y: 11 }, Point { x: 12, y: 13 }],
-            [Point { x: 20, y: 21 }, Point { x: 22, y: 23 }],
-            [Point { x: 30, y: 31 }, Point { x: 32, y: 33 }],
-        ];
-
-        fn find_point(points: &[[Point; 2]; 3], x:i32) -> Result<&Point, ()> {
-            for row in points {
-                for i in [0, 1] {
-                    let point = &row[i];
-                    if point.x == x {
-                        return Ok(point);
-                    }
-                }
-            }
-
-            Err(())
-        }
-        
-        let p = find_point(&points, 11);
-    }
     /*    *** Key codes generation stuff ***
 
     use crate::keys::{ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
