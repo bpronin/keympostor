@@ -1,70 +1,11 @@
 use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
 use crate::key_action::KeyAction;
-use crate::key_event::KeyTransition::Up;
+use crate::key_action::KeyTransition;
 use log::warn;
-use serde::{Deserialize, Serialize};
-use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
 use KeyCode::{SC, VK};
-use KeyTransition::Down;
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub enum KeyTransition {
-    #[serde(alias = "UP", alias = "up")]
-    Up,
-    #[serde(alias = "DOWN", alias = "down")]
-    Down,
-}
-
-impl KeyTransition {
-    fn from_bool(up: bool) -> KeyTransition {
-        if up { Up } else { Down }
-    }
-
-    pub fn is_up(&self) -> bool {
-        matches!(*self, Up)
-    }
-
-    // pub fn is_down(&self) -> bool {
-    //     matches!(*self, Down)
-    // }
-}
-
-impl Default for KeyTransition {
-    fn default() -> Self {
-        Up
-    }
-}
-
-impl Display for KeyTransition {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Up => Display::fmt(&'↑', f),
-            Down => Display::fmt(&'↓', f),
-        }
-    }
-}
-
-impl FromStr for KeyTransition {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut chars = s.trim().chars();
-        let symbol = chars.next().expect("Key transition symbol is empty.");
-        if chars.next().is_none() {
-            match symbol {
-                '↑' | '^' => Ok(Up),
-                '↓' | '*' => Ok(Down),
-                _ => Err(format!("Illegal key transition symbol `{}`.", s)),
-            }
-        } else {
-            Err(format!("Key transition symbols `{}` is too long.", s))
-        }
-    }
-}
 
 #[derive(Debug, PartialEq)]
 pub struct KeyEvent {
@@ -144,62 +85,11 @@ mod tests {
     use crate::key::KeyCode::{SC, VK};
     use crate::key::{ScanCode, VirtualKey};
     use crate::key_action::KeyAction;
-    use crate::key_event::KeyTransition::{Down, Up};
-    use crate::key_event::{KeyEvent, KeyTransition, SELF_KEY_EVENT_MARKER};
+    use crate::key_action::KeyTransition::Up;
+    use crate::key_event::{KeyEvent, SELF_KEY_EVENT_MARKER};
     use windows::Win32::UI::WindowsAndMessaging::{
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
-
-    #[test]
-    fn test_key_transition_display() {
-        assert_eq!("↓", format!("{}", Down));
-        assert_eq!("↑", format!("{}", Up));
-    }
-
-    #[test]
-    fn test_key_transition_parse() {
-        assert_eq!(Down, "↓".parse().unwrap());
-        assert_eq!(Up, "↑".parse().unwrap());
-        assert_eq!(Down, "*".parse().unwrap());
-        assert_eq!(Up, "^".parse().unwrap());
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_key_transition_parse_fails_illegal() {
-        assert_eq!(Down, "&".parse().unwrap());
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_key_transition_parse_fails_empty() {
-        assert_eq!(Down, "".parse().unwrap());
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_key_transition_parse_fails_to_long() {
-        assert_eq!(Down, "***".parse().unwrap());
-    }
-
-    #[test]
-    fn test_key_transition_serialize() {
-        let source = Down;
-        let json = serde_json::to_string_pretty(&source).unwrap();
-
-        // dbg!(&json);
-
-        let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
-        assert_eq!(source, actual);
-
-        let source = Up;
-        let json = serde_json::to_string_pretty(&source).unwrap();
-
-        // dbg!(&json);
-
-        let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
-        assert_eq!(source, actual);
-    }
 
     #[test]
     fn test_key_event() {

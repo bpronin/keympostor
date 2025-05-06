@@ -1,5 +1,7 @@
 use crate::key::{KeyCode, ScanCode, VirtualKey};
-use crate::key_event::{KeyTransition, SELF_KEY_EVENT_MARKER};
+use crate::key_action::KeyTransition::{Down, Up};
+use crate::key_event::SELF_KEY_EVENT_MARKER;
+use crate::write_joined;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -7,7 +9,61 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
-use crate::write_joined;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub enum KeyTransition {
+    #[serde(alias = "UP", alias = "up")]
+    Up,
+    #[serde(alias = "DOWN", alias = "down")]
+    Down,
+}
+
+impl KeyTransition {
+    pub(crate) fn from_bool(up: bool) -> KeyTransition {
+        if up { Up } else { Down }
+    }
+
+    pub fn is_up(&self) -> bool {
+        matches!(*self, Up)
+    }
+
+    // pub fn is_down(&self) -> bool {
+    //     matches!(*self, Down)
+    // }
+}
+
+impl Default for KeyTransition {
+    fn default() -> Self {
+        Up
+    }
+}
+
+impl Display for KeyTransition {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Up => Display::fmt(&'↑', f),
+            Down => Display::fmt(&'↓', f),
+        }
+    }
+}
+
+impl FromStr for KeyTransition {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut chars = s.trim().chars();
+        let symbol = chars.next().expect("Key transition symbol is empty.");
+        if chars.next().is_none() {
+            match symbol {
+                '↑' | '^' => Ok(Up),
+                '↓' | '*' => Ok(Down),
+                _ => Err(format!("Illegal key transition symbol `{}`.", s)),
+            }
+        } else {
+            Err(format!("Key transition symbols `{}` is too long.", s))
+        }
+    }
+}
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyAction {
@@ -69,22 +125,16 @@ impl Display for KeyAction {
     }
 }
 
-impl KeyActionSequence {
-    fn create_input(&self) -> Vec<INPUT> {
-        self.actions.iter().map(|a| a.create_input()).collect()
-    }
-}
-
 impl FromStr for KeyAction {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let trimmed = s.trim();
-        let suf = trimmed
+        let st = s.trim();
+        let suf = st
             .chars()
             .last()
             .expect(&format!("Error parsing key action. String is empty. `{s}`"));
-        let key = trimmed
+        let key = st
             .strip_suffix(suf)
             .expect(&format!("Invalid key action suffix: `{suf}`."));
         Ok(Self {
@@ -96,12 +146,20 @@ impl FromStr for KeyAction {
 
 #[macro_export]
 macro_rules! key_action {
-    ($text:literal) => {{ KeyAction::from_str($text).unwrap() }};
+    ($text:literal) => {
+        $text.parse::<KeyAction>().unwrap()
+    };
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyActionSequence {
-    actions: Vec<KeyAction>,
+    pub(crate) actions: Vec<KeyAction>,
+}
+
+impl KeyActionSequence {
+    fn create_input(&self) -> Vec<INPUT> {
+        self.actions.iter().map(|a| a.create_input()).collect()
+    }
 }
 
 impl Display for KeyActionSequence {
@@ -128,97 +186,64 @@ pub struct KeyActionPattern {
     sequence: Vec<KeyActionSequence>,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeyTransformRule {
-    pub source: KeyActionSequence,
-    pub target: KeyActionSequence,
-}
-
-impl KeyTransformRule {
-    pub fn trigger(&self) -> &KeyAction {
-        &self.source.actions[0]
-    }
-
-    // pub fn modifiers(&self) -> Option<&[KeyAction]> {
-    //     self.source.actions.get(1..self.source.actions.len() - 1)
-    // }
-}
-
-impl FromStr for KeyTransformRule {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut split = s.split(":");
-        Ok(Self {
-            source: KeyActionSequence::from_str(split.next().unwrap())?,
-            target: KeyActionSequence::from_str(split.next().unwrap())?,
-        })
-    }
-}
-
-impl Display for KeyTransformRule {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} : {}", self.source, self.target)
-    }
-}
-
-#[macro_export]
-macro_rules! key_rule {
-    ($text:literal) => {
-        KeyTransformRule::from_str($text).unwrap()
-    };
-}
-
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeyTransformProfile {
-    pub title: String,
-    pub rules: Vec<KeyTransformRule>,
-}
-
-impl Display for KeyTransformProfile {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "{};", self.title)?;
-        write_joined!(f, &self.rules, ";\n")?;
-        write!(f, ";")
-    }
-}
-
-impl FromStr for KeyTransformProfile {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut split = s.trim().trim_end_matches(';').split(';');
-        let title = split.next().unwrap().trim();
-        let mut rules = vec![];
-        for rs in split {
-            rules.push(rs.parse()?);
-        }
-        Ok(Self {
-            title: title.into(),
-            rules,
-        })
-    }
-}
-
-#[macro_export]
-macro_rules! key_profile {
-    ($text:literal) => {
-        KeyTransformProfile::from_str($text).unwrap()
-    };
-}
-
 #[cfg(test)]
 mod tests {
     use crate::key::KeyCode::SC;
     use crate::key::{KeyCode, ScanCode, VirtualKey};
-    use crate::key_action::{
-        KeyAction, KeyActionPattern, KeyActionSequence, KeyTransformProfile, KeyTransformRule,
-    };
-    use crate::key_event::KeyTransition::{Down, Up};
-    use std::fs;
-    use std::str::FromStr;
+    use crate::key_action::KeyTransition::{Down, Up};
+    use crate::key_action::{KeyAction, KeyActionPattern, KeyActionSequence, KeyTransition};
     use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
     use KeyCode::VK;
+    #[test]
+    fn test_key_transition_display() {
+        assert_eq!("↓", format!("{}", Down));
+        assert_eq!("↑", format!("{}", Up));
+    }
+
+    #[test]
+    fn test_key_transition_parse() {
+        assert_eq!(Down, "↓".parse().unwrap());
+        assert_eq!(Up, "↑".parse().unwrap());
+        assert_eq!(Down, "*".parse().unwrap());
+        assert_eq!(Up, "^".parse().unwrap());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_key_transition_parse_fails_illegal() {
+        assert_eq!(Down, "&".parse().unwrap());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_key_transition_parse_fails_empty() {
+        assert_eq!(Down, "".parse().unwrap());
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_key_transition_parse_fails_to_long() {
+        assert_eq!(Down, "***".parse().unwrap());
+    }
+
+    #[test]
+    fn test_key_transition_serialize() {
+        let source = Down;
+        let json = serde_json::to_string_pretty(&source).unwrap();
+
+        // dbg!(&json);
+
+        let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
+        assert_eq!(source, actual);
+
+        let source = Up;
+        let json = serde_json::to_string_pretty(&source).unwrap();
+
+        // dbg!(&json);
+
+        let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
+        assert_eq!(source, actual);
+    }
 
     #[test]
     fn test_key_action_display() {
@@ -252,16 +277,7 @@ mod tests {
     #[test]
     fn test_key_action_sequence_display() {
         let actual = KeyActionSequence {
-            actions: vec![
-                KeyAction {
-                    key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
-                    transition: Down,
-                },
-                KeyAction {
-                    key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
-                    transition: Up,
-                },
-            ],
+            actions: vec![key_action!("VK_RETURN*"), key_action!("VK_SHIFT^")],
         };
 
         assert_eq!("VK_RETURN↓ → VK_SHIFT↑", format!("{}", actual));
@@ -270,16 +286,7 @@ mod tests {
     #[test]
     fn test_key_action_sequence_serialize() {
         let source = KeyActionSequence {
-            actions: vec![
-                KeyAction {
-                    key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
-                    transition: Down,
-                },
-                KeyAction {
-                    key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
-                    transition: Down,
-                },
-            ],
+            actions: vec![key_action!("VK_RETURN*"), key_action!("VK_SHIFT*")],
         };
 
         let json = serde_json::to_string_pretty(&source).unwrap();
@@ -293,16 +300,7 @@ mod tests {
     #[test]
     fn test_key_action_sequence_create_input() {
         let source = KeyActionSequence {
-            actions: vec![
-                KeyAction {
-                    key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
-                    transition: Down,
-                },
-                KeyAction {
-                    key: SC(ScanCode::from_name("SC_NUM_ENTER").unwrap()),
-                    transition: Up,
-                },
-            ],
+            actions: vec![key_action!("VK_RETURN*"), key_action!("SC_NUM_ENTER^")],
         };
         let input = source.create_input();
 
@@ -366,182 +364,5 @@ mod tests {
 
         let actual = serde_json::from_str::<KeyActionPattern>(&json).unwrap();
         assert_eq!(source, actual);
-    }
-
-    #[test]
-    fn test_key_transform_rule_display() {
-        let source = KeyTransformRule {
-            source: KeyActionSequence {
-                actions: vec![
-                    KeyAction {
-                        key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
-                        transition: Down,
-                    },
-                    KeyAction {
-                        key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
-                        transition: Down,
-                    },
-                ],
-            },
-            target: KeyActionSequence {
-                actions: vec![KeyAction {
-                    key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
-                    transition: Down,
-                }],
-            },
-        };
-
-        assert_eq!("VK_RETURN↓ → VK_SHIFT↓ : SC_ENTER↓", format!("{}", source));
-    }
-
-    #[test]
-    fn test_key_transform_rule_parse() {
-        let actual = "VK_RETURN↓ → VK_SHIFT↓ : SC_ENTER↓".parse().unwrap();
-
-        let expected = KeyTransformRule {
-            source: KeyActionSequence {
-                actions: vec![
-                    KeyAction {
-                        key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
-                        transition: Down,
-                    },
-                    KeyAction {
-                        key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
-                        transition: Down,
-                    },
-                ],
-            },
-            target: KeyActionSequence {
-                actions: vec![KeyAction {
-                    key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
-                    transition: Down,
-                }],
-            },
-        };
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_key_transform_rule_serialize() {
-        let source = KeyTransformRule {
-            source: KeyActionSequence {
-                actions: vec![
-                    KeyAction {
-                        key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
-                        transition: Down,
-                    },
-                    KeyAction {
-                        key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
-                        transition: Down,
-                    },
-                ],
-            },
-            target: KeyActionSequence {
-                actions: vec![KeyAction {
-                    key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
-                    transition: Down,
-                }],
-            },
-        };
-
-        let json = serde_json::to_string_pretty(&source).unwrap();
-
-        // dbg!(&json);
-
-        let actual = serde_json::from_str::<KeyTransformRule>(&json).unwrap();
-        assert_eq!(source, actual);
-    }
-
-    #[test]
-    fn test_key_transform_rules_parse() {
-        let actual = key_profile!(
-            "
-            Test profile;
-            SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
-            VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
-            "
-        );
-
-        let expected = key_profile!(
-            "
-            Test profile;
-            SC_A* : SC_LEFT_WINDOWS* > SC_SPACE* > SC_SPACE^ > SC_LEFT_WINDOWS^;
-            VK_SHIFT* > VK_CAPITAL* : VK_CAPITAL* > VK_CAPITAL^;
-            "
-        );
-
-        println!("{}", actual);
-        println!("{}", expected);
-
-        assert_eq!(expected, actual);
-    }
-
-    /*    todo:;
-        #[test]
-        fn test_key_transform_rules_parse_split_transition() {
-            let actual: KeyTransformProfile = "
-            Test profile;
-            VK_A : VK_B;
-            "
-            .parse()
-            .unwrap();
-
-            println!("{}", actual);
-
-            let expected: KeyTransformProfile = "
-            Test profile;
-            VK_A↓ : VK_B↓;
-            VK_A↑ : VK_B↑;
-            "
-            .parse()
-            .unwrap();
-
-            assert_eq!(expected, actual);
-        }
-    */
-
-    /*    todo:
-        #[test]
-        fn test_key_transform_rules_parse_expand_transition() {
-            let actual: KeyTransformProfile = "
-            Test profile;
-            VK_A↓↑ : VK_B↓↑;
-            "
-            .parse()
-            .unwrap();
-
-            println!("{}", actual);
-
-            let expected: KeyTransformProfile = "
-            Test profile;
-            VK_A↓ → VK_A↓: VK_B↓ → VK_B↑;
-            "
-            .parse()
-            .unwrap();
-
-            assert_eq!(expected, actual);
-        }
-    */
-
-    #[test]
-    fn test_key_transform_rules_serialize() {
-        let json = fs::read_to_string("../test/profiles/test.json").unwrap();
-        let actual: KeyTransformProfile = serde_json::from_str(&json).unwrap();
-
-        // println!("{}", actual);
-        // dbg!(&actual);
-
-        let expected = key_profile!(
-            "
-            Test profile;
-            SC_CAPS_LOCK↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
-            VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
-            "
-        );
-
-        // println!("{}", expected);
-
-        assert_eq!(expected, actual);
     }
 }

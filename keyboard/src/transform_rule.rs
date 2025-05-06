@@ -1,0 +1,273 @@
+use serde::{Deserialize, Serialize};
+use std::str::FromStr;
+use std::fmt::{Display, Formatter};
+use crate::key_action::{KeyAction, KeyActionSequence};
+use crate::write_joined;
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct KeyTransformRule {
+    pub source: KeyActionSequence,
+    pub target: KeyActionSequence,
+}
+
+impl KeyTransformRule {
+    pub fn trigger(&self) -> &KeyAction {
+        &self.source.actions[0]
+    }
+
+    pub fn modifiers(&self) -> Option<&[KeyAction]> {
+        self.source.actions.get(1..self.source.actions.len() - 1)
+    }
+}
+
+impl FromStr for KeyTransformRule {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.split(":");
+        Ok(Self {
+            source: KeyActionSequence::from_str(split.next().unwrap())?,
+            target: KeyActionSequence::from_str(split.next().unwrap())?,
+        })
+    }
+}
+
+impl Display for KeyTransformRule {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} : {}", self.source, self.target)
+    }
+}
+#[macro_export]
+macro_rules! key_rule {
+    ($text:literal) => {
+        $text.parse::<KeyTransformRule>().unwrap()
+    };
+}
+
+#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub struct KeyTransformProfile {
+    pub title: String,
+    pub rules: Vec<KeyTransformRule>,
+}
+
+impl Display for KeyTransformProfile {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{};", self.title)?;
+        write_joined!(f, &self.rules, ";\n")?;
+        write!(f, ";")
+    }
+}
+
+impl FromStr for KeyTransformProfile {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut split = s.trim().trim_end_matches(';').split(';');
+        let title = split.next().unwrap().trim();
+        let mut rules = vec![];
+        for rs in split {
+            rules.push(rs.parse()?);
+        }
+        Ok(Self {
+            title: title.into(),
+            rules,
+        })
+    }
+}
+
+#[macro_export]
+macro_rules! key_profile {
+    ($text:literal) => {
+        $text.parse::<KeyTransformProfile>().unwrap()
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::key::KeyCode::SC;
+    use crate::key::{KeyCode, ScanCode, VirtualKey};
+    use crate::key_action::{
+        KeyAction, KeyActionSequence,
+    };
+    use crate::key_action::KeyTransition::Down;
+    use std::fs;
+    use KeyCode::VK;
+    use crate::transform_rule::{KeyTransformProfile, KeyTransformRule};
+
+     #[test]
+    fn test_key_transform_rule_display() {
+        let source = KeyTransformRule {
+            source: KeyActionSequence {
+                actions: vec![
+                    KeyAction {
+                        key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
+                        transition: Down,
+                    },
+                    KeyAction {
+                        key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
+                        transition: Down,
+                    },
+                ],
+            },
+            target: KeyActionSequence {
+                actions: vec![KeyAction {
+                    key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
+                    transition: Down,
+                }],
+            },
+        };
+
+        assert_eq!("VK_RETURN↓ → VK_SHIFT↓ : SC_ENTER↓", format!("{}", source));
+    }
+
+    #[test]
+    fn test_key_transform_rule_parse() {
+        let actual = "VK_RETURN↓ → VK_SHIFT↓ : SC_ENTER↓".parse().unwrap();
+
+        let expected = KeyTransformRule {
+            source: KeyActionSequence {
+                actions: vec![
+                    KeyAction {
+                        key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
+                        transition: Down,
+                    },
+                    KeyAction {
+                        key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
+                        transition: Down,
+                    },
+                ],
+            },
+            target: KeyActionSequence {
+                actions: vec![KeyAction {
+                    key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
+                    transition: Down,
+                }],
+            },
+        };
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_key_transform_rule_serialize() {
+        let source = KeyTransformRule {
+            source: KeyActionSequence {
+                actions: vec![
+                    KeyAction {
+                        key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
+                        transition: Down,
+                    },
+                    KeyAction {
+                        key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
+                        transition: Down,
+                    },
+                ],
+            },
+            target: KeyActionSequence {
+                actions: vec![KeyAction {
+                    key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
+                    transition: Down,
+                }],
+            },
+        };
+
+        let json = serde_json::to_string_pretty(&source).unwrap();
+
+        // dbg!(&json);
+
+        let actual = serde_json::from_str::<KeyTransformRule>(&json).unwrap();
+        assert_eq!(source, actual);
+    }
+
+    #[test]
+    fn test_key_transform_rules_parse() {
+        let actual = key_profile!(
+            "
+            Test profile;
+            SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
+            VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
+            "
+        );
+
+        let expected = key_profile!(
+            "
+            Test profile;
+            SC_A* : SC_LEFT_WINDOWS* > SC_SPACE* > SC_SPACE^ > SC_LEFT_WINDOWS^;
+            VK_SHIFT* > VK_CAPITAL* : VK_CAPITAL* > VK_CAPITAL^;
+            "
+        );
+
+        println!("{}", actual);
+        println!("{}", expected);
+
+        assert_eq!(expected, actual);
+    }
+
+    /*    todo:;
+        #[test]
+        fn test_key_transform_rules_parse_split_transition() {
+            let actual: KeyTransformProfile = "
+            Test profile;
+            VK_A : VK_B;
+            "
+            .parse()
+            .unwrap();
+
+            println!("{}", actual);
+
+            let expected: KeyTransformProfile = "
+            Test profile;
+            VK_A↓ : VK_B↓;
+            VK_A↑ : VK_B↑;
+            "
+            .parse()
+            .unwrap();
+
+            assert_eq!(expected, actual);
+        }
+    */
+
+    /*    todo:
+        #[test]
+        fn test_key_transform_rules_parse_expand_transition() {
+            let actual: KeyTransformProfile = "
+            Test profile;
+            VK_A↓↑ : VK_B↓↑;
+            "
+            .parse()
+            .unwrap();
+
+            println!("{}", actual);
+
+            let expected: KeyTransformProfile = "
+            Test profile;
+            VK_A↓ → VK_A↓: VK_B↓ → VK_B↑;
+            "
+            .parse()
+            .unwrap();
+
+            assert_eq!(expected, actual);
+        }
+    */
+
+    #[test]
+    fn test_key_transform_rules_serialize() {
+        let json = fs::read_to_string("../test/profiles/test.json").unwrap();
+        let actual: KeyTransformProfile = serde_json::from_str(&json).unwrap();
+
+        // println!("{}", actual);
+        // dbg!(&actual);
+
+        let expected = key_profile!(
+            "
+            Test profile;
+            SC_CAPS_LOCK↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
+            VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
+            "
+        );
+
+        // println!("{}", expected);
+
+        assert_eq!(expected, actual);
+    }
+}

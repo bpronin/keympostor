@@ -43,7 +43,8 @@ impl VirtualKey {
     }
 
     fn from_text(s: &str) -> Result<&'static VirtualKey, String> {
-        Self::from_code_name(s).or_else(|_| Self::from_name(s))
+        let st = s.trim();
+        Self::from_code_name(st).or_else(|_| Self::from_name(st))
     }
 
     pub fn to_scan_code(&self) -> Option<&'static ScanCode> {
@@ -72,9 +73,10 @@ impl FromStr for VirtualKey {
     }
 }
 
+#[macro_export]
 macro_rules! vk_key {
     ($text:literal) => {
-        &VirtualKey::from_str($text).unwrap()
+        &$text.parse::<VirtualKey>().unwrap()
     };
 }
 
@@ -129,7 +131,8 @@ impl ScanCode {
     }
 
     fn from_text(s: &str) -> Result<&'static ScanCode, String> {
-        Self::from_code_name(s).or_else(|_| Self::from_name(s).or_else(|_| Self::from_symbol(s)))
+        let st = s.trim();
+        Self::from_code_name(st).or_else(|_| Self::from_name(st).or_else(|_| Self::from_symbol(st)))
     }
 
     pub(crate) fn ext_value(&self) -> u16 {
@@ -164,9 +167,10 @@ impl FromStr for ScanCode {
     }
 }
 
+#[macro_export]
 macro_rules! sc_key {
     ($text:literal) => {
-        &ScanCode::from_str($text).unwrap()
+        &$text.parse::<ScanCode>().unwrap()
     };
 }
 
@@ -185,19 +189,19 @@ impl KeyCode {
         matches!(*self, VK(_))
     }
 
-    pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
-        match self {
-            VK(vk) => Ok(vk),
-            SC(_) => Err(format!("Illegal key code `{}`.", self)),
-        }
-    }
+    // pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
+    //     match self {
+    //         VK(vk) => Ok(vk),
+    //         SC(_) => Err(format!("Illegal key code `{}`.", self)),
+    //     }
+    // }
 
-    pub(crate) fn as_scan_code(&self) -> Result<&'static ScanCode, String> {
-        match self {
-            VK(_) => Err(format!("Illegal key code `{}`.", self)),
-            SC(sc) => Ok(sc),
-        }
-    }
+    // pub(crate) fn as_scan_code(&self) -> Result<&'static ScanCode, String> {
+    //     match self {
+    //         VK(_) => Err(format!("Illegal key code `{}`.", self)),
+    //         SC(sc) => Ok(sc),
+    //     }
+    // }
 }
 
 impl Display for KeyCode {
@@ -222,9 +226,10 @@ impl FromStr for KeyCode {
     }
 }
 
+#[macro_export]
 macro_rules! key {
     ($text:literal) => {
-        KeyCode::from_str($text).unwrap()
+        $text.parse::<KeyCode>().unwrap()
     };
 }
 
@@ -731,12 +736,11 @@ mod tests {
             sc_key!("SC_ENTER"),
             vk_key!("VK_RETURN").to_scan_code().unwrap()
         );
-        
+
         assert_eq!(
             sc_key!("SC_RIGHT_WINDOWS"),
             vk_key!("VK_RWIN").to_scan_code().unwrap()
         );
-
 
         assert_eq!(None, vk_key!("VK_LBUTTON").to_scan_code());
     }
@@ -763,8 +767,14 @@ mod tests {
 
     #[test]
     fn test_sc_from_code_name() {
-        assert_eq!("SC_ENTER", ScanCode::from_code_name("SC_0x001C").unwrap().name);
-        assert_eq!("SC_BACKTICK", ScanCode::from_code_name("SC_0xE029").unwrap().name);
+        assert_eq!(
+            "SC_ENTER",
+            ScanCode::from_code_name("SC_0x001C").unwrap().name
+        );
+        assert_eq!(
+            "SC_BACKTICK",
+            ScanCode::from_code_name("SC_0xE029").unwrap().name
+        );
     }
 
     #[test]
@@ -830,10 +840,7 @@ mod tests {
 
     #[test]
     fn test_sc_display() {
-        assert_eq!(
-            "SC_ENTER",
-            format!("{}", sc_key!("SC_ENTER"))
-        );
+        assert_eq!("SC_ENTER", format!("{}", sc_key!("SC_ENTER")));
     }
 
     #[test]
@@ -865,14 +872,8 @@ mod tests {
 
     #[test]
     fn test_key_code_display() {
-        assert_eq!(
-            "SC_ENTER",
-            format!("{}", key!("SC_ENTER"))
-        );
-        assert_eq!(
-            "VK_RETURN",
-            format!("{}", key!("VK_RETURN"))
-        );
+        assert_eq!("SC_ENTER", format!("{}", key!("SC_ENTER")));
+        assert_eq!("VK_RETURN", format!("{}", key!("VK_RETURN")));
     }
 
     #[test]
