@@ -68,14 +68,10 @@ impl FromStr for KeyTransition {
 
 #[derive(Debug, PartialEq)]
 pub struct KeyEvent {
-    kb: KBDLLHOOKSTRUCT,
+    pub kb: KBDLLHOOKSTRUCT,
 }
 
 impl KeyEvent {
-    pub fn from_kb(kb: KBDLLHOOKSTRUCT) -> Self {
-        Self { kb }
-    }
-
     pub fn time(&self) -> u32 {
         self.kb.time
     }
@@ -215,7 +211,7 @@ mod tests {
             dwExtraInfo: SELF_KEY_EVENT_MARKER.as_ptr() as usize,
         };
 
-        let actual = KeyEvent::from_kb(kb);
+        let actual = KeyEvent { kb };
 
         assert_eq!("SC_NUM_ENTER", actual.scan_code().name);
         assert_eq!("VK_RETURN", actual.virtual_key().name);
@@ -237,14 +233,14 @@ mod tests {
             dwExtraInfo: SELF_KEY_EVENT_MARKER.as_ptr() as usize,
         };
 
-        let actual = KeyEvent::from_kb(kb).as_virtual_key_action();
+        let actual = KeyEvent { kb }.as_virtual_key_action();
         let expected = KeyAction {
             key: VK(VirtualKey::from_code(0x0D).unwrap()),
             transition: Up,
         };
         assert_eq!(expected, actual);
 
-        let actual = KeyEvent::from_kb(kb).as_scan_code_action();
+        let actual = KeyEvent { kb }.as_scan_code_action();
         let expected = KeyAction {
             key: SC(ScanCode::from_code(0x1C, true).unwrap()),
             transition: Up,

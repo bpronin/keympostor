@@ -1,19 +1,12 @@
+use crate::append_prefix;
 use crate::key::KeyCode::{SC, VK};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use windows::Win32::UI::Input::KeyboardAndMouse::OemKeyScan;
-
-macro_rules! append_prefix {
-    ($s:expr, $pref:literal) => {
-        if $s.starts_with($pref) {
-            $s
-        } else {
-            &format!("{}{}", $pref, $s)
-        }
-    };
-}
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    MapVirtualKeyW, OemKeyScan, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
+};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {
@@ -23,6 +16,9 @@ pub struct VirtualKey {
 
 impl VirtualKey {
     pub fn from_code(code: u8) -> Result<&'static VirtualKey, String> {
+        // if code == 0 || code as usize > MAX_VK_CODE {
+        //     return Err("Illegal virtual key code".to_string());
+        // }
         VIRTUAL_KEYS
             .get(code as usize)
             .ok_or(format!("Illegal virtual key code `{}`.", code))
@@ -49,6 +45,17 @@ impl VirtualKey {
     fn from_text(s: &str) -> Result<&'static VirtualKey, String> {
         Self::from_code_name(s).or_else(|_| Self::from_name(s))
     }
+
+    pub fn to_scan_code(&self) -> Option<&'static ScanCode> {
+        let ext_code = unsafe { MapVirtualKeyW(self.value as u32, MAPVK_VK_TO_VSC_EX) };
+        if ext_code > 0 {
+            let code = ext_code as u8;
+            let extended = ext_code & 0xE000 != 0;
+            ScanCode::from_code(code, extended).ok()
+        } else {
+            None
+        }
+    }
 }
 
 impl Display for VirtualKey {
@@ -65,6 +72,12 @@ impl FromStr for VirtualKey {
     }
 }
 
+macro_rules! vk_key {
+    ($text:literal) => {
+        &VirtualKey::from_str($text).unwrap()
+    };
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct ScanCode {
     pub value: u8,
@@ -74,6 +87,9 @@ pub struct ScanCode {
 
 impl ScanCode {
     pub(crate) fn from_code(code: u8, extended: bool) -> Result<&'static ScanCode, String> {
+        // if code == 0 || code as usize > MAX_SCAN_CODE {
+        //     return Err("Illegal scan code".to_string());
+        // }
         SCAN_CODES
             .get(code as usize)
             .ok_or(format!("Illegal scan code `{}`.", code))?
@@ -88,7 +104,6 @@ impl ScanCode {
             .flatten()
             .find(|sc| sc.name == sc_name)
             .ok_or(format!("Illegal scan code name `{}`.", name))
-        // .copied()
     }
 
     pub fn from_code_name(s: &str) -> Result<&'static ScanCode, String> {
@@ -106,11 +121,15 @@ impl ScanCode {
             let ch = symbol.chars().next().unwrap();
             let oem_code = unsafe { OemKeyScan(ch as u16) };
             let ext_code = oem_code as u8;
-            // let is_shift = oem_code & 0x0001_0000 != 0;
+            //todo? let is_shift = oem_code & 0x0001_0000 != 0;
             ScanCode::from_code(ext_code, false)
         } else {
             Err(format!("Illegal key symbol `{}`.", symbol))
         }
+    }
+
+    fn from_text(s: &str) -> Result<&'static ScanCode, String> {
+        Self::from_code_name(s).or_else(|_| Self::from_name(s).or_else(|_| Self::from_symbol(s)))
     }
 
     pub(crate) fn ext_value(&self) -> u16 {
@@ -121,8 +140,13 @@ impl ScanCode {
         }
     }
 
-    fn from_text(s: &str) -> Result<&'static ScanCode, String> {
-        Self::from_code_name(s).or_else(|_| Self::from_name(s).or_else(|_| Self::from_symbol(s)))
+    pub fn to_virtual_key(&self) -> Option<&'static VirtualKey> {
+        let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
+        if vk_code > 0 {
+            VirtualKey::from_code(vk_code as u8).ok()
+        } else {
+            None
+        }
     }
 }
 
@@ -140,6 +164,12 @@ impl FromStr for ScanCode {
     }
 }
 
+macro_rules! sc_key {
+    ($text:literal) => {
+        &ScanCode::from_str($text).unwrap()
+    };
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum KeyCode {
     VK(&'static VirtualKey),
@@ -153,6 +183,20 @@ impl KeyCode {
 
     pub(crate) fn is_virtual_key(&self) -> bool {
         matches!(*self, VK(_))
+    }
+
+    pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
+        match self {
+            VK(vk) => Ok(vk),
+            SC(_) => Err(format!("Illegal key code `{}`.", self)),
+        }
+    }
+
+    pub(crate) fn as_scan_code(&self) -> Result<&'static ScanCode, String> {
+        match self {
+            VK(_) => Err(format!("Illegal key code `{}`.", self)),
+            SC(sc) => Ok(sc),
+        }
     }
 }
 
@@ -176,6 +220,12 @@ impl FromStr for KeyCode {
         };
         Ok(kc)
     }
+}
+
+macro_rules! key {
+    ($text:literal) => {
+        KeyCode::from_str($text).unwrap()
+    };
 }
 
 impl Serialize for KeyCode {
@@ -206,7 +256,7 @@ impl<'de> Deserialize<'de> for KeyCode {
 pub const MAX_VK_CODE: usize = 256;
 pub const MAX_SCAN_CODE: usize = 136;
 
-macro_rules! vk {
+macro_rules! new_vk {
     ($code:literal, $name:literal) => {
         VirtualKey {
             value: $code,
@@ -216,421 +266,418 @@ macro_rules! vk {
 }
 
 static VIRTUAL_KEYS: [VirtualKey; MAX_VK_CODE] = [
-    vk!(0x00, "UNASSIGNED"),
-    vk!(0x01, "VK_LBUTTON"),
-    vk!(0x02, "VK_RBUTTON"),
-    vk!(0x03, "VK_CANCEL"),
-    vk!(0x04, "VK_MBUTTON"),
-    vk!(0x05, "VK_XBUTTON1"),
-    vk!(0x06, "VK_XBUTTON2"),
-    vk!(0x07, "UNASSIGNED"),
-    vk!(0x08, "VK_BACK"),
-    vk!(0x09, "VK_TAB"),
-    vk!(0x0A, "UNASSIGNED"),
-    vk!(0x0B, "UNASSIGNED"),
-    vk!(0x0C, "VK_CLEAR"),
-    vk!(0x0D, "VK_RETURN"),
-    vk!(0x0E, "UNASSIGNED"),
-    vk!(0x0F, "UNASSIGNED"),
-    vk!(0x10, "VK_SHIFT"),
-    vk!(0x11, "VK_CONTROL"),
-    vk!(0x12, "VK_MENU"),
-    vk!(0x13, "VK_PAUSE"),
-    vk!(0x14, "VK_CAPITAL"),
-    vk!(0x15, "VK_KANA"),
-    vk!(0x16, "VK_IME_ON"),
-    vk!(0x17, "VK_JUNJA"),
-    vk!(0x18, "VK_FINAL"),
-    vk!(0x19, "VK_HANJA"),
-    vk!(0x1A, "VK_IME_OFF"),
-    vk!(0x1B, "VK_ESCAPE"),
-    vk!(0x1C, "VK_CONVERT"),
-    vk!(0x1D, "VK_NONCONVERT"),
-    vk!(0x1E, "VK_ACCEPT"),
-    vk!(0x1F, "VK_MODECHANGE"),
-    vk!(0x20, "VK_SPACE"),
-    vk!(0x21, "VK_PRIOR"),
-    vk!(0x22, "VK_NEXT"),
-    vk!(0x23, "VK_END"),
-    vk!(0x24, "VK_HOME"),
-    vk!(0x25, "VK_LEFT"),
-    vk!(0x26, "VK_UP"),
-    vk!(0x27, "VK_RIGHT"),
-    vk!(0x28, "VK_DOWN"),
-    vk!(0x29, "VK_SELECT"),
-    vk!(0x2A, "VK_PRINT"),
-    vk!(0x2B, "VK_EXECUTE"),
-    vk!(0x2C, "VK_SNAPSHOT"),
-    vk!(0x2D, "VK_INSERT"),
-    vk!(0x2E, "VK_DELETE"),
-    vk!(0x2F, "VK_HELP"),
-    vk!(0x30, "VK_0"),
-    vk!(0x31, "VK_1"),
-    vk!(0x32, "VK_2"),
-    vk!(0x33, "VK_3"),
-    vk!(0x34, "VK_4"),
-    vk!(0x35, "VK_5"),
-    vk!(0x36, "VK_6"),
-    vk!(0x37, "VK_7"),
-    vk!(0x38, "VK_8"),
-    vk!(0x39, "VK_9"),
-    vk!(0x3A, "UNASSIGNED"),
-    vk!(0x3B, "UNASSIGNED"),
-    vk!(0x3C, "UNASSIGNED"),
-    vk!(0x3D, "UNASSIGNED"),
-    vk!(0x3E, "UNASSIGNED"),
-    vk!(0x3F, "UNASSIGNED"),
-    vk!(0x40, "UNASSIGNED"),
-    vk!(0x41, "VK_A"),
-    vk!(0x42, "VK_B"),
-    vk!(0x43, "VK_C"),
-    vk!(0x44, "VK_D"),
-    vk!(0x45, "VK_E"),
-    vk!(0x46, "VK_F"),
-    vk!(0x47, "VK_G"),
-    vk!(0x48, "VK_H"),
-    vk!(0x49, "VK_I"),
-    vk!(0x4A, "VK_J"),
-    vk!(0x4B, "VK_K"),
-    vk!(0x4C, "VK_L"),
-    vk!(0x4D, "VK_M"),
-    vk!(0x4E, "VK_N"),
-    vk!(0x4F, "VK_O"),
-    vk!(0x50, "VK_P"),
-    vk!(0x51, "VK_Q"),
-    vk!(0x52, "VK_R"),
-    vk!(0x53, "VK_S"),
-    vk!(0x54, "VK_T"),
-    vk!(0x55, "VK_U"),
-    vk!(0x56, "VK_V"),
-    vk!(0x57, "VK_W"),
-    vk!(0x58, "VK_X"),
-    vk!(0x59, "VK_Y"),
-    vk!(0x5A, "VK_Z"),
-    vk!(0x5B, "VK_LWIN"),
-    vk!(0x5C, "VK_RWIN"),
-    vk!(0x5D, "VK_APPS"),
-    vk!(0x5E, "UNASSIGNED"),
-    vk!(0x5F, "VK_SLEEP"),
-    vk!(0x60, "VK_NUMPAD0"),
-    vk!(0x61, "VK_NUMPAD1"),
-    vk!(0x62, "VK_NUMPAD2"),
-    vk!(0x63, "VK_NUMPAD3"),
-    vk!(0x64, "VK_NUMPAD4"),
-    vk!(0x65, "VK_NUMPAD5"),
-    vk!(0x66, "VK_NUMPAD6"),
-    vk!(0x67, "VK_NUMPAD7"),
-    vk!(0x68, "VK_NUMPAD8"),
-    vk!(0x69, "VK_NUMPAD9"),
-    vk!(0x6A, "VK_MULTIPLY"),
-    vk!(0x6B, "VK_ADD"),
-    vk!(0x6C, "VK_SEPARATOR"),
-    vk!(0x6D, "VK_SUBTRACT"),
-    vk!(0x6E, "VK_DECIMAL"),
-    vk!(0x6F, "VK_DIVIDE"),
-    vk!(0x70, "VK_F1"),
-    vk!(0x71, "VK_F2"),
-    vk!(0x72, "VK_F3"),
-    vk!(0x73, "VK_F4"),
-    vk!(0x74, "VK_F5"),
-    vk!(0x75, "VK_F6"),
-    vk!(0x76, "VK_F7"),
-    vk!(0x77, "VK_F8"),
-    vk!(0x78, "VK_F9"),
-    vk!(0x79, "VK_F10"),
-    vk!(0x7A, "VK_F11"),
-    vk!(0x7B, "VK_F12"),
-    vk!(0x7C, "VK_F13"),
-    vk!(0x7D, "VK_F14"),
-    vk!(0x7E, "VK_F15"),
-    vk!(0x7F, "VK_F16"),
-    vk!(0x80, "VK_F17"),
-    vk!(0x81, "VK_F18"),
-    vk!(0x82, "VK_F19"),
-    vk!(0x83, "VK_F20"),
-    vk!(0x84, "VK_F21"),
-    vk!(0x85, "VK_F22"),
-    vk!(0x86, "VK_F23"),
-    vk!(0x87, "VK_F24"),
-    vk!(0x88, "UNASSIGNED"),
-    vk!(0x89, "UNASSIGNED"),
-    vk!(0x8A, "UNASSIGNED"),
-    vk!(0x8B, "UNASSIGNED"),
-    vk!(0x8C, "UNASSIGNED"),
-    vk!(0x8D, "UNASSIGNED"),
-    vk!(0x8E, "UNASSIGNED"),
-    vk!(0x8F, "UNASSIGNED"),
-    vk!(0x90, "VK_NUMLOCK"),
-    vk!(0x91, "VK_SCROLL"),
-    vk!(0x92, "UNASSIGNED"),
-    vk!(0x93, "UNASSIGNED"),
-    vk!(0x94, "UNASSIGNED"),
-    vk!(0x95, "UNASSIGNED"),
-    vk!(0x96, "UNASSIGNED"),
-    vk!(0x97, "UNASSIGNED"),
-    vk!(0x98, "UNASSIGNED"),
-    vk!(0x99, "UNASSIGNED"),
-    vk!(0x9A, "UNASSIGNED"),
-    vk!(0x9B, "UNASSIGNED"),
-    vk!(0x9C, "UNASSIGNED"),
-    vk!(0x9D, "UNASSIGNED"),
-    vk!(0x9E, "UNASSIGNED"),
-    vk!(0x9F, "UNASSIGNED"),
-    vk!(0xA0, "VK_LSHIFT"),
-    vk!(0xA1, "VK_RSHIFT"),
-    vk!(0xA2, "VK_LCONTROL"),
-    vk!(0xA3, "VK_RCONTROL"),
-    vk!(0xA4, "VK_LMENU"),
-    vk!(0xA5, "VK_RMENU"),
-    vk!(0xA6, "VK_BROWSER_BACK"),
-    vk!(0xA7, "VK_BROWSER_FORWARD"),
-    vk!(0xA8, "VK_BROWSER_REFRESH"),
-    vk!(0xA9, "VK_BROWSER_STOP"),
-    vk!(0xAA, "VK_BROWSER_SEARCH"),
-    vk!(0xAB, "VK_BROWSER_FAVORITES"),
-    vk!(0xAC, "VK_BROWSER_HOME"),
-    vk!(0xAD, "VK_VOLUME_MUTE"),
-    vk!(0xAE, "VK_VOLUME_DOWN"),
-    vk!(0xAF, "VK_VOLUME_UP"),
-    vk!(0xB0, "VK_MEDIA_NEXT_TRACK"),
-    vk!(0xB1, "VK_MEDIA_PREV_TRACK"),
-    vk!(0xB2, "VK_MEDIA_STOP"),
-    vk!(0xB3, "VK_MEDIA_PLAY_PAUSE"),
-    vk!(0xB4, "VK_LAUNCH_MAIL"),
-    vk!(0xB5, "VK_LAUNCH_MEDIA_SELECT"),
-    vk!(0xB6, "VK_LAUNCH_APP1"),
-    vk!(0xB7, "VK_LAUNCH_APP2"),
-    vk!(0xB8, "UNASSIGNED"),
-    vk!(0xB9, "UNASSIGNED"),
-    vk!(0xBA, "VK_OEM_1"),
-    vk!(0xBB, "VK_OEM_PLUS"),
-    vk!(0xBC, "VK_OEM_COMMA"),
-    vk!(0xBD, "VK_OEM_MINUS"),
-    vk!(0xBE, "VK_OEM_PERIOD"),
-    vk!(0xBF, "VK_OEM_2"),
-    vk!(0xC0, "VK_OEM_3"),
-    vk!(0xC1, "UNASSIGNED"),
-    vk!(0xC2, "UNASSIGNED"),
-    vk!(0xC3, "UNASSIGNED"),
-    vk!(0xC4, "UNASSIGNED"),
-    vk!(0xC5, "UNASSIGNED"),
-    vk!(0xC6, "UNASSIGNED"),
-    vk!(0xC7, "UNASSIGNED"),
-    vk!(0xC8, "UNASSIGNED"),
-    vk!(0xC9, "UNASSIGNED"),
-    vk!(0xCA, "UNASSIGNED"),
-    vk!(0xCB, "UNASSIGNED"),
-    vk!(0xCC, "UNASSIGNED"),
-    vk!(0xCD, "UNASSIGNED"),
-    vk!(0xCE, "UNASSIGNED"),
-    vk!(0xCF, "UNASSIGNED"),
-    vk!(0xD0, "UNASSIGNED"),
-    vk!(0xD1, "UNASSIGNED"),
-    vk!(0xD2, "UNASSIGNED"),
-    vk!(0xD3, "UNASSIGNED"),
-    vk!(0xD4, "UNASSIGNED"),
-    vk!(0xD5, "UNASSIGNED"),
-    vk!(0xD6, "UNASSIGNED"),
-    vk!(0xD7, "UNASSIGNED"),
-    vk!(0xD8, "UNASSIGNED"),
-    vk!(0xD9, "UNASSIGNED"),
-    vk!(0xDA, "UNASSIGNED"),
-    vk!(0xDB, "VK_OEM_4"),
-    vk!(0xDC, "VK_OEM_5"),
-    vk!(0xDD, "VK_OEM_6"),
-    vk!(0xDE, "VK_OEM_7"),
-    vk!(0xDF, "VK_OEM_8"),
-    vk!(0xE0, "UNASSIGNED"),
-    vk!(0xE1, "UNASSIGNED"),
-    vk!(0xE2, "VK_OEM_102"),
-    vk!(0xE3, "UNASSIGNED"),
-    vk!(0xE4, "UNASSIGNED"),
-    vk!(0xE5, "VK_PROCESSKEY"),
-    vk!(0xE6, "UNASSIGNED"),
-    vk!(0xE7, "VK_PACKET"),
-    vk!(0xE8, "UNASSIGNED"),
-    vk!(0xE9, "UNASSIGNED"),
-    vk!(0xEA, "UNASSIGNED"),
-    vk!(0xEB, "UNASSIGNED"),
-    vk!(0xEC, "UNASSIGNED"),
-    vk!(0xED, "UNASSIGNED"),
-    vk!(0xEE, "UNASSIGNED"),
-    vk!(0xEF, "UNASSIGNED"),
-    vk!(0xF0, "UNASSIGNED"),
-    vk!(0xF1, "UNASSIGNED"),
-    vk!(0xF2, "UNASSIGNED"),
-    vk!(0xF3, "UNASSIGNED"),
-    vk!(0xF4, "UNASSIGNED"),
-    vk!(0xF5, "UNASSIGNED"),
-    vk!(0xF6, "VK_ATTN"),
-    vk!(0xF7, "VK_CRSEL"),
-    vk!(0xF8, "VK_EXSEL"),
-    vk!(0xF9, "VK_EREOF"),
-    vk!(0xFA, "VK_PLAY"),
-    vk!(0xFB, "VK_ZOOM"),
-    vk!(0xFC, "VK_NONAME"),
-    vk!(0xFD, "VK_PA1"),
-    vk!(0xFE, "VK_OEM_CLEAR"),
-    vk!(0xFF, "VK__none_"),
+    new_vk!(0x00, "UNASSIGNED"),
+    new_vk!(0x01, "VK_LBUTTON"),
+    new_vk!(0x02, "VK_RBUTTON"),
+    new_vk!(0x03, "VK_CANCEL"),
+    new_vk!(0x04, "VK_MBUTTON"),
+    new_vk!(0x05, "VK_XBUTTON1"),
+    new_vk!(0x06, "VK_XBUTTON2"),
+    new_vk!(0x07, "UNASSIGNED"),
+    new_vk!(0x08, "VK_BACK"),
+    new_vk!(0x09, "VK_TAB"),
+    new_vk!(0x0A, "UNASSIGNED"),
+    new_vk!(0x0B, "UNASSIGNED"),
+    new_vk!(0x0C, "VK_CLEAR"),
+    new_vk!(0x0D, "VK_RETURN"),
+    new_vk!(0x0E, "UNASSIGNED"),
+    new_vk!(0x0F, "UNASSIGNED"),
+    new_vk!(0x10, "VK_SHIFT"),
+    new_vk!(0x11, "VK_CONTROL"),
+    new_vk!(0x12, "VK_MENU"),
+    new_vk!(0x13, "VK_PAUSE"),
+    new_vk!(0x14, "VK_CAPITAL"),
+    new_vk!(0x15, "VK_KANA"),
+    new_vk!(0x16, "VK_IME_ON"),
+    new_vk!(0x17, "VK_JUNJA"),
+    new_vk!(0x18, "VK_FINAL"),
+    new_vk!(0x19, "VK_HANJA"),
+    new_vk!(0x1A, "VK_IME_OFF"),
+    new_vk!(0x1B, "VK_ESCAPE"),
+    new_vk!(0x1C, "VK_CONVERT"),
+    new_vk!(0x1D, "VK_NONCONVERT"),
+    new_vk!(0x1E, "VK_ACCEPT"),
+    new_vk!(0x1F, "VK_MODECHANGE"),
+    new_vk!(0x20, "VK_SPACE"),
+    new_vk!(0x21, "VK_PRIOR"),
+    new_vk!(0x22, "VK_NEXT"),
+    new_vk!(0x23, "VK_END"),
+    new_vk!(0x24, "VK_HOME"),
+    new_vk!(0x25, "VK_LEFT"),
+    new_vk!(0x26, "VK_UP"),
+    new_vk!(0x27, "VK_RIGHT"),
+    new_vk!(0x28, "VK_DOWN"),
+    new_vk!(0x29, "VK_SELECT"),
+    new_vk!(0x2A, "VK_PRINT"),
+    new_vk!(0x2B, "VK_EXECUTE"),
+    new_vk!(0x2C, "VK_SNAPSHOT"),
+    new_vk!(0x2D, "VK_INSERT"),
+    new_vk!(0x2E, "VK_DELETE"),
+    new_vk!(0x2F, "VK_HELP"),
+    new_vk!(0x30, "VK_0"),
+    new_vk!(0x31, "VK_1"),
+    new_vk!(0x32, "VK_2"),
+    new_vk!(0x33, "VK_3"),
+    new_vk!(0x34, "VK_4"),
+    new_vk!(0x35, "VK_5"),
+    new_vk!(0x36, "VK_6"),
+    new_vk!(0x37, "VK_7"),
+    new_vk!(0x38, "VK_8"),
+    new_vk!(0x39, "VK_9"),
+    new_vk!(0x3A, "UNASSIGNED"),
+    new_vk!(0x3B, "UNASSIGNED"),
+    new_vk!(0x3C, "UNASSIGNED"),
+    new_vk!(0x3D, "UNASSIGNED"),
+    new_vk!(0x3E, "UNASSIGNED"),
+    new_vk!(0x3F, "UNASSIGNED"),
+    new_vk!(0x40, "UNASSIGNED"),
+    new_vk!(0x41, "VK_A"),
+    new_vk!(0x42, "VK_B"),
+    new_vk!(0x43, "VK_C"),
+    new_vk!(0x44, "VK_D"),
+    new_vk!(0x45, "VK_E"),
+    new_vk!(0x46, "VK_F"),
+    new_vk!(0x47, "VK_G"),
+    new_vk!(0x48, "VK_H"),
+    new_vk!(0x49, "VK_I"),
+    new_vk!(0x4A, "VK_J"),
+    new_vk!(0x4B, "VK_K"),
+    new_vk!(0x4C, "VK_L"),
+    new_vk!(0x4D, "VK_M"),
+    new_vk!(0x4E, "VK_N"),
+    new_vk!(0x4F, "VK_O"),
+    new_vk!(0x50, "VK_P"),
+    new_vk!(0x51, "VK_Q"),
+    new_vk!(0x52, "VK_R"),
+    new_vk!(0x53, "VK_S"),
+    new_vk!(0x54, "VK_T"),
+    new_vk!(0x55, "VK_U"),
+    new_vk!(0x56, "VK_V"),
+    new_vk!(0x57, "VK_W"),
+    new_vk!(0x58, "VK_X"),
+    new_vk!(0x59, "VK_Y"),
+    new_vk!(0x5A, "VK_Z"),
+    new_vk!(0x5B, "VK_LWIN"),
+    new_vk!(0x5C, "VK_RWIN"),
+    new_vk!(0x5D, "VK_APPS"),
+    new_vk!(0x5E, "UNASSIGNED"),
+    new_vk!(0x5F, "VK_SLEEP"),
+    new_vk!(0x60, "VK_NUMPAD0"),
+    new_vk!(0x61, "VK_NUMPAD1"),
+    new_vk!(0x62, "VK_NUMPAD2"),
+    new_vk!(0x63, "VK_NUMPAD3"),
+    new_vk!(0x64, "VK_NUMPAD4"),
+    new_vk!(0x65, "VK_NUMPAD5"),
+    new_vk!(0x66, "VK_NUMPAD6"),
+    new_vk!(0x67, "VK_NUMPAD7"),
+    new_vk!(0x68, "VK_NUMPAD8"),
+    new_vk!(0x69, "VK_NUMPAD9"),
+    new_vk!(0x6A, "VK_MULTIPLY"),
+    new_vk!(0x6B, "VK_ADD"),
+    new_vk!(0x6C, "VK_SEPARATOR"),
+    new_vk!(0x6D, "VK_SUBTRACT"),
+    new_vk!(0x6E, "VK_DECIMAL"),
+    new_vk!(0x6F, "VK_DIVIDE"),
+    new_vk!(0x70, "VK_F1"),
+    new_vk!(0x71, "VK_F2"),
+    new_vk!(0x72, "VK_F3"),
+    new_vk!(0x73, "VK_F4"),
+    new_vk!(0x74, "VK_F5"),
+    new_vk!(0x75, "VK_F6"),
+    new_vk!(0x76, "VK_F7"),
+    new_vk!(0x77, "VK_F8"),
+    new_vk!(0x78, "VK_F9"),
+    new_vk!(0x79, "VK_F10"),
+    new_vk!(0x7A, "VK_F11"),
+    new_vk!(0x7B, "VK_F12"),
+    new_vk!(0x7C, "VK_F13"),
+    new_vk!(0x7D, "VK_F14"),
+    new_vk!(0x7E, "VK_F15"),
+    new_vk!(0x7F, "VK_F16"),
+    new_vk!(0x80, "VK_F17"),
+    new_vk!(0x81, "VK_F18"),
+    new_vk!(0x82, "VK_F19"),
+    new_vk!(0x83, "VK_F20"),
+    new_vk!(0x84, "VK_F21"),
+    new_vk!(0x85, "VK_F22"),
+    new_vk!(0x86, "VK_F23"),
+    new_vk!(0x87, "VK_F24"),
+    new_vk!(0x88, "UNASSIGNED"),
+    new_vk!(0x89, "UNASSIGNED"),
+    new_vk!(0x8A, "UNASSIGNED"),
+    new_vk!(0x8B, "UNASSIGNED"),
+    new_vk!(0x8C, "UNASSIGNED"),
+    new_vk!(0x8D, "UNASSIGNED"),
+    new_vk!(0x8E, "UNASSIGNED"),
+    new_vk!(0x8F, "UNASSIGNED"),
+    new_vk!(0x90, "VK_NUMLOCK"),
+    new_vk!(0x91, "VK_SCROLL"),
+    new_vk!(0x92, "UNASSIGNED"),
+    new_vk!(0x93, "UNASSIGNED"),
+    new_vk!(0x94, "UNASSIGNED"),
+    new_vk!(0x95, "UNASSIGNED"),
+    new_vk!(0x96, "UNASSIGNED"),
+    new_vk!(0x97, "UNASSIGNED"),
+    new_vk!(0x98, "UNASSIGNED"),
+    new_vk!(0x99, "UNASSIGNED"),
+    new_vk!(0x9A, "UNASSIGNED"),
+    new_vk!(0x9B, "UNASSIGNED"),
+    new_vk!(0x9C, "UNASSIGNED"),
+    new_vk!(0x9D, "UNASSIGNED"),
+    new_vk!(0x9E, "UNASSIGNED"),
+    new_vk!(0x9F, "UNASSIGNED"),
+    new_vk!(0xA0, "VK_LSHIFT"),
+    new_vk!(0xA1, "VK_RSHIFT"),
+    new_vk!(0xA2, "VK_LCONTROL"),
+    new_vk!(0xA3, "VK_RCONTROL"),
+    new_vk!(0xA4, "VK_LMENU"),
+    new_vk!(0xA5, "VK_RMENU"),
+    new_vk!(0xA6, "VK_BROWSER_BACK"),
+    new_vk!(0xA7, "VK_BROWSER_FORWARD"),
+    new_vk!(0xA8, "VK_BROWSER_REFRESH"),
+    new_vk!(0xA9, "VK_BROWSER_STOP"),
+    new_vk!(0xAA, "VK_BROWSER_SEARCH"),
+    new_vk!(0xAB, "VK_BROWSER_FAVORITES"),
+    new_vk!(0xAC, "VK_BROWSER_HOME"),
+    new_vk!(0xAD, "VK_VOLUME_MUTE"),
+    new_vk!(0xAE, "VK_VOLUME_DOWN"),
+    new_vk!(0xAF, "VK_VOLUME_UP"),
+    new_vk!(0xB0, "VK_MEDIA_NEXT_TRACK"),
+    new_vk!(0xB1, "VK_MEDIA_PREV_TRACK"),
+    new_vk!(0xB2, "VK_MEDIA_STOP"),
+    new_vk!(0xB3, "VK_MEDIA_PLAY_PAUSE"),
+    new_vk!(0xB4, "VK_LAUNCH_MAIL"),
+    new_vk!(0xB5, "VK_LAUNCH_MEDIA_SELECT"),
+    new_vk!(0xB6, "VK_LAUNCH_APP1"),
+    new_vk!(0xB7, "VK_LAUNCH_APP2"),
+    new_vk!(0xB8, "UNASSIGNED"),
+    new_vk!(0xB9, "UNASSIGNED"),
+    new_vk!(0xBA, "VK_OEM_1"),
+    new_vk!(0xBB, "VK_OEM_PLUS"),
+    new_vk!(0xBC, "VK_OEM_COMMA"),
+    new_vk!(0xBD, "VK_OEM_MINUS"),
+    new_vk!(0xBE, "VK_OEM_PERIOD"),
+    new_vk!(0xBF, "VK_OEM_2"),
+    new_vk!(0xC0, "VK_OEM_3"),
+    new_vk!(0xC1, "UNASSIGNED"),
+    new_vk!(0xC2, "UNASSIGNED"),
+    new_vk!(0xC3, "UNASSIGNED"),
+    new_vk!(0xC4, "UNASSIGNED"),
+    new_vk!(0xC5, "UNASSIGNED"),
+    new_vk!(0xC6, "UNASSIGNED"),
+    new_vk!(0xC7, "UNASSIGNED"),
+    new_vk!(0xC8, "UNASSIGNED"),
+    new_vk!(0xC9, "UNASSIGNED"),
+    new_vk!(0xCA, "UNASSIGNED"),
+    new_vk!(0xCB, "UNASSIGNED"),
+    new_vk!(0xCC, "UNASSIGNED"),
+    new_vk!(0xCD, "UNASSIGNED"),
+    new_vk!(0xCE, "UNASSIGNED"),
+    new_vk!(0xCF, "UNASSIGNED"),
+    new_vk!(0xD0, "UNASSIGNED"),
+    new_vk!(0xD1, "UNASSIGNED"),
+    new_vk!(0xD2, "UNASSIGNED"),
+    new_vk!(0xD3, "UNASSIGNED"),
+    new_vk!(0xD4, "UNASSIGNED"),
+    new_vk!(0xD5, "UNASSIGNED"),
+    new_vk!(0xD6, "UNASSIGNED"),
+    new_vk!(0xD7, "UNASSIGNED"),
+    new_vk!(0xD8, "UNASSIGNED"),
+    new_vk!(0xD9, "UNASSIGNED"),
+    new_vk!(0xDA, "UNASSIGNED"),
+    new_vk!(0xDB, "VK_OEM_4"),
+    new_vk!(0xDC, "VK_OEM_5"),
+    new_vk!(0xDD, "VK_OEM_6"),
+    new_vk!(0xDE, "VK_OEM_7"),
+    new_vk!(0xDF, "VK_OEM_8"),
+    new_vk!(0xE0, "UNASSIGNED"),
+    new_vk!(0xE1, "UNASSIGNED"),
+    new_vk!(0xE2, "VK_OEM_102"),
+    new_vk!(0xE3, "UNASSIGNED"),
+    new_vk!(0xE4, "UNASSIGNED"),
+    new_vk!(0xE5, "VK_PROCESSKEY"),
+    new_vk!(0xE6, "UNASSIGNED"),
+    new_vk!(0xE7, "VK_PACKET"),
+    new_vk!(0xE8, "UNASSIGNED"),
+    new_vk!(0xE9, "UNASSIGNED"),
+    new_vk!(0xEA, "UNASSIGNED"),
+    new_vk!(0xEB, "UNASSIGNED"),
+    new_vk!(0xEC, "UNASSIGNED"),
+    new_vk!(0xED, "UNASSIGNED"),
+    new_vk!(0xEE, "UNASSIGNED"),
+    new_vk!(0xEF, "UNASSIGNED"),
+    new_vk!(0xF0, "UNASSIGNED"),
+    new_vk!(0xF1, "UNASSIGNED"),
+    new_vk!(0xF2, "UNASSIGNED"),
+    new_vk!(0xF3, "UNASSIGNED"),
+    new_vk!(0xF4, "UNASSIGNED"),
+    new_vk!(0xF5, "UNASSIGNED"),
+    new_vk!(0xF6, "VK_ATTN"),
+    new_vk!(0xF7, "VK_CRSEL"),
+    new_vk!(0xF8, "VK_EXSEL"),
+    new_vk!(0xF9, "VK_EREOF"),
+    new_vk!(0xFA, "VK_PLAY"),
+    new_vk!(0xFB, "VK_ZOOM"),
+    new_vk!(0xFC, "VK_NONAME"),
+    new_vk!(0xFD, "VK_PA1"),
+    new_vk!(0xFE, "VK_OEM_CLEAR"),
+    new_vk!(0xFF, "VK__none_"),
 ];
 
-macro_rules! sc {
-    ($code:literal, $name:literal) => {
-        ScanCode {
-            value: $code,
-            is_extended: false,
-            name: $name,
-        }
-    };
-}
-
-macro_rules! ext_sc {
-    ($code:literal, $name:literal) => {
-        ScanCode {
-            value: $code,
-            is_extended: true,
-            name: $name,
-        }
+macro_rules! new_sc {
+    ($code:literal, $name:literal, $ext_code:literal, $ext_name:literal) => {
+        [
+            ScanCode {
+                value: $code,
+                is_extended: false,
+                name: $name,
+            },
+            ScanCode {
+                value: $ext_code,
+                is_extended: true,
+                name: $ext_name,
+            },
+        ]
     };
 }
 
 static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
-    [sc!(0x00, "UNASSIGNED"), ext_sc!(0x00, "UNASSIGNED")],
-    [sc!(0x01, "SC_ESC"), ext_sc!(0x01, "SC_")],
-    [sc!(0x02, "SC_1"), ext_sc!(0x02, "SC_1")],
-    [sc!(0x03, "SC_2"), ext_sc!(0x03, "SC_2")],
-    [sc!(0x04, "SC_3"), ext_sc!(0x04, "SC_3")],
-    [sc!(0x05, "SC_4"), ext_sc!(0x05, "SC_4")],
-    [sc!(0x06, "SC_5"), ext_sc!(0x06, "SC_5")],
-    [sc!(0x07, "SC_6"), ext_sc!(0x07, "SC_6")],
-    [sc!(0x08, "SC_7"), ext_sc!(0x08, "SC_7")],
-    [sc!(0x09, "SC_8"), ext_sc!(0x09, "SC_8")],
-    [sc!(0x0A, "SC_9"), ext_sc!(0x0A, "SC_9")],
-    [sc!(0x0B, "SC_0"), ext_sc!(0x0B, "SC_0")],
-    [sc!(0x0C, "SC_MINUS"), ext_sc!(0x0C, "SC_MINUS")],
-    [sc!(0x0D, "SC_EQ"), ext_sc!(0x0D, "SC_EQ")],
-    [sc!(0x0E, "SC_BACKSPACE"), ext_sc!(0x0E, "SC")],
-    [sc!(0x0F, "SC_TAB"), ext_sc!(0x0F, "SC_	")],
-    [sc!(0x10, "SC_Q"), ext_sc!(0x10, "SC_Q")],
-    [sc!(0x11, "SC_W"), ext_sc!(0x11, "SC_W")],
-    [sc!(0x12, "SC_E"), ext_sc!(0x12, "SC_E")],
-    [sc!(0x13, "SC_R"), ext_sc!(0x13, "SC_R")],
-    [sc!(0x14, "SC_T"), ext_sc!(0x14, "SC_T")],
-    [sc!(0x15, "SC_Y"), ext_sc!(0x15, "SC_Y")],
-    [sc!(0x16, "SC_U"), ext_sc!(0x16, "SC_U")],
-    [sc!(0x17, "SC_I"), ext_sc!(0x17, "SC_I")],
-    [sc!(0x18, "SC_O"), ext_sc!(0x18, "SC_O")],
-    [sc!(0x19, "SC_P"), ext_sc!(0x19, "SC_P")],
-    [sc!(0x1A, "SC_L_BRACKET"), ext_sc!(0x1A, "SC_L_BRACKET")],
-    [sc!(0x1B, "SC_R_BRACKET"), ext_sc!(0x1B, "SC_R_BRACKET")],
-    [sc!(0x1C, "SC_ENTER"), ext_sc!(0x1C, "SC_NUM_ENTER")],
-    [sc!(0x1D, "SC_CTRL"), ext_sc!(0x1D, "SC_RIGHT_CTRL")],
-    [sc!(0x1E, "SC_A"), ext_sc!(0x1E, "SC_A")],
-    [sc!(0x1F, "SC_S"), ext_sc!(0x1F, "SC_S")],
-    [sc!(0x20, "SC_D"), ext_sc!(0x20, "SC_VOL_MUTE")],
-    [sc!(0x21, "SC_F"), ext_sc!(0x21, "SC_CALCULATOR")],
-    [sc!(0x22, "SC_G"), ext_sc!(0x22, "SC_G")],
-    [sc!(0x23, "SC_H"), ext_sc!(0x23, "SC_H")],
-    [sc!(0x24, "SC_J"), ext_sc!(0x24, "SC_J")],
-    [sc!(0x25, "SC_K"), ext_sc!(0x25, "SC_K")],
-    [sc!(0x26, "SC_L"), ext_sc!(0x26, "SC_L")],
-    [sc!(0x27, "SC_SEMICOLON"), ext_sc!(0x27, "SC_SEMICOLON")],
-    [sc!(0x28, "SC_APOSTROPHE"), ext_sc!(0x28, "SC_APOSTROPHE")],
-    [sc!(0x29, "SC_BACKTICK"), ext_sc!(0x29, "SC_BACKTICK")],
-    [sc!(0x2A, "SC_SHIFT"), ext_sc!(0x2A, "UNASSIGNED")],
-    [sc!(0x2B, "SC_BACKSLASH"), ext_sc!(0x2B, "SC_BRIGHTNESS")],
-    [sc!(0x2C, "SC_Z"), ext_sc!(0x2C, "SC_Z")],
-    [sc!(0x2D, "SC_X"), ext_sc!(0x2D, "SC_X")],
-    [sc!(0x2E, "SC_C"), ext_sc!(0x2E, "SC_VOLUME_DOWN")],
-    [sc!(0x2F, "SC_V"), ext_sc!(0x2F, "SC_V")],
-    [sc!(0x30, "SC_B"), ext_sc!(0x30, "SC_VOLUME_UP")],
-    [sc!(0x31, "SC_N"), ext_sc!(0x31, "SC_N")],
-    [sc!(0x32, "SC_M"), ext_sc!(0x32, "SC_M")],
-    [sc!(0x33, "SC_COMMA"), ext_sc!(0x33, "SC_COMMA")],
-    [sc!(0x34, "SC_DOT"), ext_sc!(0x34, "SC_DOT")],
-    [sc!(0x35, "SC_SLASH"), ext_sc!(0x35, "SC_NUM_SLASH")],
-    [sc!(0x36, "SC_RIGHT_SHIFT"), ext_sc!(0x36, "SC_RIGHT_SHIFT")],
-    [sc!(0x37, "SC_NUM_MUL"), ext_sc!(0x37, "SC_PRNT_SCRN")],
-    [sc!(0x38, "SC_ALT"), ext_sc!(0x38, "SC_RIGHT_ALT")],
-    [sc!(0x39, "SC_SPACE"), ext_sc!(0x39, "SC__")],
-    [sc!(0x3A, "SC_CAPS_LOCK"), ext_sc!(0x3A, "UNASSIGNED")],
-    [sc!(0x3B, "SC_F1"), ext_sc!(0x3B, "UNASSIGNED")],
-    [sc!(0x3C, "SC_F2"), ext_sc!(0x3C, "UNASSIGNED")],
-    [sc!(0x3D, "SC_F3"), ext_sc!(0x3D, "UNASSIGNED")],
-    [sc!(0x3E, "SC_F4"), ext_sc!(0x3E, "UNASSIGNED")],
-    [sc!(0x3F, "SC_F5"), ext_sc!(0x3F, "UNASSIGNED")],
-    [sc!(0x40, "SC_F6"), ext_sc!(0x40, "UNASSIGNED")],
-    [sc!(0x41, "SC_F7"), ext_sc!(0x41, "UNASSIGNED")],
-    [sc!(0x42, "SC_F8"), ext_sc!(0x42, "UNASSIGNED")],
-    [sc!(0x43, "SC_F9"), ext_sc!(0x43, "UNASSIGNED")],
-    [sc!(0x44, "SC_F10"), ext_sc!(0x44, "UNASSIGNED")],
-    [sc!(0x45, "SC_PAUSE"), ext_sc!(0x45, "SC_NUM_LOCK")],
-    [sc!(0x46, "SC_SCROLL_LOCK"), ext_sc!(0x46, "SC_BREAK")],
-    [sc!(0x47, "SC_NUM_7"), ext_sc!(0x47, "SC_HOME")],
-    [sc!(0x48, "SC_NUM_8"), ext_sc!(0x48, "SC_UP")],
-    [sc!(0x49, "SC_NUM_9"), ext_sc!(0x49, "SC_PAGE_UP")],
-    [sc!(0x4A, "SC_NUM_MINUS"), ext_sc!(0x4A, "SC_MINUS")],
-    [sc!(0x4B, "SC_NUM_4"), ext_sc!(0x4B, "SC_LEFT")],
-    [sc!(0x4C, "SC_NUM_5"), ext_sc!(0x4C, "UNASSIGNED")],
-    [sc!(0x4D, "SC_NUM_6"), ext_sc!(0x4D, "SC_RIGHT")],
-    [sc!(0x4E, "SC_NUM_PLUS"), ext_sc!(0x4E, "SC_PLUS")],
-    [sc!(0x4F, "SC_NUM_1"), ext_sc!(0x4F, "SC_END")],
-    [sc!(0x50, "SC_NUM_2"), ext_sc!(0x50, "SC_DOWN")],
-    [sc!(0x51, "SC_NUM_3"), ext_sc!(0x51, "SC_PAGE_DOWN")],
-    [sc!(0x52, "SC_NUM_0"), ext_sc!(0x52, "SC_INSERT")],
-    [sc!(0x53, "SC_NUM_DEL"), ext_sc!(0x53, "SC_DELETE")],
-    [sc!(0x54, "SC_SYS_REQ"), ext_sc!(0x54, "SC_<00>")],
-    [sc!(0x55, "UNASSIGNED"), ext_sc!(0x55, "UNASSIGNED")],
-    [sc!(0x56, "SC_BACKSLASH"), ext_sc!(0x56, "SC_HELP")],
-    [sc!(0x57, "SC_F11"), ext_sc!(0x57, "UNASSIGNED")],
-    [sc!(0x58, "SC_F12"), ext_sc!(0x58, "UNASSIGNED")],
-    [sc!(0x59, "UNASSIGNED"), ext_sc!(0x59, "UNASSIGNED")],
-    [sc!(0x5A, "UNASSIGNED"), ext_sc!(0x5A, "UNASSIGNED")],
-    [sc!(0x5B, "UNASSIGNED"), ext_sc!(0x5B, "SC_LEFT_WINDOWS")],
-    [sc!(0x5C, "UNASSIGNED"), ext_sc!(0x5C, "SC_RIGHT_WINDOWS")],
-    [sc!(0x5D, "UNASSIGNED"), ext_sc!(0x5D, "SC_APPLICATION")],
-    [sc!(0x5E, "UNASSIGNED"), ext_sc!(0x5E, "UNASSIGNED")],
-    [sc!(0x5F, "UNASSIGNED"), ext_sc!(0x5F, "UNASSIGNED")],
-    [sc!(0x60, "UNASSIGNED"), ext_sc!(0x60, "UNASSIGNED")],
-    [sc!(0x61, "UNASSIGNED"), ext_sc!(0x61, "UNASSIGNED")],
-    [sc!(0x62, "UNASSIGNED"), ext_sc!(0x62, "UNASSIGNED")],
-    [sc!(0x63, "UNASSIGNED"), ext_sc!(0x63, "UNASSIGNED")],
-    [sc!(0x64, "UNASSIGNED"), ext_sc!(0x64, "UNASSIGNED")],
-    [sc!(0x65, "UNASSIGNED"), ext_sc!(0x65, "UNASSIGNED")],
-    [sc!(0x66, "UNASSIGNED"), ext_sc!(0x66, "UNASSIGNED")],
-    [sc!(0x67, "UNASSIGNED"), ext_sc!(0x67, "UNASSIGNED")],
-    [sc!(0x68, "UNASSIGNED"), ext_sc!(0x68, "UNASSIGNED")],
-    [sc!(0x69, "UNASSIGNED"), ext_sc!(0x69, "UNASSIGNED")],
-    [sc!(0x6A, "UNASSIGNED"), ext_sc!(0x6A, "UNASSIGNED")],
-    [sc!(0x6B, "UNASSIGNED"), ext_sc!(0x6B, "UNASSIGNED")],
-    [sc!(0x6C, "UNASSIGNED"), ext_sc!(0x6C, "UNASSIGNED")],
-    [sc!(0x6D, "UNASSIGNED"), ext_sc!(0x6D, "UNASSIGNED")],
-    [sc!(0x6E, "UNASSIGNED"), ext_sc!(0x6E, "UNASSIGNED")],
-    [sc!(0x6F, "UNASSIGNED"), ext_sc!(0x6F, "UNASSIGNED")],
-    [sc!(0x70, "UNASSIGNED"), ext_sc!(0x70, "UNASSIGNED")],
-    [sc!(0x71, "UNASSIGNED"), ext_sc!(0x71, "UNASSIGNED")],
-    [sc!(0x72, "UNASSIGNED"), ext_sc!(0x72, "UNASSIGNED")],
-    [sc!(0x73, "UNASSIGNED"), ext_sc!(0x73, "UNASSIGNED")],
-    [sc!(0x74, "UNASSIGNED"), ext_sc!(0x74, "UNASSIGNED")],
-    [sc!(0x75, "UNASSIGNED"), ext_sc!(0x75, "UNASSIGNED")],
-    [sc!(0x76, "UNASSIGNED"), ext_sc!(0x76, "UNASSIGNED")],
-    [sc!(0x77, "UNASSIGNED"), ext_sc!(0x77, "UNASSIGNED")],
-    [sc!(0x78, "UNASSIGNED"), ext_sc!(0x78, "UNASSIGNED")],
-    [sc!(0x79, "UNASSIGNED"), ext_sc!(0x79, "UNASSIGNED")],
-    [sc!(0x7A, "UNASSIGNED"), ext_sc!(0x7A, "UNASSIGNED")],
-    [sc!(0x7B, "UNASSIGNED"), ext_sc!(0x7B, "UNASSIGNED")],
-    [sc!(0x7C, "SC_F13"), ext_sc!(0x7C, "SC_	")],
-    [sc!(0x7D, "SC_F14"), ext_sc!(0x7D, "UNASSIGNED")],
-    [sc!(0x7E, "SC_F15"), ext_sc!(0x7E, "UNASSIGNED")],
-    [sc!(0x7F, "SC_F16"), ext_sc!(0x7F, "UNASSIGNED")],
-    [sc!(0x80, "SC_F17"), ext_sc!(0x80, "UNASSIGNED")],
-    [sc!(0x81, "SC_F18"), ext_sc!(0x81, "UNASSIGNED")],
-    [sc!(0x82, "SC_F19"), ext_sc!(0x82, "UNASSIGNED")],
-    [sc!(0x83, "SC_F20"), ext_sc!(0x83, "UNASSIGNED")],
-    [sc!(0x84, "SC_F21"), ext_sc!(0x84, "UNASSIGNED")],
-    [sc!(0x85, "SC_F22"), ext_sc!(0x85, "UNASSIGNED")],
-    [sc!(0x86, "SC_F23"), ext_sc!(0x86, "UNASSIGNED")],
-    [sc!(0x87, "SC_F24"), ext_sc!(0x87, "UNASSIGNED")],
+    new_sc!(0x00, "UNASSIGNED", 0x00, "UNASSIGNED"),
+    new_sc!(0x01, "SC_ESC", 0x01, "SC_"),
+    new_sc!(0x02, "SC_1", 0x02, "SC_1"),
+    new_sc!(0x03, "SC_2", 0x03, "SC_2"),
+    new_sc!(0x04, "SC_3", 0x04, "SC_3"),
+    new_sc!(0x05, "SC_4", 0x05, "SC_4"),
+    new_sc!(0x06, "SC_5", 0x06, "SC_5"),
+    new_sc!(0x07, "SC_6", 0x07, "SC_6"),
+    new_sc!(0x08, "SC_7", 0x08, "SC_7"),
+    new_sc!(0x09, "SC_8", 0x09, "SC_8"),
+    new_sc!(0x0A, "SC_9", 0x0A, "SC_9"),
+    new_sc!(0x0B, "SC_0", 0x0B, "SC_0"),
+    new_sc!(0x0C, "SC_MINUS", 0x0C, "SC_MINUS"),
+    new_sc!(0x0D, "SC_EQ", 0x0D, "SC_EQ"),
+    new_sc!(0x0E, "SC_BACKSPACE", 0x0E, "SC"),
+    new_sc!(0x0F, "SC_TAB", 0x0F, "SC_	"),
+    new_sc!(0x10, "SC_Q", 0x10, "SC_Q"),
+    new_sc!(0x11, "SC_W", 0x11, "SC_W"),
+    new_sc!(0x12, "SC_E", 0x12, "SC_E"),
+    new_sc!(0x13, "SC_R", 0x13, "SC_R"),
+    new_sc!(0x14, "SC_T", 0x14, "SC_T"),
+    new_sc!(0x15, "SC_Y", 0x15, "SC_Y"),
+    new_sc!(0x16, "SC_U", 0x16, "SC_U"),
+    new_sc!(0x17, "SC_I", 0x17, "SC_I"),
+    new_sc!(0x18, "SC_O", 0x18, "SC_O"),
+    new_sc!(0x19, "SC_P", 0x19, "SC_P"),
+    new_sc!(0x1A, "SC_L_BRACKET", 0x1A, "SC_L_BRACKET"),
+    new_sc!(0x1B, "SC_R_BRACKET", 0x1B, "SC_R_BRACKET"),
+    new_sc!(0x1C, "SC_ENTER", 0x1C, "SC_NUM_ENTER"),
+    new_sc!(0x1D, "SC_CTRL", 0x1D, "SC_RIGHT_CTRL"),
+    new_sc!(0x1E, "SC_A", 0x1E, "SC_A"),
+    new_sc!(0x1F, "SC_S", 0x1F, "SC_S"),
+    new_sc!(0x20, "SC_D", 0x20, "SC_VOL_MUTE"),
+    new_sc!(0x21, "SC_F", 0x21, "SC_CALCULATOR"),
+    new_sc!(0x22, "SC_G", 0x22, "SC_G"),
+    new_sc!(0x23, "SC_H", 0x23, "SC_H"),
+    new_sc!(0x24, "SC_J", 0x24, "SC_J"),
+    new_sc!(0x25, "SC_K", 0x25, "SC_K"),
+    new_sc!(0x26, "SC_L", 0x26, "SC_L"),
+    new_sc!(0x27, "SC_SEMICOLON", 0x27, "SC_SEMICOLON"),
+    new_sc!(0x28, "SC_APOSTROPHE", 0x28, "SC_APOSTROPHE"),
+    new_sc!(0x29, "SC_BACKTICK", 0x29, "SC_BACKTICK"),
+    new_sc!(0x2A, "SC_SHIFT", 0x2A, "UNASSIGNED"),
+    new_sc!(0x2B, "SC_BACKSLASH", 0x2B, "SC_BRIGHTNESS"),
+    new_sc!(0x2C, "SC_Z", 0x2C, "SC_Z"),
+    new_sc!(0x2D, "SC_X", 0x2D, "SC_X"),
+    new_sc!(0x2E, "SC_C", 0x2E, "SC_VOLUME_DOWN"),
+    new_sc!(0x2F, "SC_V", 0x2F, "SC_V"),
+    new_sc!(0x30, "SC_B", 0x30, "SC_VOLUME_UP"),
+    new_sc!(0x31, "SC_N", 0x31, "SC_N"),
+    new_sc!(0x32, "SC_M", 0x32, "SC_M"),
+    new_sc!(0x33, "SC_COMMA", 0x33, "SC_COMMA"),
+    new_sc!(0x34, "SC_DOT", 0x34, "SC_DOT"),
+    new_sc!(0x35, "SC_SLASH", 0x35, "SC_NUM_SLASH"),
+    new_sc!(0x36, "SC_RIGHT_SHIFT", 0x36, "SC_RIGHT_SHIFT"),
+    new_sc!(0x37, "SC_NUM_MUL", 0x37, "SC_PRNT_SCRN"),
+    new_sc!(0x38, "SC_ALT", 0x38, "SC_RIGHT_ALT"),
+    new_sc!(0x39, "SC_SPACE", 0x39, "SC__"),
+    new_sc!(0x3A, "SC_CAPS_LOCK", 0x3A, "UNASSIGNED"),
+    new_sc!(0x3B, "SC_F1", 0x3B, "UNASSIGNED"),
+    new_sc!(0x3C, "SC_F2", 0x3C, "UNASSIGNED"),
+    new_sc!(0x3D, "SC_F3", 0x3D, "UNASSIGNED"),
+    new_sc!(0x3E, "SC_F4", 0x3E, "UNASSIGNED"),
+    new_sc!(0x3F, "SC_F5", 0x3F, "UNASSIGNED"),
+    new_sc!(0x40, "SC_F6", 0x40, "UNASSIGNED"),
+    new_sc!(0x41, "SC_F7", 0x41, "UNASSIGNED"),
+    new_sc!(0x42, "SC_F8", 0x42, "UNASSIGNED"),
+    new_sc!(0x43, "SC_F9", 0x43, "UNASSIGNED"),
+    new_sc!(0x44, "SC_F10", 0x44, "UNASSIGNED"),
+    new_sc!(0x45, "SC_PAUSE", 0x45, "SC_NUM_LOCK"),
+    new_sc!(0x46, "SC_SCROLL_LOCK", 0x46, "SC_BREAK"),
+    new_sc!(0x47, "SC_NUM_7", 0x47, "SC_HOME"),
+    new_sc!(0x48, "SC_NUM_8", 0x48, "SC_UP"),
+    new_sc!(0x49, "SC_NUM_9", 0x49, "SC_PAGE_UP"),
+    new_sc!(0x4A, "SC_NUM_MINUS", 0x4A, "SC_MINUS"),
+    new_sc!(0x4B, "SC_NUM_4", 0x4B, "SC_LEFT"),
+    new_sc!(0x4C, "SC_NUM_5", 0x4C, "UNASSIGNED"),
+    new_sc!(0x4D, "SC_NUM_6", 0x4D, "SC_RIGHT"),
+    new_sc!(0x4E, "SC_NUM_PLUS", 0x4E, "SC_PLUS"),
+    new_sc!(0x4F, "SC_NUM_1", 0x4F, "SC_END"),
+    new_sc!(0x50, "SC_NUM_2", 0x50, "SC_DOWN"),
+    new_sc!(0x51, "SC_NUM_3", 0x51, "SC_PAGE_DOWN"),
+    new_sc!(0x52, "SC_NUM_0", 0x52, "SC_INSERT"),
+    new_sc!(0x53, "SC_NUM_DEL", 0x53, "SC_DELETE"),
+    new_sc!(0x54, "SC_SYS_REQ", 0x54, "SC_<00>"),
+    new_sc!(0x55, "UNASSIGNED", 0x55, "UNASSIGNED"),
+    new_sc!(0x56, "SC_BACKSLASH", 0x56, "SC_HELP"),
+    new_sc!(0x57, "SC_F11", 0x57, "UNASSIGNED"),
+    new_sc!(0x58, "SC_F12", 0x58, "UNASSIGNED"),
+    new_sc!(0x59, "UNASSIGNED", 0x59, "UNASSIGNED"),
+    new_sc!(0x5A, "UNASSIGNED", 0x5A, "UNASSIGNED"),
+    new_sc!(0x5B, "UNASSIGNED", 0x5B, "SC_LEFT_WINDOWS"),
+    new_sc!(0x5C, "UNASSIGNED", 0x5C, "SC_RIGHT_WINDOWS"),
+    new_sc!(0x5D, "UNASSIGNED", 0x5D, "SC_APPLICATION"),
+    new_sc!(0x5E, "UNASSIGNED", 0x5E, "UNASSIGNED"),
+    new_sc!(0x5F, "UNASSIGNED", 0x5F, "UNASSIGNED"),
+    new_sc!(0x60, "UNASSIGNED", 0x60, "UNASSIGNED"),
+    new_sc!(0x61, "UNASSIGNED", 0x61, "UNASSIGNED"),
+    new_sc!(0x62, "UNASSIGNED", 0x62, "UNASSIGNED"),
+    new_sc!(0x63, "UNASSIGNED", 0x63, "UNASSIGNED"),
+    new_sc!(0x64, "UNASSIGNED", 0x64, "UNASSIGNED"),
+    new_sc!(0x65, "UNASSIGNED", 0x65, "UNASSIGNED"),
+    new_sc!(0x66, "UNASSIGNED", 0x66, "UNASSIGNED"),
+    new_sc!(0x67, "UNASSIGNED", 0x67, "UNASSIGNED"),
+    new_sc!(0x68, "UNASSIGNED", 0x68, "UNASSIGNED"),
+    new_sc!(0x69, "UNASSIGNED", 0x69, "UNASSIGNED"),
+    new_sc!(0x6A, "UNASSIGNED", 0x6A, "UNASSIGNED"),
+    new_sc!(0x6B, "UNASSIGNED", 0x6B, "UNASSIGNED"),
+    new_sc!(0x6C, "UNASSIGNED", 0x6C, "UNASSIGNED"),
+    new_sc!(0x6D, "UNASSIGNED", 0x6D, "UNASSIGNED"),
+    new_sc!(0x6E, "UNASSIGNED", 0x6E, "UNASSIGNED"),
+    new_sc!(0x6F, "UNASSIGNED", 0x6F, "UNASSIGNED"),
+    new_sc!(0x70, "UNASSIGNED", 0x70, "UNASSIGNED"),
+    new_sc!(0x71, "UNASSIGNED", 0x71, "UNASSIGNED"),
+    new_sc!(0x72, "UNASSIGNED", 0x72, "UNASSIGNED"),
+    new_sc!(0x73, "UNASSIGNED", 0x73, "UNASSIGNED"),
+    new_sc!(0x74, "UNASSIGNED", 0x74, "UNASSIGNED"),
+    new_sc!(0x75, "UNASSIGNED", 0x75, "UNASSIGNED"),
+    new_sc!(0x76, "UNASSIGNED", 0x76, "UNASSIGNED"),
+    new_sc!(0x77, "UNASSIGNED", 0x77, "UNASSIGNED"),
+    new_sc!(0x78, "UNASSIGNED", 0x78, "UNASSIGNED"),
+    new_sc!(0x79, "UNASSIGNED", 0x79, "UNASSIGNED"),
+    new_sc!(0x7A, "UNASSIGNED", 0x7A, "UNASSIGNED"),
+    new_sc!(0x7B, "UNASSIGNED", 0x7B, "UNASSIGNED"),
+    new_sc!(0x7C, "SC_F13", 0x7C, "SC_	"),
+    new_sc!(0x7D, "SC_F14", 0x7D, "UNASSIGNED"),
+    new_sc!(0x7E, "SC_F15", 0x7E, "UNASSIGNED"),
+    new_sc!(0x7F, "SC_F16", 0x7F, "UNASSIGNED"),
+    new_sc!(0x80, "SC_F17", 0x80, "UNASSIGNED"),
+    new_sc!(0x81, "SC_F18", 0x81, "UNASSIGNED"),
+    new_sc!(0x82, "SC_F19", 0x82, "UNASSIGNED"),
+    new_sc!(0x83, "SC_F20", 0x83, "UNASSIGNED"),
+    new_sc!(0x84, "SC_F21", 0x84, "UNASSIGNED"),
+    new_sc!(0x85, "SC_F22", 0x85, "UNASSIGNED"),
+    new_sc!(0x86, "SC_F23", 0x86, "UNASSIGNED"),
+    new_sc!(0x87, "SC_F24", 0x87, "UNASSIGNED"),
 ];
 
 #[cfg(test)]
@@ -679,6 +726,22 @@ mod tests {
     }
 
     #[test]
+    fn test_vk_to_scan_code() {
+        assert_eq!(
+            sc_key!("SC_ENTER"),
+            vk_key!("VK_RETURN").to_scan_code().unwrap()
+        );
+        
+        assert_eq!(
+            sc_key!("SC_RIGHT_WINDOWS"),
+            vk_key!("VK_RWIN").to_scan_code().unwrap()
+        );
+
+
+        assert_eq!(None, vk_key!("VK_LBUTTON").to_scan_code());
+    }
+
+    #[test]
     fn test_sc_from_code() {
         assert_eq!("SC_ENTER", ScanCode::from_code(0x1C, false).unwrap().name);
         assert_eq!(
@@ -700,8 +763,8 @@ mod tests {
 
     #[test]
     fn test_sc_from_code_name() {
-        assert_eq!("SC_ENTER", ScanCode::from_str("SC_0x001C").unwrap().name);
-        assert_eq!("SC_BACKTICK", ScanCode::from_str("SC_0xE029").unwrap().name);
+        assert_eq!("SC_ENTER", ScanCode::from_code_name("SC_0x001C").unwrap().name);
+        assert_eq!("SC_BACKTICK", ScanCode::from_code_name("SC_0xE029").unwrap().name);
     }
 
     #[test]
@@ -751,10 +814,25 @@ mod tests {
     }
 
     #[test]
+    fn test_sc_to_virtual_key() {
+        assert_eq!(
+            vk_key!("VK_RETURN"),
+            sc_key!("SC_ENTER").to_virtual_key().unwrap()
+        );
+
+        assert_eq!(
+            vk_key!("VK_RETURN"),
+            sc_key!("SC_NUM_ENTER").to_virtual_key().unwrap()
+        );
+
+        assert_eq!(None, sc_key!("SC_F24").to_virtual_key());
+    }
+
+    #[test]
     fn test_sc_display() {
         assert_eq!(
             "SC_ENTER",
-            format!("{}", ScanCode::from_str("SC_ENTER").unwrap())
+            format!("{}", sc_key!("SC_ENTER"))
         );
     }
 
@@ -789,17 +867,17 @@ mod tests {
     fn test_key_code_display() {
         assert_eq!(
             "SC_ENTER",
-            format!("{}", KeyCode::from_str("SC_ENTER").unwrap())
+            format!("{}", key!("SC_ENTER"))
         );
         assert_eq!(
             "VK_RETURN",
-            format!("{}", KeyCode::from_str("VK_RETURN").unwrap())
+            format!("{}", key!("VK_RETURN"))
         );
     }
 
     #[test]
     fn test_key_code_serialize() {
-        let source = KeyCode::from_str("SC_ENTER").unwrap();
+        let source = key!("SC_ENTER");
         let json = serde_json::to_string_pretty(&source).unwrap();
 
         // dbg!(&json);
@@ -807,7 +885,7 @@ mod tests {
         let actual = serde_json::from_str::<KeyCode>(&json).unwrap();
         assert_eq!(source, actual);
 
-        let source = KeyCode::from_str("VK_RETURN").unwrap();
+        let source = key!("VK_RETURN");
         let json = serde_json::to_string_pretty(&source).unwrap();
 
         // dbg!(&json);

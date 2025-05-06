@@ -7,6 +7,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
+use crate::write_joined;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyAction {
@@ -93,24 +94,14 @@ impl FromStr for KeyAction {
     }
 }
 
+#[macro_export]
+macro_rules! key_action {
+    ($text:literal) => {{ KeyAction::from_str($text).unwrap() }};
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyActionSequence {
     actions: Vec<KeyAction>,
-}
-
-#[macro_export]
-macro_rules! write_joined {
-    ($dst:expr, $src:expr, $separator:expr) => {{
-        let mut first = true;
-        for item in $src {
-            if !first {
-                write!($dst, $separator)?;
-            }
-            write!($dst, "{}", item)?;
-            first = false;
-        }
-        Ok(())
-    }};
 }
 
 impl Display for KeyActionSequence {
@@ -144,9 +135,9 @@ pub struct KeyTransformRule {
 }
 
 impl KeyTransformRule {
-    // pub fn trigger(&self) -> &KeyAction {
-    //     &self.source.actions[0]
-    // }
+    pub fn trigger(&self) -> &KeyAction {
+        &self.source.actions[0]
+    }
 
     // pub fn modifiers(&self) -> Option<&[KeyAction]> {
     //     self.source.actions.get(1..self.source.actions.len() - 1)
@@ -171,6 +162,13 @@ impl Display for KeyTransformRule {
     }
 }
 
+#[macro_export]
+macro_rules! key_rule {
+    ($text:literal) => {
+        KeyTransformRule::from_str($text).unwrap()
+    };
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformProfile {
     pub title: String,
@@ -191,22 +189,22 @@ impl FromStr for KeyTransformProfile {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.trim().trim_end_matches(';').split(';');
         let title = split.next().unwrap().trim();
-        // let rules = split.map(str::parse).collect::<Result<_, _>>()?;
         let mut rules = vec![];
         for rs in split {
-            // if rs.e() {
-            //
-            // }
-            dbg!(rs);
-            let rule = rs.parse()?;
-            rules.push(rule);
-            // split.map(str::parse).collect::<Result<_, _>>()?;
+            rules.push(rs.parse()?);
         }
         Ok(Self {
             title: title.into(),
             rules,
         })
     }
+}
+
+#[macro_export]
+macro_rules! key_profile {
+    ($text:literal) => {
+        KeyTransformProfile::from_str($text).unwrap()
+    };
 }
 
 #[cfg(test)]
@@ -457,21 +455,21 @@ mod tests {
 
     #[test]
     fn test_key_transform_rules_parse() {
-        let actual: KeyTransformProfile = "
+        let actual = key_profile!(
+            "
             Test profile;
             SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
             VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
             "
-        .parse()
-        .unwrap();
+        );
 
-        let expected: KeyTransformProfile = "
+        let expected = key_profile!(
+            "
             Test profile;
             SC_A* : SC_LEFT_WINDOWS* > SC_SPACE* > SC_SPACE^ > SC_LEFT_WINDOWS^;
             VK_SHIFT* > VK_CAPITAL* : VK_CAPITAL* > VK_CAPITAL^;
             "
-        .parse()
-        .unwrap();
+        );
 
         println!("{}", actual);
         println!("{}", expected);
@@ -534,13 +532,13 @@ mod tests {
         // println!("{}", actual);
         // dbg!(&actual);
 
-        let expected: KeyTransformProfile = "
+        let expected = key_profile!(
+            "
             Test profile;
             SC_CAPS_LOCK↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
             VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
             "
-        .parse()
-        .unwrap();
+        );
 
         // println!("{}", expected);
 

@@ -1,6 +1,9 @@
 mod key;
 mod key_action;
 mod key_event;
+mod key_transform;
+mod keyboard_state;
+mod util;
 
 #[cfg(test)]
 mod tests {
