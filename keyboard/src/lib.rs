@@ -4,7 +4,7 @@ mod key_action;
 mod key_event;
 mod key_transform_map;
 mod keyboard_state;
-mod transform_rule;
+mod key_transform_rule;
 mod util;
 
 #[cfg(test)]

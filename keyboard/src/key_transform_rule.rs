@@ -77,7 +77,7 @@ mod tests {
     use crate::key_action;
     use crate::key_action::KeyTransition::Down;
     use crate::key_action::{KeyAction, KeyActionSequence};
-    use crate::transform_rule::{KeyTransformProfile, KeyTransformRule};
+    use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
     use std::fs;
     use KeyCode::VK;
 

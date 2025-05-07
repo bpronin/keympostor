@@ -2,7 +2,7 @@ use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_VK_CODE};
 use crate::key_action::{KeyAction, KeyTransition};
 use crate::key_event::KeyEvent;
 use crate::keyboard_state::KeyboardState;
-use crate::transform_rule::KeyTransformRule;
+use crate::key_transform_rule::KeyTransformRule;
 use std::array::from_fn;
 use KeyCode::{SC, VK};
 
@@ -137,7 +137,7 @@ mod tests {
     use crate::key_event::KeyEvent;
     use crate::key_transform_map::KeyTransformMap;
     use crate::keyboard_state::{KeyboardState, DOWN_STATE, UP_STATE};
-    use crate::transform_rule::KeyTransformRule;
+    use crate::key_transform_rule::KeyTransformRule;
     use crate::{key_action, key_event, key_rule};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_A, VK_B, VK_CONTROL, VK_MENU, VK_SHIFT};
     use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
