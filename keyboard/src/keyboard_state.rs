@@ -47,7 +47,7 @@ mod tests {
     use crate::key_action::KeyTransition::{Down, Up};
     use crate::keyboard_state::KeyboardState;
     use crate::keyboard_state::{KeyAction, DOWN_STATE, UP_STATE};
-    use crate::{assert_not, key_action};
+    use crate::{assert_not, key_act};
     use std::array::from_fn;
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_MENU, VK_RETURN, VK_SHIFT};
     use KeyCode::VK;
@@ -69,9 +69,9 @@ mod tests {
         assert_not!(state.has_state(&all_down));
 
         assert_not!(state.has_state(&[
-            key_action!("VK_RETURN^"),
-            key_action!("VK_SHIFT^"),
-            key_action!("VK_MENU*"),
+            key_act!("VK_RETURN↑"),
+            key_act!("VK_SHIFT↑"),
+            key_act!("VK_MENU↓"),
         ]));
 
         assert!(state.has_state(&[]));
@@ -85,20 +85,20 @@ mod tests {
         keys[VK_MENU.0 as usize] = UP_STATE;
         let state = KeyboardState::new(keys);
 
-        assert_not!(state.has_state(&[key_action!("VK_RETURN * ")]));
-        assert_not!(state.has_state(&[key_action!("VK_MENU ^ ")]));
+        assert_not!(state.has_state(&[key_act!("VK_RETURN * ")]));
+        assert_not!(state.has_state(&[key_act!("VK_MENU ↑ ")]));
         assert_not!(state.has_state(&[]));
 
         assert!(state.has_state(&[
-            key_action!("VK_RETURN * "),
-            key_action!("VK_SHIFT * "),
-            key_action!("VK_MENU ^ "),
+            key_act!("VK_RETURN ↓ "),
+            key_act!("VK_SHIFT ↓ "),
+            key_act!("VK_MENU ↑ "),
         ]));
 
         assert_not!(state.has_state(&[
-            key_action!("VK_A * "),
-            key_action!("VK_B * "),
-            key_action!("VK_C ^ "),
+            key_act!("VK_A ↓ "),
+            key_act!("VK_B ↓ "),
+            key_act!("VK_C ↑ "),
         ]));
     }
 }

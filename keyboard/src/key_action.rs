@@ -144,13 +144,6 @@ impl FromStr for KeyAction {
     }
 }
 
-#[macro_export]
-macro_rules! key_action {
-    ($text:literal) => {
-        $text.parse::<KeyAction>().unwrap()
-    };
-}
-
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyActionSequence {
     pub(crate) actions: Vec<KeyAction>,
@@ -181,27 +174,41 @@ impl FromStr for KeyActionSequence {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeyActionPattern {
-    sequence: Vec<KeyActionSequence>,
-}
+// #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+// pub struct KeyActionPattern {
+//     sequence: Vec<KeyActionSequence>,
+// }
 
 #[cfg(test)]
 mod tests {
+    use crate::assert_not;
     use crate::key::KeyCode::SC;
     use crate::key::{KeyCode, ScanCode, VirtualKey};
     use crate::key_action::KeyTransition::{Down, Up};
-    use crate::key_action::{KeyAction, KeyActionPattern, KeyActionSequence, KeyTransition};
+    use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
     use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
     use KeyCode::VK;
-    use crate::assert_not;
+
+    #[macro_export]
+    macro_rules! key_act {
+        ($text:literal) => {
+            $text.parse::<KeyAction>().unwrap()
+        };
+    }
+
+    #[macro_export]
+    macro_rules! key_act_seq {
+        ($text:literal) => {
+            $text.parse::<KeyActionSequence>().unwrap()
+        };
+    }
 
     #[test]
     fn test_key_transition_display() {
         assert_eq!("↓", format!("{}", Down));
         assert_eq!("↑", format!("{}", Up));
     }
-    
+
     #[test]
     fn test_key_transition_basics() {
         assert_eq!(Up, KeyTransition::default());
@@ -221,9 +228,9 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_key_transition_parse_fails_illegal() {
-        assert_eq!(Down, "&".parse().unwrap());
+        assert_eq!(Down, "BANANA".parse().unwrap());
     }
-
+    
     #[test]
     #[should_panic]
     fn test_key_transition_parse_fails_empty() {
@@ -233,17 +240,16 @@ mod tests {
     #[test]
     #[should_panic]
     fn test_key_transition_parse_fails_to_long() {
-        assert_eq!(Down, "***".parse().unwrap());
+        assert_eq!(Down, "↑↑↑".parse().unwrap());
     }
 
     #[test]
     fn test_key_transition_serialize() {
         let source = Down;
+        
         let json = serde_json::to_string_pretty(&source).unwrap();
-
-        // dbg!(&json);
-
         let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
+        
         assert_eq!(source, actual);
 
         let source = Up;
@@ -286,22 +292,16 @@ mod tests {
 
     #[test]
     fn test_key_action_sequence_display() {
-        let actual = KeyActionSequence {
-            actions: vec![key_action!("VK_RETURN*"), key_action!("VK_SHIFT^")],
-        };
+        let actual = key_act_seq!("VK_RETURN↓ → VK_SHIFT↑");
 
         assert_eq!("VK_RETURN↓ → VK_SHIFT↑", format!("{}", actual));
     }
 
     #[test]
     fn test_key_action_sequence_serialize() {
-        let source = KeyActionSequence {
-            actions: vec![key_action!("VK_RETURN*"), key_action!("VK_SHIFT*")],
-        };
+        let source = key_act_seq!("VK_RETURN↓ → VK_SHIFT↓");
 
         let json = serde_json::to_string_pretty(&source).unwrap();
-
-        // dbg!(&json);
 
         let actual = serde_json::from_str::<KeyActionSequence>(&json).unwrap();
         assert_eq!(source, actual);
@@ -309,15 +309,14 @@ mod tests {
 
     #[test]
     fn test_key_action_sequence_create_input() {
-        let source = KeyActionSequence {
-            actions: vec![key_action!("VK_RETURN*"), key_action!("SC_NUM_ENTER^")],
-        };
+        let source = key_act_seq!("VK_RETURN↓ → SC_NUM_ENTER↑");
+        
         let input = source.create_input();
 
         assert_eq!(2, input.len());
 
         let VK(vk) = source.actions[0].key else {
-            panic!("Not an VK")
+            panic!("Not a VK")
         };
         assert_eq!(vk.value, unsafe { input[0].Anonymous.ki.wVk.0 } as u8);
         assert_not!(unsafe {
@@ -330,7 +329,7 @@ mod tests {
         assert!(!unsafe { input[0].Anonymous.ki.dwFlags.contains(KEYEVENTF_KEYUP) });
 
         let SC(sc) = source.actions[1].key else {
-            panic!("Not an SC")
+            panic!("Not a SC")
         };
         assert_eq!(sc.value, unsafe { input[1].Anonymous.ki.wScan } as u8);
         assert!(unsafe {
@@ -343,36 +342,36 @@ mod tests {
         assert!(unsafe { input[1].Anonymous.ki.dwFlags.contains(KEYEVENTF_KEYUP) });
     }
 
-    #[test]
-    fn test_key_action_pattern_serialize() {
-        let source = KeyActionPattern {
-            sequence: vec![
-                KeyActionSequence {
-                    actions: vec![
-                        KeyAction {
-                            key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
-                            transition: Down,
-                        },
-                        KeyAction {
-                            key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
-                            transition: Down,
-                        },
-                    ],
-                },
-                KeyActionSequence {
-                    actions: vec![KeyAction {
-                        key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
-                        transition: Down,
-                    }],
-                },
-            ],
-        };
-
-        let json = serde_json::to_string_pretty(&source).unwrap();
-
-        // dbg!(&json);
-
-        let actual = serde_json::from_str::<KeyActionPattern>(&json).unwrap();
-        assert_eq!(source, actual);
-    }
+    // #[test]
+    // fn test_key_action_pattern_serialize() {
+    //     let source = KeyActionPattern {
+    //         sequence: vec![
+    //             KeyActionSequence {
+    //                 actions: vec![
+    //                     KeyAction {
+    //                         key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
+    //                         transition: Down,
+    //                     },
+    //                     KeyAction {
+    //                         key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
+    //                         transition: Down,
+    //                     },
+    //                 ],
+    //             },
+    //             KeyActionSequence {
+    //                 actions: vec![KeyAction {
+    //                     key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
+    //                     transition: Down,
+    //                 }],
+    //             },
+    //         ],
+    //     };
+    //
+    //     let json = serde_json::to_string_pretty(&source).unwrap();
+    //
+    //     // dbg!(&json);
+    //
+    //     let actual = serde_json::from_str::<KeyActionPattern>(&json).unwrap();
+    //     assert_eq!(source, actual);
+    // }
 }

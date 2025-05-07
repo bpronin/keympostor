@@ -1,8 +1,8 @@
 use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_VK_CODE};
-use crate::key_action::{KeyAction, KeyTransition};
+use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
 use crate::key_event::KeyEvent;
-use crate::keyboard_state::KeyboardState;
 use crate::key_transform_rule::KeyTransformRule;
+use crate::keyboard_state::KeyboardState;
 use std::array::from_fn;
 use KeyCode::{SC, VK};
 
@@ -71,7 +71,14 @@ impl KeyTransformMap {
         }
     }
 
-    pub(crate) fn get_rule(
+    fn get_group(&self, trigger: &KeyAction) -> &[KeyTransformRule] {
+        match trigger.key {
+            VK(vk) => self.virtual_key_map.get_group(vk, trigger.transition),
+            SC(sc) => self.scan_code_map.get_group(sc, trigger.transition),
+        }
+    }
+
+    fn get_rule(
         &self,
         event: &KeyEvent,
         get_kbd_state: fn() -> KeyboardState,
@@ -90,34 +97,15 @@ impl KeyTransformMap {
         None
     }
 
-    // pub fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
-    //     let action = event.as_virtual_key_action();
-    //     let mut rules = self.get_all(action);
-    //
-    //     // dbg!(&rules);
-    //
-    //     if rules.is_empty() {
-    //         rules = self.get_all(event.as_scan_code_action());
-    //     }
-    //
-    //     for rule in rules {
-    //         if let Some(modifiers) = rule.modifiers() {
-    //             let keyboard_state = KeyboardState::capture();
-    //             if keyboard_state.has_state(&modifiers) {
-    //                 return Some(rule);
-    //             }
-    //         } else {
-    //             return Some(rule);
-    //         }
-    //     }
-    //
-    //     None
-    // }
-
-    fn get_group(&self, trigger: &KeyAction) -> &[KeyTransformRule] {
-        match trigger.key {
-            VK(vk) => self.virtual_key_map.get_group(vk, trigger.transition),
-            SC(sc) => self.scan_code_map.get_group(sc, trigger.transition),
+    fn get(
+        &self,
+        event: &KeyEvent,
+        get_kbd_state: fn() -> KeyboardState,
+    ) -> Option<&KeyActionSequence> {
+        if let Some(rule) = self.get_rule(event, get_kbd_state) {
+            Some(&rule.target)
+        } else {
+            None
         }
     }
 
@@ -132,20 +120,16 @@ impl KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::key::MAX_VK_CODE;
+    use crate::key_transform_map::KeyActionSequence;
+use crate::key::MAX_VK_CODE;
     use crate::key_action::KeyAction;
     use crate::key_event::KeyEvent;
     use crate::key_transform_map::KeyTransformMap;
-    use crate::keyboard_state::{KeyboardState, DOWN_STATE, UP_STATE};
     use crate::key_transform_rule::KeyTransformRule;
-    use crate::{key_action, key_event, key_rule};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_A, VK_B, VK_CONTROL, VK_MENU, VK_SHIFT};
+    use crate::keyboard_state::{KeyboardState, DOWN_STATE, UP_STATE};
+    use crate::{key_act, key_act_seq, key_event, key_rule};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_A, VK_B, VK_CAPITAL, VK_CONTROL, VK_MENU, VK_SHIFT};
     use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
-
-    #[test]
-    fn test_all() {
-        // todo!("Search for all posible KBDLLHOOKSTRUCT's")
-    }
 
     #[test]
     fn test_get_group() {
@@ -157,8 +141,8 @@ mod tests {
         map.put(key_rule!("SC_A↓ : SC_C↓"));
         map.put(key_rule!("SC_B↓ → SC_ALT↓ : SC_0x1C↓"));
 
-        assert!(map.get_group(&key_action!("VK_B↓")).is_empty());
-        assert!(map.get_group(&key_action!("VK_A↑")).is_empty());
+        assert!(map.get_group(&key_act!("VK_B↓")).is_empty());
+        assert!(map.get_group(&key_act!("VK_A↑")).is_empty());
 
         let expected = [
             key_rule!("VK_A↓ : VK_B↓"),
@@ -166,7 +150,7 @@ mod tests {
             key_rule!("VK_A↓ → VK_CONTROL↓ : VK_D↓"),
         ];
 
-        assert_eq!(expected, map.get_group(&key_action!("VK_A↓")));
+        assert_eq!(expected, map.get_group(&key_act!("VK_A↓")));
     }
 
     #[test]
@@ -251,5 +235,32 @@ mod tests {
             &key_rule!("VK_A↓ → VK_MENU↓ → VK_CONTROL↓ : VK_D↓"),
             map.get_rule(&key_event!(VK_A.0, false), all_up).unwrap()
         );
+    }
+
+    #[test]
+    fn test_get() {
+        let mut map = KeyTransformMap::new();
+        map.put(key_rule!("VK_CAPITAL↓ : VK_LWIN↓ → VK_SPACE↓ → VK_SPACE↑ → VK_LWIN↑"));
+        map.put(key_rule!("VK_CAPITAL↓ → VK_SHIFT↓ : VK_CAPITAL↓"));
+
+        let all_up = || KeyboardState::new([UP_STATE; MAX_VK_CODE]);
+
+        let shift_down = || {
+            let mut keys = [UP_STATE; MAX_VK_CODE];
+            keys[VK_SHIFT.0 as usize] = DOWN_STATE;
+            KeyboardState::new(keys)
+        };
+
+        assert_eq!(
+            &key_act_seq!("VK_LWIN↓ → VK_SPACE↓ → VK_SPACE↑ → VK_LWIN↑"),
+            map.get(&key_event!(VK_CAPITAL.0, false), all_up).unwrap()
+        );
+        
+        assert_eq!(
+            &key_act_seq!("VK_CAPITAL↓"),
+            map.get(&key_event!(VK_CAPITAL.0, false), shift_down).unwrap()
+        );
+        
+        // todo!("Search for all posible KBDLLHOOKSTRUCT's")
     }
 }

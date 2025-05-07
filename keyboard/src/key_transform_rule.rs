@@ -17,7 +17,6 @@ impl KeyTransformRule {
 
     pub fn modifiers(&self) -> &[KeyAction] {
         &self.source.actions[1..self.source.actions.len()]
-        // self.source.actions.get(1..self.source.actions.len())
     }
 }
 
@@ -74,7 +73,7 @@ impl FromStr for KeyTransformProfile {
 mod tests {
     use crate::key::KeyCode::SC;
     use crate::key::{KeyCode, ScanCode, VirtualKey};
-    use crate::key_action;
+    use crate::key_act;
     use crate::key_action::KeyTransition::Down;
     use crate::key_action::{KeyAction, KeyActionSequence};
     use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
@@ -98,7 +97,7 @@ mod tests {
     #[test]
     fn test_key_transform_rule_trigger() {
         let actual = key_rule!("VK_RETURN↓ → VK_CONTROL↓ → VK_SHIFT↓ : SC_ENTER↓");
-        assert_eq!(&key_action!("VK_RETURN↓"), actual.trigger());
+        assert_eq!(&key_act!("VK_RETURN↓"), actual.trigger());
     }
 
     #[test]
@@ -108,8 +107,8 @@ mod tests {
         
         let actual = key_rule!("VK_RETURN↓ → VK_CONTROL↓ → VK_SHIFT↓ : SC_ENTER↓");
         let expected = [
-            key_action!("VK_CONTROL↓"),
-            key_action!("VK_SHIFT↓")
+            key_act!("VK_CONTROL↓"),
+            key_act!("VK_SHIFT↓")
         ];
         assert_eq!(expected, actual.modifiers());
     }
@@ -193,8 +192,6 @@ mod tests {
 
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        // dbg!(&json);
-
         let actual = serde_json::from_str::<KeyTransformRule>(&json).unwrap();
         assert_eq!(source, actual);
     }
@@ -212,8 +209,8 @@ mod tests {
         let expected = key_profile!(
             "
             Test profile;
-            SC_A* : SC_LEFT_WINDOWS* > SC_SPACE* > SC_SPACE^ > SC_LEFT_WINDOWS^;
-            VK_SHIFT* > VK_CAPITAL* : VK_CAPITAL* > VK_CAPITAL^;
+            SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
+            VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
             "
         );
 
@@ -273,10 +270,8 @@ mod tests {
     #[test]
     fn test_key_transform_rules_serialize() {
         let json = fs::read_to_string("../test/profiles/test.json").unwrap();
+        
         let actual: KeyTransformProfile = serde_json::from_str(&json).unwrap();
-
-        // println!("{}", actual);
-        // dbg!(&actual);
 
         let expected = key_profile!(
             "
@@ -285,8 +280,6 @@ mod tests {
             VK_SHIFT↓ → VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
             "
         );
-
-        // println!("{}", expected);
 
         assert_eq!(expected, actual);
     }
