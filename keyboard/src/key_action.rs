@@ -23,7 +23,7 @@ impl KeyTransition {
         if up { Up } else { Down }
     }
 
-    pub fn is_up(&self) -> bool {
+    pub(crate) fn is_up(&self) -> bool {
         matches!(*self, Up)
     }
 
@@ -194,10 +194,20 @@ mod tests {
     use crate::key_action::{KeyAction, KeyActionPattern, KeyActionSequence, KeyTransition};
     use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
     use KeyCode::VK;
+    use crate::assert_not;
+
     #[test]
     fn test_key_transition_display() {
         assert_eq!("↓", format!("{}", Down));
         assert_eq!("↑", format!("{}", Up));
+    }
+    
+    #[test]
+    fn test_key_transition_basics() {
+        assert_eq!(Up, KeyTransition::default());
+        assert_eq!(Up, KeyTransition::from_bool(true));
+        assert!(Up.is_up());
+        assert_not!(Down.is_up());
     }
 
     #[test]
@@ -310,7 +320,7 @@ mod tests {
             panic!("Not an VK")
         };
         assert_eq!(vk.value, unsafe { input[0].Anonymous.ki.wVk.0 } as u8);
-        assert!(!unsafe {
+        assert_not!(unsafe {
             input[0]
                 .Anonymous
                 .ki

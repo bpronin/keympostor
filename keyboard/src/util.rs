@@ -1,4 +1,11 @@
 #[macro_export]
+macro_rules! assert_not {
+    ($a:expr) => {
+        assert!(!$a)
+    };
+}
+
+#[macro_export]
 macro_rules! append_prefix {
     ($s:expr, $pref:literal) => {
         if $s.starts_with($pref) {

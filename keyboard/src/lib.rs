@@ -1,3 +1,4 @@
+mod bit256;
 mod key;
 mod key_action;
 mod key_event;

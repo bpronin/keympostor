@@ -166,6 +166,8 @@ pub enum KeyCode {
     SC(&'static ScanCode),
 }
 
+impl KeyCode {}
+
 impl KeyCode {
     pub(crate) fn is_scan_code(&self) -> bool {
         matches!(*self, SC(_))
@@ -173,6 +175,13 @@ impl KeyCode {
 
     pub(crate) fn is_virtual_key(&self) -> bool {
         matches!(*self, VK(_))
+    }
+
+    pub(crate) fn as_virtual_key(&self) -> Option<&'static VirtualKey> {
+        match self {
+            VK(vk) => Some(vk),
+            SC(sc) => sc.to_virtual_key(),
+        }
     }
 
     // pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {

@@ -91,6 +91,19 @@ mod tests {
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
 
+    #[macro_export]
+    macro_rules! key_event {
+        ($vk_code:expr, $is_up:expr) => {
+            KeyEvent {
+                kb: KBDLLHOOKSTRUCT {
+                    vkCode: $vk_code as u32,
+                    flags: if $is_up { LLKHF_UP } else { Default::default() },
+                    ..Default::default()
+                },
+            }
+        };
+    }
+
     #[test]
     fn test_key_event() {
         let kb = KBDLLHOOKSTRUCT {

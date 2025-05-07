@@ -1,10 +1,10 @@
-use crate::key::{KeyCode, MAX_VK_CODE, VirtualKey};
+use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_VK_CODE};
 use crate::key_action::{KeyAction, KeyTransition};
 use crate::key_event::KeyEvent;
 use crate::keyboard_state::KeyboardState;
 use crate::transform_rule::KeyTransformRule;
-use KeyCode::{SC, VK};
 use std::array::from_fn;
+use KeyCode::{SC, VK};
 
 #[derive(Debug)]
 struct VirtualKeyTransformMap {
@@ -18,7 +18,7 @@ impl VirtualKeyTransformMap {
         }
     }
 
-    fn get_all(&self, key: &VirtualKey, transition: KeyTransition) -> &[KeyTransformRule] {
+    fn get_group(&self, key: &VirtualKey, transition: KeyTransition) -> &[KeyTransformRule] {
         &self.map[transition.is_up() as usize][key.value as usize]
     }
 
@@ -28,35 +28,61 @@ impl VirtualKeyTransformMap {
 }
 
 #[derive(Debug)]
+struct ScanCodeTransformMap {
+    map: [[[Vec<KeyTransformRule>; MAX_VK_CODE]; 2]; 2],
+}
+
+impl ScanCodeTransformMap {
+    fn new() -> Self {
+        Self {
+            map: [
+                [from_fn(|_| vec![]), from_fn(|_| vec![])],
+                [from_fn(|_| vec![]), from_fn(|_| vec![])],
+            ],
+        }
+    }
+
+    fn get_group(&self, key: &ScanCode, transition: KeyTransition) -> &[KeyTransformRule] {
+        &self.map[transition.is_up() as usize][key.is_extended as usize][key.value as usize]
+    }
+
+    pub(crate) fn put(
+        &mut self,
+        key: &ScanCode,
+        transition: KeyTransition,
+        rule: KeyTransformRule,
+    ) {
+        self.map[transition.is_up() as usize][key.is_extended as usize][key.value as usize]
+            .push(rule)
+    }
+}
+
+#[derive(Debug)]
 struct KeyTransformMap {
     virtual_key_map: VirtualKeyTransformMap,
+    scan_code_map: ScanCodeTransformMap,
 }
 
 impl KeyTransformMap {
     pub fn new() -> Self {
         Self {
             virtual_key_map: VirtualKeyTransformMap::new(),
+            scan_code_map: ScanCodeTransformMap::new(),
         }
     }
 
-    pub(crate) fn get_with_state(
+    pub(crate) fn get_rule(
         &self,
         event: &KeyEvent,
         get_kbd_state: fn() -> KeyboardState,
     ) -> Option<&KeyTransformRule> {
-        let mut rules = self.get_all(event.as_virtual_key_action());
+        let mut rules = self.get_group(&event.as_virtual_key_action());
         if rules.is_empty() {
-            rules = self.get_all(event.as_scan_code_action());
+            rules = self.get_group(&event.as_scan_code_action());
         }
-        // dbg!(&rules);
 
         for rule in rules {
-            let modifiers = rule.modifiers();
-            let state = get_kbd_state();
-            dbg!(&modifiers);
-            let has_state = state.has_state(&modifiers);
-            dbg!(has_state);
-            if has_state {
+            if get_kbd_state().has_state(&rule.modifiers()) {
                 return Some(rule);
             }
         }
@@ -67,13 +93,13 @@ impl KeyTransformMap {
     // pub fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
     //     let action = event.as_virtual_key_action();
     //     let mut rules = self.get_all(action);
-    // 
+    //
     //     // dbg!(&rules);
-    // 
+    //
     //     if rules.is_empty() {
     //         rules = self.get_all(event.as_scan_code_action());
     //     }
-    // 
+    //
     //     for rule in rules {
     //         if let Some(modifiers) = rule.modifiers() {
     //             let keyboard_state = KeyboardState::capture();
@@ -84,14 +110,14 @@ impl KeyTransformMap {
     //             return Some(rule);
     //         }
     //     }
-    // 
+    //
     //     None
     // }
 
-    fn get_all(&self, trigger: KeyAction) -> &[KeyTransformRule] {
+    fn get_group(&self, trigger: &KeyAction) -> &[KeyTransformRule] {
         match trigger.key {
-            VK(vk) => self.virtual_key_map.get_all(vk, trigger.transition),
-            SC(sc) => todo!(),
+            VK(vk) => self.virtual_key_map.get_group(vk, trigger.transition),
+            SC(sc) => self.scan_code_map.get_group(sc, trigger.transition),
         }
     }
 
@@ -99,7 +125,7 @@ impl KeyTransformMap {
         let trigger = rule.trigger();
         match trigger.key {
             VK(vk) => self.virtual_key_map.put(vk, trigger.transition, rule),
-            SC(sc) => todo!(),
+            SC(sc) => self.scan_code_map.put(sc, trigger.transition, rule),
         }
     }
 }
@@ -110,46 +136,29 @@ mod tests {
     use crate::key_action::KeyAction;
     use crate::key_event::KeyEvent;
     use crate::key_transform_map::KeyTransformMap;
-    use crate::keyboard_state::{DOWN_STATE, KeyboardState, UP_STATE};
+    use crate::keyboard_state::{KeyboardState, DOWN_STATE, UP_STATE};
     use crate::transform_rule::KeyTransformRule;
-    use crate::{key_action, key_rule};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_A, VK_SHIFT};
+    use crate::{key_action, key_event, key_rule};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_A, VK_B, VK_CONTROL, VK_MENU, VK_SHIFT};
     use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
 
     #[test]
     fn test_all() {
-        let set = 0x08 & 0x80 != 0;
-
-        println!("{:08b}", 0x80);
-        // dbg!(&set);
         // todo!("Search for all posible KBDLLHOOKSTRUCT's")
     }
 
-    // #[test]
-    // fn test_vk_map_put_get_all() {
-    //     let mut map = VirtualKeyTransformMap::new();
-    //
-    //     let source = kt_rule!("VK_A↓ : VK_B↓");
-    //     let tr = &source.trigger();
-    //     map.put(tr.key.as_virtual_key().unwrap(), tr.transition, source);
-    //
-    //     let expected = kt_rule!("VK_A↓ : VK_B↓");
-    //     let tr = expected.trigger();
-    //     let actual = map.get_all(&tr.key.as_virtual_key().unwrap(), tr.transition);
-    //
-    //     assert_eq!([expected], actual);
-    // }
-
     #[test]
-    fn test_get_all() {
+    fn test_get_group() {
         let mut map = KeyTransformMap::new();
 
         map.put(key_rule!("VK_A↓ : VK_B↓"));
         map.put(key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"));
         map.put(key_rule!("VK_A↓ → VK_CONTROL↓ : VK_D↓"));
+        map.put(key_rule!("SC_A↓ : SC_C↓"));
+        map.put(key_rule!("SC_B↓ → SC_ALT↓ : SC_0x1C↓"));
 
-        assert!(map.get_all("VK_B↓".parse().unwrap()).is_empty());
-        assert!(map.get_all("VK_A↑".parse().unwrap()).is_empty());
+        assert!(map.get_group(&key_action!("VK_B↓")).is_empty());
+        assert!(map.get_group(&key_action!("VK_A↑")).is_empty());
 
         let expected = [
             key_rule!("VK_A↓ : VK_B↓"),
@@ -157,51 +166,90 @@ mod tests {
             key_rule!("VK_A↓ → VK_CONTROL↓ : VK_D↓"),
         ];
 
-        assert_eq!(expected, map.get_all(key_action!("VK_A↓")));
-    }
-
-    macro_rules! key_event {
-        ($vk_code:expr, $is_up:expr) => {
-            KeyEvent {
-                kb: KBDLLHOOKSTRUCT {
-                    vkCode: $vk_code as u32,
-                    flags: if $is_up { LLKHF_UP } else { Default::default() },
-                    ..Default::default()
-                },
-            }
-        };
+        assert_eq!(expected, map.get_group(&key_action!("VK_A↓")));
     }
 
     #[test]
-    fn test_get() {
+    fn test_get_rule() {
         let mut map = KeyTransformMap::new();
-
         map.put(key_rule!("VK_A↓ : VK_B↓"));
         map.put(key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"));
-        // map.put(key_rule!("VK_A↓ → VK_MENU↓ → VK_CONTROL↓ : VK_D↓"));
+        map.put(key_rule!("VK_A↓ → VK_MENU↓ → VK_CONTROL↓ : VK_D↓"));
 
-        // let option = map.get(&key_event!(VK_A.0, true));
-        // dbg!(&option);
-        // assert_eq!(None, option);
-        // // assert_eq!(None, map.get(&key_event!(VK_B.0, false)));
+        let all_up = || KeyboardState::new([UP_STATE; MAX_VK_CODE]);
 
-        // let get_kbd_state = || KeyboardState::new([UP_STATE; MAX_VK_CODE]);
-        // assert_eq!(
-        //     &key_rule!("VK_A↓ : VK_B↓"),
-        //     map.get_with_state(&key_event!(VK_A.0, false), get_kbd_state)
-        //         .unwrap()
-        // );
-
-        let get_kbd_state = || {
+        let shift_down = || {
             let mut keys = [UP_STATE; MAX_VK_CODE];
             keys[VK_SHIFT.0 as usize] = DOWN_STATE;
             KeyboardState::new(keys)
         };
 
+        let alt_down = || {
+            let mut keys = [UP_STATE; MAX_VK_CODE];
+            keys[VK_MENU.0 as usize] = DOWN_STATE;
+            KeyboardState::new(keys)
+        };
+
+        let ctrl_down = || {
+            let mut keys = [UP_STATE; MAX_VK_CODE];
+            keys[VK_CONTROL.0 as usize] = DOWN_STATE;
+            KeyboardState::new(keys)
+        };
+
+        let ctrl_alt_down = || {
+            let mut keys = [UP_STATE; MAX_VK_CODE];
+            keys[VK_CONTROL.0 as usize] = DOWN_STATE;
+            keys[VK_MENU.0 as usize] = DOWN_STATE;
+            KeyboardState::new(keys)
+        };
+
+        assert_eq!(None, map.get_rule(&key_event!(VK_B.0, false), all_up));
+        assert_eq!(None, map.get_rule(&key_event!(VK_MENU.0, false), alt_down));
+        assert_eq!(
+            None,
+            map.get_rule(&key_event!(VK_SHIFT.0, false), shift_down)
+        );
+        assert_eq!(None, map.get_rule(&key_event!(VK_A.0, false), ctrl_down));
+        assert_eq!(None, map.get_rule(&key_event!(VK_A.0, false), alt_down));
+
+        assert_eq!(
+            &key_rule!("VK_A↓ : VK_B↓"),
+            map.get_rule(&key_event!(VK_A.0, false), all_up).unwrap()
+        );
+        assert_ne!(
+            &key_rule!("VK_A↓ : VK_C↓"),
+            map.get_rule(&key_event!(VK_A.0, false), shift_down)
+                .unwrap()
+        );
+        assert_ne!(
+            &key_rule!("VK_A↓ : VK_C↓"),
+            map.get_rule(&key_event!(VK_A.0, false), ctrl_alt_down)
+                .unwrap()
+        );
+
         assert_eq!(
             &key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"),
-            map.get_with_state(&key_event!(VK_A.0, false), get_kbd_state)
+            map.get_rule(&key_event!(VK_A.0, false), shift_down)
                 .unwrap()
+        );
+        assert_ne!(
+            &key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"),
+            map.get_rule(&key_event!(VK_A.0, false), all_up).unwrap()
+        );
+        assert_ne!(
+            &key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"),
+            map.get_rule(&key_event!(VK_A.0, false), ctrl_alt_down)
+                .unwrap()
+        );
+
+        assert_eq!(
+            &key_rule!("VK_A↓ → VK_MENU↓ → VK_CONTROL↓ : VK_D↓"),
+            map.get_rule(&key_event!(VK_A.0, false), ctrl_alt_down)
+                .unwrap()
+        );
+        assert_ne!(
+            &key_rule!("VK_A↓ → VK_MENU↓ → VK_CONTROL↓ : VK_D↓"),
+            map.get_rule(&key_event!(VK_A.0, false), all_up).unwrap()
         );
     }
 }
