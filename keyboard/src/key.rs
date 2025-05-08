@@ -16,9 +16,6 @@ pub struct VirtualKey {
 
 impl VirtualKey {
     pub fn from_code(code: u8) -> Result<&'static VirtualKey, String> {
-        // if code == 0 || code as usize > MAX_VK_CODE {
-        //     return Err("Illegal virtual key code".to_string());
-        // }
         VIRTUAL_KEYS
             .get(code as usize)
             .ok_or(format!("Illegal virtual key code `{}`.", code))
@@ -47,14 +44,14 @@ impl VirtualKey {
         Self::from_code_name(st).or_else(|_| Self::from_name(st))
     }
 
-    pub fn to_scan_code(&self) -> Option<&'static ScanCode> {
+    pub fn to_scan_code(&self) -> Result<&'static ScanCode, String> {
         let ext_code = unsafe { MapVirtualKeyW(self.value as u32, MAPVK_VK_TO_VSC_EX) };
         if ext_code > 0 {
             let code = ext_code as u8;
-            let extended = ext_code & 0xE000 != 0;
-            ScanCode::from_code(code, extended).ok()
+            let is_extended = ext_code & 0xE000 != 0;
+            ScanCode::from_code(code, is_extended)
         } else {
-            None
+            Err(format!("Unable to convert virtual key {self} to scancode."))
         }
     }
 }
@@ -82,9 +79,6 @@ pub struct ScanCode {
 
 impl ScanCode {
     pub(crate) fn from_code(code: u8, extended: bool) -> Result<&'static ScanCode, String> {
-        // if code == 0 || code as usize > MAX_SCAN_CODE {
-        //     return Err("Illegal scan code".to_string());
-        // }
         SCAN_CODES
             .get(code as usize)
             .ok_or(format!("Illegal scan code `{}`.", code))?
@@ -136,12 +130,12 @@ impl ScanCode {
         }
     }
 
-    pub fn to_virtual_key(&self) -> Option<&'static VirtualKey> {
+    pub fn to_virtual_key(&self) -> Result<&'static VirtualKey, String> {
         let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
         if vk_code > 0 {
-            VirtualKey::from_code(vk_code as u8).ok()
+            VirtualKey::from_code(vk_code as u8)
         } else {
-            None
+            Err(format!("Unable to convert scancode {self} to virtual key."))
         }
     }
 }
@@ -177,19 +171,19 @@ impl KeyCode {
     //     matches!(*self, VK(_))
     // }
 
-    pub(crate) fn as_virtual_key(&self) -> Option<&'static VirtualKey> {
+    // pub(crate) fn as_virtual_key(&self) -> Option<&'static VirtualKey> {
+    //     match self {
+    //         VK(vk) => Some(vk),
+    //         SC(sc) => sc.to_virtual_key(),
+    //     }
+    // }
+
+    pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
         match self {
-            VK(vk) => Some(vk),
+            VK(vk) => Ok(vk),
             SC(sc) => sc.to_virtual_key(),
         }
     }
-
-    // pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
-    //     match self {
-    //         VK(vk) => Ok(vk),
-    //         SC(_) => Err(format!("Illegal key code `{}`.", self)),
-    //     }
-    // }
 
     // pub(crate) fn as_scan_code(&self) -> Result<&'static ScanCode, String> {
     //     match self {
@@ -750,8 +744,12 @@ mod tests {
             sc_key!("SC_RIGHT_WINDOWS"),
             vk_key!("VK_RWIN").to_scan_code().unwrap()
         );
-
-        assert_eq!(None, vk_key!("VK_LBUTTON").to_scan_code());
+    }
+    
+    #[test]
+    #[should_panic]
+    fn test_vk_to_scan_code_fails() {
+        vk_key!("VK_LBUTTON").to_scan_code().unwrap();
     }
 
     #[test]
@@ -843,10 +841,14 @@ mod tests {
             vk_key!("VK_RETURN"),
             sc_key!("SC_NUM_ENTER").to_virtual_key().unwrap()
         );
-
-        assert_eq!(None, sc_key!("SC_F24").to_virtual_key());
     }
-
+    
+    #[test]
+    #[should_panic]
+    fn test_sc_to_virtual_key_fails() {
+        sc_key!("SC_F24").to_virtual_key().unwrap();
+    }
+    
     #[test]
     fn test_sc_display() {
         assert_eq!("SC_ENTER", format!("{}", sc_key!("SC_ENTER")));

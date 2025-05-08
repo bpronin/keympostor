@@ -13,12 +13,6 @@ struct VirtualKeyTransformMap {
 }
 
 impl VirtualKeyTransformMap {
-    fn new() -> Self {
-        Self {
-            map: [from_fn(|_| vec![]), from_fn(|_| vec![])],
-        }
-    }
-
     fn get_group(&self, key: &VirtualKey, transition: KeyTransition) -> &[KeyTransformRule] {
         &self.map[transition.is_up() as usize][key.value as usize]
     }
@@ -28,21 +22,20 @@ impl VirtualKeyTransformMap {
     }
 }
 
+impl Default for VirtualKeyTransformMap {
+    fn default() -> Self {
+        Self {
+            map: [from_fn(|_| vec![]), from_fn(|_| vec![])],
+        }
+    }
+}
+
 #[derive(Debug)]
 struct ScanCodeTransformMap {
     map: [[[Vec<KeyTransformRule>; MAX_VK_CODE]; 2]; 2],
 }
 
 impl ScanCodeTransformMap {
-    fn new() -> Self {
-        Self {
-            map: [
-                [from_fn(|_| vec![]), from_fn(|_| vec![])],
-                [from_fn(|_| vec![]), from_fn(|_| vec![])],
-            ],
-        }
-    }
-
     fn get_group(&self, key: &ScanCode, transition: KeyTransition) -> &[KeyTransformRule] {
         &self.map[transition.is_up() as usize][key.is_extended as usize][key.value as usize]
     }
@@ -58,22 +51,26 @@ impl ScanCodeTransformMap {
     }
 }
 
-#[derive(Debug)]
+impl Default for ScanCodeTransformMap {
+    fn default() -> Self {
+        Self {
+            map: [
+                [from_fn(|_| vec![]), from_fn(|_| vec![])],
+                [from_fn(|_| vec![]), from_fn(|_| vec![])],
+            ],
+        }
+    }
+}
+
+#[derive(Debug, Default)]
 pub struct KeyTransformMap {
     virtual_key_map: VirtualKeyTransformMap,
     scan_code_map: ScanCodeTransformMap,
 }
 
 impl KeyTransformMap {
-    pub(crate) fn new() -> Self {
-        Self {
-            virtual_key_map: VirtualKeyTransformMap::new(),
-            scan_code_map: ScanCodeTransformMap::new(),
-        }
-    }
-
     pub(crate) fn from_profile(profile: KeyTransformProfile) -> KeyTransformMap {
-        let mut this = Self::new();
+        let mut this = Self::default();
         for rule in profile.rules {
             this.put(rule)
         }
@@ -133,20 +130,19 @@ impl KeyTransformMap {
 mod tests {
     use crate::key::MAX_VK_CODE;
     use crate::key_action::KeyAction;
-    use crate::key_action::KeyActionSequence;
     use crate::key_event::KeyEvent;
     use crate::key_transform_map::KeyTransformMap;
     use crate::key_transform_rule::KeyTransformRule;
     use crate::keyboard_state::{KeyboardState, DOWN_STATE, UP_STATE};
-    use crate::{key_act, key_act_seq, key_event, key_rule};
+    use crate::{key_act, key_event, key_rule};
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        VK_A, VK_B, VK_CAPITAL, VK_CONTROL, VK_MENU, VK_SHIFT,
+        VK_A, VK_B, VK_CONTROL, VK_MENU, VK_SHIFT,
     };
     use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
 
     #[test]
     fn test_get_group() {
-        let mut map = KeyTransformMap::new();
+        let mut map = KeyTransformMap::default();
 
         map.put(key_rule!("VK_A↓ : VK_B↓"));
         map.put(key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"));
@@ -168,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_get() {
-        let mut map = KeyTransformMap::new();
+        let mut map = KeyTransformMap::default();
         map.put(key_rule!("VK_A↓ : VK_B↓"));
         map.put(key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"));
         map.put(key_rule!("VK_A↓ → VK_MENU↓ → VK_CONTROL↓ : VK_D↓"));
@@ -241,37 +237,4 @@ mod tests {
             map.get(&key_event!(VK_A.0, false), all_up).unwrap()
         );
     }
-
-    // #[test]
-    // fn test_get() {
-    //     let mut map = KeyTransformMap::new();
-    //     map.put(key_rule!(
-    //         "VK_CAPITAL↓ : VK_LWIN↓ → VK_SPACE↓ → VK_SPACE↑ → VK_LWIN↑"
-    //     ));
-    //     map.put(key_rule!("VK_CAPITAL↓ → VK_SHIFT↓ : VK_CAPITAL↓"));
-    // 
-    //     let all_up = || KeyboardState::new([UP_STATE; MAX_VK_CODE]);
-    // 
-    //     let shift_down = || {
-    //         let mut keys = [UP_STATE; MAX_VK_CODE];
-    //         keys[VK_SHIFT.0 as usize] = DOWN_STATE;
-    //         KeyboardState::new(keys)
-    //     };
-    // 
-    //     assert_eq!(
-    //         &key_act_seq!("VK_LWIN↓ → VK_SPACE↓ → VK_SPACE↑ → VK_LWIN↑"),
-    //         map.get(&key_event!(VK_CAPITAL.0, false), all_up)
-    //             .unwrap()
-    //             .target
-    //     );
-    // 
-    //     assert_eq!(
-    //         &key_act_seq!("VK_CAPITAL↓"),
-    //         map.get(&key_event!(VK_CAPITAL.0, false), shift_down)
-    //             .unwrap()
-    //             .target
-    //     );
-    // 
-    //     // todo!("Search for all posible KBDLLHOOKSTRUCT's")
-    // }
 }

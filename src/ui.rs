@@ -97,7 +97,7 @@ impl AppControl {
         let profile = KeyTransformProfile::load(&profile_path()).unwrap_or_else(|e| {
             ui_panic!("{}", e);
         });
-        self.keyboard_handler.set_profile(profile)
+        self.keyboard_handler.load_profile(profile)
     }
 
     pub fn get_icon(&self, icon_id: usize) -> nwg::Icon {
@@ -180,7 +180,6 @@ impl AppControl {
     }
 
     fn on_app_exit(&self) {
-        self.keyboard_handler.set_enabled(false);
         nwg::stop_thread_dispatch();
     }
 

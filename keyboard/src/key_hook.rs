@@ -5,105 +5,55 @@ use crate::keyboard_state::KeyboardState;
 use log::debug;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput};
+use windows::Win32::UI::Input::KeyboardAndMouse::SendInput;
 use windows::Win32::UI::WindowsAndMessaging::*;
 
-struct Statics {
-    transform_map: KeyTransformMap,
+thread_local! {
+    static INNER: RefCell<InnerKeyboardHandler> = RefCell::new(InnerKeyboardHandler::default());
+}
+
+#[derive(Default)]
+struct InnerKeyboardHandler {
     handle: Option<HHOOK>,
+    transform_map: KeyTransformMap,
     callback: Option<Box<dyn Fn(&KeyEvent)>>,
     silent_processing: bool,
 }
 
-thread_local! {
-    static STATICS: RefCell<Statics> = RefCell::new(Statics {
-        transform_map: KeyTransformMap::new(),
-        handle: None,
-        callback: None,
-        silent_processing: false,
-    });
-}
-
-#[derive(Debug, Default)]
-pub struct KeyboardHandler {}
-
-impl KeyboardHandler {
-    pub fn set_profile(&self, profile: KeyTransformProfile) {
-        STATICS.with_borrow_mut(|g| {
-            g.transform_map = KeyTransformMap::from_profile(profile);
-        });
+impl InnerKeyboardHandler {
+    fn load_profile(&mut self, profile: KeyTransformProfile) {
+        self.transform_map = KeyTransformMap::from_profile(profile);
     }
 
-    pub fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
-        STATICS.with_borrow_mut(|g| {
-            g.callback = callback;
-            if g.callback.is_some() {
-                debug!("Callback set");
-            } else {
-                debug!("Callback removed");
-            }
-        });
-    }
-
-    // pub(crate) fn set_callback<F>(&self, callback: Option<Box<F>>)
-    // where
-    //     F: Fn(&KeyboardEvent) + 'static,
-    // {
-    //     GLOBALS.with_borrow_mut(|g| {
-    //         g.callback = callback;
-    //         if g.callback.is_some() {
-    //             debug!("Callback set");
-    //         } else {
-    //             debug!("Callback removed");
-    //         }
-    //     });
-    // }
-
-    pub fn is_enabled(&self) -> bool {
-        STATICS.with_borrow(|g| g.handle.is_some())
-    }
-
-    pub fn set_enabled(&self, enabled: bool) {
-        if enabled {
-            self.install_hook()
+    fn set_callback(&mut self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
+        self.callback = callback;
+        if self.callback.is_some() {
+            debug!("Callback set");
         } else {
-            self.uninstall_hook()
+            debug!("Callback removed");
         }
     }
 
-    pub fn is_silent(&self) -> bool {
-        STATICS.with_borrow(|g| g.silent_processing)
-    }
-
-    pub fn set_silent(&self, silent: bool) {
-        STATICS.with_borrow_mut(|g| g.silent_processing = silent)
-    }
-
-    fn install_hook(&self) {
-        STATICS.with_borrow_mut(|g| {
-            g.handle = Some(
-                unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(Self::keyboard_proc), None, 0) }
-                    .expect("Failed to install keyboard hook"),
-            )
-        });
-
+    fn install_hook(&mut self) {
+        self.handle = Some(
+            unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(Self::keyboard_proc), None, 0) }
+                .expect("Failed to install keyboard hook"),
+        );
+            
         debug!("Keyboard hook installed");
     }
 
-    fn uninstall_hook(&self) {
-        STATICS.with_borrow_mut(|g| {
-            if let Some(hook_handle) = g.handle {
-                unsafe { UnhookWindowsHookEx(hook_handle) }
-                    .expect("Failed to uninstall keyboard hook");
-                g.handle = None;
+    fn uninstall_hook(&mut self) {
+        if let Some(handle) = self.handle {
+            unsafe { UnhookWindowsHookEx(handle) }.expect("Failed to uninstall keyboard hook");
+            self.handle = None;
 
-                debug!("Keyboard hook uninstalled");
-            }
-        });
+            debug!("Keyboard hook uninstalled");
+        }
     }
 
     extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-        STATICS.with_borrow(|g| {
+        INNER.with_borrow(|inner| {
             if code == HC_ACTION as i32 {
                 let mut event = KeyEvent::new(unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) });
 
@@ -111,32 +61,66 @@ impl KeyboardHandler {
 
                 if event.is_valid() {
                     if !event.is_private() {
-                        event.rule = g
-                            .transform_map
-                            .get(&event, || KeyboardState::capture())
+                        event.rule = inner.transform_map.get(&event, || KeyboardState::capture())
                     };
 
-                    if !g.silent_processing {
-                        if let Some(callback) = &g.callback {
+                    if !inner.silent_processing {
+                        if let Some(callback) = &inner.callback {
                             callback(&event);
                         }
                     }
 
-                    if let Some(r) = event.rule {
-                        let input = r.target.create_input();
+                    if let Some(rule) = event.rule {
+                        let input = rule.target.create_input();
                         unsafe { SendInput(&input, input.len() as i32) };
                         return LRESULT(1);
                     }
                 }
             }
 
-            unsafe { CallNextHookEx(g.handle, code, w_param, l_param) }
+            unsafe { CallNextHookEx(inner.handle, code, w_param, l_param) }
         })
     }
 }
 
-// todo: impl Drop for KeyboardHandler {
-//     fn drop(&mut self) {
-//         self.uninstall_hook()
-//     }
-// }
+impl Drop for InnerKeyboardHandler {
+    fn drop(&mut self) {
+        self.set_callback(None);
+        self.uninstall_hook();
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct KeyboardHandler {}
+
+impl KeyboardHandler {
+    pub fn load_profile(&self, profile: KeyTransformProfile) {
+        INNER.with_borrow_mut(|inner| inner.load_profile(profile));
+    }
+
+    pub fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
+        INNER.with_borrow_mut(|inner| inner.set_callback(callback));
+    }
+
+    pub fn is_enabled(&self) -> bool {
+        INNER.with_borrow(|inner| inner.handle.is_some())
+    }
+
+    pub fn set_enabled(&self, enabled: bool) {
+        INNER.with_borrow_mut(|inner| {
+            if enabled {
+                inner.install_hook()
+            } else {
+                inner.uninstall_hook()
+            }
+        })
+    }
+
+    pub fn is_silent(&self) -> bool {
+        INNER.with_borrow(|inner| inner.silent_processing)
+    }
+
+    pub fn set_silent(&self, silent: bool) {
+        INNER.with_borrow_mut(|inner| inner.silent_processing = silent)
+    }
+}
