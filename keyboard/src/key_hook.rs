@@ -5,7 +5,7 @@ use crate::keyboard_state::KeyboardState;
 use log::debug;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardState, SendInput};
+use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 struct Statics {
@@ -113,7 +113,7 @@ impl KeyboardHandler {
                     if !event.is_private() {
                         event.rule = g
                             .transform_map
-                            .get_rule(&event, || KeyboardState::capture())
+                            .get(&event, || KeyboardState::capture())
                     };
 
                     if !g.silent_processing {

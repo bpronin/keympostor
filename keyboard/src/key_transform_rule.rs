@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::str::FromStr;
-use windows::Win32::UI::Input::KeyboardAndMouse::INPUT;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformRule {
@@ -88,7 +87,6 @@ mod tests {
     use crate::key_action::KeyTransition::Down;
     use crate::key_action::{KeyAction, KeyActionSequence};
     use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
-    use std::fs;
     use KeyCode::VK;
 
     #[macro_export]

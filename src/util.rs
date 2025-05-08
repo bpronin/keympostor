@@ -25,25 +25,6 @@ macro_rules! ui_panic {
     }
 }
 
-#[macro_export]
-macro_rules! write_joined {
-    ($dst:expr, $src:expr, $separator:expr) => {{
-        let mut first = true;
-        for item in $src {
-            if !first {
-                write!($dst, $separator)?;
-            }
-            write!($dst, "{}", item)?;
-            first = false;
-        }
-        Ok(())
-    }};
-}
-
-pub(crate) fn slices_equal<T: PartialEq>(a: &[T], b: &[T]) -> bool {
-    a.len() == b.len() && a.len() == a.iter().zip(b.iter()).filter(|&(a, b)| a == b).count()
-}
-
 // pub(crate) fn play_sound(filename: &str) {
 //     let wide: Vec<u16> = OsStr::new(filename)
 //         .encode_wide()

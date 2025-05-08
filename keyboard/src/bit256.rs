@@ -4,6 +4,8 @@ use std::{fmt, u128};
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq)]
 pub struct Bit256([u128; 2]);
 
+#[allow(dead_code)]
+
 impl Bit256 {
     pub fn from_fn<F>(f: F) -> Self
     where
@@ -19,27 +21,27 @@ impl Bit256 {
         Self(inner)
     }
 
-    // /// Creates a Bit256 structure from a [bool; 256] array
-    // pub fn from_bools(bools: [bool; 256]) -> Self {
-    //     let mut inner = [0u128; 2];
-    //     for i in 0..256 {
-    //         if bools[i] {
-    //             let (chunk, bit) = (i / 128, i % 128);
-    //             inner[chunk] |= 1u128 << bit;
-    //         }
-    //     }
-    //     Self(inner)
-    // }
+    /// Creates a Bit256 structure from a [bool; 256] array
+    pub fn from_bools(bools: [bool; 256]) -> Self {
+        let mut inner = [0u128; 2];
+        for i in 0..256 {
+            if bools[i] {
+                let (chunk, bit) = (i / 128, i % 128);
+                inner[chunk] |= 1u128 << bit;
+            }
+        }
+        Self(inner)
+    }
 
-    // /// Converts the Bit256 structure to a [bool; 256] array
-    // pub fn to_bools(&self) -> [bool; 256] {
-    //     let mut bools = [false; 256];
-    //     for i in 0..256 {
-    //         let (chunk, bit) = (i / 128, i % 128);
-    //         bools[i] = (self.0[chunk] >> bit) & 1 != 0;
-    //     }
-    //     bools
-    // }
+    /// Converts the Bit256 structure to a [bool; 256] array
+    pub fn to_bools(&self) -> [bool; 256] {
+        let mut bools = [false; 256];
+        for i in 0..256 {
+            let (chunk, bit) = (i / 128, i % 128);
+            bools[i] = (self.0[chunk] >> bit) & 1 != 0;
+        }
+        bools
+    }
 
     /// Sets the bit at the given index to the specified value (true/false)
     pub fn set(&mut self, index: usize, value: bool) {

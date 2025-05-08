@@ -169,13 +169,13 @@ pub enum KeyCode {
 impl KeyCode {}
 
 impl KeyCode {
-    pub(crate) fn is_scan_code(&self) -> bool {
-        matches!(*self, SC(_))
-    }
+    // pub(crate) fn is_scan_code(&self) -> bool {
+    //     matches!(*self, SC(_))
+    // }
 
-    pub(crate) fn is_virtual_key(&self) -> bool {
-        matches!(*self, VK(_))
-    }
+    // pub(crate) fn is_virtual_key(&self) -> bool {
+    //     matches!(*self, VK(_))
+    // }
 
     pub(crate) fn as_virtual_key(&self) -> Option<&'static VirtualKey> {
         match self {
@@ -855,19 +855,19 @@ mod tests {
     #[test]
     fn test_key_code_parse() {
         let actual = KeyCode::from_str("VK_RETURN").unwrap();
-        assert!(actual.is_virtual_key());
+        assert!(matches!(actual, VK(_)));
         if let VK(vk) = actual {
             assert_eq!("VK_RETURN", vk.name);
         }
 
         let actual = KeyCode::from_str("SC_ENTER").unwrap();
-        assert!(actual.is_scan_code());
+        assert!(matches!(actual, SC(_)));
         if let SC(sc) = actual {
             assert_eq!("SC_ENTER", sc.name);
         }
 
         let actual = KeyCode::from_str("`").unwrap();
-        assert!(actual.is_scan_code());
+        assert!(matches!(actual, SC(_)));
         if let SC(sc) = actual {
             assert_eq!("SC_BACKTICK", sc.name);
         }
