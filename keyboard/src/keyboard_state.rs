@@ -1,11 +1,13 @@
-use crate::key::MAX_VK_CODE;
+use crate::key::{VirtualKey, MAX_VK_CODE};
 use crate::key_action::KeyAction;
 use crate::key_action::KeyTransition;
+use std::fmt;
+use std::fmt::{Display, Formatter};
 use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardState;
 use KeyTransition::{Down, Up};
 
-pub(crate) const UP_STATE: u8 = 0x80;
-pub(crate) const DOWN_STATE: u8 = 0;
+pub(crate) const UP_STATE: u8 = 0;
+pub(crate) const DOWN_STATE: u8 = 1;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct KeyboardState {
@@ -36,8 +38,32 @@ impl KeyboardState {
         Self::new(keys)
     }
 
+    // pub(crate) fn get_virtual_keys(&self) -> Vec<&'static VirtualKey> {
+    //     let mut keys = vec![];
+    //     for vk_code in 0..MAX_VK_CODE {
+    //         if &self.keys[vk_code] & DOWN_STATE != 0 {
+    //             keys.push(VirtualKey::from_code(vk_code as u8).unwrap())
+    //         }
+    //     }
+    //     keys
+    // }
+
     pub fn has_state(&self, actions: &[KeyAction]) -> bool {
         self == &Self::from_actions(actions)
+    }
+}
+
+impl Display for KeyboardState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        for vk_code in 0..MAX_VK_CODE {
+            // if &self.keys[vk_code] & DOWN_STATE != 0 {
+            if self.keys[vk_code] == DOWN_STATE {
+                let vk = VirtualKey::from_code(vk_code as u8).unwrap();
+                write!(f, "{}; ", vk)?;
+            }
+        }
+
+        Ok(())
     }
 }
 
@@ -100,5 +126,16 @@ mod tests {
             key_act!("VK_B ↓ "),
             key_act!("VK_C ↑ "),
         ]));
+    }
+
+    #[test]
+    fn test_keyboard_state_to_actions() {
+        let mut keys = [UP_STATE; MAX_VK_CODE];
+        keys[VK_RETURN.0 as usize] = DOWN_STATE;
+        keys[VK_SHIFT.0 as usize] = DOWN_STATE;
+        keys[VK_MENU.0 as usize] = UP_STATE;
+        let state = KeyboardState::new(keys);
+
+        println!("{state}");
     }
 }

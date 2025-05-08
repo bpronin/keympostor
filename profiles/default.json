@@ -1,99 +1,61 @@
 {
-  "name": "default",
   "title": "Default",
-  "transform_rules": [
+  "rules": [
     {
       "source": {
-        "key": "SC_CAPS_LOCK",
-        "transition": "Down",
-        "modifiers": []
+        "actions": [
+          {
+            "key": "VK_CAPITAL",
+            "transition": "Down"
+          }
+        ]
       },
-      "target": [
-        {
-          "key": "SC_LEFT_WINDOWS",
-          "transition": "Down",
-          "modifiers": []
-        },
-        {
-          "key": "SC_SPACE",
-          "transition": "Down",
-          "modifiers": []
-        },
-        {
-          "key": "SC_SPACE",
-          "transition": "Up",
-          "modifiers": []
-        },
-        {
-          "key": "SC_LEFT_WINDOWS",
-          "transition": "Up",
-          "modifiers": []
-        }
-      ]
+      "target": {
+        "actions": [
+          {
+            "key": "VK_LWIN",
+            "transition": "Down"
+          },
+          {
+            "key": "VK_SPACE",
+            "transition": "Down"
+          },
+          {
+            "key": "VK_SPACE",
+            "transition": "Up"
+          },
+          {
+            "key": "VK_LWIN",
+            "transition": "Up"
+          }
+        ]
+      }
     },
     {
       "source": {
-        "key": "VK_F2",
-        "transition": "Down"
+        "actions": [
+          {
+            "key": "VK_CAPITAL",
+            "transition": "Down"
+          },
+          {
+            "key": "VK_SHIFT",
+            "transition": "Down"
+          }
+        ]
       },
-      "target": [
-        {
-          "key": "VK_CONTROL",
-          "transition": "Down"
-        },
-        {
-          "key": "VK_C",
-          "transition": "Down"
-        }
-      ]
-    },
-    {
-      "source": {
-        "key": "VK_F2",
-        "transition": "Up"
-      },
-      "target": [
-        {
-          "key": "VK_CONTROL",
-          "transition": "Up"
-        },
-        {
-          "key": "VK_C",
-          "transition": "Up"
-        }
-      ]
-    },
-    {
-      "source": {
-        "key": "VK_F1",
-        "transition": "Down"
-      },
-      "target": [
-        {
-          "key": "VK_CONTROL",
-          "transition": "Down"
-        },
-        {
-          "key": "VK_V",
-          "transition": "Down"
-        }
-      ]
-    },
-    {
-      "source": {
-        "key": "VK_F1",
-        "transition": "Up"
-      },
-      "target": [
-        {
-          "key": "VK_CONTROL",
-          "transition": "Up"
-        },
-        {
-          "key": "VK_V",
-          "transition": "Up"
-        }
-      ]
+      "target": {
+        "actions": [
+          {
+            "key": "VK_CAPITAL",
+            "transition": "Down"
+          },
+          {
+            "key": "VK_CAPITAL",
+            "transition": "Up"
+          }
+        ]
+      }
     }
   ]
 }

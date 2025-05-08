@@ -2,17 +2,32 @@ use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
 use crate::key_action::KeyAction;
 use crate::key_action::KeyTransition;
 use log::warn;
+use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
 use KeyCode::{SC, VK};
+use crate::key_transform_rule::KeyTransformRule;
+
+/// A marker to detect self generated keyboard events.
+/// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
+/// Content does not matter.
+pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 
 #[derive(Debug, PartialEq)]
-pub struct KeyEvent {
-    pub kb: KBDLLHOOKSTRUCT,
+pub struct KeyEvent<'a> {
+    kb: KBDLLHOOKSTRUCT,
+    pub rule: Option<&'a KeyTransformRule>,
 }
 
-impl KeyEvent {
+impl KeyEvent<'_> {
+    pub(crate) fn new(kb: KBDLLHOOKSTRUCT) -> Self {
+        Self {
+            kb,
+            rule: None,
+        }
+    }
+
     pub fn time(&self) -> u32 {
         self.kb.time
     }
@@ -51,12 +66,8 @@ impl KeyEvent {
         self.kb.flags.contains(LLKHF_INJECTED)
     }
 
-    pub fn flags(&self) -> u32 {
-        self.kb.flags.0
-    }
-
     pub fn is_private(&self) -> bool {
-        self.is_injected() && (self.kb.dwExtraInfo as *const u8 == SELF_KEY_EVENT_MARKER.as_ptr())
+        self.is_injected() && (self.kb.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr())
     }
 
     pub fn is_valid(&self) -> bool {
@@ -73,12 +84,30 @@ impl KeyEvent {
             true
         }
     }
+
+    pub fn fmt_kb(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "T:{:9} | VK: 0x{:02X} | SC: 0x{:02X} | F: 0b{:08b} | EX: 0x{:X}",
+            self.kb.time, self.kb.vkCode, self.kb.scanCode, self.kb.flags.0, self.kb.dwExtraInfo,
+        )
+    }
 }
 
-/// A marker to detect self generated keyboard events.
-/// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
-/// Content does not matter.
-pub static SELF_KEY_EVENT_MARKER: &str = "self";
+impl Display for KeyEvent<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "T:{:9} | {:22} | {:16} | {:1} | {:3} | {:3}",
+            self.time(),
+            self.virtual_key(),
+            self.scan_code(),
+            self.transition(),
+            if self.is_injected() { "INJ" } else { "" },
+            if self.is_private() { "PRV" } else { "" },
+        )
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -86,7 +115,7 @@ mod tests {
     use crate::key::{ScanCode, VirtualKey};
     use crate::key_action::KeyAction;
     use crate::key_action::KeyTransition::Up;
-    use crate::key_event::{KeyEvent, SELF_KEY_EVENT_MARKER};
+    use crate::key_event::{KeyEvent, SELF_EVENT_MARKER};
     use windows::Win32::UI::WindowsAndMessaging::{
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
@@ -94,13 +123,13 @@ mod tests {
     #[macro_export]
     macro_rules! key_event {
         ($vk_code:expr, $is_up:expr) => {
-            KeyEvent {
-                kb: KBDLLHOOKSTRUCT {
+            KeyEvent::new( 
+                KBDLLHOOKSTRUCT {
                     vkCode: $vk_code as u32,
                     flags: if $is_up { LLKHF_UP } else { Default::default() },
                     ..Default::default()
-                },
-            }
+                }
+            )
         };
     }
 
@@ -111,16 +140,15 @@ mod tests {
             scanCode: 0x1C,
             flags: LLKHF_UP | LLKHF_INJECTED | LLKHF_EXTENDED,
             time: 1000,
-            dwExtraInfo: SELF_KEY_EVENT_MARKER.as_ptr() as usize,
+            dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
         };
 
-        let actual = KeyEvent { kb };
+        let actual = KeyEvent::new(kb);
 
+        assert_eq!(1000, actual.time());
         assert_eq!("SC_NUM_ENTER", actual.scan_code().name);
         assert_eq!("VK_RETURN", actual.virtual_key().name);
-        assert_eq!(1000, actual.time());
         assert_eq!(Up, actual.transition());
-        assert_eq!(145, actual.flags());
         assert!(actual.is_private());
         assert!(actual.is_injected());
         assert!(actual.is_valid());
@@ -133,17 +161,17 @@ mod tests {
             scanCode: 0x1C,
             flags: LLKHF_UP | LLKHF_INJECTED | LLKHF_EXTENDED,
             time: 1000,
-            dwExtraInfo: SELF_KEY_EVENT_MARKER.as_ptr() as usize,
+            dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
         };
 
-        let actual = KeyEvent { kb }.as_virtual_key_action();
+        let actual = KeyEvent::new(kb).as_virtual_key_action();
         let expected = KeyAction {
             key: VK(VirtualKey::from_code(0x0D).unwrap()),
             transition: Up,
         };
         assert_eq!(expected, actual);
 
-        let actual = KeyEvent { kb }.as_scan_code_action();
+        let actual = KeyEvent::new(kb).as_scan_code_action();
         let expected = KeyAction {
             key: SC(ScanCode::from_code(0x1C, true).unwrap()),
             transition: Up,

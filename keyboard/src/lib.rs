@@ -1,10 +1,11 @@
 mod bit256;
 mod key;
 mod key_action;
-mod key_event;
+pub mod key_event;
+pub mod key_hook;
 mod key_transform_map;
+pub mod key_transform_rule;
 mod keyboard_state;
-mod key_transform_rule;
 mod util;
 
 #[cfg(test)]

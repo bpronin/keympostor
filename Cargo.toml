@@ -7,6 +7,7 @@ edition = "2024"
 embed-resource = "3.0.2"
 
 [dependencies]
+keyboard = { path = "./keyboard" }
 windows = { version = "0.61.1", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_Media", "Win32_Media_Audio"] }
 native-windows-gui = { version = "1.0.13" }
 serde_json = { version = "1.0.140" }

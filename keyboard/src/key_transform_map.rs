@@ -1,9 +1,10 @@
 use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_VK_CODE};
 use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
 use crate::key_event::KeyEvent;
-use crate::key_transform_rule::KeyTransformRule;
+use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
 use crate::keyboard_state::KeyboardState;
 use std::array::from_fn;
+use log::debug;
 use KeyCode::{SC, VK};
 
 #[derive(Debug)]
@@ -58,19 +59,27 @@ impl ScanCodeTransformMap {
 }
 
 #[derive(Debug)]
-struct KeyTransformMap {
+pub struct KeyTransformMap {
     virtual_key_map: VirtualKeyTransformMap,
     scan_code_map: ScanCodeTransformMap,
 }
 
 impl KeyTransformMap {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             virtual_key_map: VirtualKeyTransformMap::new(),
             scan_code_map: ScanCodeTransformMap::new(),
         }
     }
-
+    
+    pub(crate) fn from_profile(profile: KeyTransformProfile) -> KeyTransformMap {
+        let mut this = Self::new();
+        for rule in profile.rules {
+            this.put(rule)
+        }
+        this
+    }
+    
     fn get_group(&self, trigger: &KeyAction) -> &[KeyTransformRule] {
         match trigger.key {
             VK(vk) => self.virtual_key_map.get_group(vk, trigger.transition),
@@ -78,7 +87,7 @@ impl KeyTransformMap {
         }
     }
 
-    fn get_rule(
+    pub(crate) fn get_rule(
         &self,
         event: &KeyEvent,
         get_kbd_state: fn() -> KeyboardState,
@@ -89,7 +98,9 @@ impl KeyTransformMap {
         }
 
         for rule in rules {
-            if get_kbd_state().has_state(&rule.modifiers()) {
+            let state = get_kbd_state();
+            debug!("{state}");
+            if state.has_state(&rule.modifiers()) {
                 return Some(rule);
             }
         }
@@ -97,7 +108,7 @@ impl KeyTransformMap {
         None
     }
 
-    fn get(
+    pub(crate) fn get(
         &self,
         event: &KeyEvent,
         get_kbd_state: fn() -> KeyboardState,

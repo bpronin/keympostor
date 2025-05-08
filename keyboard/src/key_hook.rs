@@ -1,20 +1,17 @@
-use crate::key_event::KeyboardEvent;
-use crate::transform::KeyTransformMap;
+use crate::key_event::KeyEvent;
+use crate::key_transform_map::KeyTransformMap;
+use crate::key_transform_rule::KeyTransformProfile;
+use crate::keyboard_state::KeyboardState;
 use log::debug;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardState;
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardState, SendInput};
 use windows::Win32::UI::WindowsAndMessaging::*;
-
-/// A marker to detect self generated keyboard events.
-/// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
-/// Content does not matter.
-pub static SELF_MARKER: &str = "self";
 
 struct Statics {
     transform_map: KeyTransformMap,
     handle: Option<HHOOK>,
-    callback: Option<Box<dyn Fn(&KeyboardEvent)>>,
+    callback: Option<Box<dyn Fn(&KeyEvent)>>,
     silent_processing: bool,
 }
 
@@ -28,14 +25,16 @@ thread_local! {
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct KeyboardHandler {}
+pub struct KeyboardHandler {}
 
 impl KeyboardHandler {
-    pub(crate) fn set_rules(&self, transform_map: KeyTransformMap) {
-        STATICS.with_borrow_mut(|g| g.transform_map = transform_map);
+    pub fn set_profile(&self, profile: KeyTransformProfile) {
+        STATICS.with_borrow_mut(|g| {
+            g.transform_map = KeyTransformMap::from_profile(profile);
+        });
     }
 
-    pub(crate) fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyboardEvent)>>) {
+    pub fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
         STATICS.with_borrow_mut(|g| {
             g.callback = callback;
             if g.callback.is_some() {
@@ -60,11 +59,11 @@ impl KeyboardHandler {
     //     });
     // }
 
-    pub(crate) fn is_enabled(&self) -> bool {
+    pub fn is_enabled(&self) -> bool {
         STATICS.with_borrow(|g| g.handle.is_some())
     }
 
-    pub(crate) fn set_enabled(&self, enabled: bool) {
+    pub fn set_enabled(&self, enabled: bool) {
         if enabled {
             self.install_hook()
         } else {
@@ -72,11 +71,11 @@ impl KeyboardHandler {
         }
     }
 
-    pub(crate) fn is_silent(&self) -> bool {
+    pub fn is_silent(&self) -> bool {
         STATICS.with_borrow(|g| g.silent_processing)
     }
 
-    pub(crate) fn set_silent(&self, silent: bool) {
+    pub fn set_silent(&self, silent: bool) {
         STATICS.with_borrow_mut(|g| g.silent_processing = silent)
     }
 
@@ -106,32 +105,26 @@ impl KeyboardHandler {
     extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
         STATICS.with_borrow(|g| {
             if code == HC_ACTION as i32 {
-                let kb = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
-                
-                let mut kb_state = [0u8; 256];
-                unsafe { GetKeyboardState(&mut kb_state) }.unwrap();
-                
-                let mut event = KeyboardEvent::from_kb(kb, kb_state);
+                let mut event = KeyEvent::new(unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) });
 
                 debug!("{}", event);
 
                 if event.is_valid() {
-                    let target = if !event.is_private() {
-                        event.is_trigger = true;
-                        g.transform_map.get(&event.action)
-                    } else {
-                        event.is_trigger = false;
-                        None
+                    if !event.is_private() {
+                        event.rule = g
+                            .transform_map
+                            .get_rule(&event, || KeyboardState::capture())
                     };
 
                     if !g.silent_processing {
                         if let Some(callback) = &g.callback {
-                            callback(&event)
+                            callback(&event);
                         }
                     }
 
-                    if let Some(t) = target {
-                        t.send();
+                    if let Some(r) = event.rule {
+                        let input = r.target.create_input();
+                        unsafe { SendInput(&input, input.len() as i32) };
                         return LRESULT(1);
                     }
                 }

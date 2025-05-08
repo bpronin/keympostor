@@ -1,17 +1,16 @@
 use super::*;
-use crate::key_code::KeyCode;
-use crate::key_hook::KeyboardHandler;
-use crate::profile::Profile;
 use crate::res::{Resources, RESOURCE_STRINGS};
 use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
 use crate::settings::AppSettings;
-use crate::transform::KeyTransformMap;
+use keyboard::key_event::KeyEvent;
+use keyboard::key_hook::KeyboardHandler;
+use keyboard::key_transform_rule::KeyTransformProfile;
 use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
+use std::env;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::key_event::KeyboardEvent;
 
 thread_local! {
     static APP: RefCell<AppUi> = RefCell::new(
@@ -95,14 +94,10 @@ impl AppControl {
     }
 
     fn read_profile(&self) {
-        let profile = Profile::load().unwrap_or_else(|e| {
+        let profile = KeyTransformProfile::load(&profile_path()).unwrap_or_else(|e| {
             ui_panic!("{}", e);
         });
-        let rules = KeyTransformMap::from_rules(profile.transform_rules).unwrap_or_else(|e| {
-            ui_panic!("{}", e);
-        });
-
-        self.keyboard_handler.set_rules(rules)
+        self.keyboard_handler.set_profile(profile)
     }
 
     pub fn get_icon(&self, icon_id: usize) -> nwg::Icon {
@@ -134,8 +129,7 @@ impl AppControl {
         #[cfg(feature = "dev")]
         {
             self.log_view.appendln("--- Debug UI");
-            self.log_view
-                .appendln(&format!("--- {}", &Profile::file_path()));
+            self.log_view.appendln(&format!("--- {}", &profile_path()));
         }
 
         nwg::dispatch_thread_events();
@@ -212,21 +206,18 @@ impl AppControl {
         self.log_view.clear();
     }
 
-    fn on_log_view_update(&self, event: &KeyboardEvent) {
-        let action = event.action;
-        let scancode = action.key.scancode.unwrap();
-        let virtual_key = action.key.virtual_key.unwrap();
+    fn on_log_view_update(&self, event: &KeyEvent) {
+        let scancode = event.scan_code();
+        let virtual_key = event.virtual_key();
         let line = &format!(
-            "{}{}{} T: {} | {:20} [{}] | {:20} [{}] | {}",
-            if event.is_trigger { "!" } else { " " },
-            if event.is_injected() { ">" } else { " " },
-            if event.is_private() { "X" } else { " " },
+            "{:1}{:1}{:1} T: {:9} | {:22} | {:16} | {}",
+            if event.rule.is_some() { "!" } else { "" },
+            if event.is_injected() { ">" } else { "" },
+            if event.is_private() { "X" } else { "" },
             event.time(),
-            scancode.name(),
-            scancode,
-            virtual_key.name(),
             virtual_key,
-            action.transition
+            scancode,
+            event.transition()
         );
 
         self.log_view.appendln(line);
@@ -462,9 +453,15 @@ impl Deref for AppUi {
     }
 }
 
+pub(crate) fn profile_path() -> String {
+    let mut args = env::args();
+    args.next(); /* executable name */
+    args.next().unwrap_or("profiles/default.json".to_string())
+}
+
 // todo: try to get rid of it
-fn on_key_event(event: &KeyboardEvent) {
-    APP.with_borrow(|app| app.on_log_view_update(event))
+fn on_key_event(event: &KeyEvent) {
+    APP.with_borrow(|app| app.on_log_view_update(event));
 }
 
 pub fn run_app() {

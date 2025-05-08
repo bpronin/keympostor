@@ -128,7 +128,7 @@ impl ScanCode {
         Self::from_code_name(st).or_else(|_| Self::from_name(st).or_else(|_| Self::from_symbol(st)))
     }
 
-    pub(crate) fn ext_value(&self) -> u16 {
+    pub fn ext_value(&self) -> u16 {
         if self.is_extended {
             self.value as u16 | 0xE0 << 8
         } else {

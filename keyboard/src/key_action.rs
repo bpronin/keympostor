@@ -1,6 +1,6 @@
 use crate::key::{KeyCode, ScanCode, VirtualKey};
 use crate::key_action::KeyTransition::{Down, Up};
-use crate::key_event::SELF_KEY_EVENT_MARKER;
+use crate::key_event::SELF_EVENT_MARKER;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
@@ -9,6 +9,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
+use KeyCode::{SC, VK};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum KeyTransition {
@@ -74,8 +75,8 @@ pub struct KeyAction {
 impl KeyAction {
     fn create_input(&self) -> INPUT {
         match self.key {
-            KeyCode::VK(vk) => self.create_virtual_key_input(*vk),
-            KeyCode::SC(sc) => self.create_scancode_input(*sc),
+            VK(vk) => self.create_virtual_key_input(*vk),
+            SC(sc) => self.create_scancode_input(*sc),
         }
     }
 
@@ -90,7 +91,7 @@ impl KeyAction {
                 ki: KEYBDINPUT {
                     wVk: VIRTUAL_KEY(virtual_key.value as u16),
                     dwFlags: flags,
-                    dwExtraInfo: SELF_KEY_EVENT_MARKER.as_ptr() as usize,
+                    dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
                     ..Default::default()
                 },
             },
@@ -111,7 +112,7 @@ impl KeyAction {
                 ki: KEYBDINPUT {
                     wScan: scan_code.ext_value(),
                     dwFlags: flags,
-                    dwExtraInfo: SELF_KEY_EVENT_MARKER.as_ptr() as usize,
+                    dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
                     ..Default::default()
                 },
             },
@@ -150,7 +151,7 @@ pub struct KeyActionSequence {
 }
 
 impl KeyActionSequence {
-    fn create_input(&self) -> Vec<INPUT> {
+    pub(crate) fn create_input(&self) -> Vec<INPUT> {
         self.actions.iter().map(|a| a.create_input()).collect()
     }
 }

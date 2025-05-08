@@ -2,7 +2,9 @@ use crate::key_action::{KeyAction, KeyActionSequence};
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
+use std::fs;
 use std::str::FromStr;
+use windows::Win32::UI::Input::KeyboardAndMouse::INPUT;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformRule {
@@ -42,6 +44,15 @@ impl Display for KeyTransformRule {
 pub struct KeyTransformProfile {
     pub title: String,
     pub rules: Vec<KeyTransformRule>,
+}
+
+impl KeyTransformProfile {
+    pub fn load(path: &str) -> Result<Self, String> {
+        let json = fs::read_to_string(&path)
+            .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?;
+
+        Ok(serde_json::from_str(&json).map_err(|e| format!("Unable to parse {}.\n{}", path, e))?)
+    }
 }
 
 impl Display for KeyTransformProfile {
@@ -104,12 +115,9 @@ mod tests {
     fn test_key_transform_rule_modifiers() {
         let actual = key_rule!("VK_RETURN↓: SC_ENTER↓");
         assert!(actual.modifiers().is_empty());
-        
+
         let actual = key_rule!("VK_RETURN↓ → VK_CONTROL↓ → VK_SHIFT↓ : SC_ENTER↓");
-        let expected = [
-            key_act!("VK_CONTROL↓"),
-            key_act!("VK_SHIFT↓")
-        ];
+        let expected = [key_act!("VK_CONTROL↓"), key_act!("VK_SHIFT↓")];
         assert_eq!(expected, actual.modifiers());
     }
 
@@ -269,9 +277,7 @@ mod tests {
 
     #[test]
     fn test_key_transform_rules_serialize() {
-        let json = fs::read_to_string("../test/profiles/test.json").unwrap();
-        
-        let actual: KeyTransformProfile = serde_json::from_str(&json).unwrap();
+        let actual =  KeyTransformProfile::load("../test/profiles/test.json").unwrap();
 
         let expected = key_profile!(
             "
