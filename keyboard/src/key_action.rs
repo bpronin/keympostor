@@ -1,15 +1,16 @@
+use std::array::from_fn;
 use crate::key::{KeyCode, ScanCode, VirtualKey};
 use crate::key_action::KeyTransition::{Down, Up};
 use crate::key_event::SELF_EVENT_MARKER;
 use crate::write_joined;
+use KeyCode::{SC, VK};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
+    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
-use KeyCode::{SC, VK};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum KeyTransition {
@@ -68,19 +69,30 @@ impl FromStr for KeyTransition {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyAction {
-    pub key: KeyCode,
+    pub(crate) keys: Vec<KeyCode>,
     pub transition: KeyTransition,
 }
 
 impl KeyAction {
-    fn create_input(&self) -> INPUT {
-        match self.key {
-            VK(vk) => self.create_virtual_key_input(*vk),
-            SC(sc) => self.create_scancode_input(*sc),
-        }
+    pub fn key(&self) -> &KeyCode {
+        &self.keys[0]
     }
 
-    fn create_virtual_key_input(&self, virtual_key: VirtualKey) -> INPUT {
+    pub fn modifiers(&self) -> &[KeyCode] {
+        &self.keys[1..]
+    }
+
+    fn create_input(&self) -> Vec<INPUT> {
+        self.keys
+            .iter()
+            .map(|key| match key {
+                VK(vk) => self.create_virtual_key_input(vk),
+                SC(sc) => self.create_scancode_input(sc),
+            })
+            .collect()
+    }
+
+    fn create_virtual_key_input(&self, virtual_key: &VirtualKey) -> INPUT {
         let mut flags = KEYBD_EVENT_FLAGS::default();
         if self.transition.is_up() {
             flags |= KEYEVENTF_KEYUP
@@ -98,7 +110,7 @@ impl KeyAction {
         }
     }
 
-    fn create_scancode_input(&self, scan_code: ScanCode) -> INPUT {
+    fn create_scancode_input(&self, scan_code: &ScanCode) -> INPUT {
         let mut flags = KEYEVENTF_SCANCODE;
         if scan_code.is_extended {
             flags |= KEYEVENTF_EXTENDEDKEY
@@ -122,7 +134,8 @@ impl KeyAction {
 
 impl Display for KeyAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.key, self.transition)
+        write_joined!(f, &self.keys, " + ")?;
+        write!(f, "{}", self.transition)
     }
 }
 
@@ -135,11 +148,13 @@ impl FromStr for KeyAction {
             .chars()
             .last()
             .expect(&format!("Error parsing key action. String is empty. `{s}`"));
-        let key = st
+        let keys = st
             .strip_suffix(suf)
-            .expect(&format!("Invalid key action suffix: `{suf}`."));
+            .expect(&format!("Invalid key action suffix: `{suf}`."))
+            .split('+');
+
         Ok(Self {
-            key: key.parse()?,
+            keys: keys.map(str::parse).collect::<Result<_, _>>()?,
             transition: suf.to_string().parse()?,
         })
     }
@@ -152,7 +167,7 @@ pub struct KeyActionSequence {
 
 impl KeyActionSequence {
     pub(crate) fn create_input(&self) -> Vec<INPUT> {
-        self.actions.iter().map(|a| a.create_input()).collect()
+        self.actions.iter().map(|a| a.create_input()).flatten().collect()
     }
 }
 
@@ -182,13 +197,13 @@ impl FromStr for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
-    use crate::assert_not;
+    use crate::{assert_not, key};
     use crate::key::KeyCode::SC;
     use crate::key::{KeyCode, ScanCode, VirtualKey};
     use crate::key_action::KeyTransition::{Down, Up};
     use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
     use KeyCode::VK;
+    use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
 
     #[macro_export]
     macro_rules! key_act {
@@ -231,7 +246,7 @@ mod tests {
     fn test_key_transition_parse_fails_illegal() {
         assert_eq!(Down, "BANANA".parse().unwrap());
     }
-    
+
     #[test]
     #[should_panic]
     fn test_key_transition_parse_fails_empty() {
@@ -247,10 +262,10 @@ mod tests {
     #[test]
     fn test_key_transition_serialize() {
         let source = Down;
-        
+
         let json = serde_json::to_string_pretty(&source).unwrap();
         let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
-        
+
         assert_eq!(source, actual);
 
         let source = Up;
@@ -265,13 +280,13 @@ mod tests {
     #[test]
     fn test_key_action_display() {
         let actual = KeyAction {
-            key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
+            keys: vec![key!("VK_RETURN")],
             transition: Down,
         };
         assert_eq!("VK_RETURN↓", format!("{}", actual));
 
         let actual = KeyAction {
-            key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
+            keys: vec![key!("SC_ENTER")],
             transition: Up,
         };
         assert_eq!("SC_ENTER↑", format!("{}", actual));
@@ -280,7 +295,7 @@ mod tests {
     #[test]
     fn test_key_action_serialize() {
         let source = KeyAction {
-            key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
+            keys: vec![key!("VK_RETURN")],
             transition: Down,
         };
         let json = serde_json::to_string_pretty(&source).unwrap();
@@ -311,14 +326,15 @@ mod tests {
     #[test]
     fn test_key_action_sequence_create_input() {
         let source = key_act_seq!("VK_RETURN↓ → SC_NUM_ENTER↑");
-        
+
         let input = source.create_input();
 
         assert_eq!(2, input.len());
 
-        let VK(vk) = source.actions[0].key else {
+        let VK(vk) = source.actions[0].keys[0] else {
             panic!("Not a VK")
         };
+        
         assert_eq!(vk.value, unsafe { input[0].Anonymous.ki.wVk.0 } as u8);
         assert_not!(unsafe {
             input[0]
@@ -329,7 +345,7 @@ mod tests {
         });
         assert!(!unsafe { input[0].Anonymous.ki.dwFlags.contains(KEYEVENTF_KEYUP) });
 
-        let SC(sc) = source.actions[1].key else {
+        let SC(sc) = source.actions[1].keys[0] else {
             panic!("Not a SC")
         };
         assert_eq!(sc.value, unsafe { input[1].Anonymous.ki.wScan } as u8);

@@ -46,14 +46,14 @@ impl KeyEvent<'_> {
 
     pub fn as_virtual_key_action(&self) -> KeyAction {
         KeyAction {
-            key: VK(self.virtual_key()),
+            keys: vec![VK(self.virtual_key())],
             transition: self.transition(),
         }
     }
 
     pub fn as_scan_code_action(&self) -> KeyAction {
         KeyAction {
-            key: SC(self.scan_code()),
+            keys: vec![SC(self.scan_code())],
             transition: self.transition(),
         }
     }
@@ -166,14 +166,14 @@ mod tests {
 
         let actual = KeyEvent::new(kb).as_virtual_key_action();
         let expected = KeyAction {
-            key: VK(VirtualKey::from_code(0x0D).unwrap()),
+            keys: vec![VK(VirtualKey::from_code(0x0D).unwrap())],
             transition: Up,
         };
         assert_eq!(expected, actual);
 
         let actual = KeyEvent::new(kb).as_scan_code_action();
         let expected = KeyAction {
-            key: SC(ScanCode::from_code(0x1C, true).unwrap()),
+            keys: vec![SC(ScanCode::from_code(0x1C, true).unwrap())],
             transition: Up,
         };
         assert_eq!(expected, actual);

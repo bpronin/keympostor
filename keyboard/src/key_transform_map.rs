@@ -78,7 +78,7 @@ impl KeyTransformMap {
     }
 
     fn get_group(&self, trigger: &KeyAction) -> &[KeyTransformRule] {
-        match trigger.key {
+        match trigger.key() {
             VK(vk) => self.virtual_key_map.get_group(vk, trigger.transition),
             SC(sc) => self.scan_code_map.get_group(sc, trigger.transition),
         }
@@ -97,7 +97,7 @@ impl KeyTransformMap {
         for rule in rules {
             let state = get_kbd_state();
             debug!("{state}");
-            if state.has_state(&rule.modifiers()) {
+            if state.all_down(rule.source.modifiers()) {
                 return Some(rule);
             }
         }
@@ -118,8 +118,8 @@ impl KeyTransformMap {
     // }
 
     fn put(&mut self, rule: KeyTransformRule) {
-        let trigger = rule.trigger();
-        match trigger.key {
+        let trigger = &rule.source;
+        match trigger.key() {
             VK(vk) => self.virtual_key_map.put(vk, trigger.transition, rule),
             SC(sc) => self.scan_code_map.put(sc, trigger.transition, rule),
         }
@@ -145,18 +145,18 @@ mod tests {
         let mut map = KeyTransformMap::default();
 
         map.put(key_rule!("VK_A↓ : VK_B↓"));
-        map.put(key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"));
-        map.put(key_rule!("VK_A↓ → VK_CONTROL↓ : VK_D↓"));
+        map.put(key_rule!("VK_A + VK_SHIFT↓ : VK_C↓"));
+        map.put(key_rule!("VK_A + VK_CONTROL↓ : VK_D↓"));
         map.put(key_rule!("SC_A↓ : SC_C↓"));
-        map.put(key_rule!("SC_B↓ → SC_ALT↓ : SC_0x1C↓"));
+        map.put(key_rule!("SC_B + SC_ALT↓ : SC_0x1C↓"));
 
         assert!(map.get_group(&key_act!("VK_B↓")).is_empty());
         assert!(map.get_group(&key_act!("VK_A↑")).is_empty());
 
         let expected = [
             key_rule!("VK_A↓ : VK_B↓"),
-            key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"),
-            key_rule!("VK_A↓ → VK_CONTROL↓ : VK_D↓"),
+            key_rule!("VK_A + VK_SHIFT↓ : VK_C↓"),
+            key_rule!("VK_A + VK_CONTROL↓ : VK_D↓"),
         ];
 
         assert_eq!(expected, map.get_group(&key_act!("VK_A↓")));
@@ -166,8 +166,8 @@ mod tests {
     fn test_get() {
         let mut map = KeyTransformMap::default();
         map.put(key_rule!("VK_A↓ : VK_B↓"));
-        map.put(key_rule!("VK_A↓ → VK_SHIFT↓ : VK_C↓"));
-        map.put(key_rule!("VK_A↓ → VK_MENU↓ → VK_CONTROL↓ : VK_D↓"));
+        map.put(key_rule!("VK_A + VK_SHIFT ↓ : VK_C↓"));
+        map.put(key_rule!("VK_A + VK_MENU + VK_CONTROL ↓ : VK_D↓"));
 
         let all_up = || KeyboardState::new([UP_STATE; MAX_VK_CODE]);
 

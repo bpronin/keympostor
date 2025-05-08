@@ -3,29 +3,25 @@
   "rules": [
     {
       "source": {
-        "actions": [
-          {
-            "key": "SC_CAPS_LOCK",
-            "transition": "Down"
-          }
-        ]
+        "keys": ["SC_CAPS_LOCK"],
+        "transition": "Down"
       },
       "target": {
         "actions": [
           {
-            "key": "SC_LEFT_WINDOWS",
+            "keys": ["SC_LEFT_WINDOWS"],
             "transition": "Down"
           },
           {
-            "key": "SC_SPACE",
+            "keys": ["SC_SPACE"],
             "transition": "Down"
           },
           {
-            "key": "SC_SPACE",
+            "keys": ["SC_SPACE"],
             "transition": "Up"
           },
           {
-            "key": "SC_LEFT_WINDOWS",
+            "keys": ["SC_LEFT_WINDOWS"],
             "transition": "Up"
           }
         ]
@@ -33,25 +29,20 @@
     },
     {
       "source": {
-        "actions": [
-          {
-            "key": "VK_SHIFT",
-            "transition": "Down"
-          },
-          {
-            "key": "VK_CAPITAL",
-            "transition": "Down"
-          }
-        ]
+        "keys": [
+          "VK_CAPITAL",
+          "VK_SHIFT"
+        ],
+        "transition": "Down"
       },
       "target": {
         "actions": [
           {
-            "key": "VK_CAPITAL",
+            "keys": ["VK_CAPITAL"],
             "transition": "Down"
           },
           {
-            "key": "VK_CAPITAL",
+            "keys": ["VK_CAPITAL"],
             "transition": "Up"
           }
         ]
