@@ -5,8 +5,8 @@ pub mod key_event;
 pub mod key_hook;
 mod key_transform_map;
 pub mod key_transform_rule;
-mod keyboard_state;
 mod util;
+mod key_trigger;
 
 #[cfg(test)]
 mod tests {

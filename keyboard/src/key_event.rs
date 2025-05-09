@@ -1,13 +1,11 @@
-use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
-use crate::key_action::KeyAction;
+use crate::key::{ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
 use crate::key_action::KeyTransition;
+use crate::key_transform_rule::KeyTransformRule;
 use log::warn;
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
-use KeyCode::{SC, VK};
-use crate::key_transform_rule::KeyTransformRule;
 
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
@@ -22,10 +20,7 @@ pub struct KeyEvent<'a> {
 
 impl KeyEvent<'_> {
     pub(crate) fn new(kb: KBDLLHOOKSTRUCT) -> Self {
-        Self {
-            kb,
-            rule: None,
-        }
+        Self { kb, rule: None }
     }
 
     pub fn time(&self) -> u32 {
@@ -44,19 +39,19 @@ impl KeyEvent<'_> {
         .unwrap()
     }
 
-    pub fn as_virtual_key_action(&self) -> KeyAction {
-        KeyAction {
-            keys: vec![VK(self.virtual_key())],
-            transition: self.transition(),
-        }
-    }
-
-    pub fn as_scan_code_action(&self) -> KeyAction {
-        KeyAction {
-            keys: vec![SC(self.scan_code())],
-            transition: self.transition(),
-        }
-    }
+    // pub fn as_virtual_key_action(&self) -> KeyAction {
+    //     KeyAction {
+    //         keys: vec![VK(self.virtual_key())],
+    //         transition: self.transition(),
+    //     }
+    // }
+    //
+    // pub fn as_scan_code_action(&self) -> KeyAction {
+    //     KeyAction {
+    //         keys: vec![SC(self.scan_code())],
+    //         transition: self.transition(),
+    //     }
+    // }
 
     pub fn transition(&self) -> KeyTransition {
         KeyTransition::from_bool(self.kb.flags.contains(LLKHF_UP))
@@ -111,9 +106,6 @@ impl Display for KeyEvent<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::key::KeyCode::{SC, VK};
-    use crate::key::{ScanCode, VirtualKey};
-    use crate::key_action::KeyAction;
     use crate::key_action::KeyTransition::Up;
     use crate::key_event::{KeyEvent, SELF_EVENT_MARKER};
     use windows::Win32::UI::WindowsAndMessaging::{
@@ -123,13 +115,11 @@ mod tests {
     #[macro_export]
     macro_rules! key_event {
         ($vk_code:expr, $is_up:expr) => {
-            KeyEvent::new( 
-                KBDLLHOOKSTRUCT {
-                    vkCode: $vk_code as u32,
-                    flags: if $is_up { LLKHF_UP } else { Default::default() },
-                    ..Default::default()
-                }
-            )
+            KeyEvent::new(KBDLLHOOKSTRUCT {
+                vkCode: $vk_code as u32,
+                flags: if $is_up { LLKHF_UP } else { Default::default() },
+                ..Default::default()
+            })
         };
     }
 
@@ -154,28 +144,28 @@ mod tests {
         assert!(actual.is_valid());
     }
 
-    #[test]
-    fn test_key_event_as_action() {
-        let kb = KBDLLHOOKSTRUCT {
-            vkCode: 0x0D,
-            scanCode: 0x1C,
-            flags: LLKHF_UP | LLKHF_INJECTED | LLKHF_EXTENDED,
-            time: 1000,
-            dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
-        };
-
-        let actual = KeyEvent::new(kb).as_virtual_key_action();
-        let expected = KeyAction {
-            keys: vec![VK(VirtualKey::from_code(0x0D).unwrap())],
-            transition: Up,
-        };
-        assert_eq!(expected, actual);
-
-        let actual = KeyEvent::new(kb).as_scan_code_action();
-        let expected = KeyAction {
-            keys: vec![SC(ScanCode::from_code(0x1C, true).unwrap())],
-            transition: Up,
-        };
-        assert_eq!(expected, actual);
-    }
+    // #[test]
+    // fn test_key_event_as_action() {
+    //     let kb = KBDLLHOOKSTRUCT {
+    //         vkCode: 0x0D,
+    //         scanCode: 0x1C,
+    //         flags: LLKHF_UP | LLKHF_INJECTED | LLKHF_EXTENDED,
+    //         time: 1000,
+    //         dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
+    //     };
+    //
+    //     let actual = KeyEvent::new(kb).as_virtual_key_action();
+    //     let expected = KeyAction {
+    //         keys: vec![VK(VirtualKey::from_code(0x0D).unwrap())],
+    //         transition: Up,
+    //     };
+    //     assert_eq!(expected, actual);
+    //
+    //     let actual = KeyEvent::new(kb).as_scan_code_action();
+    //     let expected = KeyAction {
+    //         keys: vec![SC(ScanCode::from_code(0x1C, true).unwrap())],
+    //         transition: Up,
+    //     };
+    //     assert_eq!(expected, actual);
+    // }
 }

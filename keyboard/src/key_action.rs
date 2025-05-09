@@ -1,16 +1,15 @@
-use std::array::from_fn;
 use crate::key::{KeyCode, ScanCode, VirtualKey};
 use crate::key_action::KeyTransition::{Down, Up};
 use crate::key_event::SELF_EVENT_MARKER;
 use crate::write_joined;
-use KeyCode::{SC, VK};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
+    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
+use KeyCode::{SC, VK};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub enum KeyTransition {
@@ -69,27 +68,16 @@ impl FromStr for KeyTransition {
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyAction {
-    pub(crate) keys: Vec<KeyCode>,
-    pub transition: KeyTransition,
+    pub(crate) key: KeyCode,
+    pub(crate) transition: KeyTransition,
 }
 
 impl KeyAction {
-    pub fn key(&self) -> &KeyCode {
-        &self.keys[0]
-    }
-
-    pub fn modifiers(&self) -> &[KeyCode] {
-        &self.keys[1..]
-    }
-
-    fn create_input(&self) -> Vec<INPUT> {
-        self.keys
-            .iter()
-            .map(|key| match key {
-                VK(vk) => self.create_virtual_key_input(vk),
-                SC(sc) => self.create_scancode_input(sc),
-            })
-            .collect()
+    fn create_input(&self) -> INPUT {
+        match self.key {
+            VK(vk) => self.create_virtual_key_input(vk),
+            SC(sc) => self.create_scancode_input(sc),
+        }
     }
 
     fn create_virtual_key_input(&self, virtual_key: &VirtualKey) -> INPUT {
@@ -134,8 +122,7 @@ impl KeyAction {
 
 impl Display for KeyAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_joined!(f, &self.keys, " + ")?;
-        write!(f, "{}", self.transition)
+        write!(f, "{}{}", self.key, self.transition)
     }
 }
 
@@ -148,13 +135,12 @@ impl FromStr for KeyAction {
             .chars()
             .last()
             .expect(&format!("Error parsing key action. String is empty. `{s}`"));
-        let keys = st
+        let key = st
             .strip_suffix(suf)
-            .expect(&format!("Invalid key action suffix: `{suf}`."))
-            .split('+');
+            .expect(&format!("Invalid key action suffix: `{suf}`."));
 
         Ok(Self {
-            keys: keys.map(str::parse).collect::<Result<_, _>>()?,
+            key: key.parse()?,
             transition: suf.to_string().parse()?,
         })
     }
@@ -167,7 +153,7 @@ pub struct KeyActionSequence {
 
 impl KeyActionSequence {
     pub(crate) fn create_input(&self) -> Vec<INPUT> {
-        self.actions.iter().map(|a| a.create_input()).flatten().collect()
+        self.actions.iter().map(|a| a.create_input()).collect()
     }
 }
 
@@ -190,20 +176,15 @@ impl FromStr for KeyActionSequence {
     }
 }
 
-// #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-// pub struct KeyActionPattern {
-//     sequence: Vec<KeyActionSequence>,
-// }
-
 #[cfg(test)]
 mod tests {
-    use crate::{assert_not, key};
     use crate::key::KeyCode::SC;
-    use crate::key::{KeyCode, ScanCode, VirtualKey};
+    use crate::key::KeyCode;
     use crate::key_action::KeyTransition::{Down, Up};
     use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
-    use KeyCode::VK;
+    use crate::{assert_not, key};
     use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
+    use KeyCode::VK;
 
     #[macro_export]
     macro_rules! key_act {
@@ -280,13 +261,13 @@ mod tests {
     #[test]
     fn test_key_action_display() {
         let actual = KeyAction {
-            keys: vec![key!("VK_RETURN")],
+            key: key!("VK_RETURN"),
             transition: Down,
         };
         assert_eq!("VK_RETURN↓", format!("{}", actual));
 
         let actual = KeyAction {
-            keys: vec![key!("SC_ENTER")],
+            key: key!("SC_ENTER"),
             transition: Up,
         };
         assert_eq!("SC_ENTER↑", format!("{}", actual));
@@ -295,7 +276,7 @@ mod tests {
     #[test]
     fn test_key_action_serialize() {
         let source = KeyAction {
-            keys: vec![key!("VK_RETURN")],
+            key: key!("VK_RETURN"),
             transition: Down,
         };
         let json = serde_json::to_string_pretty(&source).unwrap();
@@ -331,10 +312,10 @@ mod tests {
 
         assert_eq!(2, input.len());
 
-        let VK(vk) = source.actions[0].keys[0] else {
+        let VK(vk) = source.actions[0].key else {
             panic!("Not a VK")
         };
-        
+
         assert_eq!(vk.value, unsafe { input[0].Anonymous.ki.wVk.0 } as u8);
         assert_not!(unsafe {
             input[0]
@@ -345,7 +326,7 @@ mod tests {
         });
         assert!(!unsafe { input[0].Anonymous.ki.dwFlags.contains(KEYEVENTF_KEYUP) });
 
-        let SC(sc) = source.actions[1].keys[0] else {
+        let SC(sc) = source.actions[1].key else {
             panic!("Not a SC")
         };
         assert_eq!(sc.value, unsafe { input[1].Anonymous.ki.wScan } as u8);
@@ -359,36 +340,4 @@ mod tests {
         assert!(unsafe { input[1].Anonymous.ki.dwFlags.contains(KEYEVENTF_KEYUP) });
     }
 
-    // #[test]
-    // fn test_key_action_pattern_serialize() {
-    //     let source = KeyActionPattern {
-    //         sequence: vec![
-    //             KeyActionSequence {
-    //                 actions: vec![
-    //                     KeyAction {
-    //                         key: VK(VirtualKey::from_name("VK_RETURN").unwrap()),
-    //                         transition: Down,
-    //                     },
-    //                     KeyAction {
-    //                         key: VK(VirtualKey::from_name("VK_SHIFT").unwrap()),
-    //                         transition: Down,
-    //                     },
-    //                 ],
-    //             },
-    //             KeyActionSequence {
-    //                 actions: vec![KeyAction {
-    //                     key: SC(ScanCode::from_name("SC_ENTER").unwrap()),
-    //                     transition: Down,
-    //                 }],
-    //             },
-    //         ],
-    //     };
-    //
-    //     let json = serde_json::to_string_pretty(&source).unwrap();
-    //
-    //     // dbg!(&json);
-    //
-    //     let actual = serde_json::from_str::<KeyActionPattern>(&json).unwrap();
-    //     assert_eq!(source, actual);
-    // }
 }

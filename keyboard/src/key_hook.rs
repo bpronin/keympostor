@@ -1,12 +1,12 @@
 use crate::key_event::KeyEvent;
 use crate::key_transform_map::KeyTransformMap;
 use crate::key_transform_rule::KeyTransformProfile;
-use crate::keyboard_state::KeyboardState;
 use log::debug;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::SendInput;
+use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
+use crate::key_trigger::KeyModifiers;
 
 thread_local! {
     static INNER: RefCell<InnerKeyboardHandler> = RefCell::new(InnerKeyboardHandler::default());
@@ -57,11 +57,11 @@ impl InnerKeyboardHandler {
             if code == HC_ACTION as i32 {
                 let mut event = KeyEvent::new(unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) });
 
-                debug!("{}", event);
+                debug!("EVENT: {}", event);
 
                 if event.is_valid() {
                     if !event.is_private() {
-                        event.rule = inner.transform_map.get(&event, || KeyboardState::capture())
+                        event.rule = inner.transform_map.get(&event, || KeyModifiers::capture())
                     };
 
                     if !inner.silent_processing {
@@ -71,8 +71,10 @@ impl InnerKeyboardHandler {
                     }
 
                     if let Some(rule) = event.rule {
+                        debug!("RULE: {}", rule);
+                        
                         let input = rule.target.create_input();
-                        unsafe { SendInput(&input, input.len() as i32) };
+                        unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
                         return LRESULT(1);
                     }
                 }

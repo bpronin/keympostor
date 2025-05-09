@@ -178,12 +178,12 @@ impl KeyCode {
     //     }
     // }
 
-    pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
-        match self {
-            VK(vk) => Ok(vk),
-            SC(sc) => sc.to_virtual_key(),
-        }
-    }
+    // pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
+    //     match self {
+    //         VK(vk) => Ok(vk),
+    //         SC(sc) => sc.to_virtual_key(),
+    //     }
+    // }
 
     // pub(crate) fn as_scan_code(&self) -> Result<&'static ScanCode, String> {
     //     match self {
@@ -241,7 +241,6 @@ impl<'de> Deserialize<'de> for KeyCode {
 }
 
 pub const MAX_VK_CODE: usize = 256;
-pub const MAX_SCAN_CODE: usize = 136;
 
 macro_rules! new_vk {
     ($code:literal, $name:literal) => {
@@ -510,6 +509,8 @@ static VIRTUAL_KEYS: [VirtualKey; MAX_VK_CODE] = [
     new_vk!(0xFE, "VK_OEM_CLEAR"),
     new_vk!(0xFF, "VK__none_"),
 ];
+
+pub const MAX_SCAN_CODE: usize = 136;
 
 macro_rules! new_sc {
     ($code:literal, $name:literal, $ext_code:literal, $ext_name:literal) => {

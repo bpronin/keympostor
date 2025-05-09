@@ -6,6 +6,20 @@ macro_rules! assert_not {
 }
 
 #[macro_export]
+macro_rules! assert_none {
+    ($a:expr) => {
+        assert!($a.is_none())
+    };
+}
+
+#[macro_export]
+macro_rules! assert_some {
+    ($a:expr) => {
+        assert!($a.is_some())
+    };
+}
+
+#[macro_export]
 macro_rules! append_prefix {
     ($s:expr, $pref:literal) => {
         if $s.starts_with($pref) {

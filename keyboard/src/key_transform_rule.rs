@@ -1,4 +1,5 @@
-use crate::key_action::{KeyAction, KeyActionSequence};
+use crate::key_action::KeyActionSequence;
+use crate::key_trigger::KeyTrigger;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -7,7 +8,7 @@ use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformRule {
-    pub source: KeyAction,
+    pub source: KeyTrigger,
     pub target: KeyActionSequence,
 }
 
@@ -17,10 +18,10 @@ impl FromStr for KeyTransformRule {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut split = s.split(":");
+        let mut parts = s.trim().split(":");
         Ok(Self {
-            source: split.next().unwrap().parse()?,
-            target: split.next().unwrap().parse()?,
+            source: parts.next().unwrap().parse()?,
+            target: parts.next().unwrap().parse()?,
         })
     }
 }
@@ -41,7 +42,7 @@ impl KeyTransformProfile {
     pub fn load(path: &str) -> Result<Self, String> {
         let json = fs::read_to_string(&path)
             .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?;
-
+        // dbg!(&json);
         Ok(serde_json::from_str(&json).map_err(|e| format!("Unable to parse {}.\n{}", path, e))?)
     }
 }
@@ -59,27 +60,21 @@ impl FromStr for KeyTransformProfile {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut split = s.trim().trim_end_matches(';').split(';');
-        let title = split.next().unwrap().trim();
-        let mut rules = vec![];
-        for rs in split {
-            rules.push(rs.parse()?);
-        }
         Ok(Self {
-            title: title.into(),
-            rules,
+            title: split.next().unwrap().trim().into(),
+            rules: split.map(str::parse).collect::<Result<_, _>>()?,
         })
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::key::KeyCode::SC;
-    use crate::key::{KeyCode, ScanCode, VirtualKey};
+    use crate::key::KeyCode;
     use crate::key_action::KeyTransition::Down;
     use crate::key_action::{KeyAction, KeyActionSequence};
     use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
-    use crate::{key, key_act};
-    use KeyCode::VK;
+    use crate::key_trigger::{KeyTrigger, KM_SHIFT};
+    use crate::{key, key_act, key_trig};
 
     #[macro_export]
     macro_rules! key_rule {
@@ -97,40 +92,40 @@ mod tests {
 
     #[test]
     fn test_key_transform_rule_source() {
-        let rule = key_rule!("VK_RETURN + VK_CONTROL + VK_SHIFT↓ : SC_ENTER↓");
-        assert_eq!(key_act!("VK_RETURN + VK_CONTROL + VK_SHIFT↓"), rule.source);
+        let rule = key_rule!("[CONTROL + SHIFT] VK_RETURN↓ : SC_ENTER↓");
+        assert_eq!(key_trig!("[CONTROL + SHIFT] VK_RETURN↓"), rule.source);
     }
 
     #[test]
     fn test_key_transform_rule_display() {
         let source = KeyTransformRule {
-            source: KeyAction {
-                keys: vec![key!("VK_SHIFT"), key!("VK_RETURN")],
-                transition: Down,
+            source: KeyTrigger {
+                action: key_act!("VK_RETURN↓"),
+                modifiers: KM_SHIFT,
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
-                    keys: vec![key!("SC_ENTER")],
+                    key: key!("SC_ENTER"),
                     transition: Down,
                 }],
             },
         };
 
-        assert_eq!("VK_SHIFT + VK_RETURN↓ : SC_ENTER↓", format!("{}", source));
+        assert_eq!("[SHIFT]VK_RETURN↓ : SC_ENTER↓", format!("{}", source));
     }
 
     #[test]
     fn test_key_transform_rule_parse() {
-        let actual = "VK_SHIFT + VK_RETURN ↓ : SC_ENTER↓".parse().unwrap();
+        let actual = "            [SHIFT]VK_RETURN ↓ : SC_ENTER↓".parse().unwrap();
 
         let expected = KeyTransformRule {
-            source: KeyAction {
-                keys: vec![key!("VK_SHIFT"), key!("VK_RETURN")],
-                transition: Down,
+            source: KeyTrigger {
+                action: key_act!("VK_RETURN↓"),
+                modifiers: KM_SHIFT,
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
-                    keys: vec![key!("SC_ENTER")],
+                    key: key!("SC_ENTER"),
                     transition: Down,
                 }],
             },
@@ -142,13 +137,13 @@ mod tests {
     #[test]
     fn test_key_transform_rule_serialize() {
         let source = KeyTransformRule {
-            source: KeyAction {
-                keys: vec![key!("VK_SHIFT"), key!("VK_RETURN")],
-                transition: Down,
+            source: KeyTrigger {
+                action: key_act!("VK_RETURN↓"),
+                modifiers: KM_SHIFT,
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
-                    keys: vec![key!("SC_ENTER")],
+                    key: key!("SC_ENTER"),
                     transition: Down,
                 }],
             },
@@ -161,24 +156,23 @@ mod tests {
     }
 
     #[test]
-    fn test_key_transform_rules_parse() {
+    fn test_key_transform_profile_parse() {
         let actual = key_profile!(
             "
             Test profile;
             SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
-            VK_SHIFT + VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
+            [CONTROL + SHIFT] VK_RETURN↓ : VK_RETURN↓ → VK_RETURN↑;
             "
         );
-
-        let expected = key_profile!(
-            "
-            Test profile;
-            SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
-            VK_SHIFT + VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
-            "
-        );
-
         println!("{}", actual);
+
+        let expected = KeyTransformProfile {
+            title: "Test profile".to_string(),
+            rules: vec![
+                key_rule!("SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑"),
+                key_rule!("[CONTROL + SHIFT] VK_RETURN↓: VK_RETURN↓ → VK_RETURN↑"),
+            ],
+        };
         println!("{}", expected);
 
         assert_eq!(expected, actual);
@@ -232,14 +226,14 @@ mod tests {
     */
 
     #[test]
-    fn test_key_transform_rules_serialize() {
+    fn test_key_transform_profile_serialize() {
         let actual = KeyTransformProfile::load("../test/profiles/test.json").unwrap();
 
         let expected = key_profile!(
             "
             Test profile;
             SC_CAPS_LOCK↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
-            VK_CAPITAL + VK_SHIFT ↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
+            [CONTROL + SHIFT]VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
             "
         );
 
