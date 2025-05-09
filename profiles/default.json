@@ -1,31 +1,29 @@
 {
-  "title": "Default",
+  "title": "Default profile",
   "rules": [
     {
       "source": {
-        "actions": [
-          {
-            "key": "VK_CAPITAL",
-            "transition": "Down"
-          }
-        ]
+        "action": {
+          "key": "SC_CAPS_LOCK",
+          "transition": "Down"
+        }
       },
       "target": {
         "actions": [
           {
-            "key": "VK_LWIN",
+            "key": "SC_LEFT_WINDOWS",
             "transition": "Down"
           },
           {
-            "key": "VK_SPACE",
+            "key": "SC_SPACE",
             "transition": "Down"
           },
           {
-            "key": "VK_SPACE",
+            "key": "SC_SPACE",
             "transition": "Up"
           },
           {
-            "key": "VK_LWIN",
+            "key": "SC_LEFT_WINDOWS",
             "transition": "Up"
           }
         ]
@@ -33,16 +31,11 @@
     },
     {
       "source": {
-        "actions": [
-          {
-            "key": "VK_CAPITAL",
-            "transition": "Down"
-          },
-          {
-            "key": "VK_SHIFT",
-            "transition": "Down"
-          }
-        ]
+        "action": {
+          "key": "VK_CAPITAL",
+          "transition": "Down"
+        },
+        "modifiers": "LSHIFT"
       },
       "target": {
         "actions": [

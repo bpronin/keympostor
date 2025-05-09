@@ -17,6 +17,9 @@ thread_local! {
         AppControl::build_ui(Default::default()).expect("Failed to build application UI")
     )
 }
+
+const MAX_LOG_LINES: usize = 256;
+
 #[derive(Default)]
 struct AppControl {
     keyboard_handler: KeyboardHandler,
@@ -28,6 +31,7 @@ struct AppControl {
     main_menu: MainMenu,
     tray: nwg::TrayNotification,
     tray_menu: TrayMenu,
+    log_data: Vec<String>,
 }
 
 #[derive(Default)]
@@ -184,12 +188,14 @@ impl AppControl {
     }
 
     fn on_window_close(&self) {
+        // self.keyboard_handler.set_silent(true);
         #[cfg(feature = "dev")]
         self.on_app_exit();
     }
 
     fn on_open_window(&self) {
         self.window.set_visible(true);
+        // self.keyboard_handler.set_silent(false);
     }
 
     fn on_toggle_window_visibility(&self) {
@@ -205,10 +211,26 @@ impl AppControl {
         self.log_view.clear();
     }
 
+    fn trim_log_text(&self) {
+        let text = self.log_view.text();
+
+        let skip_count = text.lines().count().saturating_sub(MAX_LOG_LINES);
+        let trimmed_text = text
+            .lines()
+            .skip(skip_count)
+            .fold(String::new(), |mut acc, line| {
+                acc.push_str(line);
+                acc.push_str("\r\n");
+                acc
+            });
+
+        self.log_view.set_text(&trimmed_text);
+    }
+
     fn on_log_view_update(&self, event: &KeyEvent) {
         let scancode = event.scan_code();
         let virtual_key = event.virtual_key();
-        let line = &format!(
+        let line = format!(
             "{:1}{:1}{:1} T: {:9} | {:22} | {:16} | {}",
             if event.rule.is_some() { "!" } else { "" },
             if event.is_injected() { ">" } else { "" },
@@ -219,7 +241,8 @@ impl AppControl {
             event.transition()
         );
 
-        self.log_view.appendln(line);
+        self.trim_log_text();
+        self.log_view.appendln(&line);
     }
 }
 
