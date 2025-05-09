@@ -116,7 +116,7 @@ impl KeyTransformMap {
 mod tests {
     use crate::key_action::KeyTransition::{Down, Up};
     use crate::key_event::KeyEvent;
-    use crate::key_modifiers::{KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
+    use crate::key_modifiers::{KM_LALT, KM_LCONTROL, KM_LSHIFT, KM_NONE};
     use crate::key_transform_map::KeyCode;
     use crate::key_transform_map::KeyTransformMap;
     use crate::key_transform_rule::KeyTransformRule;
@@ -152,8 +152,8 @@ mod tests {
         let all_up = || KM_NONE;
         let shift_down = || KM_LSHIFT;
         let alt_down = || KM_LALT;
-        let ctrl_down = || KM_LCTRL;
-        let ctrl_alt_down = || KM_LCTRL | KM_LALT;
+        let ctrl_down = || KM_LCONTROL;
+        let ctrl_alt_down = || KM_LCONTROL | KM_LALT;
 
         let mut map = KeyTransformMap::default();
         map.put(key_rule!("VK_A↓ : VK_B↓"));

@@ -9,20 +9,20 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_RWIN,
 };
 
-pub const KM_NONE: KeyModifiers = KeyModifiers(0u8);
-pub const KM_LSHIFT: KeyModifiers = KeyModifiers(1u8);
-pub const KM_RSHIFT: KeyModifiers = KeyModifiers(1u8 << 1);
-pub const KM_LCTRL: KeyModifiers = KeyModifiers(1u8 << 2);
-pub const KM_RCTRL: KeyModifiers = KeyModifiers(1u8 << 3);
-pub const KM_LALT: KeyModifiers = KeyModifiers(1u8 << 4);
-pub const KM_RALT: KeyModifiers = KeyModifiers(1u8 << 5);
-pub const KM_LWIN: KeyModifiers = KeyModifiers(1u8 << 6);
-pub const KM_RWIN: KeyModifiers = KeyModifiers(1u8 << 7);
+pub const KM_NONE: KeyModifiers = KeyModifiers(0);
+pub const KM_LSHIFT: KeyModifiers = KeyModifiers(1);
+pub const KM_RSHIFT: KeyModifiers = KeyModifiers(1 << 1);
+pub const KM_LCONTROL: KeyModifiers = KeyModifiers(1 << 2);
+pub const KM_RCONTROL: KeyModifiers = KeyModifiers(1 << 3);
+pub const KM_LALT: KeyModifiers = KeyModifiers(1 << 4);
+pub const KM_RALT: KeyModifiers = KeyModifiers(1 << 5);
+pub const KM_LWIN: KeyModifiers = KeyModifiers(1 << 6);
+pub const KM_RWIN: KeyModifiers = KeyModifiers(1 << 7);
 
 const FLAGS_COUNT: usize = 8;
-const FLAG_NAMES: [&str; FLAGS_COUNT] = [
-    "LSHIFT", "RSHIFT", "LCONTROL", "RCONTROL", "LALT", "RALT", "LWIN", "RWIN",
-];
+// const FLAG_NAMES: [&str; FLAGS_COUNT] = [
+//     "LSHIFT", "RSHIFT", "LCONTROL", "RCONTROL", "LALT", "RALT", "LWIN", "RWIN",
+// ];
 
 #[derive(Debug, Eq, PartialEq, Default, Clone)]
 pub struct KeyModifiers(u8);
@@ -47,22 +47,74 @@ impl KeyModifiers {
         ];
 
         let value = (0..FLAGS_COUNT)
-            .filter(|f_ix| {
-                let vk_code = flag_keys[*f_ix].0;
+            .filter(|flag_index| {
+                let vk_code = flag_keys[*flag_index].0;
                 keys[vk_code as usize] & 0x80 != 0
             })
-            .fold(0u16, |acc, f_ix| acc | (1u16 << f_ix));
+            .fold(0, |acc, flag_index| acc | (1 << flag_index));
 
         Self(value as u8)
+    }
+
+    pub const fn contains(&self, other: Self) -> bool {
+        self.0 & other.0 == other.0
     }
 }
 
 impl Display for KeyModifiers {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let names: Vec<&str> = (0..FLAGS_COUNT)
-            .filter(|f_ix| (self.0 >> f_ix) & 1 == 1)
-            .map(|f_ix| FLAG_NAMES[f_ix])
-            .collect();
+        // let names: Vec<&str> = (0..FLAGS_COUNT)
+        //     .filter(|f_ix| (self.0 >> f_ix) & 1 == 1)
+        //     .map(|f_ix| {
+        //         match f_ix {
+        //             0 => "LSHIFT",
+        //             1 => "RSHIFT",
+        //             2 => "LCONTROL",
+        //             3 => "RCONTROL",
+        //             4 => "LALT",
+        //             5 => "RALT",
+        //             6 => "LWIN",
+        //             7 => "RWIN",
+        //             _ => panic!("Illegal key modifier index: {}", f_ix),
+        //         }
+        //     })
+        //     .collect();
+        //
+
+        let mut names: Vec<&str> = vec![];
+
+        if self.contains(KM_LSHIFT | KM_RSHIFT) {
+            names.push("SHIFT");
+        } else if self.contains(KM_LSHIFT) {
+            names.push("LSHIFT");
+        } else if self.contains(KM_RSHIFT) {
+            names.push("RSHIFT");
+        }
+
+        if self.contains(KM_LCONTROL | KM_RCONTROL) {
+            names.push("CONTROL");
+        } else if self.contains(KM_LCONTROL) {
+            names.push("LCONTROL");
+        } else if self.contains(KM_RCONTROL) {
+            names.push("RCONTROL");
+        }
+
+        if self.contains(KM_LALT | KM_RALT) {
+            names.push("ALT");
+        } else if self.contains(KM_LALT) {
+            names.push("LALT");
+        } else if self.contains(KM_RALT) {
+            names.push("RALT");
+        }
+
+        if self.contains(KM_LWIN | KM_RWIN) {
+            names.push("WIN");
+        } else if self.contains(KM_LWIN) {
+            names.push("LWIN");
+        } else if self.contains(KM_RWIN) {
+            names.push("RWIN");
+        }
+
         if !names.is_empty() {
             write_joined!(f, names, " + ")
         } else {
@@ -82,17 +134,19 @@ impl FromStr for KeyModifiers {
             let this = ts.split('+').fold(KM_NONE, |acc, part| {
                 let tp = part.trim();
                 match tp {
+                    "LSHIFT" => acc | KM_LSHIFT,
+                    "RSHIFT" => acc | KM_RSHIFT,
                     "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
-                    "CONTROL" => acc | KM_LCTRL | KM_RCTRL,
+                    "LCONTROL" => acc | KM_LCONTROL,
+                    "RCONTROL" => acc | KM_RCONTROL,
+                    "CONTROL" => acc | KM_LCONTROL | KM_RCONTROL,
+                    "LALT" => acc | KM_LALT,
+                    "RALT" => acc | KM_RALT,
                     "ALT" => acc | KM_LALT | KM_RALT,
+                    "LWIN" => acc | KM_LWIN,
+                    "RWIN" => acc | KM_RWIN,
                     "WIN" => acc | KM_LWIN | KM_RWIN,
-                    &_ => {
-                        let f_ix = FLAG_NAMES
-                            .iter()
-                            .position(|&name| name == tp)
-                            .expect(&format!("Error parsing key modifier `{tp}`"));
-                        acc | KeyModifiers(1u8 << f_ix)
-                    }
+                    &_ => panic!("Error parsing key modifier: `{tp}`"),
                 }
             });
 
@@ -156,8 +210,8 @@ impl Not for KeyModifiers {
 #[cfg(test)]
 mod tests {
     use crate::key_modifiers::{
-        KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL, KM_RSHIFT,
-        KM_RWIN,
+        KeyModifiers, KM_LALT, KM_LCONTROL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCONTROL,
+        KM_RSHIFT, KM_RWIN,
     };
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
@@ -165,10 +219,18 @@ mod tests {
     fn test_key_modifiers_display() {
         assert_eq!("NONE", KM_NONE.to_string());
 
-        assert_eq!(
-            "LSHIFT + RSHIFT + RWIN",
-            (KM_LSHIFT | KM_RSHIFT | KM_RWIN).to_string()
-        );
+        assert_eq!("LSHIFT + RWIN", (KM_LSHIFT | KM_RWIN).to_string());
+        assert_eq!("RCONTROL + LALT", (KM_LALT | KM_RCONTROL).to_string());
+        
+        assert_eq!("SHIFT + CONTROL + ALT + WIN", (KM_LSHIFT
+            | KM_RSHIFT
+            | KM_LWIN
+            | KM_RWIN
+            | KM_LALT
+            | KM_RALT
+            | KM_LCONTROL
+            | KM_RCONTROL).to_string());
+        
     }
 
     #[test]
@@ -182,11 +244,18 @@ mod tests {
         );
 
         assert_eq!(
-            KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL,
+            KM_LSHIFT
+                | KM_RSHIFT
+                | KM_LWIN
+                | KM_RWIN
+                | KM_LALT
+                | KM_RALT
+                | KM_LCONTROL
+                | KM_RCONTROL,
             "SHIFT + WIN + ALT + CONTROL".parse().unwrap()
         );
     }
-    
+
     #[test]
     #[should_panic]
     fn test_key_modifiers_parse_fails() {
@@ -204,7 +273,7 @@ mod tests {
         keys[VK_RWIN.0 as usize] = 0x80;
 
         assert_eq!(
-            KM_LSHIFT | KM_RSHIFT | KM_LCTRL | KM_RWIN,
+            KM_LSHIFT | KM_RSHIFT | KM_LCONTROL | KM_RWIN,
             KeyModifiers::from_keys(keys)
         );
     }
