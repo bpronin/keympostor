@@ -72,10 +72,10 @@ mod tests {
     use crate::key::KeyCode;
     use crate::key_action::KeyTransition::Down;
     use crate::key_action::{KeyAction, KeyActionSequence};
+    use crate::key_modifiers::{KM_LSHIFT, KM_RSHIFT};
     use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
-    use crate::key_trigger::{KeyTrigger};
+    use crate::key_trigger::KeyTrigger;
     use crate::{key, key_act, key_trig};
-    use crate::key_modifiers::KM_SHIFT;
 
     #[macro_export]
     macro_rules! key_rule {
@@ -102,7 +102,7 @@ mod tests {
         let source = KeyTransformRule {
             source: KeyTrigger {
                 action: key_act!("VK_RETURN↓"),
-                modifiers: KM_SHIFT,
+                modifiers: KM_LSHIFT,
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
@@ -112,17 +112,17 @@ mod tests {
             },
         };
 
-        assert_eq!("[SHIFT]VK_RETURN↓ : SC_ENTER↓", format!("{}", source));
+        assert_eq!("[LSHIFT]VK_RETURN↓ : SC_ENTER↓", format!("{}", source));
     }
 
     #[test]
     fn test_key_transform_rule_parse() {
-        let actual = "            [SHIFT]VK_RETURN ↓ : SC_ENTER↓".parse().unwrap();
+        let actual = "[SHIFT]VK_RETURN ↓ : SC_ENTER↓".parse().unwrap();
 
         let expected = KeyTransformRule {
             source: KeyTrigger {
                 action: key_act!("VK_RETURN↓"),
-                modifiers: KM_SHIFT,
+                modifiers: KM_LSHIFT | KM_RSHIFT,
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
@@ -140,7 +140,7 @@ mod tests {
         let source = KeyTransformRule {
             source: KeyTrigger {
                 action: key_act!("VK_RETURN↓"),
-                modifiers: KM_SHIFT,
+                modifiers: KM_LSHIFT,
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
@@ -234,7 +234,7 @@ mod tests {
             "
             Test profile;
             SC_CAPS_LOCK↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
-            [CONTROL + SHIFT]VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
+            [LSHIFT]VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
             "
         );
 

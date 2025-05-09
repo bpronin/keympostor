@@ -5,31 +5,27 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetKeyboardState, VK_CONTROL, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_MENU, VK_RCONTROL,
-    VK_RMENU, VK_RSHIFT, VK_RWIN, VK_SHIFT,
+    GetKeyboardState, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT,
+    VK_RWIN,
 };
 
-pub const KM_NONE: KeyModifiers = KeyModifiers(0u16);
-pub const KM_LSHIFT: KeyModifiers = KeyModifiers(1u16);
-pub const KM_RSHIFT: KeyModifiers = KeyModifiers(1u16 << 1);
-pub const KM_SHIFT: KeyModifiers = KeyModifiers(1u16 << 2);
-pub const KM_LCTRL: KeyModifiers = KeyModifiers(1u16 << 3);
-pub const KM_RCTRL: KeyModifiers = KeyModifiers(1u16 << 4);
-pub const KM_CTRL: KeyModifiers = KeyModifiers(1u16 << 5);
-pub const KM_LALT: KeyModifiers = KeyModifiers(1u16 << 6);
-pub const KM_RALT: KeyModifiers = KeyModifiers(1u16 << 7);
-pub const KM_ALT: KeyModifiers = KeyModifiers(1u16 << 8);
-pub const KM_LWIN: KeyModifiers = KeyModifiers(1u16 << 9);
-pub const KM_RWIN: KeyModifiers = KeyModifiers(1u16 << 10);
+pub const KM_NONE: KeyModifiers = KeyModifiers(0u8);
+pub const KM_LSHIFT: KeyModifiers = KeyModifiers(1u8);
+pub const KM_RSHIFT: KeyModifiers = KeyModifiers(1u8 << 1);
+pub const KM_LCTRL: KeyModifiers = KeyModifiers(1u8 << 2);
+pub const KM_RCTRL: KeyModifiers = KeyModifiers(1u8 << 3);
+pub const KM_LALT: KeyModifiers = KeyModifiers(1u8 << 4);
+pub const KM_RALT: KeyModifiers = KeyModifiers(1u8 << 5);
+pub const KM_LWIN: KeyModifiers = KeyModifiers(1u8 << 6);
+pub const KM_RWIN: KeyModifiers = KeyModifiers(1u8 << 7);
 
-const FLAGS_COUNT: usize = 11;
+const FLAGS_COUNT: usize = 8;
 const FLAG_NAMES: [&str; FLAGS_COUNT] = [
-    "LSHIFT", "RSHIFT", "SHIFT", "LCONTROL", "RCONTROL", "CONTROL", "LALT", "RALT", "ALT", "LWIN",
-    "RWIN",
+    "LSHIFT", "RSHIFT", "LCONTROL", "RCONTROL", "LALT", "RALT", "LWIN", "RWIN",
 ];
 
 #[derive(Debug, Eq, PartialEq, Default, Clone)]
-pub struct KeyModifiers(u16);
+pub struct KeyModifiers(u8);
 
 impl KeyModifiers {
     pub(crate) fn capture() -> Self {
@@ -42,23 +38,13 @@ impl KeyModifiers {
         let flag_keys = [
             VK_LSHIFT,
             VK_RSHIFT,
-            VK_SHIFT,
             VK_LCONTROL,
             VK_RCONTROL,
-            VK_CONTROL,
             VK_LMENU,
             VK_RMENU,
-            VK_MENU,
             VK_LWIN,
             VK_RWIN,
         ];
-
-        // for i in 0..FLAGS_COUNT {
-        //     let key = flag_keys[i];
-        //     let up = keys[key.0 as usize];
-        //     let name = FLAG_NAMES[i];
-        //     println!("{:?} {:0X} {name}", key, up)
-        // }
 
         let value = (0..FLAGS_COUNT)
             .filter(|f_ix| {
@@ -67,7 +53,7 @@ impl KeyModifiers {
             })
             .fold(0u16, |acc, f_ix| acc | (1u16 << f_ix));
 
-        Self(value)
+        Self(value as u8)
     }
 }
 
@@ -93,15 +79,24 @@ impl FromStr for KeyModifiers {
         if ts.is_empty() || ts == "NONE" {
             Ok(KM_NONE)
         } else {
-            let value = ts.split('+').fold(0u16, |acc, s| {
-                let f_ix = FLAG_NAMES
-                    .iter()
-                    .position(|&name| name == s.trim())
-                    .expect(&format!("Error parsing modifiers `{s}`"));
-                acc | (1u16 << f_ix)
+            let this = ts.split('+').fold(KM_NONE, |acc, part| {
+                let tp = part.trim();
+                match tp {
+                    "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
+                    "CONTROL" => acc | KM_LCTRL | KM_RCTRL,
+                    "ALT" => acc | KM_LALT | KM_RALT,
+                    "WIN" => acc | KM_LWIN | KM_RWIN,
+                    &_ => {
+                        let f_ix = FLAG_NAMES
+                            .iter()
+                            .position(|&name| name == tp)
+                            .expect(&format!("Error parsing key modifier `{tp}`"));
+                        acc | KeyModifiers(1u8 << f_ix)
+                    }
+                }
             });
 
-            Ok(Self(value))
+            Ok(this)
         }
     }
 }
@@ -161,17 +156,18 @@ impl Not for KeyModifiers {
 #[cfg(test)]
 mod tests {
     use crate::key_modifiers::{
-        KeyModifiers, KM_CTRL, KM_LSHIFT, KM_NONE, KM_RSHIFT, KM_RWIN, KM_SHIFT,
+        KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL, KM_RSHIFT,
+        KM_RWIN,
     };
-    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_CONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
     #[test]
     fn test_key_modifiers_display() {
         assert_eq!("NONE", KM_NONE.to_string());
 
         assert_eq!(
-            "LSHIFT + RSHIFT + SHIFT + RWIN",
-            (KM_LSHIFT | KM_RSHIFT | KM_SHIFT | KM_RWIN).to_string()
+            "LSHIFT + RSHIFT + RWIN",
+            (KM_LSHIFT | KM_RSHIFT | KM_RWIN).to_string()
         );
     }
 
@@ -179,10 +175,22 @@ mod tests {
     fn test_key_modifiers_parse() {
         assert_eq!(KM_NONE, "".parse().unwrap());
         assert_eq!(KM_NONE, "NONE".parse().unwrap());
+
         assert_eq!(
-            KM_LSHIFT | KM_RSHIFT | KM_SHIFT | KM_RWIN,
-            "LSHIFT + RSHIFT + SHIFT + RWIN".parse().unwrap()
+            KM_LSHIFT | KM_RSHIFT | KM_RWIN,
+            "LSHIFT + RSHIFT + RWIN".parse().unwrap()
         );
+
+        assert_eq!(
+            KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL,
+            "SHIFT + WIN + ALT + CONTROL".parse().unwrap()
+        );
+    }
+    
+    #[test]
+    #[should_panic]
+    fn test_key_modifiers_parse_fails() {
+        "BANANA".parse::<KeyModifiers>().unwrap();
     }
 
     #[test]
@@ -192,18 +200,18 @@ mod tests {
 
         keys[VK_LSHIFT.0 as usize] = 0x80;
         keys[VK_RSHIFT.0 as usize] = 0x80;
-        keys[VK_CONTROL.0 as usize] = 0x80;
+        keys[VK_LCONTROL.0 as usize] = 0x80;
         keys[VK_RWIN.0 as usize] = 0x80;
 
         assert_eq!(
-            KM_LSHIFT | KM_RSHIFT | KM_CTRL | KM_RWIN,
+            KM_LSHIFT | KM_RSHIFT | KM_LCTRL | KM_RWIN,
             KeyModifiers::from_keys(keys)
         );
     }
 
     #[test]
     fn test_key_modifiers_serialize() {
-        let source: KeyModifiers = "LSHIFT + RSHIFT + SHIFT + RWIN".parse().unwrap();
+        let source: KeyModifiers = "LSHIFT + RSHIFT + RWIN".parse().unwrap();
         let json = serde_json::to_string_pretty(&source).unwrap();
 
         dbg!(&json);

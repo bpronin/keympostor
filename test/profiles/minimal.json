@@ -16,6 +16,22 @@
           }
         ]
       }
+    },
+    {
+      "source": {
+        "action": {
+          "key": "SC_W",
+          "transition": "Down"
+        }
+      },
+      "target": {
+        "actions": [
+          {
+            "key": "SC_Z",
+            "transition": "Down"
+          }
+        ]
+      }
     }
   ]
 }

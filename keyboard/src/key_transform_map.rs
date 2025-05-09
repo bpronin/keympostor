@@ -116,7 +116,7 @@ impl KeyTransformMap {
 mod tests {
     use crate::key_action::KeyTransition::{Down, Up};
     use crate::key_event::KeyEvent;
-    use crate::key_modifiers::{KM_ALT, KM_CTRL, KM_NONE, KM_SHIFT};
+    use crate::key_modifiers::{KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
     use crate::key_transform_map::KeyCode;
     use crate::key_transform_map::KeyTransformMap;
     use crate::key_transform_rule::KeyTransformRule;
@@ -150,15 +150,15 @@ mod tests {
     #[test]
     fn test_get() {
         let all_up = || KM_NONE;
-        let shift_down = || KM_SHIFT;
-        let alt_down = || KM_ALT;
-        let ctrl_down = || KM_CTRL;
-        let ctrl_alt_down = || KM_CTRL | KM_ALT;
+        let shift_down = || KM_LSHIFT;
+        let alt_down = || KM_LALT;
+        let ctrl_down = || KM_LCTRL;
+        let ctrl_alt_down = || KM_LCTRL | KM_LALT;
 
         let mut map = KeyTransformMap::default();
         map.put(key_rule!("VK_A↓ : VK_B↓"));
-        map.put(key_rule!("[SHIFT] VK_A↓ : VK_C↓"));
-        map.put(key_rule!("[ALT + CONTROL] VK_A↓ : VK_D↓"));
+        map.put(key_rule!("[LSHIFT] VK_A↓ : VK_C↓"));
+        map.put(key_rule!("[LALT + LCONTROL] VK_A↓ : VK_D↓"));
 
         let group = map.get_group(&key!("VK_A"), Down);
         assert_eq!(3, group.len());
@@ -175,12 +175,12 @@ mod tests {
         );
 
         assert_eq!(
-            &key_rule!("[SHIFT]VK_A↓ : VK_C↓"),
+            &key_rule!("[LSHIFT]VK_A↓ : VK_C↓"),
             map.get(&key_event!(VK_A.0, false), shift_down).unwrap()
         );
 
         assert_eq!(
-            &key_rule!("[ALT+CONTROL]VK_A↓ : VK_D↓"),
+            &key_rule!("[LALT + LCONTROL]VK_A↓ : VK_D↓"),
             map.get(&key_event!(VK_A.0, false), ctrl_alt_down).unwrap()
         );
     }
