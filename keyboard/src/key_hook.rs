@@ -6,7 +6,7 @@ use std::cell::RefCell;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
-use crate::key_trigger::KeyModifiers;
+use crate::key_modifiers::KeyModifiers;
 
 thread_local! {
     static INNER: RefCell<InnerKeyboardHandler> = RefCell::new(InnerKeyboardHandler::default());

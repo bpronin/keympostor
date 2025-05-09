@@ -212,7 +212,7 @@ impl AppControl {
             "{:1}{:1}{:1} T: {:9} | {:22} | {:16} | {}",
             if event.rule.is_some() { "!" } else { "" },
             if event.is_injected() { ">" } else { "" },
-            if event.is_private() { "X" } else { "" },
+            if event.is_private() { "<" } else { "" },
             event.time(),
             virtual_key,
             scancode,

@@ -1,12 +1,12 @@
-mod bit256;
 mod key;
 mod key_action;
 pub mod key_event;
 pub mod key_hook;
+mod key_modifiers;
 mod key_transform_map;
 pub mod key_transform_rule;
-mod util;
 mod key_trigger;
+mod util;
 
 #[cfg(test)]
 mod tests {

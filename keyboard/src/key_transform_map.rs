@@ -2,9 +2,9 @@ use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_VK_CODE};
 use crate::key_action::KeyTransition;
 use crate::key_event::KeyEvent;
 use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
-use crate::key_trigger::KeyModifiers;
 use std::array::from_fn;
 use KeyCode::{SC, VK};
+use crate::key_modifiers::KeyModifiers;
 
 #[derive(Debug)]
 struct VirtualKeyTransformMap {
@@ -116,10 +116,10 @@ impl KeyTransformMap {
 mod tests {
     use crate::key_action::KeyTransition::{Down, Up};
     use crate::key_event::KeyEvent;
+    use crate::key_modifiers::{KM_ALT, KM_CTRL, KM_NONE, KM_SHIFT};
     use crate::key_transform_map::KeyCode;
     use crate::key_transform_map::KeyTransformMap;
     use crate::key_transform_rule::KeyTransformRule;
-    use crate::key_trigger::{KM_ALT, KM_CTRL, KM_NONE, KM_SHIFT};
     use crate::{assert_none, key, key_event, key_rule};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_A, VK_B, VK_MENU, VK_SHIFT};
     use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
@@ -173,7 +173,7 @@ mod tests {
             &key_rule!("VK_A↓ : VK_B↓"),
             map.get(&key_event!(VK_A.0, false), all_up).unwrap()
         );
-        
+
         assert_eq!(
             &key_rule!("[SHIFT]VK_A↓ : VK_C↓"),
             map.get(&key_event!(VK_A.0, false), shift_down).unwrap()

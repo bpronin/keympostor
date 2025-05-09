@@ -73,8 +73,9 @@ mod tests {
     use crate::key_action::KeyTransition::Down;
     use crate::key_action::{KeyAction, KeyActionSequence};
     use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
-    use crate::key_trigger::{KeyTrigger, KM_SHIFT};
+    use crate::key_trigger::{KeyTrigger};
     use crate::{key, key_act, key_trig};
+    use crate::key_modifiers::KM_SHIFT;
 
     #[macro_export]
     macro_rules! key_rule {
@@ -164,7 +165,7 @@ mod tests {
             [CONTROL + SHIFT] VK_RETURN↓ : VK_RETURN↓ → VK_RETURN↑;
             "
         );
-        println!("{}", actual);
+        //println!("{}", actual);
 
         let expected = KeyTransformProfile {
             title: "Test profile".to_string(),
@@ -173,7 +174,7 @@ mod tests {
                 key_rule!("[CONTROL + SHIFT] VK_RETURN↓: VK_RETURN↓ → VK_RETURN↑"),
             ],
         };
-        println!("{}", expected);
+        //println!("{}", expected);
 
         assert_eq!(expected, actual);
     }
