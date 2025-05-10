@@ -1,0 +1,39 @@
+Game;
+NUMLOCK* : 1*;
+NUMLOCK^ : 1^;
+NUM_SLASH* : 2*;
+NUM_SLASH^ : 2^;
+NUM_MUL* : 3*;
+NUM_MUL^ : 3^;
+NUM_MINUS* : 4*;
+NUM_MINUS^ : 4^;
+
+NUM_7* : Q*;
+NUM_7^ : Q^;
+NUM_8* : W*;
+NUM_8^ : W^;
+NUM_9* : E*;
+NUM_9^ : E^;
+NUM_PLUS* : TAB*;
+NUM_PLUS^ : TAB^;
+
+NUM_4* : A*;
+NUM_4^ : A^;
+NUM_5* : S*;
+NUM_5^ : S^;
+NUM_6* : D*;
+NUM_6^ : D^;
+
+NUM_1* : F*;
+NUM_1^ : F^;
+NUM_2* : T*;
+NUM_2^ : T^;
+NUM_3* : R*;
+NUM_3^ : R^;
+
+NUM_0* : M*;
+NUM_0^ : M^;
+NUM_DEL* : CTRL*;
+[CONTROL] NUM_DEL^ : CTRL^;
+NUM_ENTER* : SPACE*;
+NUM_ENTER^ : SPACE^;

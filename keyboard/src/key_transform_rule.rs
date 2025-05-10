@@ -2,8 +2,10 @@ use crate::key_action::KeyActionSequence;
 use crate::key_trigger::KeyTrigger;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
+use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::fs;
+use std::path::Path;
 use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -40,6 +42,23 @@ pub struct KeyTransformProfile {
 
 impl KeyTransformProfile {
     pub fn load(path: &str) -> Result<Self, String> {
+        if let Some(ext) = Path::new(path).extension().and_then(OsStr::to_str) {
+            match ext {
+                "kmp" => Self::load_kmp(path),
+                &_ => Self::load_json(path),
+            }
+        } else {
+            Err(format!("File does not have file extension: {}", path))
+        }
+    }
+
+    fn load_kmp(path: &str) -> Result<Self, String> {
+        fs::read_to_string(&path)
+            .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?
+            .parse()
+    }
+
+    fn load_json(path: &str) -> Result<Self, String> {
         let json = fs::read_to_string(&path)
             .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?;
         // dbg!(&json);
