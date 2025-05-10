@@ -7,9 +7,66 @@ mod key_transform_map;
 pub mod key_transform_rule;
 mod key_trigger;
 mod util;
+mod key_map;
 
 #[cfg(test)]
 mod tests {
+    use crate::key::{ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
+
+    #[test]
+    #[ignore]
+    fn generate_keys() {
+        let mut id = 0;
+        for vk_code in 0..MAX_VK_CODE {
+            let vk_key = VirtualKey::from_code(vk_code as u8).unwrap();
+            let vk_name = vk_key.name;
+            let name = if let Some(name) = vk_name.strip_prefix("VK_") {
+                name
+            } else {
+                vk_name
+            };
+            
+            let vk_opt = format!("Some(&VIRTUAL_KEYS[{}])", vk_code);
+
+            let sc_opt = if let Ok(sc_key) = vk_key.to_scan_code() {
+                format!(
+                    "Some(&SCAN_CODES[{}][{}])",
+                    sc_key.value, sc_key.is_extended as u8
+                )
+            } else {
+                "None".to_string()
+            };
+
+            println!("new_key!({}, \"{}\", {}, {}),", id, name, vk_opt, sc_opt);
+
+            id = id + 1;
+        }
+
+        for ext_sc in [false, true] {
+            for sc_code in 0..MAX_SCAN_CODE {
+                let sc_key = ScanCode::from_code(sc_code as u8, ext_sc).unwrap();
+                let sc_name = sc_key.name;
+                let name = if let Some(name) = sc_name.strip_prefix("SC_") {
+                    name
+                } else {
+                    sc_name
+                };
+                
+                if sc_key.to_virtual_key().is_ok(){
+                    continue;
+                }
+                
+                let sc_opt = format!(
+                    "Some(&SCAN_CODES[{}][{}])",
+                    sc_key.value, sc_key.is_extended as u8
+                );
+
+                println!("new_key!({}, \"{}\", None, {}),", id, name, sc_opt);
+
+                id = id + 1;
+            }
+        }
+    }
     /*    *** Key codes generation stuff ***
 
     use crate::keys::{ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};

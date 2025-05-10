@@ -1,4 +1,4 @@
-use crate::key::{ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
+use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
 use crate::key_action::KeyTransition;
 use crate::key_transform_rule::KeyTransformRule;
 use log::warn;
@@ -6,6 +6,7 @@ use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
+use crate::key::KeyCode::{SC, VK};
 
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
@@ -27,16 +28,23 @@ impl KeyEvent<'_> {
         self.kb.time
     }
 
-    pub fn virtual_key(&self) -> &'static VirtualKey {
-        VirtualKey::from_code(self.kb.vkCode as u8).unwrap()
+    pub(crate) fn key(&self) -> KeyCode {
+        if let Ok(vk) = self.virtual_key(){
+            VK(vk)                         
+        } else { 
+            SC(self.scan_code().unwrap())
+        }
     }
 
-    pub fn scan_code(&self) -> &'static ScanCode {
+    pub fn virtual_key(&self) -> Result<&'static VirtualKey, String> {
+        VirtualKey::from_code(self.kb.vkCode as u8)
+    }
+
+    pub fn scan_code(&self) -> Result<&'static ScanCode, String> {
         ScanCode::from_code(
             self.kb.scanCode as u8,
             self.kb.flags.contains(LLKHF_EXTENDED),
         )
-        .unwrap()
     }
 
     // pub fn as_virtual_key_action(&self) -> KeyAction {
@@ -95,8 +103,8 @@ impl Display for KeyEvent<'_> {
             f,
             "T:{:9} | {:22} | {:16} | {:1} | {:3} | {:3}",
             self.time(),
-            self.virtual_key(),
-            self.scan_code(),
+            self.virtual_key().unwrap(),
+            self.scan_code().unwrap(),
             self.transition(),
             if self.is_injected() { "INJ" } else { "" },
             if self.is_private() { "PRV" } else { "" },
@@ -136,8 +144,8 @@ mod tests {
         let actual = KeyEvent::new(kb);
 
         assert_eq!(1000, actual.time());
-        assert_eq!("SC_NUM_ENTER", actual.scan_code().name);
-        assert_eq!("VK_RETURN", actual.virtual_key().name);
+        assert_eq!("SC_NUM_ENTER", actual.scan_code().unwrap().name);
+        assert_eq!("VK_RETURN", actual.virtual_key().unwrap().name);
         assert_eq!(Up, actual.transition());
         assert!(actual.is_private());
         assert!(actual.is_injected());

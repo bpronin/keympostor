@@ -31,7 +31,6 @@ struct AppControl {
     main_menu: MainMenu,
     tray: nwg::TrayNotification,
     tray_menu: TrayMenu,
-    log_data: Vec<String>,
 }
 
 #[derive(Default)]
@@ -236,8 +235,8 @@ impl AppControl {
             if event.is_injected() { ">" } else { "" },
             if event.is_private() { "<" } else { "" },
             event.time(),
-            virtual_key,
-            scancode,
+            virtual_key.unwrap(),
+            scancode.unwrap(),
             event.transition()
         );
 

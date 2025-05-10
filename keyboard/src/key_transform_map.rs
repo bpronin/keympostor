@@ -1,70 +1,13 @@
-use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_VK_CODE};
+use crate::key::{KeyCode, MAX_VK_CODE};
 use crate::key_action::KeyTransition;
 use crate::key_event::KeyEvent;
+use crate::key_modifiers::KeyModifiers;
 use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
 use std::array::from_fn;
-use KeyCode::{SC, VK};
-use crate::key_modifiers::KeyModifiers;
 
 #[derive(Debug)]
-struct VirtualKeyTransformMap {
-    map: [[Vec<KeyTransformRule>; MAX_VK_CODE]; 2],
-}
-
-impl VirtualKeyTransformMap {
-    fn get_group(&self, key: &VirtualKey, transition: KeyTransition) -> &[KeyTransformRule] {
-        &self.map[transition.is_up() as usize][key.value as usize]
-    }
-
-    fn put(&mut self, key: &VirtualKey, transition: KeyTransition, rule: KeyTransformRule) {
-        self.map[transition.is_up() as usize][key.value as usize].push(rule)
-    }
-}
-
-impl Default for VirtualKeyTransformMap {
-    fn default() -> Self {
-        Self {
-            map: [from_fn(|_| vec![]), from_fn(|_| vec![])],
-        }
-    }
-}
-
-#[derive(Debug)]
-struct ScanCodeTransformMap {
-    map: [[[Vec<KeyTransformRule>; MAX_VK_CODE]; 2]; 2],
-}
-
-impl ScanCodeTransformMap {
-    fn get_group(&self, key: &ScanCode, transition: KeyTransition) -> &[KeyTransformRule] {
-        &self.map[transition.is_up() as usize][key.is_extended as usize][key.value as usize]
-    }
-
-    pub(crate) fn put(
-        &mut self,
-        key: &ScanCode,
-        transition: KeyTransition,
-        rule: KeyTransformRule,
-    ) {
-        self.map[transition.is_up() as usize][key.is_extended as usize][key.value as usize]
-            .push(rule)
-    }
-}
-
-impl Default for ScanCodeTransformMap {
-    fn default() -> Self {
-        Self {
-            map: [
-                [from_fn(|_| vec![]), from_fn(|_| vec![])],
-                [from_fn(|_| vec![]), from_fn(|_| vec![])],
-            ],
-        }
-    }
-}
-
-#[derive(Debug, Default)]
 pub struct KeyTransformMap {
-    virtual_key_map: VirtualKeyTransformMap,
-    scan_code_map: ScanCodeTransformMap,
+    map: [[Vec<KeyTransformRule>; MAX_VK_CODE]; 2],
 }
 
 impl KeyTransformMap {
@@ -77,10 +20,7 @@ impl KeyTransformMap {
     }
 
     fn get_group(&self, key: &KeyCode, transition: KeyTransition) -> &[KeyTransformRule] {
-        match key {
-            VK(vk) => self.virtual_key_map.get_group(vk, transition),
-            SC(sc) => self.scan_code_map.get_group(sc, transition),
-        }
+        &self.map[transition.is_up() as usize][key.id()]
     }
 
     pub(crate) fn get(
@@ -88,11 +28,7 @@ impl KeyTransformMap {
         event: &KeyEvent,
         get_modifiers: fn() -> KeyModifiers,
     ) -> Option<&KeyTransformRule> {
-        let mut rules = self.get_group(&VK(event.virtual_key()), event.transition());
-        if rules.is_empty() {
-            rules = self.get_group(&SC(event.scan_code()), event.transition());
-        }
-
+        let rules = self.get_group(&event.key(), event.transition());
         //todo make it HashMap
         for rule in rules {
             if rule.source.modifiers == get_modifiers() {
@@ -105,9 +41,14 @@ impl KeyTransformMap {
 
     fn put(&mut self, rule: KeyTransformRule) {
         let trigger = &rule.source;
-        match trigger.key() {
-            VK(vk) => self.virtual_key_map.put(vk, trigger.transition(), rule),
-            SC(sc) => self.scan_code_map.put(sc, trigger.transition(), rule),
+        self.map[trigger.transition().is_up() as usize][trigger.key().id()].push(rule);
+    }
+}
+
+impl Default for KeyTransformMap {
+    fn default() -> Self {
+        Self {
+            map: [from_fn(|_| vec![]), from_fn(|_| vec![])],
         }
     }
 }
@@ -136,15 +77,23 @@ mod tests {
         map.put(key_rule!("[ALT] SC_B↓ : SC_0x1C↓"));
 
         assert!(map.get_group(&key!("VK_A"), Up).is_empty());
-        assert!(map.get_group(&key!("VK_B"), Down).is_empty());
+        assert!(map.get_group(&key!("VK_C"), Up).is_empty());
 
         let expected = [
             key_rule!("VK_A↓ : VK_B↓"),
             key_rule!("[SHIFT] VK_A↓ : VK_C↓"),
             key_rule!("[CONTROL] VK_A↓ : VK_D↓"),
+            key_rule!("SC_A↓ : SC_C↓"), /* VK_A converted from SC_A */
         ];
 
         assert_eq!(expected, map.get_group(&key!("VK_A"), Down));
+        
+        let expected = [
+            key_rule!("[ALT] SC_B↓ : SC_0x1C↓")
+        ];
+        /* VK_B converted from SC_B */
+        assert_eq!(expected, map.get_group(&key!("VK_B"), Down)); 
+
     }
 
     #[test]

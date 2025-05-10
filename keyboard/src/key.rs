@@ -160,9 +160,14 @@ pub enum KeyCode {
     SC(&'static ScanCode),
 }
 
-impl KeyCode {}
-
 impl KeyCode {
+    pub(crate) fn id(&self) -> usize {
+        match self {
+            VK(vk) => vk.value as usize,
+            SC(sc) => sc.to_virtual_key().unwrap().value as usize,
+        }
+    }
+
     // pub(crate) fn is_scan_code(&self) -> bool {
     //     matches!(*self, SC(_))
     // }
@@ -251,7 +256,7 @@ macro_rules! new_vk {
     };
 }
 
-static VIRTUAL_KEYS: [VirtualKey; MAX_VK_CODE] = [
+pub(crate) static VIRTUAL_KEYS: [VirtualKey; MAX_VK_CODE] = [
     new_vk!(0x00, "UNASSIGNED"),
     new_vk!(0x01, "VK_LBUTTON"),
     new_vk!(0x02, "VK_RBUTTON"),
@@ -529,7 +534,7 @@ macro_rules! new_sc {
     };
 }
 
-static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
+pub(crate) static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
     new_sc!(0x00, "UNASSIGNED", "UNASSIGNED"),
     new_sc!(0x01, "SC_ESC", "SC_"),
     new_sc!(0x02, "SC_1", "SC_1"),
