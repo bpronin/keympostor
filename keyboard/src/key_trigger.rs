@@ -1,25 +1,15 @@
-use crate::key::KeyCode;
+use crate::key::Key;
 use crate::key_action::{KeyAction, KeyTransition};
 use crate::key_modifiers::{KeyModifiers, KM_NONE};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTrigger {
-    pub(crate) action: KeyAction,
+    pub action: KeyAction,
     #[serde(default = "default_modifiers")]
     pub modifiers: KeyModifiers,
-}
-
-impl KeyTrigger {
-    pub fn key(&self) -> KeyCode {
-        self.action.key
-    }
-
-    pub fn transition(&self) -> KeyTransition {
-        self.action.transition
-    }
 }
 
 impl Display for KeyTrigger {

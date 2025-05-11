@@ -24,7 +24,7 @@ const FLAGS_COUNT: usize = 8;
 //     "LSHIFT", "RSHIFT", "LCONTROL", "RCONTROL", "LALT", "RALT", "LWIN", "RWIN",
 // ];
 
-#[derive(Debug, Eq, PartialEq, Default, Clone)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
 pub struct KeyModifiers(u8);
 
 impl KeyModifiers {

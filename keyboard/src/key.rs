@@ -1,6 +1,5 @@
 use crate::append_prefix;
-use crate::key::KeyCode::{SC, VK};
-use crate::key_const::{SCAN_CODES, VIRTUAL_KEYS};
+use crate::key_const::{KEYS, SCAN_CODES, VIRTUAL_KEYS};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -155,109 +154,157 @@ impl FromStr for ScanCode {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum KeyCode {
-    VK(&'static VirtualKey),
-    SC(&'static ScanCode),
-}
+// #[derive(Copy, Clone, Debug, Eq, PartialEq)]
+// pub enum KeyCode {
+//     VK(&'static VirtualKey),
+//     SC(&'static ScanCode),
+// }
+// 
+// impl KeyCode {
+//     pub(crate) fn id(&self) -> usize {
+//         match self {
+//             VK(vk) => vk.value as usize,
+//             SC(sc) => sc.to_virtual_key().unwrap().value as usize,
+//         }
+//     }
+// 
+//     // pub(crate) fn is_scan_code(&self) -> bool {
+//     //     matches!(*self, SC(_))
+//     // }
+// 
+//     // pub(crate) fn is_virtual_key(&self) -> bool {
+//     //     matches!(*self, VK(_))
+//     // }
+// 
+//     // pub(crate) fn as_virtual_key(&self) -> Option<&'static VirtualKey> {
+//     //     match self {
+//     //         VK(vk) => Some(vk),
+//     //         SC(sc) => sc.to_virtual_key(),
+//     //     }
+//     // }
+// 
+//     // pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
+//     //     match self {
+//     //         VK(vk) => Ok(vk),
+//     //         SC(sc) => sc.to_virtual_key(),
+//     //     }
+//     // }
+// 
+//     // pub(crate) fn as_scan_code(&self) -> Result<&'static ScanCode, String> {
+//     //     match self {
+//     //         VK(_) => Err(format!("Illegal key code `{}`.", self)),
+//     //         SC(sc) => Ok(sc),
+//     //     }
+//     // }
+// }
+// 
+// impl Display for KeyCode {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+//         match self {
+//             VK(vk) => Display::fmt(&vk, f),
+//             SC(sc) => Display::fmt(&sc, f),
+//         }
+//     }
+// }
+// 
+// impl FromStr for KeyCode {
+//     type Err = String;
+// 
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         let kc = if let Ok(vk) = VirtualKey::from_text(s) {
+//             VK(vk)
+//         } else {
+//             SC(ScanCode::from_text(s)?)
+//         };
+//         Ok(kc)
+//     }
+// }
+// 
+// impl Serialize for KeyCode {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: Serializer,
+//     {
+//         let s = match self {
+//             VK(vk) => vk.name,
+//             SC(sc) => sc.name,
+//         };
+// 
+//         Ok(s.serialize(serializer)?)
+//     }
+// }
+// 
+// impl<'de> Deserialize<'de> for KeyCode {
+//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+//     where
+//         D: Deserializer<'de>,
+//     {
+//         Ok(String::deserialize(deserializer)?
+//             .parse()
+//             .map_err(|e| de::Error::custom(format!("Error parsing key code.\n{}", e)))?)
+//     }
+// }
 
-impl KeyCode {
-    pub(crate) fn id(&self) -> usize {
-        match self {
-            VK(vk) => vk.value as usize,
-            SC(sc) => sc.to_virtual_key().unwrap().value as usize,
-        }
-    }
-
-    // pub(crate) fn is_scan_code(&self) -> bool {
-    //     matches!(*self, SC(_))
-    // }
-
-    // pub(crate) fn is_virtual_key(&self) -> bool {
-    //     matches!(*self, VK(_))
-    // }
-
-    // pub(crate) fn as_virtual_key(&self) -> Option<&'static VirtualKey> {
-    //     match self {
-    //         VK(vk) => Some(vk),
-    //         SC(sc) => sc.to_virtual_key(),
-    //     }
-    // }
-
-    // pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
-    //     match self {
-    //         VK(vk) => Ok(vk),
-    //         SC(sc) => sc.to_virtual_key(),
-    //     }
-    // }
-
-    // pub(crate) fn as_scan_code(&self) -> Result<&'static ScanCode, String> {
-    //     match self {
-    //         VK(_) => Err(format!("Illegal key code `{}`.", self)),
-    //         SC(sc) => Ok(sc),
-    //     }
-    // }
-}
-
-impl Display for KeyCode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            VK(vk) => Display::fmt(&vk, f),
-            SC(sc) => Display::fmt(&sc, f),
-        }
-    }
-}
-
-impl FromStr for KeyCode {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let kc = if let Ok(vk) = VirtualKey::from_text(s) {
-            VK(vk)
-        } else {
-            SC(ScanCode::from_text(s)?)
-        };
-        Ok(kc)
-    }
-}
-
-impl Serialize for KeyCode {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let s = match self {
-            VK(vk) => vk.name,
-            SC(sc) => sc.name,
-        };
-
-        Ok(s.serialize(serializer)?)
-    }
-}
-
-impl<'de> Deserialize<'de> for KeyCode {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        Ok(String::deserialize(deserializer)?
-            .parse()
-            .map_err(|e| de::Error::custom(format!("Error parsing key code.\n{}", e)))?)
-    }
-}
-
-pub(crate) struct Key {
-    pub(crate) index: usize,
-    pub(crate) name: &'static str,
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub struct Key {
     pub(crate) vk_code: u8,
     pub(crate) scan_code: u8,
     pub(crate) is_ext_scan_code: bool,
 }
 
+impl Key {
+    pub fn name(&self) -> &'static str {
+        todo!()
+        //KEYS_NAMES[self]
+    }
+
+    pub fn virtual_key(&self) -> &'static VirtualKey {
+        VirtualKey::from_code(self.vk_code).unwrap()
+    }
+
+    pub fn scan_code(&self) -> &'static ScanCode {
+        ScanCode::from_code(self.scan_code, self.is_ext_scan_code).unwrap()
+    }
+}
+
+impl Display for Key {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
+    }
+}
+
+impl FromStr for Key {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        todo!()
+        // Ok(KEYS.by_name(s))
+    }
+}
+
+impl Serialize for Key {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.name().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Key {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let name = String::deserialize(deserializer)?;
+        Ok(KEYS[name.as_str()])
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::key::KeyCode::{SC, VK};
-    use crate::key::{KeyCode, ScanCode, VirtualKey};
+    use crate::key::Key;
+    use crate::key::{ScanCode, VirtualKey};
     use std::str::FromStr;
 
     #[macro_export]
@@ -277,7 +324,7 @@ mod tests {
     #[macro_export]
     macro_rules! key {
         ($text:literal) => {
-            $text.parse::<KeyCode>().unwrap()
+            $text.parse::<Key>().unwrap()
         };
     }
 
@@ -441,55 +488,55 @@ mod tests {
         assert_eq!("SC_ENTER", format!("{}", sc_key!("SC_ENTER")));
     }
 
-    #[test]
-    fn test_key_code_parse() {
-        let actual = KeyCode::from_str("VK_RETURN").unwrap();
-        assert!(matches!(actual, VK(_)));
-        if let VK(vk) = actual {
-            assert_eq!("VK_RETURN", vk.name);
-        }
-
-        let actual = KeyCode::from_str("SC_ENTER").unwrap();
-        assert!(matches!(actual, SC(_)));
-        if let SC(sc) = actual {
-            assert_eq!("SC_ENTER", sc.name);
-        }
-
-        let actual = KeyCode::from_str("`").unwrap();
-        assert!(matches!(actual, SC(_)));
-        if let SC(sc) = actual {
-            assert_eq!("SC_BACKTICK", sc.name);
-        }
-    }
-
-    #[test]
-    #[should_panic]
-    fn test_key_code_parse_fails() {
-        KeyCode::from_str("↑").unwrap();
-    }
-
-    #[test]
-    fn test_key_code_display() {
-        assert_eq!("SC_ENTER", format!("{}", key!("SC_ENTER")));
-        assert_eq!("VK_RETURN", format!("{}", key!("VK_RETURN")));
-    }
-
-    #[test]
-    fn test_key_code_serialize() {
-        let source = key!("SC_ENTER");
-        let json = serde_json::to_string_pretty(&source).unwrap();
-
-        // dbg!(&json);
-
-        let actual = serde_json::from_str::<KeyCode>(&json).unwrap();
-        assert_eq!(source, actual);
-
-        let source = key!("VK_RETURN");
-        let json = serde_json::to_string_pretty(&source).unwrap();
-
-        // dbg!(&json);
-
-        let actual = serde_json::from_str::<KeyCode>(&json).unwrap();
-        assert_eq!(source, actual);
-    }
+    // #[test]
+    // fn test_key_code_parse() {
+    //     let actual = KeyCode::from_str("VK_RETURN").unwrap();
+    //     assert!(matches!(actual, VK(_)));
+    //     if let VK(vk) = actual {
+    //         assert_eq!("VK_RETURN", vk.name);
+    //     }
+    // 
+    //     let actual = KeyCode::from_str("SC_ENTER").unwrap();
+    //     assert!(matches!(actual, SC(_)));
+    //     if let SC(sc) = actual {
+    //         assert_eq!("SC_ENTER", sc.name);
+    //     }
+    // 
+    //     let actual = KeyCode::from_str("`").unwrap();
+    //     assert!(matches!(actual, SC(_)));
+    //     if let SC(sc) = actual {
+    //         assert_eq!("SC_BACKTICK", sc.name);
+    //     }
+    // }
+    // 
+    // #[test]
+    // #[should_panic]
+    // fn test_key_code_parse_fails() {
+    //     KeyCode::from_str("↑").unwrap();
+    // }
+    // 
+    // #[test]
+    // fn test_key_code_display() {
+    //     assert_eq!("SC_ENTER", format!("{}", key!("SC_ENTER")));
+    //     assert_eq!("VK_RETURN", format!("{}", key!("VK_RETURN")));
+    // }
+    // 
+    // #[test]
+    // fn test_key_code_serialize() {
+    //     let source = key!("SC_ENTER");
+    //     let json = serde_json::to_string_pretty(&source).unwrap();
+    // 
+    //     // dbg!(&json);
+    // 
+    //     let actual = serde_json::from_str::<Key>(&json).unwrap();
+    //     assert_eq!(source, actual);
+    // 
+    //     let source = key!("VK_RETURN");
+    //     let json = serde_json::to_string_pretty(&source).unwrap();
+    // 
+    //     // dbg!(&json);
+    // 
+    //     let actual = serde_json::from_str::<Key>(&json).unwrap();
+    //     assert_eq!(source, actual);
+    // }
 }

@@ -227,17 +227,17 @@ impl AppControl {
     }
 
     fn on_log_view_update(&self, event: &KeyEvent) {
-        let scancode = event.scan_code();
-        let virtual_key = event.virtual_key();
+        let scancode = event.action().key.scan_code();
+        let virtual_key = event.action().key.virtual_key();
         let line = format!(
             "{:1}{:1}{:1} T: {:9} | {:22} | {:16} | {}",
             if event.rule.is_some() { "!" } else { "" },
             if event.is_injected() { ">" } else { "" },
             if event.is_private() { "<" } else { "" },
             event.time(),
-            virtual_key.unwrap(),
-            scancode.unwrap(),
-            event.transition()
+            virtual_key,
+            scancode,
+            event.action().transition
         );
 
         self.trim_log_text();

@@ -1,13 +1,12 @@
-use crate::key::{KeyCode, ScanCode, VirtualKey};
-use crate::key_action::KeyTransition;
+use crate::key::{Key, ScanCode, VirtualKey};
+use crate::key_action::{KeyAction, KeyTransition};
+use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
 use crate::key_transform_rule::KeyTransformRule;
 use log::warn;
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
-use crate::key::KeyCode::{SC, VK};
-use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
 
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
@@ -29,40 +28,22 @@ impl KeyEvent<'_> {
         self.kb.time
     }
 
-    pub(crate) fn key(&self) -> KeyCode {
-        if let Ok(vk) = self.virtual_key(){
-            VK(vk)                         
-        } else { 
-            SC(self.scan_code().unwrap())
+    pub fn action(&self) -> KeyAction {
+        KeyAction {
+            key: self.key(),
+            transition: self.transition(),
         }
     }
 
-    pub fn virtual_key(&self) -> Result<&'static VirtualKey, String> {
-        VirtualKey::from_code(self.kb.vkCode as u8)
+    fn key(&self) -> Key {
+        Key {
+            vk_code: self.kb.vkCode as u8,
+            scan_code: self.kb.scanCode as u8,
+            is_ext_scan_code: self.kb.flags.contains(LLKHF_EXTENDED),
+        }
     }
 
-    pub fn scan_code(&self) -> Result<&'static ScanCode, String> {
-        ScanCode::from_code(
-            self.kb.scanCode as u8,
-            self.kb.flags.contains(LLKHF_EXTENDED),
-        )
-    }
-
-    // pub fn as_virtual_key_action(&self) -> KeyAction {
-    //     KeyAction {
-    //         keys: vec![VK(self.virtual_key())],
-    //         transition: self.transition(),
-    //     }
-    // }
-    //
-    // pub fn as_scan_code_action(&self) -> KeyAction {
-    //     KeyAction {
-    //         keys: vec![SC(self.scan_code())],
-    //         transition: self.transition(),
-    //     }
-    // }
-
-    pub fn transition(&self) -> KeyTransition {
+    fn transition(&self) -> KeyTransition {
         KeyTransition::from_bool(self.kb.flags.contains(LLKHF_UP))
     }
 
@@ -104,8 +85,8 @@ impl Display for KeyEvent<'_> {
             f,
             "T:{:9} | {:22} | {:16} | {:1} | {:3} | {:3}",
             self.time(),
-            self.virtual_key().unwrap(),
-            self.scan_code().unwrap(),
+            self.key().virtual_key(),
+            self.key().scan_code(),
             self.transition(),
             if self.is_injected() { "INJ" } else { "" },
             if self.is_private() { "PRV" } else { "" },
@@ -145,8 +126,8 @@ mod tests {
         let actual = KeyEvent::new(kb);
 
         assert_eq!(1000, actual.time());
-        assert_eq!("SC_NUM_ENTER", actual.scan_code().unwrap().name);
-        assert_eq!("VK_RETURN", actual.virtual_key().unwrap().name);
+        assert_eq!("SC_NUM_ENTER", actual.key().scan_code().name);
+        assert_eq!("VK_RETURN", actual.key().virtual_key().name);
         assert_eq!(Up, actual.transition());
         assert!(actual.is_private());
         assert!(actual.is_injected());

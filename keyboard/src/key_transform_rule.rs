@@ -88,8 +88,8 @@ impl FromStr for KeyTransformProfile {
 
 #[cfg(test)]
 mod tests {
-    use crate::key::KeyCode;
-    use crate::key_action::KeyTransition::Down;
+    use crate::key::Key;
+use crate::key_action::KeyTransition::Down;
     use crate::key_action::{KeyAction, KeyActionSequence};
     use crate::key_modifiers::{KM_LSHIFT, KM_RSHIFT};
     use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};

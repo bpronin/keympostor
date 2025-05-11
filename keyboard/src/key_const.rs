@@ -1,20 +1,35 @@
 use crate::key::{Key, ScanCode, VirtualKey};
-macro_rules! new_key {
-    ($index:literal, $name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
-        Key {
-            index: $index,
-            name: $name,
-            vk_code: $vk_code,
-            scan_code: $scan_code,
-            is_ext_scan_code: $is_ext_scan_code,
-        }
-    };
-}
+use std::collections::HashMap;
+use std::sync::LazyLock;
+// macro_rules! new_key {
+//     ($index:literal, $name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
+//         Key {
+//             index: $index,
+//             name: $name,
+//             vk_code: $vk_code,
+//             scan_code: $scan_code,
+//             is_ext_scan_code: $is_ext_scan_code,
+//         }
+//     };
+// }
+//
 
 const MAX_KEYS: usize = 1;
-pub(crate) static KEYS: [Key; MAX_KEYS] = [
-    new_key!(0, "UNDEFINED", 0, 0, false)
-];
+pub(crate) static KEYS: LazyLock<HashMap<&str, Key>> = LazyLock::new(|| {
+    macro_rules! add_key {
+        ($name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
+            Key {
+                name: $name,
+                vk_code: $vk_code,
+                scan_code: $scan_code,
+                is_ext_scan_code: $is_ext_scan_code,
+            }
+        };
+    }
+    let mut map = HashMap::new();
+
+    map
+});
 
 macro_rules! new_vk {
     ($code:literal, $name:literal) => {
