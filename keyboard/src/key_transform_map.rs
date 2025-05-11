@@ -1,5 +1,6 @@
-use crate::key::{KeyCode, MAX_VK_CODE};
+use crate::key::KeyCode;
 use crate::key_action::KeyTransition;
+use crate::key_const::MAX_VK_CODE;
 use crate::key_event::KeyEvent;
 use crate::key_modifiers::KeyModifiers;
 use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
@@ -87,13 +88,10 @@ mod tests {
         ];
 
         assert_eq!(expected, map.get_group(&key!("VK_A"), Down));
-        
-        let expected = [
-            key_rule!("[ALT] SC_B↓ : SC_0x1C↓")
-        ];
-        /* VK_B converted from SC_B */
-        assert_eq!(expected, map.get_group(&key!("VK_B"), Down)); 
 
+        let expected = [key_rule!("[ALT] SC_B↓ : SC_0x1C↓")];
+        /* VK_B converted from SC_B */
+        assert_eq!(expected, map.get_group(&key!("VK_B"), Down));
     }
 
     #[test]

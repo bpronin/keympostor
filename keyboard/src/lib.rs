@@ -1,5 +1,6 @@
 mod key;
 mod key_action;
+mod key_const;
 pub mod key_event;
 pub mod key_hook;
 mod key_modifiers;
@@ -10,7 +11,8 @@ mod util;
 
 #[cfg(test)]
 mod tests {
-    use crate::key::{ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
+    use crate::key::{ScanCode, VirtualKey};
+    use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
 
     #[test]
     #[ignore]
@@ -24,7 +26,7 @@ mod tests {
             } else {
                 vk_name
             };
-            
+
             let vk_opt = format!("Some(&VIRTUAL_KEYS[{}])", vk_code);
 
             let sc_opt = if let Ok(sc_key) = vk_key.to_scan_code() {
@@ -50,11 +52,11 @@ mod tests {
                 } else {
                     sc_name
                 };
-                
-                if sc_key.to_virtual_key().is_ok(){
+
+                if sc_key.to_virtual_key().is_ok() {
                     continue;
                 }
-                
+
                 let sc_opt = format!(
                     "Some(&SCAN_CODES[{}][{}])",
                     sc_key.value, sc_key.is_extended as u8

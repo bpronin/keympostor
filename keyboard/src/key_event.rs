@@ -1,4 +1,4 @@
-use crate::key::{KeyCode, ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
+use crate::key::{KeyCode, ScanCode, VirtualKey};
 use crate::key_action::KeyTransition;
 use crate::key_transform_rule::KeyTransformRule;
 use log::warn;
@@ -7,6 +7,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
 use crate::key::KeyCode::{SC, VK};
+use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
 
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
