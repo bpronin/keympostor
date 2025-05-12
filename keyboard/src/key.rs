@@ -410,55 +410,62 @@ mod tests {
 
     #[test]
     fn test_key_code_parse() {
-        let actual = Key::from_str("ENTER").unwrap();
         assert_eq!(
             Key {
                 vk_code: 0x0D,
                 scan_code: 0x1C,
                 is_ext_scan_code: false,
             },
-            actual
+            Key::from_str("ENTER").unwrap()
         );
 
-        let actual = Key::from_str("NUM_ENTER").unwrap();
         assert_eq!(
             Key {
                 vk_code: 0x0D,
                 scan_code: 0x1C,
                 is_ext_scan_code: true,
             },
-            actual
+            Key::from_str("NUM_ENTER").unwrap()
         );
     }
 
-    // #[test]
-    // #[should_panic]
-    // fn test_key_code_parse_fails() {
-    //     KeyCode::from_str("↑").unwrap();
-    // }
-    //
-    // #[test]
-    // fn test_key_code_display() {
-    //     assert_eq!("SC_ENTER", format!("{}", key!("SC_ENTER")));
-    //     assert_eq!("VK_RETURN", format!("{}", key!("VK_RETURN")));
-    // }
-    //
-    // #[test]
-    // fn test_key_code_serialize() {
-    //     let source = key!("SC_ENTER");
-    //     let json = serde_json::to_string_pretty(&source).unwrap();
-    //
-    //     // dbg!(&json);
-    //
-    //     let actual = serde_json::from_str::<Key>(&json).unwrap();
-    //     assert_eq!(source, actual);
-    //
-    //     let source = key!("VK_RETURN");
-    //     let json = serde_json::to_string_pretty(&source).unwrap();
-    //
-    //     // dbg!(&json);
-    //
-    //     let actual = serde_json::from_str::<Key>(&json).unwrap();
-    //     assert_eq!(source, actual);
-    // }
+    #[test]
+    #[should_panic]
+    fn test_key_parse_fails() {
+        Key::from_str("BANANA").unwrap();
+    }
+    
+    #[test]
+    fn test_key_display() {
+        assert_eq!("ENTER", format!("{}", Key {
+            vk_code: 0x0D,
+            scan_code: 0x1C,
+            is_ext_scan_code: false,
+        }));
+        
+        assert_eq!("NUM_ENTER", format!("{}", Key {
+            vk_code: 0x0D,
+            scan_code: 0x1C,
+            is_ext_scan_code: true,
+        }));
+    }
+    
+    #[test]
+    fn test_key_serialize() {
+        let source = key!("ENTER");
+        let json = serde_json::to_string_pretty(&source).unwrap();
+    
+        // dbg!(&json);
+    
+        let actual = serde_json::from_str::<Key>(&json).unwrap();
+        assert_eq!(source, actual);
+    
+        let source = key!("NUM_ENTER");
+        let json = serde_json::to_string_pretty(&source).unwrap();
+    
+        // dbg!(&json);
+    
+        let actual = serde_json::from_str::<Key>(&json).unwrap();
+        assert_eq!(source, actual);
+    }
 }

@@ -11,9 +11,20 @@ pub(crate) struct Keys {
 
 impl Keys {
     fn new() -> Self {
+        let mut name_to_key_map = HashMap::new();
+        let mut key_to_name_map = HashMap::new();
+        for (name, key) in KEY_NAMES {
+            if name_to_key_map.insert(name, key).is_some() {
+                panic!("Duplicate name: {}", name)
+            };
+            if key_to_name_map.insert(key, name).is_some() {
+                // panic!("Duplicate key: {}", key.code_name())
+                eprintln!("Duplicate key for name: {}", name)
+            };
+        }
         Self {
-            name_to_key_map: KEY_NAMES.into_iter().collect(),
-            key_to_name_map: KEY_NAMES.into_iter().map(|(a, b)| (b, a)).collect(),
+            name_to_key_map,
+            key_to_name_map,
         }
     }
 
@@ -22,7 +33,7 @@ impl Keys {
             .get(key)
             .expect(&format!("Unsupported key: {}", key.code_name()))
     }
-    
+
     pub(crate) fn by_name(&self, name: &str) -> &Key {
         self.name_to_key_map
             .get(name)
@@ -43,7 +54,7 @@ macro_rules! new_key {
     };
 }
 
-const MAX_KEYS: usize = 228;
+const MAX_KEYS: usize = 183;
 static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("UNASSIGNED", 0, 0, false),
     new_key!("	", 0x00, 0x0F, true),
@@ -61,14 +72,14 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("<00>", 0x00, 0x54, true),
     new_key!("A", 0x41, 0x1E, false),
     new_key!("ACCEPT", 0x1E, 0x00, false),
-    new_key!("ADD", 0x6B, 0x4E, false),
+    // new_key!("ADD", 0x6B, 0x4E, false),
     new_key!("ALT", 0xA4, 0x38, false),
     new_key!("APOSTROPHE", 0xDE, 0x28, false),
     new_key!("APPLICATION", 0x5D, 0x5D, true),
-    new_key!("APPS", 0x5D, 0x5D, true),
+    // new_key!("APPS", 0x5D, 0x5D, true),
     new_key!("ATTN", 0xF6, 0x00, false),
     new_key!("B", 0x42, 0x30, false),
-    new_key!("BACK", 0x08, 0x0E, false),
+    //new_key!("BACK", 0x08, 0x0E, false),
     new_key!("BACKSLASH", 0xDC, 0x2B, false),
     new_key!("BACKSPACE", 0x08, 0x0E, false),
     new_key!("BACKTICK", 0xC0, 0x29, false),
@@ -82,9 +93,9 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("BROWSER_SEARCH", 0xAA, 0x65, true),
     new_key!("BROWSER_STOP", 0xA9, 0x68, true),
     new_key!("C", 0x43, 0x2E, false),
-    new_key!("CALCULATOR", 0xB7, 0x21, true),
-    new_key!("CANCEL", 0x03, 0x46, true),
-    new_key!("CAPITAL", 0x14, 0x3A, false),
+    //    new_key!("CALCULATOR", 0xB7, 0x21, true),
+    //    new_key!("CANCEL", 0x03, 0x46, true),
+    //    new_key!("CAPITAL", 0x14, 0x3A, false),
     new_key!("CAPS_LOCK", 0x14, 0x3A, false),
     new_key!("CLEAR", 0x0C, 0x4C, false),
     new_key!("COMMA", 0xBC, 0x33, false),
@@ -95,7 +106,7 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("D", 0x44, 0x20, false),
     new_key!("DECIMAL", 0x6E, 0x53, false),
     new_key!("DELETE", 0x2E, 0x53, false),
-    new_key!("DIVIDE", 0x6F, 0x35, true),
+    // new_key!("DIVIDE", 0x6F, 0x35, true),
     new_key!("DOT", 0xBE, 0x34, false),
     new_key!("DOWN", 0x28, 0x50, false),
     new_key!("E", 0x45, 0x12, false),
@@ -104,7 +115,7 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("EQ", 0xBB, 0x0D, false),
     new_key!("EREOF", 0xF9, 0x5D, false),
     new_key!("ESC", 0x1B, 0x01, false),
-    new_key!("ESCAPE", 0x1B, 0x01, false),
+    //    new_key!("ESCAPE", 0x1B, 0x01, false),
     new_key!("EXECUTE", 0x2B, 0x00, false),
     new_key!("EXSEL", 0xF8, 0x00, false),
     new_key!("F", 0x46, 0x21, false),
@@ -152,12 +163,12 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("LAUNCH_MAIL", 0xB4, 0x6C, true),
     new_key!("LAUNCH_MEDIA_SELECT", 0xB5, 0x6D, true),
     new_key!("LBUTTON", 0x01, 0x00, false),
-    new_key!("LCONTROL", 0xA2, 0x1D, false),
+    // new_key!("LCONTROL", 0xA2, 0x1D, false),
     new_key!("LEFT", 0x25, 0x4B, false),
     new_key!("LEFT_WINDOWS", 0x5B, 0x5B, true),
-    new_key!("LMENU", 0xA4, 0x38, false),
+    // new_key!("LMENU", 0xA4, 0x38, false),
     new_key!("LSHIFT", 0xA0, 0x2A, false),
-    new_key!("LWIN", 0x5B, 0x5B, true),
+    // new_key!("LWIN", 0x5B, 0x5B, true),
     new_key!("L_BRACKET", 0xDB, 0x1A, false),
     new_key!("M", 0x4D, 0x32, false),
     new_key!("MBUTTON", 0x04, 0x00, false),
@@ -168,9 +179,9 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("MENU", 0x12, 0x38, false),
     new_key!("MINUS", 0xBD, 0x0C, false),
     new_key!("MODECHANGE", 0x1F, 0x00, false),
-    new_key!("MULTIPLY", 0x6A, 0x37, false),
+    // new_key!("MULTIPLY", 0x6A, 0x37, false),
     new_key!("N", 0x4E, 0x31, false),
-    new_key!("NEXT", 0x22, 0x51, false),
+    // new_key!("NEXT", 0x22, 0x51, false),
     new_key!("NONAME", 0xFC, 0x00, false),
     new_key!("NONCONVERT", 0x1D, 0x00, false),
     new_key!("NUMLOCK", 0x90, 0x45, false),
@@ -184,17 +195,17 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("NUMPAD7", 0x67, 0x47, false),
     new_key!("NUMPAD8", 0x68, 0x48, false),
     new_key!("NUMPAD9", 0x69, 0x49, false),
-    new_key!("NUM_0", 0x2D, 0x52, false),
-    new_key!("NUM_1", 0x23, 0x4F, false),
-    new_key!("NUM_2", 0x28, 0x50, false),
-    new_key!("NUM_3", 0x22, 0x51, false),
-    new_key!("NUM_4", 0x25, 0x4B, false),
-    new_key!("NUM_5", 0x0C, 0x4C, false),
-    new_key!("NUM_6", 0x27, 0x4D, false),
-    new_key!("NUM_7", 0x24, 0x47, false),
-    new_key!("NUM_8", 0x26, 0x48, false),
-    new_key!("NUM_9", 0x21, 0x49, false),
-    new_key!("NUM_DEL", 0x2E, 0x53, false),
+    // new_key!("NUM_0", 0x2D, 0x52, false),
+    // new_key!("NUM_1", 0x23, 0x4F, false),
+    // new_key!("NUM_2", 0x28, 0x50, false),
+    // new_key!("NUM_3", 0x22, 0x51, false),
+    // new_key!("NUM_4", 0x25, 0x4B, false),
+    // new_key!("NUM_5", 0x0C, 0x4C, false),
+    // new_key!("NUM_6", 0x27, 0x4D, false),
+    // new_key!("NUM_7", 0x24, 0x47, false),
+    // new_key!("NUM_8", 0x26, 0x48, false),
+    // new_key!("NUM_9", 0x21, 0x49, false),
+    // new_key!("NUM_DEL", 0x2E, 0x53, false),
     new_key!("NUM_ENTER", 0x0D, 0x1C, true),
     new_key!("NUM_LOCK", 0x00, 0x45, true),
     new_key!("NUM_MINUS", 0x6D, 0x4A, false),
@@ -202,20 +213,20 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("NUM_PLUS", 0x6B, 0x4E, false),
     new_key!("NUM_SLASH", 0x6F, 0x35, true),
     new_key!("O", 0x4F, 0x18, false),
-    new_key!("OEM_1", 0xBA, 0x27, false),
+    // new_key!("OEM_1", 0xBA, 0x27, false),
     new_key!("OEM_102", 0xE2, 0x56, false),
-    new_key!("OEM_2", 0xBF, 0x35, false),
-    new_key!("OEM_3", 0xC0, 0x29, false),
-    new_key!("OEM_4", 0xDB, 0x1A, false),
-    new_key!("OEM_5", 0xDC, 0x2B, false),
-    new_key!("OEM_6", 0xDD, 0x1B, false),
-    new_key!("OEM_7", 0xDE, 0x28, false),
+    // new_key!("OEM_2", 0xBF, 0x35, false),
+    // new_key!("OEM_3", 0xC0, 0x29, false),
+    // new_key!("OEM_4", 0xDB, 0x1A, false),
+    // new_key!("OEM_5", 0xDC, 0x2B, false),
+    // new_key!("OEM_6", 0xDD, 0x1B, false),
+    // new_key!("OEM_7", 0xDE, 0x28, false),
     new_key!("OEM_8", 0xDF, 0x00, false),
     new_key!("OEM_CLEAR", 0xFE, 0x00, false),
-    new_key!("OEM_COMMA", 0xBC, 0x33, false),
-    new_key!("OEM_MINUS", 0xBD, 0x0C, false),
-    new_key!("OEM_PERIOD", 0xBE, 0x34, false),
-    new_key!("OEM_PLUS", 0xBB, 0x0D, false),
+    // new_key!("OEM_COMMA", 0xBC, 0x33, false),
+    // new_key!("OEM_MINUS", 0xBD, 0x0C, false),
+    // new_key!("OEM_PERIOD", 0xBE, 0x34, false),
+    // new_key!("OEM_PLUS", 0xBB, 0x0D, false),
     new_key!("P", 0x50, 0x19, false),
     new_key!("PA1", 0xFD, 0x00, false),
     new_key!("PACKET", 0xE7, 0x00, false),
@@ -225,25 +236,25 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("PLAY", 0xFA, 0x00, false),
     new_key!("PLUS", 0x00, 0x4E, true),
     new_key!("PRINT", 0x2A, 0x00, false),
-    new_key!("PRIOR", 0x21, 0x49, false),
+    // new_key!("PRIOR", 0x21, 0x49, false),
     new_key!("PRNT_SCRN", 0x2C, 0x37, true),
     new_key!("PROCESSKEY", 0xE5, 0x00, false),
     new_key!("Q", 0x51, 0x10, false),
     new_key!("R", 0x52, 0x13, false),
     new_key!("RBUTTON", 0x02, 0x00, false),
-    new_key!("RCONTROL", 0xA3, 0x1D, true),
-    new_key!("RETURN", 0x0D, 0x1C, false),
+    // new_key!("RCONTROL", 0xA3, 0x1D, true),
+    // new_key!("RETURN", 0x0D, 0x1C, false),
     new_key!("RIGHT", 0x27, 0x4D, false),
     new_key!("RIGHT_ALT", 0xA5, 0x38, true),
     new_key!("RIGHT_CTRL", 0xA3, 0x1D, true),
     new_key!("RIGHT_SHIFT", 0xA1, 0x36, false),
     new_key!("RIGHT_WINDOWS", 0x5C, 0x5C, true),
-    new_key!("RMENU", 0xA5, 0x38, true),
-    new_key!("RSHIFT", 0xA1, 0x36, false),
-    new_key!("RWIN", 0x5C, 0x5C, true),
+    // new_key!("RMENU", 0xA5, 0x38, true),
+    // new_key!("RSHIFT", 0xA1, 0x36, false),
+    // new_key!("RWIN", 0x5C, 0x5C, true),
     new_key!("R_BRACKET", 0xDD, 0x1B, false),
     new_key!("S", 0x53, 0x1F, false),
-    new_key!("SCROLL", 0x91, 0x46, false),
+    // new_key!("SCROLL", 0x91, 0x46, false),
     new_key!("SCROLL_LOCK", 0x91, 0x46, false),
     new_key!("SELECT", 0x29, 0x00, false),
     new_key!("SEMICOLON", 0xBA, 0x27, false),
@@ -251,9 +262,9 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("SHIFT", 0x10, 0x2A, false),
     new_key!("SLASH", 0xBF, 0x35, false),
     new_key!("SLEEP", 0x5F, 0x5F, true),
-    new_key!("SNAPSHOT", 0x2C, 0x54, false),
+    // new_key!("SNAPSHOT", 0x2C, 0x54, false),
     new_key!("SPACE", 0x20, 0x39, false),
-    new_key!("SUBTRACT", 0x6D, 0x4A, false),
+    // new_key!("SUBTRACT", 0x6D, 0x4A, false),
     new_key!("SYS_REQ", 0x2C, 0x54, false),
     new_key!("T", 0x54, 0x14, false),
     new_key!("TAB", 0x09, 0x0F, false),
@@ -263,7 +274,7 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("VOLUME_DOWN", 0xAE, 0x2E, true),
     new_key!("VOLUME_MUTE", 0xAD, 0x20, true),
     new_key!("VOLUME_UP", 0xAF, 0x30, true),
-    new_key!("VOL_MUTE", 0xAD, 0x20, true),
+    // new_key!("VOL_MUTE", 0xAD, 0x20, true),
     new_key!("W", 0x57, 0x11, false),
     new_key!("X", 0x58, 0x2D, false),
     new_key!("XBUTTON1", 0x05, 0x00, false),
