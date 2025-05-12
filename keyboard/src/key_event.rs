@@ -1,6 +1,8 @@
 use crate::key::{Key, ScanCode, VirtualKey};
+use crate::key_action::KeyTransition::Up;
 use crate::key_action::{KeyAction, KeyTransition};
 use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
+use crate::key_modifiers::KM_NONE;
 use crate::key_transform_rule::KeyTransformRule;
 use log::warn;
 use std::fmt::{Display, Formatter};
@@ -22,6 +24,23 @@ pub struct KeyEvent<'a> {
 impl KeyEvent<'_> {
     pub(crate) fn new(kb: KBDLLHOOKSTRUCT) -> Self {
         Self { kb, rule: None }
+    }
+
+    pub(crate) fn from_action(key_action: &KeyAction) -> Self {
+        let mut flags = Default::default();
+        if key_action.transition == Up {
+            flags |= LLKHF_UP
+        };
+        if key_action.key.is_ext_scan_code {
+            flags |= LLKHF_EXTENDED
+        };
+
+        Self::new(KBDLLHOOKSTRUCT {
+            vkCode: key_action.key.vk_code as u32,
+            scanCode: key_action.key.scan_code as u32,
+            flags,
+            ..Default::default()
+        })
     }
 
     pub fn time(&self) -> u32 {
@@ -96,66 +115,58 @@ impl Display for KeyEvent<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::key_action::KeyTransition::Up;
+    use crate::key_action::KeyTransition::{Down, Up};
+    use crate::key_event::KeyAction;
     use crate::key_event::{KeyEvent, SELF_EVENT_MARKER};
+    use crate::tests::init_logger;
+    use crate::{assert_not, key_act};
     use windows::Win32::UI::WindowsAndMessaging::{
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
 
     #[macro_export]
     macro_rules! key_event {
-        ($vk_code:expr, $is_up:expr) => {
-            KeyEvent::new(KBDLLHOOKSTRUCT {
-                vkCode: $vk_code as u32,
-                flags: if $is_up { LLKHF_UP } else { Default::default() },
-                ..Default::default()
-            })
+        ($action:literal) => {
+            KeyEvent::from_action(&$action.parse().unwrap())
         };
     }
 
     #[test]
-    fn test_key_event() {
-        let kb = KBDLLHOOKSTRUCT {
+    fn test_key_event_basics() {
+        let actual = KeyEvent::new(KBDLLHOOKSTRUCT {
             vkCode: 0x0D,
             scanCode: 0x1C,
             flags: LLKHF_UP | LLKHF_INJECTED | LLKHF_EXTENDED,
             time: 1000,
             dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
-        };
-
-        let actual = KeyEvent::new(kb);
+        });
 
         assert_eq!(1000, actual.time());
         assert_eq!("SC_NUM_ENTER", actual.key().scan_code().name);
         assert_eq!("VK_RETURN", actual.key().virtual_key().name);
         assert_eq!(Up, actual.transition());
+        assert!(actual.is_valid());
         assert!(actual.is_private());
         assert!(actual.is_injected());
-        assert!(actual.is_valid());
     }
 
-    // #[test]
-    // fn test_key_event_as_action() {
-    //     let kb = KBDLLHOOKSTRUCT {
-    //         vkCode: 0x0D,
-    //         scanCode: 0x1C,
-    //         flags: LLKHF_UP | LLKHF_INJECTED | LLKHF_EXTENDED,
-    //         time: 1000,
-    //         dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
-    //     };
-    //
-    //     let actual = KeyEvent::new(kb).as_virtual_key_action();
-    //     let expected = KeyAction {
-    //         keys: vec![VK(VirtualKey::from_code(0x0D).unwrap())],
-    //         transition: Up,
-    //     };
-    //     assert_eq!(expected, actual);
-    //
-    //     let actual = KeyEvent::new(kb).as_scan_code_action();
-    //     let expected = KeyAction {
-    //         keys: vec![SC(ScanCode::from_code(0x1C, true).unwrap())],
-    //         transition: Up,
-    //     };
-    //     assert_eq!(expected, actual);
-    // }
+    #[test]
+    fn test_key_event_from_action() {
+        init_logger();
+
+        let actual = KeyEvent::from_action(&key_act!("A↓"));
+
+        assert_eq!(0, actual.time());
+        assert_eq!("SC_A", actual.key().scan_code().name);
+        assert_eq!("VK_A", actual.key().virtual_key().name);
+        assert_eq!(Down, actual.transition());
+        assert_not!(actual.is_valid());
+        assert_not!(actual.is_private());
+        assert_not!(actual.is_injected());
+    }
+
+    #[test]
+    fn test_key_event_action() {
+        assert_eq!(key_act!("A↓"), key_event!("A↓").action());
+    }
 }

@@ -254,22 +254,22 @@ mod tests {
     #[test]
     fn test_key_action_display() {
         let actual = KeyAction {
-            key: key!("VK_RETURN"),
+            key: key!("ENTER"),
             transition: Down,
         };
-        assert_eq!("VK_RETURN↓", format!("{}", actual));
+        assert_eq!("ENTER↓", format!("{}", actual));
 
         let actual = KeyAction {
-            key: key!("SC_ENTER"),
+            key: key!("NUM_ENTER"),
             transition: Up,
         };
-        assert_eq!("SC_ENTER↑", format!("{}", actual));
+        assert_eq!("NUM_ENTER↑", format!("{}", actual));
     }
 
     #[test]
     fn test_key_action_serialize() {
         let source = KeyAction {
-            key: key!("VK_RETURN"),
+            key: key!("ENTER"),
             transition: Down,
         };
         let json = serde_json::to_string_pretty(&source).unwrap();
@@ -282,14 +282,14 @@ mod tests {
 
     #[test]
     fn test_key_action_sequence_display() {
-        let actual = key_act_seq!("VK_RETURN↓ → VK_SHIFT↑");
+        let actual = key_act_seq!("ENTER↓ → SHIFT↑");
 
-        assert_eq!("VK_RETURN↓ → VK_SHIFT↑", format!("{}", actual));
+        assert_eq!("ENTER↓ → SHIFT↑", format!("{}", actual));
     }
 
     #[test]
     fn test_key_action_sequence_serialize() {
-        let source = key_act_seq!("VK_RETURN↓ → VK_SHIFT↓");
+        let source = key_act_seq!("ENTER↓ → SHIFT↓");
 
         let json = serde_json::to_string_pretty(&source).unwrap();
 
@@ -299,7 +299,7 @@ mod tests {
 
     // #[test]
     // fn test_key_action_sequence_create_input() {
-    //     let source = key_act_seq!("VK_RETURN↓ → SC_NUM_ENTER↑");
+    //     let source = key_act_seq!("ENTER↓ → SC_NUM_ENTER↑");
     //
     //     let input = source.create_input();
     //

@@ -1,6 +1,19 @@
 use crate::key::{Key, ScanCode, VirtualKey};
 use std::collections::HashMap;
 use std::sync::LazyLock;
+pub(crate) const LEFT_SHIFT: &str = "LEFT_SHIFT";
+pub(crate) const RIGHT_SHIFT: &str = "RIGHT_SHIFT";
+pub(crate) const SHIFT: &str = "SHIFT";
+pub(crate) const LEFT_CTRL: &str = "LEFT_CTRL";
+pub(crate) const RIGHT_CTRL: &str = "RIGHT_CTRL";
+pub(crate) const CTRL: &str = "CTRL";
+pub(crate) const LEFT_ALT: &str = "LEFT_ALT";
+pub(crate) const RIGHT_ALT: &str = "RIGHT_ALT";
+pub(crate) const ALT: &str = "ALT";
+pub(crate) const LEFT_WIN: &str = "LEFT_WIN";
+pub(crate) const RIGHT_WIN: &str = "RIGHT_WIN";
+pub(crate) const WIN: &str = "WIN";
+pub(crate) const UNASSIGNED: &str = "UNASSIGNED";
 
 pub(crate) static KEYS: LazyLock<Keys> = LazyLock::new(|| Keys::new());
 
@@ -37,12 +50,12 @@ impl Keys {
     pub(crate) fn by_name(&self, name: &str) -> &Key {
         self.name_to_key_map
             .get(name)
-            .expect(&format!("Unsupported key name: {}", name))
+            .expect(&format!("Unsupported key name: `{}`", name))
     }
 }
 
 macro_rules! new_key {
-    ($name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
+    ($name:expr, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
         (
             $name,
             Key {
@@ -55,8 +68,11 @@ macro_rules! new_key {
 }
 
 const MAX_KEYS: usize = 183;
+
+const LEFT_BRACKET: &str = "L_BRACKET";
+
 static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
-    new_key!("UNASSIGNED", 0, 0, false),
+    new_key!(UNASSIGNED, 0, 0, false),
     new_key!("	", 0x00, 0x0F, true),
     new_key!("", 0x00, 0x01, true),
     new_key!("0", 0x30, 0x0B, false),
@@ -73,7 +89,7 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("A", 0x41, 0x1E, false),
     new_key!("ACCEPT", 0x1E, 0x00, false),
     // new_key!("ADD", 0x6B, 0x4E, false),
-    new_key!("ALT", 0xA4, 0x38, false),
+    //new_key!("ALT", 0xA4, 0x38, false),
     new_key!("APOSTROPHE", 0xDE, 0x28, false),
     new_key!("APPLICATION", 0x5D, 0x5D, true),
     // new_key!("APPS", 0x5D, 0x5D, true),
@@ -99,10 +115,10 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("CAPS_LOCK", 0x14, 0x3A, false),
     new_key!("CLEAR", 0x0C, 0x4C, false),
     new_key!("COMMA", 0xBC, 0x33, false),
-    new_key!("CONTROL", 0x11, 0x1D, false),
+    new_key!(CTRL, 0x11, 0x1D, false),
     new_key!("CONVERT", 0x1C, 0x00, false),
     new_key!("CRSEL", 0xF7, 0x00, false),
-    new_key!("CTRL", 0xA2, 0x1D, false),
+    // new_key!(LEFT_CTRL, 0xA2, 0x1D, false),
     new_key!("D", 0x44, 0x20, false),
     new_key!("DECIMAL", 0x6E, 0x53, false),
     new_key!("DELETE", 0x2E, 0x53, false),
@@ -163,13 +179,12 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("LAUNCH_MAIL", 0xB4, 0x6C, true),
     new_key!("LAUNCH_MEDIA_SELECT", 0xB5, 0x6D, true),
     new_key!("LBUTTON", 0x01, 0x00, false),
-    // new_key!("LCONTROL", 0xA2, 0x1D, false),
+    new_key!(LEFT_CTRL, 0xA2, 0x1D, false),
     new_key!("LEFT", 0x25, 0x4B, false),
-    new_key!("LEFT_WINDOWS", 0x5B, 0x5B, true),
-    // new_key!("LMENU", 0xA4, 0x38, false),
-    new_key!("LSHIFT", 0xA0, 0x2A, false),
-    // new_key!("LWIN", 0x5B, 0x5B, true),
-    new_key!("L_BRACKET", 0xDB, 0x1A, false),
+    new_key!(LEFT_WIN, 0x5B, 0x5B, true),
+    new_key!(LEFT_ALT, 0xA4, 0x38, false),
+    new_key!(LEFT_SHIFT, 0xA0, 0x2A, false),
+    new_key!(LEFT_BRACKET, 0xDB, 0x1A, false),
     new_key!("M", 0x4D, 0x32, false),
     new_key!("MBUTTON", 0x04, 0x00, false),
     new_key!("MEDIA_NEXT_TRACK", 0xB0, 0x19, true),
@@ -245,10 +260,10 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     // new_key!("RCONTROL", 0xA3, 0x1D, true),
     // new_key!("RETURN", 0x0D, 0x1C, false),
     new_key!("RIGHT", 0x27, 0x4D, false),
-    new_key!("RIGHT_ALT", 0xA5, 0x38, true),
-    new_key!("RIGHT_CTRL", 0xA3, 0x1D, true),
-    new_key!("RIGHT_SHIFT", 0xA1, 0x36, false),
-    new_key!("RIGHT_WINDOWS", 0x5C, 0x5C, true),
+    new_key!(RIGHT_ALT, 0xA5, 0x38, true),
+    new_key!(RIGHT_CTRL, 0xA3, 0x1D, true),
+    new_key!(RIGHT_SHIFT, 0xA1, 0x36, false),
+    new_key!(RIGHT_WIN, 0x5C, 0x5C, true),
     // new_key!("RMENU", 0xA5, 0x38, true),
     // new_key!("RSHIFT", 0xA1, 0x36, false),
     // new_key!("RWIN", 0x5C, 0x5C, true),
@@ -259,7 +274,7 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("SELECT", 0x29, 0x00, false),
     new_key!("SEMICOLON", 0xBA, 0x27, false),
     new_key!("SEPARATOR", 0x6C, 0x00, false),
-    new_key!("SHIFT", 0x10, 0x2A, false),
+    new_key!(SHIFT, 0x10, 0x2A, false),
     new_key!("SLASH", 0xBF, 0x35, false),
     new_key!("SLEEP", 0x5F, 0x5F, true),
     // new_key!("SNAPSHOT", 0x2C, 0x54, false),
@@ -711,3 +726,4 @@ pub(crate) static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
     new_sc!(0x86, "SC_F23", "UNASSIGNED"),
     new_sc!(0x87, "SC_F24", "UNASSIGNED"),
 ];
+

@@ -34,6 +34,6 @@ NUM_3^ : R^;
 NUM_0* : M*;
 NUM_0^ : M^;
 NUM_DEL* : CTRL*;
-[CONTROL] NUM_DEL^ : CTRL^;
+[CTRL] NUM_DEL^ : CTRL^;
 NUM_ENTER* : SPACE*;
 NUM_ENTER^ : SPACE^;

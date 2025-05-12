@@ -198,7 +198,7 @@ impl FromStr for Key {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(*KEYS.by_name(s))
+        Ok(*KEYS.by_name(s.trim()))
     }
 }
 

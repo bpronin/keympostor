@@ -301,6 +301,7 @@ dependencies = [
  "log",
  "serde",
  "serde_json",
+ "simple_logger",
  "windows",
 ]
 

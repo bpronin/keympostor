@@ -112,40 +112,40 @@ use crate::key_action::KeyTransition::Down;
 
     #[test]
     fn test_key_transform_rule_source() {
-        let rule = key_rule!("[CONTROL + SHIFT] VK_RETURN↓ : SC_ENTER↓");
-        assert_eq!(key_trig!("[CONTROL + SHIFT] VK_RETURN↓"), rule.source);
+        let rule = key_rule!("[CTRL + SHIFT] ENTER↓ : ENTER↓");
+        assert_eq!(key_trig!("[CTRL + SHIFT] ENTER↓"), rule.source);
     }
 
     #[test]
     fn test_key_transform_rule_display() {
         let source = KeyTransformRule {
             source: KeyTrigger {
-                action: key_act!("VK_RETURN↓"),
+                action: key_act!("ENTER↓"),
                 modifiers: KM_LSHIFT,
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
-                    key: key!("SC_ENTER"),
+                    key: key!("ENTER"),
                     transition: Down,
                 }],
             },
         };
 
-        assert_eq!("[LSHIFT]VK_RETURN↓ : SC_ENTER↓", format!("{}", source));
+        assert_eq!("[LEFT_SHIFT]ENTER↓ : ENTER↓", format!("{}", source));
     }
 
     #[test]
     fn test_key_transform_rule_parse() {
-        let actual = "[SHIFT]VK_RETURN ↓ : SC_ENTER↓".parse().unwrap();
+        let actual = "[SHIFT] ENTER ↓ : ENTER ↓".parse().unwrap();
 
         let expected = KeyTransformRule {
             source: KeyTrigger {
-                action: key_act!("VK_RETURN↓"),
+                action: key_act!("ENTER↓"),
                 modifiers: KM_LSHIFT | KM_RSHIFT,
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
-                    key: key!("SC_ENTER"),
+                    key: key!("ENTER"),
                     transition: Down,
                 }],
             },
@@ -158,12 +158,12 @@ use crate::key_action::KeyTransition::Down;
     fn test_key_transform_rule_serialize() {
         let source = KeyTransformRule {
             source: KeyTrigger {
-                action: key_act!("VK_RETURN↓"),
+                action: key_act!("ENTER↓"),
                 modifiers: KM_LSHIFT,
             },
             target: KeyActionSequence {
                 actions: vec![KeyAction {
-                    key: key!("SC_ENTER"),
+                    key: key!("ENTER"),
                     transition: Down,
                 }],
             },
@@ -180,20 +180,18 @@ use crate::key_action::KeyTransition::Down;
         let actual = key_profile!(
             "
             Test profile;
-            SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
-            [CONTROL + SHIFT] VK_RETURN↓ : VK_RETURN↓ → VK_RETURN↑;
+            A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑;
+            [CTRL + SHIFT] ENTER↓ : ENTER↓ → ENTER↑;
             "
         );
-        //println!("{}", actual);
 
         let expected = KeyTransformProfile {
             title: "Test profile".to_string(),
             rules: vec![
-                key_rule!("SC_A↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑"),
-                key_rule!("[CONTROL + SHIFT] VK_RETURN↓: VK_RETURN↓ → VK_RETURN↑"),
+                key_rule!("A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
+                key_rule!("[CTRL + SHIFT] ENTER↓: ENTER↓ → ENTER↑"),
             ],
         };
-        //println!("{}", expected);
 
         assert_eq!(expected, actual);
     }
@@ -203,7 +201,7 @@ use crate::key_action::KeyTransition::Down;
         fn test_key_transform_rules_parse_split_transition() {
             let actual: KeyTransformProfile = "
             Test profile;
-            VK_A : VK_B;
+            A : B;
             "
             .parse()
             .unwrap();
@@ -212,8 +210,8 @@ use crate::key_action::KeyTransition::Down;
 
             let expected: KeyTransformProfile = "
             Test profile;
-            VK_A↓ : VK_B↓;
-            VK_A↑ : VK_B↑;
+            A↓ : B↓;
+            A↑ : B↑;
             "
             .parse()
             .unwrap();
@@ -227,7 +225,7 @@ use crate::key_action::KeyTransition::Down;
         fn test_key_transform_rules_parse_expand_transition() {
             let actual: KeyTransformProfile = "
             Test profile;
-            VK_A↓↑ : VK_B↓↑;
+            A↓↑ : B↓↑;
             "
             .parse()
             .unwrap();
@@ -236,7 +234,7 @@ use crate::key_action::KeyTransition::Down;
 
             let expected: KeyTransformProfile = "
             Test profile;
-            VK_A↓ → VK_A↓: VK_B↓ → VK_B↑;
+            A↓ → A↓: B↓ → B↑;
             "
             .parse()
             .unwrap();
@@ -252,8 +250,8 @@ use crate::key_action::KeyTransition::Down;
         let expected = key_profile!(
             "
             Test profile;
-            SC_CAPS_LOCK↓ : SC_LEFT_WINDOWS↓ → SC_SPACE↓ → SC_SPACE↑ → SC_LEFT_WINDOWS↑;
-            [LSHIFT]VK_CAPITAL↓ : VK_CAPITAL↓ → VK_CAPITAL↑;
+            CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑;
+            [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑;
             "
         );
 

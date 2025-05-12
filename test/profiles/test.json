@@ -4,26 +4,26 @@
     {
       "source": {
         "action": {
-          "key": "SC_CAPS_LOCK",
+          "key": "CAPS_LOCK",
           "transition": "Down"
         }
       },
       "target": {
         "actions": [
           {
-            "key": "SC_LEFT_WINDOWS",
+            "key": "LEFT_WIN",
             "transition": "Down"
           },
           {
-            "key": "SC_SPACE",
+            "key": "SPACE",
             "transition": "Down"
           },
           {
-            "key": "SC_SPACE",
+            "key": "SPACE",
             "transition": "Up"
           },
           {
-            "key": "SC_LEFT_WINDOWS",
+            "key": "LEFT_WIN",
             "transition": "Up"
           }
         ]
@@ -32,19 +32,19 @@
     {
       "source": {
         "action": {
-          "key": "VK_CAPITAL",
+          "key": "CAPS_LOCK",
           "transition": "Down"
         },
-        "modifiers": "LSHIFT"
+        "modifiers": "LEFT_SHIFT"
       },
       "target": {
         "actions": [
           {
-            "key": "VK_CAPITAL",
+            "key": "CAPS_LOCK",
             "transition": "Down"
           },
           {
-            "key": "VK_CAPITAL",
+            "key": "CAPS_LOCK",
             "transition": "Up"
           }
         ]

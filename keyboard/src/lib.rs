@@ -13,7 +13,16 @@ mod util;
 mod tests {
     use crate::key::{ScanCode, VirtualKey};
     use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
+    use log::LevelFilter;
+    use simple_logger::SimpleLogger;
     use std::collections::BTreeMap;
+
+    pub(crate) fn init_logger() {
+        SimpleLogger::new()
+            .with_level(LevelFilter::Debug)
+            .init()
+            .unwrap();
+    }
 
     // #[test]
     // #[ignore]
