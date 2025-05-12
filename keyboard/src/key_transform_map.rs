@@ -56,8 +56,8 @@ impl Default for KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::key_event::KeyEvent;
-    use crate::key_modifiers::{KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
+    use crate::key_transform_map::KeyEvent;
+use crate::key_modifiers::{KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
     use crate::key_transform_map::KeyAction;
     use crate::key_transform_map::KeyTransformMap;
     use crate::key_transform_rule::KeyTransformRule;
@@ -127,25 +127,25 @@ mod tests {
         map.put(key_rule!("[LEFT_SHIFT] A↓ : C↓"));
         map.put(key_rule!("[LEFT_ALT + LEFT_CTRL] A↓ : D↓"));
 
-        // assert_eq!(
-        //     &key_rule!("A↓ : B↓"),
-        //     map.get(&key_event!("A↓"), all_up).unwrap()
-        // );
-        // 
-        // assert_eq!(
-        //     &key_rule!("[LEFT_SHIFT] A↓ : C↓"),
-        //     map.get(&key_event!("A↓"), shift_down).unwrap()
-        // );
-        // 
-        // assert_eq!(
-        //     &key_rule!("[LEFT_ALT + LEFT_CTRL]A↓ : D↓"),
-        //     map.get(&key_event!("A↓"), ctrl_alt_down).unwrap()
-        // );
-        // 
-        // assert_none!(map.get(&key_event!("B↓"), all_up));
-        // assert_none!(map.get(&key_event!("A↑"), all_up));
-        // assert_none!(map.get(&key_event!("LEFT_ALT↓"), alt_down));
-        // assert_none!(map.get(&key_event!("LEFT_SHIFT↓"), shift_down));
-        // assert_none!(map.get(&key_event!("LEFT_CTRL↓"), ctrl_down));
+        assert_eq!(
+            &key_rule!("A↓ : B↓"),
+            map.get(&key_event!("A↓"), all_up).unwrap()
+        );
+        
+        assert_eq!(
+            &key_rule!("[LEFT_SHIFT] A↓ : C↓"),
+            map.get(&key_event!("A↓"), shift_down).unwrap()
+        );
+        
+        assert_eq!(
+            &key_rule!("[LEFT_ALT + LEFT_CTRL]A↓ : D↓"),
+            map.get(&key_event!("A↓"), ctrl_alt_down).unwrap()
+        );
+        
+        assert_none!(map.get(&key_event!("B↓"), all_up));
+        assert_none!(map.get(&key_event!("A↑"), all_up));
+        assert_none!(map.get(&key_event!("LEFT_ALT↓"), alt_down));
+        assert_none!(map.get(&key_event!("LEFT_SHIFT↓"), shift_down));
+        assert_none!(map.get(&key_event!("LEFT_CTRL↓"), ctrl_down));
     }
 }

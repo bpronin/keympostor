@@ -61,7 +61,7 @@ impl KeyTransformProfile {
     fn load_json(path: &str) -> Result<Self, String> {
         let json = fs::read_to_string(&path)
             .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?;
-        // dbg!(&json);
+
         Ok(serde_json::from_str(&json).map_err(|e| format!("Unable to parse {}.\n{}", path, e))?)
     }
 }
@@ -89,7 +89,7 @@ impl FromStr for KeyTransformProfile {
 #[cfg(test)]
 mod tests {
     use crate::key::Key;
-use crate::key_action::KeyTransition::Down;
+    use crate::key_action::KeyTransition::Down;
     use crate::key_action::{KeyAction, KeyActionSequence};
     use crate::key_modifiers::{KM_LSHIFT, KM_RSHIFT};
     use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};

@@ -1,7 +1,3 @@
-use crate::key_const::{
-    ALT, CTRL, LEFT_ALT, LEFT_CTRL, LEFT_SHIFT, LEFT_WIN, UNASSIGNED, RIGHT_ALT, RIGHT_CTRL,
-    RIGHT_SHIFT, RIGHT_WIN, SHIFT, WIN,
-};
 use crate::write_joined;
 use core::ops;
 use ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
@@ -65,41 +61,41 @@ impl Display for KeyModifiers {
         let mut names: Vec<&str> = vec![];
 
         if self.contains(KM_LSHIFT | KM_RSHIFT) {
-            names.push(SHIFT);
+            names.push("SHIFT");
         } else if self.contains(KM_LSHIFT) {
-            names.push(LEFT_SHIFT);
+            names.push("LEFT_SHIFT");
         } else if self.contains(KM_RSHIFT) {
-            names.push(RIGHT_SHIFT);
+            names.push("RIGHT_SHIFT");
         }
 
         if self.contains(KM_LCTRL | KM_RCTRL) {
-            names.push(CTRL);
+            names.push("CTRL");
         } else if self.contains(KM_LCTRL) {
-            names.push(LEFT_CTRL);
+            names.push("LEFT_CTRL");
         } else if self.contains(KM_RCTRL) {
-            names.push(RIGHT_CTRL);
+            names.push("RIGHT_CTRL");
         }
 
         if self.contains(KM_LALT | KM_RALT) {
-            names.push(ALT);
+            names.push("ALT");
         } else if self.contains(KM_LALT) {
-            names.push(LEFT_ALT);
+            names.push("LEFT_ALT");
         } else if self.contains(KM_RALT) {
-            names.push(RIGHT_ALT);
+            names.push("RIGHT_ALT");
         }
 
         if self.contains(KM_LWIN | KM_RWIN) {
-            names.push(WIN);
+            names.push("WIN");
         } else if self.contains(KM_LWIN) {
-            names.push(LEFT_WIN);
+            names.push("LEFT_WIN");
         } else if self.contains(KM_RWIN) {
-            names.push(RIGHT_WIN);
+            names.push("RIGHT_WIN");
         }
 
         if !names.is_empty() {
             write_joined!(f, names, " + ")
         } else {
-            write!(f, "{}", UNASSIGNED)
+            write!(f, "{}", "UNASSIGNED")
         }
     }
 }
@@ -109,24 +105,24 @@ impl FromStr for KeyModifiers {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let ts = s.trim();
-        if ts.is_empty() || ts == UNASSIGNED {
+        if ts.is_empty() || ts == "UNASSIGNED" {
             Ok(KM_NONE)
         } else {
             let this = ts.split('+').fold(KM_NONE, |acc, part| {
                 let tp = part.trim();
                 match tp {
-                    LEFT_SHIFT => acc | KM_LSHIFT,
-                    RIGHT_SHIFT => acc | KM_RSHIFT,
-                    SHIFT => acc | KM_LSHIFT | KM_RSHIFT,
-                    LEFT_CTRL => acc | KM_LCTRL,
-                    RIGHT_CTRL => acc | KM_RCTRL,
-                    CTRL => acc | KM_LCTRL | KM_RCTRL,
-                    LEFT_ALT => acc | KM_LALT,
-                    RIGHT_ALT => acc | KM_RALT,
-                    ALT => acc | KM_LALT | KM_RALT,
-                    LEFT_WIN => acc | KM_LWIN,
-                    RIGHT_WIN => acc | KM_RWIN,
-                    WIN => acc | KM_LWIN | KM_RWIN,
+                    "LEFT_SHIFT" => acc | KM_LSHIFT,
+                    "RIGHT_SHIFT" => acc | KM_RSHIFT,
+                    "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
+                    "LEFT_CTRL" => acc | KM_LCTRL,
+                    "RIGHT_CTRL" => acc | KM_RCTRL,
+                    "CTRL" => acc | KM_LCTRL | KM_RCTRL,
+                    "LEFT_ALT" => acc | KM_LALT,
+                    "RIGHT_ALT" => acc | KM_RALT,
+                    "ALT" => acc | KM_LALT | KM_RALT,
+                    "LEFT_WIN" => acc | KM_LWIN,
+                    "RIGHT_WIN" => acc | KM_RWIN,
+                    "WIN" => acc | KM_LWIN | KM_RWIN,
                     &_ => panic!("Error parsing key modifier: `{tp}`"),
                 }
             });

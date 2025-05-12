@@ -1,6 +1,6 @@
 Game;
-NUMLOCK* : 1*;
-NUMLOCK^ : 1^;
+NUM_LOCK* : 1*;
+NUM_LOCK^ : 1^;
 NUM_SLASH* : 2*;
 NUM_SLASH^ : 2^;
 NUM_MUL* : 3*;
