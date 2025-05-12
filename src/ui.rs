@@ -5,6 +5,7 @@ use crate::settings::AppSettings;
 use keyboard::key_event::KeyEvent;
 use keyboard::key_hook::KeyboardHandler;
 use keyboard::key_transform_rule::KeyTransformProfile;
+use log::{error, warn};
 use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
@@ -12,7 +13,6 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 use std::ops::Deref;
 use std::rc::Rc;
-use log::{error, warn};
 
 thread_local! {
     static APP: RefCell<AppUi> = RefCell::new(
@@ -175,7 +175,7 @@ impl AppControl {
             self.log_view.appendln(rs!(_logging_enabled_));
         }
     }
-    
+
     fn update_controls_profile_changed(&self, profile: &KeyTransformProfile) {
         let s = profile.to_string();
         self.profile_view.set_text(&s);
@@ -244,22 +244,22 @@ impl AppControl {
 
         self.log_view.set_text(&trimmed_text);
     }
-                        
+
     fn on_log_view_update(&self, event: &KeyEvent) {
         let action = event.action();
         let key = action.key;
-        let scancode = key.scan_code();
+        let scan_code = key.scan_code();
         let virtual_key = key.virtual_key();
         let line = format!(
-            "{:1}{:1}{:1} T: {:9} | {:22} |",
+            "{:1}{:1}{:1} T: {:9} | {:20}| {:22}| {:18} | {:1}",
             if event.rule.is_some() { "!" } else { "" },
             if event.is_injected() { ">" } else { "" },
             if event.is_private() { "<" } else { "" },
             event.time(),
-            action,
-            // virtual_key,
-            // scancode,
-            // action.transition
+            key,
+            virtual_key,
+            scan_code,
+            action.transition
         );
 
         self.trim_log_text();
@@ -369,16 +369,16 @@ impl NativeUi<AppUi> for AppControl {
             .parent(&app.window)
             .focus(true)
             .build(&mut app.text_editor)?;
-        
+
         nwg::TabsContainer::builder()
             .parent(&app.window)
             .build(&mut app.tab_container)?;
-        
+
         nwg::Tab::builder()
             .text(rs!(log))
             .parent(&app.tab_container)
             .build(&mut app.tab_log)?;
-        
+
         nwg::Tab::builder()
             .text(rs!(profile))
             .parent(&app.tab_container)
@@ -466,7 +466,7 @@ impl NativeUi<AppUi> for AppControl {
             top: D::Points(4.0),
             bottom: D::Points(4.0),
         };
-        
+
         const TAB_PADDING: Rect<D> = Rect {
             start: D::Points(0.0),
             end: D::Points(8.0),
@@ -480,14 +480,14 @@ impl NativeUi<AppUi> for AppControl {
             top: D::Points(4.0),
             bottom: D::Points(4.0),
         };
-        
+
         const TAB_MARGIN: Rect<D> = Rect {
             start: D::Points(4.0),
             end: D::Points(4.0),
             top: D::Points(4.0),
             bottom: D::Points(18.0),
         };
-        
+
         /* Log tab layout */
         nwg::FlexboxLayout::builder()
             .parent(&ui.tab_container)
@@ -505,7 +505,7 @@ impl NativeUi<AppUi> for AppControl {
             .child_margin(TAB_MARGIN)
             .child_flex_grow(1.0)
             .build(&ui.tab_profiles_layout)?;
-        
+
         /* Main window layout */
         nwg::FlexboxLayout::builder()
             .parent(&ui.window)

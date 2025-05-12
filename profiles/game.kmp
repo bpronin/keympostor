@@ -1,39 +1,65 @@
 Game;
+
 NUM_LOCK* : 1*;
 NUM_LOCK^ : 1^;
-NUM_SLASH* : 2*;
-NUM_SLASH^ : 2^;
+
+NUM_DIV* : 2*;
+NUM_DIV^ : 2^;
+
 NUM_MUL* : 3*;
 NUM_MUL^ : 3^;
+
 NUM_MINUS* : 4*;
 NUM_MINUS^ : 4^;
 
 NUM_7* : Q*;
 NUM_7^ : Q^;
+
 NUM_8* : W*;
 NUM_8^ : W^;
+
 NUM_9* : E*;
 NUM_9^ : E^;
+
 NUM_PLUS* : TAB*;
 NUM_PLUS^ : TAB^;
 
 NUM_4* : A*;
 NUM_4^ : A^;
+
 NUM_5* : S*;
 NUM_5^ : S^;
+
 NUM_6* : D*;
 NUM_6^ : D^;
 
 NUM_1* : F*;
 NUM_1^ : F^;
+
 NUM_2* : T*;
 NUM_2^ : T^;
+
 NUM_3* : R*;
 NUM_3^ : R^;
 
 NUM_0* : M*;
 NUM_0^ : M^;
-DELETE* : CTRL*;
-DELETE^ : CTRL^;
+
+NUM_DOT* : LEFT_CTRL*;
+[LEFT_CTRL] NUM_DOT* : LEFT_CTRL*;
+[LEFT_CTRL] NUM_DOT^ : LEFT_CTRL^;
+
 NUM_ENTER* : SPACE*;
 NUM_ENTER^ : SPACE^;
+
+NUM_LOCK* : ESC*;
+NUM_LOCK^ : ESC^;
+
+LAUNCH_APP2* : F3*
+LAUNCH_APP2^ : F3^
+
+BROWSER_SEARCH* : F4*
+BROWSER_SEARCH^ : F4^
+
+BACKSPACE* : F5*
+BACKSPACE^ : F5^

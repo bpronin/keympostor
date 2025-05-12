@@ -69,30 +69,9 @@ pub struct KeyAction {
 
 impl KeyAction {
     fn create_input(&self) -> INPUT {
-        self.create_vk_input()
-    }
-
-    fn create_vk_input(&self) -> INPUT {
         let virtual_key = self.key.virtual_key();
-        let mut flags = KEYBD_EVENT_FLAGS::default();
-        if self.transition.is_up() {
-            flags |= KEYEVENTF_KEYUP
-        }
-        INPUT {
-            r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 {
-                ki: KEYBDINPUT {
-                    wVk: VIRTUAL_KEY(virtual_key.value as u16),
-                    dwFlags: flags,
-                    dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
-                    ..Default::default()
-                },
-            },
-        }
-    }
-
-    fn create_sc_input(&self) -> INPUT {
         let scan_code = self.key.scan_code();
+        
         let mut flags = KEYEVENTF_SCANCODE;
         if scan_code.is_extended {
             flags |= KEYEVENTF_EXTENDEDKEY
@@ -100,10 +79,12 @@ impl KeyAction {
         if self.transition.is_up() {
             flags |= KEYEVENTF_KEYUP;
         }
+        
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: INPUT_0 {
                 ki: KEYBDINPUT {
+                    wVk: VIRTUAL_KEY(virtual_key.value as u16),
                     wScan: scan_code.ext_value(),
                     dwFlags: flags,
                     dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
@@ -112,6 +93,47 @@ impl KeyAction {
             },
         }
     }
+
+    // fn create_vk_input(&self) -> INPUT {
+    //     let virtual_key = self.key.virtual_key();
+    //     let mut flags = KEYBD_EVENT_FLAGS::default();
+    //     if self.transition.is_up() {
+    //         flags |= KEYEVENTF_KEYUP
+    //     }
+    //     INPUT {
+    //         r#type: INPUT_KEYBOARD,
+    //         Anonymous: INPUT_0 {
+    //             ki: KEYBDINPUT {
+    //                 wVk: VIRTUAL_KEY(virtual_key.value as u16),
+    //                 dwFlags: flags,
+    //                 dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
+    //                 ..Default::default()
+    //             },
+    //         },
+    //     }
+    // }
+    // 
+    // fn create_sc_input(&self) -> INPUT {
+    //     let scan_code = self.key.scan_code();
+    //     let mut flags = KEYEVENTF_SCANCODE;
+    //     if scan_code.is_extended {
+    //         flags |= KEYEVENTF_EXTENDEDKEY
+    //     }
+    //     if self.transition.is_up() {
+    //         flags |= KEYEVENTF_KEYUP;
+    //     }
+    //     INPUT {
+    //         r#type: INPUT_KEYBOARD,
+    //         Anonymous: INPUT_0 {
+    //             ki: KEYBDINPUT {
+    //                 wScan: scan_code.ext_value(),
+    //                 dwFlags: flags,
+    //                 dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
+    //                 ..Default::default()
+    //             },
+    //         },
+    //     }
+    // }
 }
 
 impl Display for KeyAction {
@@ -281,8 +303,8 @@ mod tests {
     }
 
     #[test]
-    fn test_key_action_create_vk_input() {
-        let actual = key_act!("ENTER*").create_vk_input();
+    fn test_key_action_create_input() {
+        let actual = key_act!("ENTER*").create_input();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(0, actual.Anonymous.ki.wScan);
@@ -294,7 +316,7 @@ mod tests {
             );
         };
 
-        let actual = key_act!("NUM_ENTER^").create_vk_input();
+        let actual = key_act!("NUM_ENTER^").create_input();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(0, actual.Anonymous.ki.wScan);
@@ -309,7 +331,7 @@ mod tests {
 
     #[test]
     fn test_key_action_create_sc_input() {
-        let actual = key_act!("ENTER*").create_sc_input();
+        let actual = key_act!("ENTER*").create_input();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VIRTUAL_KEY(0), actual.Anonymous.ki.wVk);
@@ -321,7 +343,7 @@ mod tests {
             );
         };
 
-        let actual = key_act!("NUM_ENTER^").create_sc_input();
+        let actual = key_act!("NUM_ENTER^").create_input();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VIRTUAL_KEY(0), actual.Anonymous.ki.wVk);

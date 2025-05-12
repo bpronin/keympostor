@@ -190,7 +190,7 @@ impl Key {
 
 impl Display for Key {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.name())
+        Display::fmt(self.name(), f)
     }
 }
 
