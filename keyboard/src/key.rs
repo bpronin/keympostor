@@ -44,6 +44,10 @@ impl VirtualKey {
         Self::from_code_name(st).or_else(|_| Self::from_name(st))
     }
 
+    pub fn code_name(&self) -> String {
+        format!("VC_0x{:02X}", self.value)
+    }
+
     pub fn to_scan_code(&self) -> Result<&'static ScanCode, String> {
         let ext_code = unsafe { MapVirtualKeyW(self.value as u32, MAPVK_VK_TO_VSC_EX) };
         if ext_code > 0 {
@@ -130,6 +134,10 @@ impl ScanCode {
         }
     }
 
+    pub fn code_name(&self) -> String {
+        format!("SC_0x{:04X}", self.ext_value())
+    }
+
     pub fn to_virtual_key(&self) -> Result<&'static VirtualKey, String> {
         let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
         if vk_code > 0 {
@@ -154,97 +162,6 @@ impl FromStr for ScanCode {
     }
 }
 
-// #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-// pub enum KeyCode {
-//     VK(&'static VirtualKey),
-//     SC(&'static ScanCode),
-// }
-//
-// impl KeyCode {
-//     pub(crate) fn id(&self) -> usize {
-//         match self {
-//             VK(vk) => vk.value as usize,
-//             SC(sc) => sc.to_virtual_key().unwrap().value as usize,
-//         }
-//     }
-//
-//     // pub(crate) fn is_scan_code(&self) -> bool {
-//     //     matches!(*self, SC(_))
-//     // }
-//
-//     // pub(crate) fn is_virtual_key(&self) -> bool {
-//     //     matches!(*self, VK(_))
-//     // }
-//
-//     // pub(crate) fn as_virtual_key(&self) -> Option<&'static VirtualKey> {
-//     //     match self {
-//     //         VK(vk) => Some(vk),
-//     //         SC(sc) => sc.to_virtual_key(),
-//     //     }
-//     // }
-//
-//     // pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
-//     //     match self {
-//     //         VK(vk) => Ok(vk),
-//     //         SC(sc) => sc.to_virtual_key(),
-//     //     }
-//     // }
-//
-//     // pub(crate) fn as_scan_code(&self) -> Result<&'static ScanCode, String> {
-//     //     match self {
-//     //         VK(_) => Err(format!("Illegal key code `{}`.", self)),
-//     //         SC(sc) => Ok(sc),
-//     //     }
-//     // }
-// }
-//
-// impl Display for KeyCode {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-//         match self {
-//             VK(vk) => Display::fmt(&vk, f),
-//             SC(sc) => Display::fmt(&sc, f),
-//         }
-//     }
-// }
-//
-// impl FromStr for KeyCode {
-//     type Err = String;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         let kc = if let Ok(vk) = VirtualKey::from_text(s) {
-//             VK(vk)
-//         } else {
-//             SC(ScanCode::from_text(s)?)
-//         };
-//         Ok(kc)
-//     }
-// }
-//
-// impl Serialize for KeyCode {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         let s = match self {
-//             VK(vk) => vk.name,
-//             SC(sc) => sc.name,
-//         };
-//
-//         Ok(s.serialize(serializer)?)
-//     }
-// }
-//
-// impl<'de> Deserialize<'de> for KeyCode {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         Ok(String::deserialize(deserializer)?
-//             .parse()
-//             .map_err(|e| de::Error::custom(format!("Error parsing key code.\n{}", e)))?)
-//     }
-// }
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Key {
     pub(crate) vk_code: u8,
@@ -254,8 +171,7 @@ pub struct Key {
 
 impl Key {
     pub fn name(&self) -> &'static str {
-        todo!()
-        //KEYS_NAMES[self]
+        KEYS.name_of(self)
     }
 
     pub fn virtual_key(&self) -> &'static VirtualKey {
@@ -265,6 +181,11 @@ impl Key {
     pub fn scan_code(&self) -> &'static ScanCode {
         ScanCode::from_code(self.scan_code, self.is_ext_scan_code).unwrap()
     }
+
+    pub(crate) fn code_name(&self) -> String {
+        format!("{} - {}", self.virtual_key().code_name(), self.scan_code().code_name())
+    }
+
 }
 
 impl Display for Key {
@@ -490,20 +411,26 @@ mod tests {
     #[test]
     fn test_key_code_parse() {
         let actual = Key::from_str("ENTER").unwrap();
-        assert_eq!(Key{
-            vk_code: 0x0D,
-            scan_code: 0x1C,
-            is_ext_scan_code: false,
-        }, actual);
-        
+        assert_eq!(
+            Key {
+                vk_code: 0x0D,
+                scan_code: 0x1C,
+                is_ext_scan_code: false,
+            },
+            actual
+        );
+
         let actual = Key::from_str("NUM_ENTER").unwrap();
-        assert_eq!(Key{
-            vk_code: 0x0D,
-            scan_code: 0x1C,
-            is_ext_scan_code: true,
-        }, actual);
+        assert_eq!(
+            Key {
+                vk_code: 0x0D,
+                scan_code: 0x1C,
+                is_ext_scan_code: true,
+            },
+            actual
+        );
     }
-    
+
     // #[test]
     // #[should_panic]
     // fn test_key_code_parse_fails() {
