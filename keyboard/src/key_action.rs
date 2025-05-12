@@ -1,4 +1,4 @@
-use crate::key::{Key, ScanCode, VirtualKey};
+use crate::key::Key;
 use crate::key_action::KeyTransition::{Down, Up};
 use crate::key_event::SELF_EVENT_MARKER;
 use crate::write_joined;
@@ -76,7 +76,8 @@ impl KeyAction {
         // }
     }
 
-    fn create_virtual_key_input(&self, virtual_key: &VirtualKey) -> INPUT {
+    fn create_vk_input(&self) -> INPUT {
+        let virtual_key = self.key.virtual_key();
         let mut flags = KEYBD_EVENT_FLAGS::default();
         if self.transition.is_up() {
             flags |= KEYEVENTF_KEYUP
@@ -94,7 +95,8 @@ impl KeyAction {
         }
     }
 
-    fn create_scancode_input(&self, scan_code: &ScanCode) -> INPUT {
+    fn create_sc_input(&self) -> INPUT {
+        let scan_code = self.key.scan_code();
         let mut flags = KEYEVENTF_SCANCODE;
         if scan_code.is_extended {
             flags |= KEYEVENTF_EXTENDEDKEY
@@ -174,10 +176,16 @@ impl FromStr for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
+    use crate::key::ScanCode;
     use crate::key_action::Key;
     use crate::key_action::KeyTransition::{Down, Up};
     use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
-    use crate::{assert_not, key};
+    use crate::key_event::SELF_EVENT_MARKER;
+    use crate::{assert_not, key, sc_key};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+        INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
+        KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY, VK_RETURN,
+    };
 
     #[macro_export]
     macro_rules! key_act {
@@ -245,8 +253,6 @@ mod tests {
         let source = Up;
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        // dbg!(&json);
-
         let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
         assert_eq!(source, actual);
     }
@@ -274,10 +280,71 @@ mod tests {
         };
         let json = serde_json::to_string_pretty(&source).unwrap();
 
-        // dbg!(&json);
-
         let actual = serde_json::from_str::<KeyAction>(&json).unwrap();
         assert_eq!(source, actual);
+    }
+
+    #[test]
+    fn test_key_action_create_vk_input() {
+        let actual = key_act!("ENTER*").create_vk_input();
+        unsafe {
+            assert_eq!(INPUT_KEYBOARD, actual.r#type);
+            assert_eq!(0, actual.Anonymous.ki.wScan);
+            assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
+            assert_eq!(KEYBD_EVENT_FLAGS(0), actual.Anonymous.ki.dwFlags);
+            assert_eq!(
+                SELF_EVENT_MARKER.as_ptr(),
+                actual.Anonymous.ki.dwExtraInfo as *const u8
+            );
+        };
+
+        let actual = key_act!("NUM_ENTER^").create_vk_input();
+        unsafe {
+            assert_eq!(INPUT_KEYBOARD, actual.r#type);
+            assert_eq!(0, actual.Anonymous.ki.wScan);
+            assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
+            assert_eq!(KEYEVENTF_KEYUP, actual.Anonymous.ki.dwFlags);
+            assert_eq!(
+                SELF_EVENT_MARKER.as_ptr(),
+                actual.Anonymous.ki.dwExtraInfo as *const u8
+            );
+        };
+    }
+
+    #[test]
+    fn test_key_action_create_sc_input() {
+        let actual = key_act!("ENTER*").create_sc_input();
+        unsafe {
+            assert_eq!(INPUT_KEYBOARD, actual.r#type);
+            assert_eq!(VIRTUAL_KEY(0), actual.Anonymous.ki.wVk);
+            assert_eq!(
+                sc_key!("SC_ENTER").ext_value(),
+                actual.Anonymous.ki.wScan
+            );
+            assert_eq!(KEYEVENTF_SCANCODE, actual.Anonymous.ki.dwFlags);
+            assert_eq!(
+                SELF_EVENT_MARKER.as_ptr(),
+                actual.Anonymous.ki.dwExtraInfo as *const u8
+            );
+        };
+
+        let actual = key_act!("NUM_ENTER^").create_sc_input();
+        unsafe {
+            assert_eq!(INPUT_KEYBOARD, actual.r#type);
+            assert_eq!(VIRTUAL_KEY(0), actual.Anonymous.ki.wVk);
+            assert_eq!(
+                sc_key!("SC_NUM_ENTER").ext_value(),
+                actual.Anonymous.ki.wScan
+            );
+            assert_eq!(
+                KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
+                actual.Anonymous.ki.dwFlags
+            );
+            assert_eq!(
+                SELF_EVENT_MARKER.as_ptr(),
+                actual.Anonymous.ki.dwExtraInfo as *const u8
+            );
+        };
     }
 
     #[test]
