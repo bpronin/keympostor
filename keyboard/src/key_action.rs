@@ -69,11 +69,7 @@ pub struct KeyAction {
 
 impl KeyAction {
     fn create_input(&self) -> INPUT {
-        todo!()
-        // match self.key {
-        //     VK(vk) => self.create_virtual_key_input(vk),
-        //     SC(sc) => self.create_scancode_input(sc),
-        // }
+        self.create_vk_input()
     }
 
     fn create_vk_input(&self) -> INPUT {
@@ -183,8 +179,8 @@ mod tests {
     use crate::key_event::SELF_EVENT_MARKER;
     use crate::{assert_not, key, sc_key};
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
-        KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY, VK_RETURN,
+        INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
+        KEYEVENTF_SCANCODE, VIRTUAL_KEY, VK_RETURN,
     };
 
     #[macro_export]
@@ -317,10 +313,7 @@ mod tests {
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VIRTUAL_KEY(0), actual.Anonymous.ki.wVk);
-            assert_eq!(
-                sc_key!("SC_ENTER").ext_value(),
-                actual.Anonymous.ki.wScan
-            );
+            assert_eq!(sc_key!("SC_ENTER").ext_value(), actual.Anonymous.ki.wScan);
             assert_eq!(KEYEVENTF_SCANCODE, actual.Anonymous.ki.dwFlags);
             assert_eq!(
                 SELF_EVENT_MARKER.as_ptr(),
@@ -366,7 +359,7 @@ mod tests {
 
     // #[test]
     // fn test_key_action_sequence_create_input() {
-    //     let source = key_act_seq!("ENTER↓ → SC_NUM_ENTER↑");
+    //     let source = key_act_seq!("A↓ → NUM_ENTER↑");
     //
     //     let input = source.create_input();
     //
