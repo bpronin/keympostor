@@ -409,7 +409,7 @@ mod tests {
     }
 
     #[test]
-    fn test_key_code_parse() {
+    fn test_key_parse() {
         assert_eq!(
             Key {
                 vk_code: 0x0D,
@@ -426,6 +426,15 @@ mod tests {
                 is_ext_scan_code: true,
             },
             Key::from_str("NUM_ENTER").unwrap()
+        );
+        
+        assert_eq!(
+            Key {
+                vk_code: 0x72,
+                scan_code: 0x3D,
+                is_ext_scan_code: false,
+            },
+            Key::from_str("F3").unwrap()
         );
     }
 

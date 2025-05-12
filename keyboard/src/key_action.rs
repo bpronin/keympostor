@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY,
+    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
 
@@ -201,8 +201,8 @@ mod tests {
     use crate::key_event::SELF_EVENT_MARKER;
     use crate::{assert_not, key, sc_key};
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        INPUT_KEYBOARD, KEYBD_EVENT_FLAGS, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
-        KEYEVENTF_SCANCODE, VIRTUAL_KEY, VK_RETURN,
+        INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
+        KEYEVENTF_SCANCODE, VK_RETURN,
     };
 
     #[macro_export]
@@ -289,6 +289,21 @@ mod tests {
         };
         assert_eq!("NUM_ENTER↑", format!("{}", actual));
     }
+    
+    #[test]
+    fn test_key_action_parse() {
+        let expected = KeyAction {
+            key: key!("ENTER"),
+            transition: Down,
+        };
+        assert_eq!(expected, "ENTER↓".parse().unwrap() );
+        
+        let expected = KeyAction {
+            key: key!("F3"),
+            transition: Down,
+        };
+        assert_eq!(expected, "F3*".parse().unwrap() );
+    }
 
     #[test]
     fn test_key_action_serialize() {
@@ -307,34 +322,7 @@ mod tests {
         let actual = key_act!("ENTER*").create_input();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
-            assert_eq!(0, actual.Anonymous.ki.wScan);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
-            assert_eq!(KEYBD_EVENT_FLAGS(0), actual.Anonymous.ki.dwFlags);
-            assert_eq!(
-                SELF_EVENT_MARKER.as_ptr(),
-                actual.Anonymous.ki.dwExtraInfo as *const u8
-            );
-        };
-
-        let actual = key_act!("NUM_ENTER^").create_input();
-        unsafe {
-            assert_eq!(INPUT_KEYBOARD, actual.r#type);
-            assert_eq!(0, actual.Anonymous.ki.wScan);
-            assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
-            assert_eq!(KEYEVENTF_KEYUP, actual.Anonymous.ki.dwFlags);
-            assert_eq!(
-                SELF_EVENT_MARKER.as_ptr(),
-                actual.Anonymous.ki.dwExtraInfo as *const u8
-            );
-        };
-    }
-
-    #[test]
-    fn test_key_action_create_sc_input() {
-        let actual = key_act!("ENTER*").create_input();
-        unsafe {
-            assert_eq!(INPUT_KEYBOARD, actual.r#type);
-            assert_eq!(VIRTUAL_KEY(0), actual.Anonymous.ki.wVk);
             assert_eq!(sc_key!("SC_ENTER").ext_value(), actual.Anonymous.ki.wScan);
             assert_eq!(KEYEVENTF_SCANCODE, actual.Anonymous.ki.dwFlags);
             assert_eq!(
@@ -346,7 +334,7 @@ mod tests {
         let actual = key_act!("NUM_ENTER^").create_input();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
-            assert_eq!(VIRTUAL_KEY(0), actual.Anonymous.ki.wVk);
+            assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
             assert_eq!(
                 sc_key!("SC_NUM_ENTER").ext_value(),
                 actual.Anonymous.ki.wScan
