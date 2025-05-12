@@ -215,6 +215,13 @@ mod tests {
     };
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
+    #[macro_export]
+    macro_rules! key_mod {
+        ($text:literal) => {
+            $text.parse::<KeyModifiers>().unwrap()
+        };
+    }
+
     #[test]
     fn test_key_modifiers_display() {
         assert_eq!("NONE", KM_NONE.to_string());

@@ -159,7 +159,7 @@ impl FromStr for ScanCode {
 //     VK(&'static VirtualKey),
 //     SC(&'static ScanCode),
 // }
-// 
+//
 // impl KeyCode {
 //     pub(crate) fn id(&self) -> usize {
 //         match self {
@@ -167,29 +167,29 @@ impl FromStr for ScanCode {
 //             SC(sc) => sc.to_virtual_key().unwrap().value as usize,
 //         }
 //     }
-// 
+//
 //     // pub(crate) fn is_scan_code(&self) -> bool {
 //     //     matches!(*self, SC(_))
 //     // }
-// 
+//
 //     // pub(crate) fn is_virtual_key(&self) -> bool {
 //     //     matches!(*self, VK(_))
 //     // }
-// 
+//
 //     // pub(crate) fn as_virtual_key(&self) -> Option<&'static VirtualKey> {
 //     //     match self {
 //     //         VK(vk) => Some(vk),
 //     //         SC(sc) => sc.to_virtual_key(),
 //     //     }
 //     // }
-// 
+//
 //     // pub(crate) fn as_virtual_key(&self) -> Result<&'static VirtualKey, String> {
 //     //     match self {
 //     //         VK(vk) => Ok(vk),
 //     //         SC(sc) => sc.to_virtual_key(),
 //     //     }
 //     // }
-// 
+//
 //     // pub(crate) fn as_scan_code(&self) -> Result<&'static ScanCode, String> {
 //     //     match self {
 //     //         VK(_) => Err(format!("Illegal key code `{}`.", self)),
@@ -197,7 +197,7 @@ impl FromStr for ScanCode {
 //     //     }
 //     // }
 // }
-// 
+//
 // impl Display for KeyCode {
 //     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
 //         match self {
@@ -206,10 +206,10 @@ impl FromStr for ScanCode {
 //         }
 //     }
 // }
-// 
+//
 // impl FromStr for KeyCode {
 //     type Err = String;
-// 
+//
 //     fn from_str(s: &str) -> Result<Self, Self::Err> {
 //         let kc = if let Ok(vk) = VirtualKey::from_text(s) {
 //             VK(vk)
@@ -219,7 +219,7 @@ impl FromStr for ScanCode {
 //         Ok(kc)
 //     }
 // }
-// 
+//
 // impl Serialize for KeyCode {
 //     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
 //     where
@@ -229,11 +229,11 @@ impl FromStr for ScanCode {
 //             VK(vk) => vk.name,
 //             SC(sc) => sc.name,
 //         };
-// 
+//
 //         Ok(s.serialize(serializer)?)
 //     }
 // }
-// 
+//
 // impl<'de> Deserialize<'de> for KeyCode {
 //     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
 //     where
@@ -277,8 +277,7 @@ impl FromStr for Key {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
-        // Ok(KEYS.by_name(s))
+        Ok(*KEYS.by_name(s))
     }
 }
 
@@ -297,14 +296,14 @@ impl<'de> Deserialize<'de> for Key {
         D: Deserializer<'de>,
     {
         let name = String::deserialize(deserializer)?;
-        Ok(KEYS[name.as_str()])
+        let key = name.parse().map_err(de::Error::custom)?;
+        Ok(key)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::key::Key;
-    use crate::key::{ScanCode, VirtualKey};
+    use crate::key::{Key, ScanCode, VirtualKey};
     use std::str::FromStr;
 
     #[macro_export]
@@ -488,54 +487,50 @@ mod tests {
         assert_eq!("SC_ENTER", format!("{}", sc_key!("SC_ENTER")));
     }
 
-    // #[test]
-    // fn test_key_code_parse() {
-    //     let actual = KeyCode::from_str("VK_RETURN").unwrap();
-    //     assert!(matches!(actual, VK(_)));
-    //     if let VK(vk) = actual {
-    //         assert_eq!("VK_RETURN", vk.name);
-    //     }
-    // 
-    //     let actual = KeyCode::from_str("SC_ENTER").unwrap();
-    //     assert!(matches!(actual, SC(_)));
-    //     if let SC(sc) = actual {
-    //         assert_eq!("SC_ENTER", sc.name);
-    //     }
-    // 
-    //     let actual = KeyCode::from_str("`").unwrap();
-    //     assert!(matches!(actual, SC(_)));
-    //     if let SC(sc) = actual {
-    //         assert_eq!("SC_BACKTICK", sc.name);
-    //     }
-    // }
-    // 
+    #[test]
+    fn test_key_code_parse() {
+        let actual = Key::from_str("ENTER").unwrap();
+        assert_eq!(Key{
+            vk_code: 0x0D,
+            scan_code: 0x1C,
+            is_ext_scan_code: false,
+        }, actual);
+        
+        let actual = Key::from_str("NUM_ENTER").unwrap();
+        assert_eq!(Key{
+            vk_code: 0x0D,
+            scan_code: 0x1C,
+            is_ext_scan_code: true,
+        }, actual);
+    }
+    
     // #[test]
     // #[should_panic]
     // fn test_key_code_parse_fails() {
     //     KeyCode::from_str("↑").unwrap();
     // }
-    // 
+    //
     // #[test]
     // fn test_key_code_display() {
     //     assert_eq!("SC_ENTER", format!("{}", key!("SC_ENTER")));
     //     assert_eq!("VK_RETURN", format!("{}", key!("VK_RETURN")));
     // }
-    // 
+    //
     // #[test]
     // fn test_key_code_serialize() {
     //     let source = key!("SC_ENTER");
     //     let json = serde_json::to_string_pretty(&source).unwrap();
-    // 
+    //
     //     // dbg!(&json);
-    // 
+    //
     //     let actual = serde_json::from_str::<Key>(&json).unwrap();
     //     assert_eq!(source, actual);
-    // 
+    //
     //     let source = key!("VK_RETURN");
     //     let json = serde_json::to_string_pretty(&source).unwrap();
-    // 
+    //
     //     // dbg!(&json);
-    // 
+    //
     //     let actual = serde_json::from_str::<Key>(&json).unwrap();
     //     assert_eq!(source, actual);
     // }

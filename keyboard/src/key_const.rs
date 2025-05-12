@@ -1,35 +1,42 @@
 use crate::key::{Key, ScanCode, VirtualKey};
 use std::collections::HashMap;
 use std::sync::LazyLock;
-// macro_rules! new_key {
-//     ($index:literal, $name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
-//         Key {
-//             index: $index,
-//             name: $name,
-//             vk_code: $vk_code,
-//             scan_code: $scan_code,
-//             is_ext_scan_code: $is_ext_scan_code,
-//         }
-//     };
-// }
-//
+
+pub(crate) static KEYS: LazyLock<Keys> = LazyLock::new(|| Keys::new());
+
+pub(crate) struct Keys {
+    name_to_key_map: HashMap<&'static str, Key>,
+}
+
+impl Keys {
+    fn new() -> Self {
+        Self {
+            name_to_key_map: HashMap::from(KEY_NAMES),
+        }
+    }
+
+    pub(crate) fn by_name(&self, name: &str) -> &Key {
+        self.name_to_key_map.get(name).expect(&format!("Unsupported key name: {}", name))
+    }
+}
 
 const MAX_KEYS: usize = 1;
-pub(crate) static KEYS: LazyLock<HashMap<&str, Key>> = LazyLock::new(|| {
-    macro_rules! add_key {
-        ($name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
+macro_rules! new_key {
+    ($name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
+        (
+            $name,
             Key {
-                name: $name,
                 vk_code: $vk_code,
                 scan_code: $scan_code,
                 is_ext_scan_code: $is_ext_scan_code,
-            }
-        };
-    }
-    let mut map = HashMap::new();
+            },
+        )
+    };
+}
 
-    map
-});
+static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
+    new_key!("UNASSIGNED", 0, 0, false)
+];
 
 macro_rules! new_vk {
     ($code:literal, $name:literal) => {

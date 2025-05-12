@@ -26,10 +26,6 @@ impl KeyTransition {
     pub(crate) fn is_up(&self) -> bool {
         matches!(*self, Up)
     }
-
-    // pub fn is_down(&self) -> bool {
-    //     matches!(*self, Down)
-    // }
 }
 
 impl Default for KeyTransition {
@@ -182,7 +178,6 @@ mod tests {
     use crate::key_action::KeyTransition::{Down, Up};
     use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::{assert_not, key};
-    use windows::Win32::UI::Input::KeyboardAndMouse::{KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP};
 
     #[macro_export]
     macro_rules! key_act {
@@ -305,15 +300,15 @@ mod tests {
     // #[test]
     // fn test_key_action_sequence_create_input() {
     //     let source = key_act_seq!("VK_RETURN↓ → SC_NUM_ENTER↑");
-    // 
+    //
     //     let input = source.create_input();
-    // 
+    //
     //     assert_eq!(2, input.len());
-    // 
+    //
     //     let VK(vk) = source.actions[0].key else {
     //         panic!("Not a VK")
     //     };
-    // 
+    //
     //     assert_eq!(vk.value, unsafe { input[0].Anonymous.ki.wVk.0 } as u8);
     //     assert_not!(unsafe {
     //         input[0]
@@ -323,7 +318,7 @@ mod tests {
     //             .contains(KEYEVENTF_EXTENDEDKEY)
     //     });
     //     assert!(!unsafe { input[0].Anonymous.ki.dwFlags.contains(KEYEVENTF_KEYUP) });
-    // 
+    //
     //     let SC(sc) = source.actions[1].key else {
     //         panic!("Not a SC")
     //     };

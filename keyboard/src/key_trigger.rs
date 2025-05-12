@@ -1,5 +1,4 @@
-use crate::key::Key;
-use crate::key_action::{KeyAction, KeyTransition};
+use crate::key_action::KeyAction;
 use crate::key_modifiers::{KeyModifiers, KM_NONE};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -46,11 +45,25 @@ fn default_modifiers() -> KeyModifiers {
 
 #[cfg(test)]
 mod tests {
+    use crate::key_trigger::KeyAction;
+    use crate::key_trigger::KeyModifiers;
+    use crate::key_trigger::KeyTrigger;
+    use crate::{key_act, key_mod};
 
     #[macro_export]
     macro_rules! key_trig {
         ($text:literal) => {
             $text.parse::<KeyTrigger>().unwrap()
         };
+    }
+
+    #[test]
+    fn test_parse() {
+        let expected = KeyTrigger {
+            action: key_act!("A*"),
+            modifiers: key_mod!("SHIFT"),
+        };
+        
+        assert_eq!(expected, key_trig!("[SHIFT]A*"));
     }
 }
