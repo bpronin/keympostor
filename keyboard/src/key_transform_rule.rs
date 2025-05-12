@@ -69,7 +69,7 @@ impl KeyTransformProfile {
 impl Display for KeyTransformProfile {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{};", self.title)?;
-        write_joined!(f, &self.rules, ";\n")?;
+        write_joined!(f, &self.rules, ";\r\n")?;
         write!(f, ";")
     }
 }

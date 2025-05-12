@@ -33,7 +33,7 @@ NUM_3^ : R^;
 
 NUM_0* : M*;
 NUM_0^ : M^;
-NUM_DEL* : CTRL*;
-[CTRL] NUM_DEL^ : CTRL^;
+DELETE* : CTRL*;
+DELETE^ : CTRL^;
 NUM_ENTER* : SPACE*;
 NUM_ENTER^ : SPACE^;

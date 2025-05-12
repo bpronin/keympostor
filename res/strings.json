@@ -5,6 +5,8 @@
   "file": "File",
   "exit": "Exit",
   "open": "Open",
+  "profile": "Profile",
+  "log": "Log",
   "enabled": "Enabled",
   "logging_enabled": "Logging enabled",
   "_logging_enabled_": "--- Logging enabled",

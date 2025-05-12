@@ -10,6 +10,8 @@ use std::sync::LazyLock;
 pub(crate) struct ResourceStrings {
     pub(crate) app_title: String,
     pub(crate) clear_log: String,
+    pub(crate) profile: String,
+    pub(crate) log: String,
     pub(crate) file: String,
     pub(crate) exit: String,
     pub(crate) tray_tip: String,

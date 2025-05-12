@@ -9,8 +9,10 @@ use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
 use std::env;
+use std::ffi::{OsStr, OsString};
 use std::ops::Deref;
 use std::rc::Rc;
+use log::{error, warn};
 
 thread_local! {
     static APP: RefCell<AppUi> = RefCell::new(
@@ -26,8 +28,14 @@ struct AppControl {
     resources: Resources,
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
+    tab_log_layout: nwg::FlexboxLayout,
+    tab_profiles_layout: nwg::FlexboxLayout,
     text_editor: nwg::TextInput,
-    log_view: nwg::TextBox, //todo set log max capacity
+    tab_container: nwg::TabsContainer,
+    tab_log: nwg::Tab,
+    tab_profile: nwg::Tab,
+    log_view: nwg::TextBox,
+    profile_view: nwg::TextBox,
     main_menu: MainMenu,
     tray: nwg::TrayNotification,
     tray_menu: TrayMenu,
@@ -39,6 +47,7 @@ struct MainMenu {
     toggle_processing_enabled_item: nwg::MenuItem,
     toggle_logging_enabled_item: nwg::MenuItem,
     clear_log_item: nwg::MenuItem,
+    load_profile_item: nwg::MenuItem,
     separator: nwg::MenuSeparator,
     exit_app_item: nwg::MenuItem,
 }
@@ -100,7 +109,8 @@ impl AppControl {
         let profile = KeyTransformProfile::load(&profile_path()).unwrap_or_else(|e| {
             ui_panic!("{}", e);
         });
-        self.keyboard_handler.load_profile(profile)
+        self.update_controls_profile_changed(&profile);
+        self.keyboard_handler.set_profile(profile);
     }
 
     pub fn get_icon(&self, icon_id: usize) -> nwg::Icon {
@@ -165,6 +175,11 @@ impl AppControl {
             self.log_view.appendln(rs!(_logging_enabled_));
         }
     }
+    
+    fn update_controls_profile_changed(&self, profile: &KeyTransformProfile) {
+        let s = profile.to_string();
+        self.profile_view.set_text(&s);
+    }
 
     fn on_toggle_processing_enabled(&self) {
         self.keyboard_handler
@@ -210,6 +225,10 @@ impl AppControl {
         self.log_view.clear();
     }
 
+    fn on_load_profile(&self) {
+        warn!("load profile not implemented");
+    }
+
     fn trim_log_text(&self) {
         let text = self.log_view.text();
 
@@ -225,19 +244,22 @@ impl AppControl {
 
         self.log_view.set_text(&trimmed_text);
     }
-
+                        
     fn on_log_view_update(&self, event: &KeyEvent) {
-        let scancode = event.action().key.scan_code();
-        let virtual_key = event.action().key.virtual_key();
+        let action = event.action();
+        let key = action.key;
+        let scancode = key.scan_code();
+        let virtual_key = key.virtual_key();
         let line = format!(
-            "{:1}{:1}{:1} T: {:9} | {:22} | {:16} | {}",
+            "{:1}{:1}{:1} T: {:9} | {:22} |",
             if event.rule.is_some() { "!" } else { "" },
             if event.is_injected() { ">" } else { "" },
             if event.is_private() { "<" } else { "" },
             event.time(),
-            virtual_key,
-            scancode,
-            event.action().transition
+            action,
+            // virtual_key,
+            // scancode,
+            // action.transition
         );
 
         self.trim_log_text();
@@ -293,6 +315,11 @@ impl NativeUi<AppUi> for AppControl {
             .text(rs!(clear_log))
             .build(&mut app.main_menu.clear_log_item)?;
 
+        nwg::MenuItem::builder()
+            .parent(&app.main_menu.menu)
+            .text(rs!(profile))
+            .build(&mut app.main_menu.load_profile_item)?;
+
         nwg::MenuSeparator::builder()
             .parent(&app.main_menu.menu)
             .build(&mut app.main_menu.separator)?;
@@ -342,12 +369,32 @@ impl NativeUi<AppUi> for AppControl {
             .parent(&app.window)
             .focus(true)
             .build(&mut app.text_editor)?;
+        
+        nwg::TabsContainer::builder()
+            .parent(&app.window)
+            .build(&mut app.tab_container)?;
+        
+        nwg::Tab::builder()
+            .text(rs!(log))
+            .parent(&app.tab_container)
+            .build(&mut app.tab_log)?;
+        
+        nwg::Tab::builder()
+            .text(rs!(profile))
+            .parent(&app.tab_container)
+            .build(&mut app.tab_profile)?;
 
         nwg::TextBox::builder()
-            .parent(&app.window)
+            .parent(&app.tab_log)
             .readonly(true)
             .font(Some(&Self::mono_font(15)))
             .build(&mut app.log_view)?;
+
+        nwg::TextBox::builder()
+            .parent(&app.tab_profile)
+            .readonly(true)
+            .font(Some(&Self::mono_font(15)))
+            .build(&mut app.profile_view)?;
 
         // Wrap-up
 
@@ -361,9 +408,6 @@ impl NativeUi<AppUi> for AppControl {
         let evt_ui = Rc::downgrade(&ui.inner);
         let handle_events = move |evt, _evt_data, handle| {
             if let Some(evt_ui) = evt_ui.upgrade() {
-                // if &handle == &evt_ui.window {
-                //    println!("{:?}", evt);
-                // }
                 match evt {
                     nwg::Event::OnWindowClose => {
                         if &handle == &evt_ui.window {
@@ -381,7 +425,9 @@ impl NativeUi<AppUi> for AppControl {
                         }
                     }
                     nwg::Event::OnMenuItemSelected => {
-                        if &handle == &evt_ui.main_menu.clear_log_item {
+                        if &handle == &evt_ui.main_menu.load_profile_item {
+                            evt_ui.on_load_profile();
+                        } else if &handle == &evt_ui.main_menu.clear_log_item {
                             evt_ui.on_log_view_clear();
                         } else if &handle == &evt_ui.main_menu.exit_app_item
                             || &handle == &evt_ui.tray_menu.exit_app_item
@@ -414,36 +460,62 @@ impl NativeUi<AppUi> for AppControl {
             style::{Dimension as D, FlexDirection},
         };
 
-        const DEFAULT_PADDING: D = D::Points(4.0);
-        const DEFAULT_MARGIN: D = D::Points(4.0);
-
         const PADDING: Rect<D> = Rect {
-            start: DEFAULT_PADDING,
-            end: DEFAULT_PADDING,
-            top: DEFAULT_PADDING,
-            bottom: DEFAULT_PADDING,
+            start: D::Points(4.0),
+            end: D::Points(4.0),
+            top: D::Points(4.0),
+            bottom: D::Points(4.0),
+        };
+        
+        const TAB_PADDING: Rect<D> = Rect {
+            start: D::Points(0.0),
+            end: D::Points(8.0),
+            top: D::Points(0.0),
+            bottom: D::Points(4.0),
         };
 
         const MARGIN: Rect<D> = Rect {
-            start: DEFAULT_MARGIN,
-            end: DEFAULT_MARGIN,
-            top: DEFAULT_MARGIN,
-            bottom: DEFAULT_MARGIN,
+            start: D::Points(4.0),
+            end: D::Points(4.0),
+            top: D::Points(4.0),
+            bottom: D::Points(4.0),
         };
+        
+        const TAB_MARGIN: Rect<D> = Rect {
+            start: D::Points(4.0),
+            end: D::Points(4.0),
+            top: D::Points(4.0),
+            bottom: D::Points(18.0),
+        };
+        
+        /* Log tab layout */
+        nwg::FlexboxLayout::builder()
+            .parent(&ui.tab_container)
+            .padding(TAB_PADDING)
+            .child(&ui.log_view)
+            .child_margin(TAB_MARGIN)
+            .child_flex_grow(1.0)
+            .build(&ui.tab_log_layout)?;
 
+        /* Profile tab layout */
+        nwg::FlexboxLayout::builder()
+            .parent(&ui.tab_container)
+            .padding(TAB_PADDING)
+            .child(&ui.profile_view)
+            .child_margin(TAB_MARGIN)
+            .child_flex_grow(1.0)
+            .build(&ui.tab_profiles_layout)?;
+        
+        /* Main window layout */
         nwg::FlexboxLayout::builder()
             .parent(&ui.window)
             .flex_direction(FlexDirection::Column)
             .padding(PADDING)
-            //Log view
-            .child(&ui.log_view)
+            /* Tabs */
+            .child(&ui.tab_container)
             .child_margin(MARGIN)
-            .child_flex_grow(2.0)
-            .child_size(Size {
-                width: D::Auto,
-                height: D::Auto,
-            })
-            //Text editor
+            .child_flex_grow(1.0)
+            /* Test editor */
             .child(&ui.text_editor)
             .child_margin(MARGIN)
             .child_size(Size {

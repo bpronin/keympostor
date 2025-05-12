@@ -96,7 +96,7 @@ impl Drop for InnerKeyboardHandler {
 pub struct KeyboardHandler {}
 
 impl KeyboardHandler {
-    pub fn load_profile(&self, profile: KeyTransformProfile) {
+    pub fn set_profile(&self, profile: KeyTransformProfile) {
         INNER.with_borrow_mut(|inner| inner.load_profile(profile));
     }
 
