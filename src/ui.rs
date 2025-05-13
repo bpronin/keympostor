@@ -2,26 +2,24 @@ use super::*;
 use crate::res::{Resources, RESOURCE_STRINGS};
 use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
 use crate::settings::AppSettings;
-use crate::util::dos_line_endings;
+use crate::ui_log_view::LogView;
+use crate::util::{default_font, dos_line_endings, mono_font};
 use keyboard::key_event::KeyEvent;
 use keyboard::key_hook::KeyboardHandler;
 use keyboard::transform_rules::KeyTransformProfile;
-use log::warn;
 use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
 use std::env;
 use std::ops::Deref;
-use std::path::Path;
 use std::rc::Rc;
+use crate::ui_profile_view::ProfileView;
 
 thread_local! {
     static APP: RefCell<AppUi> = RefCell::new(
         AppControl::build_ui(Default::default()).expect("Failed to build application UI")
     )
 }
-
-const MAX_LOG_LINES: usize = 256;
 
 #[derive(Default)]
 struct AppControl {
@@ -35,8 +33,8 @@ struct AppControl {
     tab_container: nwg::TabsContainer,
     tab_log: nwg::Tab,
     tab_profile: nwg::Tab,
-    log_view: nwg::TextBox,
-    profile_view: nwg::TextBox,
+    log_view: LogView,
+    profile_view: ProfileView,
     main_menu: MainMenu,
     tray: nwg::TrayNotification,
     tray_menu: TrayMenu,
@@ -53,6 +51,15 @@ struct MainMenu {
     exit_app_item: nwg::MenuItem,
 }
 
+impl MainMenu {
+    pub(crate) fn update_ui(&self, is_key_hook_enabled: bool, is_silent: bool) {
+        self.toggle_processing_enabled_item
+            .set_checked(is_key_hook_enabled);
+
+        self.toggle_logging_enabled_item.set_checked(!is_silent);
+    }
+}
+
 #[derive(Default)]
 struct TrayMenu {
     menu: nwg::Menu,
@@ -63,26 +70,6 @@ struct TrayMenu {
 }
 
 impl AppControl {
-    fn default_font(size: u32) -> nwg::Font {
-        let mut font = nwg::Font::default();
-        nwg::Font::builder()
-            .family("Segoe UI")
-            .size(size)
-            .build(&mut font)
-            .expect("Failed to build font");
-        font
-    }
-
-    fn mono_font(size: u32) -> nwg::Font {
-        let mut font = nwg::Font::default();
-        nwg::Font::builder()
-            .family("Consolas")
-            .size(size)
-            .build(&mut font)
-            .expect("Failed to build font");
-        font
-    }
-
     fn read_settings(&self) {
         let settings = AppSettings::load().unwrap_or_else(|e| {
             ui_panic!("{}", e);
@@ -111,7 +98,7 @@ impl AppControl {
         let profile = KeyTransformProfile::load(path).unwrap_or_else(|e| {
             ui_panic!("{}", e);
         });
-        self.update_controls_profile_changed(&profile);
+        self.profile_view.update_ui(&profile);
         self.keyboard_handler.set_profile(profile);
     }
 
@@ -138,26 +125,20 @@ impl AppControl {
 
         self.read_settings();
         self.read_profile(&default_profile_path());
-        self.update_controls();
-        self.update_controls_logging_enabled();
 
-        #[cfg(feature = "dev")]
-        {
-            self.log_view.appendln("--- Debug UI");
-            self.log_view.appendln(&format!("--- {}", &default_profile_path()));
-        }
+        self.update_controls();
+        self.log_view.init();
+        self.log_view
+            .update_log_enabled(!self.keyboard_handler.is_silent());
 
         nwg::dispatch_thread_events();
     }
 
     fn update_controls(&self) {
-        self.main_menu
-            .toggle_processing_enabled_item
-            .set_checked(self.keyboard_handler.is_enabled());
-
-        self.main_menu
-            .toggle_logging_enabled_item
-            .set_checked(!self.keyboard_handler.is_silent());
+        self.main_menu.update_ui(
+            self.keyboard_handler.is_enabled(),
+            self.keyboard_handler.is_silent(),
+        );
 
         self.tray_menu
             .toggle_processing_enabled_item
@@ -168,19 +149,6 @@ impl AppControl {
         } else {
             self.tray.set_icon(&self.get_icon(IDI_ICON_GAME_LOCK_OFF));
         }
-    }
-
-    fn update_controls_logging_enabled(&self) {
-        if self.keyboard_handler.is_silent() {
-            self.log_view.appendln(rs!(_logging_disabled_));
-        } else {
-            self.log_view.appendln(rs!(_logging_enabled_));
-        }
-    }
-
-    fn update_controls_profile_changed(&self, profile: &KeyTransformProfile) {
-        self.profile_view
-            .set_text(&dos_line_endings(&profile.to_string()));
     }
 
     fn on_toggle_processing_enabled(&self) {
@@ -194,7 +162,8 @@ impl AppControl {
         self.keyboard_handler
             .set_silent(!self.keyboard_handler.is_silent());
 
-        self.update_controls_logging_enabled();
+        self.log_view
+            .update_log_enabled(!self.keyboard_handler.is_silent());
         self.update_controls();
         self.write_settings();
     }
@@ -229,7 +198,7 @@ impl AppControl {
 
     fn on_load_profile(&self) {
         let mut dialog = nwg::FileDialog::default();
-        
+
         nwg::FileDialog::builder()
             .title(rs!(load_profile))
             .filters(rs!(load_profile_filter))
@@ -242,43 +211,9 @@ impl AppControl {
             self.read_profile(path.to_str().unwrap());
         }
     }
-    
-    
-    fn trim_log_text(&self) {
-        let text = self.log_view.text();
-
-        let skip_count = text.lines().count().saturating_sub(MAX_LOG_LINES);
-        let trimmed_text = text
-            .lines()
-            .skip(skip_count)
-            .fold(String::new(), |mut acc, line| {
-                acc.push_str(line);
-                acc.push_str("\r\n");
-                acc
-            });
-
-        self.log_view.set_text(&trimmed_text);
-    }
 
     fn on_log_view_update(&self, event: &KeyEvent) {
-        let action = event.action();
-        let key = action.key;
-        let scan_code = key.scan_code();
-        let virtual_key = key.virtual_key();
-        let line = format!(
-            "{:1}{:1}{:1} T: {:9} | {:20}| {:22}| {:18} | {:1}",
-            if event.rule.is_some() { "!" } else { "" },
-            if event.is_injected() { ">" } else { "" },
-            if event.is_private() { "<" } else { "" },
-            event.time(),
-            key,
-            virtual_key,
-            scan_code,
-            action.transition
-        );
-
-        self.trim_log_text();
-        self.log_view.appendln(&line);
+        self.log_view.update_ui(event);
     }
 }
 
@@ -290,7 +225,7 @@ struct AppUi {
 impl NativeUi<AppUi> for AppControl {
     fn build_ui(mut app: AppControl) -> Result<AppUi, nwg::NwgError> {
         nwg::init().expect("Failed to init Native Windows GUI");
-        nwg::Font::set_global_default(Self::default_font(17).into());
+        nwg::Font::set_global_default(default_font(17).into());
 
         #[cfg(not(feature = "dev"))]
         let window_flags = nwg::WindowFlags::MAIN_WINDOW;
@@ -399,17 +334,9 @@ impl NativeUi<AppUi> for AppControl {
             .parent(&app.tab_container)
             .build(&mut app.tab_profile)?;
 
-        nwg::TextBox::builder()
-            .parent(&app.tab_log)
-            .readonly(true)
-            .font(Some(&Self::mono_font(15)))
-            .build(&mut app.log_view)?;
-
-        nwg::TextBox::builder()
-            .parent(&app.tab_profile)
-            .readonly(true)
-            .font(Some(&Self::mono_font(15)))
-            .build(&mut app.profile_view)?;
+        app.log_view.build_ui(&app.tab_log)?;
+        
+        app.profile_view.build_ui(&app.tab_profile)?;
 
         // Wrap-up
 
@@ -507,7 +434,7 @@ impl NativeUi<AppUi> for AppControl {
         nwg::FlexboxLayout::builder()
             .parent(&ui.tab_container)
             .padding(TAB_PADDING)
-            .child(&ui.log_view)
+            .child(ui.log_view.view())
             .child_margin(TAB_MARGIN)
             .child_flex_grow(1.0)
             .build(&ui.tab_log_layout)?;
@@ -516,7 +443,7 @@ impl NativeUi<AppUi> for AppControl {
         nwg::FlexboxLayout::builder()
             .parent(&ui.tab_container)
             .padding(TAB_PADDING)
-            .child(&ui.profile_view)
+            .child(ui.profile_view.view())
             .child_margin(TAB_MARGIN)
             .child_flex_grow(1.0)
             .build(&ui.tab_profiles_layout)?;
