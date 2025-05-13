@@ -8,7 +8,6 @@ mod key_transform_map;
 pub mod key_transform_rule;
 mod key_trigger;
 mod util;
-mod toml;
 
 #[cfg(test)]
 mod tests {

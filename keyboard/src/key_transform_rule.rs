@@ -1,8 +1,8 @@
 use crate::key_action::KeyActionSequence;
 use crate::key_trigger::KeyTrigger;
-use crate::toml::KeyTransformProfileToml;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::str::FromStr;
@@ -39,13 +39,49 @@ pub struct KeyTransformProfile {
     pub rules: Vec<KeyTransformRule>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+struct KeyTransformProfileToml {
+    profile: String,
+    rules: BTreeMap<String, String>,
+}
+
 impl KeyTransformProfile {
     pub fn load(path: &str) -> Result<Self, String> {
-        KeyTransformProfileToml::load_profile(path)?.to_profile()
+        let toml = toml::from_str::<KeyTransformProfileToml>(
+            &fs::read_to_string(&path)
+                .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?,
+        )
+        .map_err(|e| format!("Unable to parse {}.\n{}", path, e))?;
+
+        Ok(KeyTransformProfile {
+            title: toml.profile,
+            rules: toml
+                .rules
+                .iter()
+                .map(|entry| KeyTransformRule {
+                    source: entry.0.parse().unwrap(),
+                    target: entry.1.parse().unwrap(),
+                })
+                .collect(),
+        })
     }
-    
+
     pub fn save(&self, path: &str) -> Result<(), String> {
-        KeyTransformProfileToml::from_profile(self).save(path)
+        let toml = KeyTransformProfileToml {
+            profile: self.title.clone(),
+            rules: BTreeMap::from_iter(
+                self.rules
+                    .iter()
+                    .map(|rule| (rule.source.to_string(), rule.target.to_string()))
+                    .collect::<Vec<_>>(),
+            ),
+        };
+
+        fs::write(
+            path,
+            toml::to_string(&toml).map_err(|e| format!("Unable to serialize {}.\n{}", path, e))?,
+        )
+        .map_err(|e| format!("Unable to write {} file.\n{}", path, e))
     }
 
     // fn load_raw(path: &str) -> Result<Self, String> {
@@ -55,7 +91,7 @@ impl KeyTransformProfile {
     //     )
     //     .map_err(|e| format!("Unable to parse {}.\n{}", path, e))
     // }
-    // 
+    //
     // fn save_raw(&self, path: &str) -> Result<(), String> {
     //     fs::write(
     //         path,
@@ -253,7 +289,7 @@ mod tests {
         );
 
         assert_eq!(expected, actual);
-        
+
         actual.save("../test/profiles/test-copy.toml").unwrap()
     }
 }
