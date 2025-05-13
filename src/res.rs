@@ -11,6 +11,7 @@ pub(crate) struct ResourceStrings {
     pub(crate) app_title: String,
     pub(crate) clear_log: String,
     pub(crate) profile: String,
+    pub(crate) load_profile: String,
     pub(crate) log: String,
     pub(crate) file: String,
     pub(crate) exit: String,
@@ -20,6 +21,7 @@ pub(crate) struct ResourceStrings {
     pub(crate) logging_enabled: String,
     pub(crate) _logging_enabled_: String,
     pub(crate) _logging_disabled_: String,
+    pub(crate) load_profile_filter: String
 }
 
 pub(crate) static RESOURCE_STRINGS: LazyLock<ResourceStrings> = LazyLock::new(|| {

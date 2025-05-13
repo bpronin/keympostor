@@ -2,6 +2,7 @@ use super::*;
 use crate::res::{Resources, RESOURCE_STRINGS};
 use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
 use crate::settings::AppSettings;
+use crate::util::dos_line_endings;
 use keyboard::key_event::KeyEvent;
 use keyboard::key_hook::KeyboardHandler;
 use keyboard::transform_rules::KeyTransformProfile;
@@ -11,8 +12,8 @@ use nwg::NativeUi;
 use std::cell::RefCell;
 use std::env;
 use std::ops::Deref;
+use std::path::Path;
 use std::rc::Rc;
-use crate::util::dos_line_endings;
 
 thread_local! {
     static APP: RefCell<AppUi> = RefCell::new(
@@ -106,8 +107,8 @@ impl AppControl {
         });
     }
 
-    fn read_profile(&self) {
-        let profile = KeyTransformProfile::load(&profile_path()).unwrap_or_else(|e| {
+    fn read_profile(&self, path: &str) {
+        let profile = KeyTransformProfile::load(path).unwrap_or_else(|e| {
             ui_panic!("{}", e);
         });
         self.update_controls_profile_changed(&profile);
@@ -136,14 +137,14 @@ impl AppControl {
         self.keyboard_handler.set_callback(Some(boxed_callback));
 
         self.read_settings();
-        self.read_profile();
+        self.read_profile(&default_profile_path());
         self.update_controls();
         self.update_controls_logging_enabled();
 
         #[cfg(feature = "dev")]
         {
             self.log_view.appendln("--- Debug UI");
-            self.log_view.appendln(&format!("--- {}", &profile_path()));
+            self.log_view.appendln(&format!("--- {}", &default_profile_path()));
         }
 
         nwg::dispatch_thread_events();
@@ -178,8 +179,8 @@ impl AppControl {
     }
 
     fn update_controls_profile_changed(&self, profile: &KeyTransformProfile) {
-        let s = dos_line_endings(&profile.to_string());
-        self.profile_view.set_text(&s);
+        self.profile_view
+            .set_text(&dos_line_endings(&profile.to_string()));
     }
 
     fn on_toggle_processing_enabled(&self) {
@@ -227,9 +228,22 @@ impl AppControl {
     }
 
     fn on_load_profile(&self) {
-        warn!("load profile not implemented");
-    }
+        let mut dialog = nwg::FileDialog::default();
+        
+        nwg::FileDialog::builder()
+            .title(rs!(load_profile))
+            .filters(rs!(load_profile_filter))
+            .action(nwg::FileDialogAction::Open)
+            .build(&mut dialog)
+            .unwrap();
 
+        if dialog.run(Some(self.window.handle)) {
+            let path = dialog.get_selected_item().unwrap();
+            self.read_profile(path.to_str().unwrap());
+        }
+    }
+    
+    
     fn trim_log_text(&self) {
         let text = self.log_view.text();
 
@@ -318,7 +332,7 @@ impl NativeUi<AppUi> for AppControl {
 
         nwg::MenuItem::builder()
             .parent(&app.main_menu.menu)
-            .text(rs!(profile))
+            .text(rs!(load_profile))
             .build(&mut app.main_menu.load_profile_item)?;
 
         nwg::MenuSeparator::builder()
@@ -547,7 +561,7 @@ impl Deref for AppUi {
     }
 }
 
-pub(crate) fn profile_path() -> String {
+pub(crate) fn default_profile_path() -> String {
     let mut args = env::args();
     args.next(); /* executable name */
     args.next().unwrap_or("profiles/default.toml".to_string())
