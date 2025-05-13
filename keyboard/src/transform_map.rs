@@ -1,7 +1,7 @@
 use crate::key_action::KeyAction;
 use crate::key_event::KeyEvent;
 use crate::key_modifiers::KeyModifiers;
-use crate::key_transform_rule::{KeyTransformProfile, KeyTransformRule};
+use crate::transform_rules::{KeyTransformProfile, KeyTransformRule};
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -12,7 +12,7 @@ pub struct KeyTransformMap {
 impl KeyTransformMap {
     pub(crate) fn from_profile(profile: KeyTransformProfile) -> KeyTransformMap {
         let mut this = Self::default();
-        for rule in profile.rules {
+        for rule in profile.rules.items {
             this.put(rule)
         }
         this
@@ -56,11 +56,11 @@ impl Default for KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::key_transform_map::KeyEvent;
+    use crate::transform_map::KeyEvent;
 use crate::key_modifiers::{KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
-    use crate::key_transform_map::KeyAction;
-    use crate::key_transform_map::KeyTransformMap;
-    use crate::key_transform_rule::KeyTransformRule;
+    use crate::transform_map::KeyAction;
+    use crate::transform_map::KeyTransformMap;
+    use crate::transform_rules::KeyTransformRule;
     use crate::{assert_none, assert_not, key_act, key_event, key_rule};
 
     #[test]

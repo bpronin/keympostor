@@ -4,8 +4,8 @@ mod key_const;
 pub mod key_event;
 pub mod key_hook;
 mod key_modifiers;
-mod key_transform_map;
-pub mod key_transform_rule;
+mod transform_map;
+pub mod transform_rules;
 mod key_trigger;
 mod util;
 

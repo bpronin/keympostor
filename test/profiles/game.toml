@@ -1,8 +1,8 @@
-profile = "Test"
+title = "Test"
 
 [rules]
-"(LEFT_SHIFT) NUM_DOT*" = "LEFT_CTRL*"
-"(LEFT_SHIFT) NUM_DOT^" = "LEFT_CTRL^"
+"[LEFT_SHIFT] NUM_DOT*" = "LEFT_CTRL*"
+"[LEFT_SHIFT] NUM_DOT^" = "LEFT_CTRL^"
 "BACKSPACE*" = "F5*"
 "BACKSPACE^" = "F5^"
 "BROWSER_SEARCH*" = "F4*"

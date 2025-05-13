@@ -1,6 +1,6 @@
 use crate::key_action::{KeyAction, KeyTransition};
 use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
-use crate::key_transform_rule::KeyTransformRule;
+use crate::transform_rules::KeyTransformRule;
 use log::warn;
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{

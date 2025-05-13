@@ -1,4 +1,4 @@
-profile = "Test profile"
+title = "Test profile"
 
 [rules]
 "CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"

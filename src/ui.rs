@@ -4,7 +4,7 @@ use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
 use crate::settings::AppSettings;
 use keyboard::key_event::KeyEvent;
 use keyboard::key_hook::KeyboardHandler;
-use keyboard::key_transform_rule::KeyTransformProfile;
+use keyboard::transform_rules::KeyTransformProfile;
 use log::warn;
 use native_windows_gui as nwg;
 use nwg::NativeUi;

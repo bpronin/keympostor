@@ -1,6 +1,6 @@
 use crate::key_event::KeyEvent;
-use crate::key_transform_map::KeyTransformMap;
-use crate::key_transform_rule::KeyTransformProfile;
+use crate::transform_map::KeyTransformMap;
+use crate::transform_rules::KeyTransformProfile;
 use log::debug;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
