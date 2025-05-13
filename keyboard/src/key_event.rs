@@ -1,4 +1,3 @@
-use crate::key_action::KeyTransition::Up;
 use crate::key_action::{KeyAction, KeyTransition};
 use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
 use crate::key_transform_rule::KeyTransformRule;
@@ -8,6 +7,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
 use crate::key::Key;
+use crate::key_action::KeyTransition::Up;
 
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
@@ -33,7 +33,7 @@ impl KeyEvent<'_> {
         if key_action.key.is_ext_scan_code {
             flags |= LLKHF_EXTENDED
         };
-
+    
         Self::new(KBDLLHOOKSTRUCT {
             vkCode: key_action.key.vk_code as u32,
             scanCode: key_action.key.scan_code as u32,

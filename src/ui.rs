@@ -5,12 +5,11 @@ use crate::settings::AppSettings;
 use keyboard::key_event::KeyEvent;
 use keyboard::key_hook::KeyboardHandler;
 use keyboard::key_transform_rule::KeyTransformProfile;
-use log::{error, warn};
+use log::warn;
 use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
 use std::env;
-use std::ffi::{OsStr, OsString};
 use std::ops::Deref;
 use std::rc::Rc;
 
@@ -99,6 +98,7 @@ impl AppControl {
         });
 
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
+        settings.silent_key_processing = self.keyboard_handler.is_silent();
 
         settings.save().unwrap_or_else(|e| {
             ui_warn!("{}", e);
