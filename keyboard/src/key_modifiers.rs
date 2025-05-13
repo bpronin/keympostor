@@ -1,7 +1,7 @@
 use crate::write_joined;
 use core::ops;
 use ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -146,8 +146,10 @@ impl<'de> Deserialize<'de> for KeyModifiers {
     where
         D: Deserializer<'de>,
     {
-        let s = &String::deserialize(deserializer)?;
-        Ok(Self::from_str(s).unwrap())
+        let text = String::deserialize(deserializer)?;
+        let modifiers = text.parse().map_err(de::Error::custom)?;
+
+        Ok(modifiers)
     }
 }
 
@@ -187,9 +189,10 @@ impl Not for KeyModifiers {
 #[cfg(test)]
 mod tests {
     use crate::key_modifiers::{
-        KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
-        KM_RSHIFT, KM_RWIN,
+        KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL, KM_RSHIFT,
+        KM_RWIN,
     };
+    use serde::{Deserialize, Serialize};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
     #[macro_export]
@@ -204,21 +207,11 @@ mod tests {
         assert_eq!("UNASSIGNED", KM_NONE.to_string());
 
         assert_eq!("LEFT_SHIFT + RIGHT_WIN", (KM_LSHIFT | KM_RWIN).to_string());
-        assert_eq!(
-            "RIGHT_CTRL + LEFT_ALT",
-            (KM_LALT | KM_RCTRL).to_string()
-        );
+        assert_eq!("RIGHT_CTRL + LEFT_ALT", (KM_LALT | KM_RCTRL).to_string());
 
         assert_eq!(
             "SHIFT + CTRL + ALT + WIN",
-            (KM_LSHIFT
-                | KM_RSHIFT
-                | KM_LWIN
-                | KM_RWIN
-                | KM_LALT
-                | KM_RALT
-                | KM_LCTRL
-                | KM_RCTRL)
+            (KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL)
                 .to_string()
         );
     }
@@ -234,14 +227,7 @@ mod tests {
         );
 
         assert_eq!(
-            KM_LSHIFT
-                | KM_RSHIFT
-                | KM_LWIN
-                | KM_RWIN
-                | KM_LALT
-                | KM_RALT
-                | KM_LCTRL
-                | KM_RCTRL,
+            KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL,
             "SHIFT + WIN + ALT + CTRL".parse().unwrap()
         );
     }
@@ -270,12 +256,17 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_serialize() {
-        let source: KeyModifiers = "LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN".parse().unwrap();
-        let json = serde_json::to_string_pretty(&source).unwrap();
+        /* TOML requires wrapper */
+        #[derive(Debug, Serialize, Deserialize)]
+        struct Wrapper {
+            value: KeyModifiers,
+        }
 
-        dbg!(&json);
-
-        let actual = serde_json::from_str::<KeyModifiers>(&json).unwrap();
-        assert_eq!(source, actual);
+        let source = Wrapper {
+            value: "LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN".parse().unwrap(),
+        };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<Wrapper>(&text).unwrap();
+        assert_eq!(source.value, actual.value);
     }
 }

@@ -190,7 +190,7 @@ impl Key {
 
 impl Display for Key {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(self.name(), f)
+        Display::fmt(&self.name(), f)
     }
 }
 
@@ -207,7 +207,7 @@ impl Serialize for Key {
     where
         S: Serializer,
     {
-        self.name().serialize(serializer)
+        serializer.serialize_str(&self.name())
     }
 }
 
@@ -216,8 +216,9 @@ impl<'de> Deserialize<'de> for Key {
     where
         D: Deserializer<'de>,
     {
-        let name = String::deserialize(deserializer)?;
-        let key = name.parse().map_err(de::Error::custom)?;
+        let text = String::deserialize(deserializer)?;
+        let key = text.parse().map_err(de::Error::custom)?;
+        
         Ok(key)
     }
 }
@@ -226,6 +227,7 @@ impl<'de> Deserialize<'de> for Key {
 mod tests {
     use crate::key::{Key, ScanCode, VirtualKey};
     use std::str::FromStr;
+    use serde::{Deserialize, Serialize};
 
     #[macro_export]
     macro_rules! vk_key {
@@ -461,20 +463,20 @@ mod tests {
     
     #[test]
     fn test_key_serialize() {
-        let source = key!("ENTER");
-        let json = serde_json::to_string_pretty(&source).unwrap();
-    
-        // dbg!(&json);
-    
-        let actual = serde_json::from_str::<Key>(&json).unwrap();
-        assert_eq!(source, actual);
-    
-        let source = key!("NUM_ENTER");
-        let json = serde_json::to_string_pretty(&source).unwrap();
-    
-        // dbg!(&json);
-    
-        let actual = serde_json::from_str::<Key>(&json).unwrap();
-        assert_eq!(source, actual);
+        /* TOML requires wrapper */
+        #[derive(Debug, Serialize, Deserialize)]
+        struct Wrapper {
+            value: Key,
+        }
+        
+        let source = Wrapper{ value:key!("ENTER")};
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<Wrapper>(&text).unwrap();
+        assert_eq!(source.value, actual.value);
+        
+        let source = Wrapper{ value:key!("NUM_ENTER")};
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<Wrapper>(&text).unwrap();
+        assert_eq!(source.value, actual.value);
     }
 }

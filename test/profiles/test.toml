@@ -1,0 +1,5 @@
+profile = "Test profile"
+
+[rules]
+"CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
+"[LEFT_SHIFT] CAPS_LOCK↓" = "CAPS_LOCK↓ → CAPS_LOCK↑"

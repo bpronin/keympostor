@@ -23,9 +23,10 @@ pub(crate) struct ResourceStrings {
 }
 
 pub(crate) static RESOURCE_STRINGS: LazyLock<ResourceStrings> = LazyLock::new(|| {
-    let json =
-        fs::read_to_string("./res/strings.json").expect("Unable to read strings resources file");
-    serde_json::from_str(&json).expect("Unable to parse strings resources file")
+    toml::from_str(
+        &fs::read_to_string("./res/strings.toml").expect("Unable to read strings resources file"),
+    )
+    .expect("Unable to parse strings resources file")
 });
 
 #[macro_export]

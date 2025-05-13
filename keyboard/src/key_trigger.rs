@@ -14,7 +14,7 @@ pub struct KeyTrigger {
 impl Display for KeyTrigger {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if self.modifiers != KM_NONE {
-            write!(f, "({})", self.modifiers)?;
+            write!(f, "[{}]", self.modifiers)?;
         }
         write!(f, "{}", self.action)
     }
@@ -24,8 +24,8 @@ impl FromStr for KeyTrigger {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(s) = s.strip_prefix('(') {
-            let mut parts = s.split(')');
+        if let Some(s) = s.strip_prefix('[') {
+            let mut parts = s.split(']');
             Ok(Self {
                 modifiers: parts.next().unwrap().parse()?,
                 action: parts.next().unwrap().parse()?,
@@ -64,6 +64,6 @@ mod tests {
             modifiers: key_mod!("SHIFT"),
         };
         
-        assert_eq!(expected, key_trig!("[SHIFT]A*"));
+        assert_eq!(expected, key_trig!("[SHIFT] A*"));
     }
 }

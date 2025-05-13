@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
-use serde_json;
 use std::fs;
 
-const FILE_PATH: &str = "settings.json";
+const FILE_PATH: &str = "settings.toml";
 
 #[derive(Serialize, Deserialize, Debug)]
 pub(crate) struct AppSettings {
@@ -14,21 +13,17 @@ pub(crate) struct AppSettings {
 
 impl AppSettings {
     pub(crate) fn load() -> Result<Self, String> {
-        let json = fs::read_to_string(&FILE_PATH)
+        let text = fs::read_to_string(&FILE_PATH)
             .map_err(|e| format!("Unable to read {} file.\n{}", FILE_PATH, e))?;
-        let config = serde_json::from_str(&json)
-            .map_err(|e| format!("Unable to parse {}.\n{}", FILE_PATH, e))?;
-
-        Ok(config)
+        toml::from_str(&text)
+            .map_err(|e| format!("Unable to parse {}.\n{}", FILE_PATH, e))
     }
 
     pub(crate) fn save(&self) -> Result<(), String> {
-        let json = serde_json::to_string_pretty(self)
+        let text = toml::to_string_pretty(self)
             .map_err(|e| format!("Unable to serialize {}.\n{}", FILE_PATH, e))?;
-        fs::write(FILE_PATH, json)
-            .map_err(|e| format!("Unable to write {} file.\n{}", FILE_PATH, e))?;
-
-        Ok(())
+        fs::write(FILE_PATH, text)
+            .map_err(|e| format!("Unable to write {} file.\n{}", FILE_PATH, e))
     }
 }
 

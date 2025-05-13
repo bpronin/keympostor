@@ -549,7 +549,7 @@ impl Deref for AppUi {
 pub(crate) fn profile_path() -> String {
     let mut args = env::args();
     args.next(); /* executable name */
-    args.next().unwrap_or("profiles/default.json".to_string())
+    args.next().unwrap_or("profiles/default.toml".to_string())
 }
 
 // todo: try to get rid of it

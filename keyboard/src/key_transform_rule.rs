@@ -1,12 +1,10 @@
 use crate::key_action::KeyActionSequence;
 use crate::key_trigger::KeyTrigger;
+use crate::toml::KeyTransformProfileToml;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::ffi::OsStr;
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::path::Path;
 use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -43,50 +41,28 @@ pub struct KeyTransformProfile {
 
 impl KeyTransformProfile {
     pub fn load(path: &str) -> Result<Self, String> {
-        if let Some(ext) = Path::new(path).extension().and_then(OsStr::to_str) {
-            match ext {
-                "yaml" => Self::load_yaml(path),
-                &_ => Self::load_json(path),
-            }
-        } else {
-            Err(format!("File does not have file extension: {}", path))
-        }
+        KeyTransformProfileToml::load_profile(path)?.to_profile()
+    }
+    
+    pub fn save(&self, path: &str) -> Result<(), String> {
+        KeyTransformProfileToml::from_profile(self).save(path)
     }
 
-    fn load_json(path: &str) -> Result<Self, String> {
-        let json = fs::read_to_string(&path)
-            .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?;
-
-        Ok(serde_json::from_str(&json).map_err(|e| format!("Unable to parse {}.\n{}", path, e))?)
-    }
-
-    fn load_yaml(path: &str) -> Result<Self, String> {
-        let text = fs::read_to_string(&path)
-            .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?;
-
-        #[derive(Serialize, Deserialize)]
-        struct ProfileYaml {
-            profile: String,
-            rules: HashMap<String, String>,
-        }
-
-        let yaml: ProfileYaml = serde_yaml::from_str(&text)
-            .map_err(|e| format!("Unable to parse {}.\nERROR: {}", path, e))?;
-
-        let mut rules: Vec<KeyTransformRule> = yaml
-            .rules
-            .iter()
-            .map(|entry| KeyTransformRule {
-                source: entry.0.parse().unwrap(),
-                target: entry.1.parse().unwrap(),
-            })
-            .collect();
-
-        Ok(Self {
-            title: yaml.profile,
-            rules,
-        })
-    }
+    // fn load_raw(path: &str) -> Result<Self, String> {
+    //     toml::from_str(
+    //         &fs::read_to_string(&path)
+    //             .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?,
+    //     )
+    //     .map_err(|e| format!("Unable to parse {}.\n{}", path, e))
+    // }
+    // 
+    // fn save_raw(&self, path: &str) -> Result<(), String> {
+    //     fs::write(
+    //         path,
+    //         toml::to_string(self).map_err(|e| format!("Unable to serialize {}.\n{}", path, e))?,
+    //     )
+    //     .map_err(|e| format!("Unable to write {} file.\n{}", path, e))
+    // }
 }
 
 impl Display for KeyTransformProfile {
@@ -190,9 +166,9 @@ mod tests {
             },
         };
 
-        let json = serde_json::to_string_pretty(&source).unwrap();
+        let text = toml::to_string_pretty(&source).unwrap();
 
-        let actual = serde_json::from_str::<KeyTransformRule>(&json).unwrap();
+        let actual = toml::from_str::<KeyTransformRule>(&text).unwrap();
         assert_eq!(source, actual);
     }
 
@@ -266,31 +242,18 @@ mod tests {
 
     #[test]
     fn test_key_transform_profile_serialize() {
-        let actual = KeyTransformProfile::load("../test/profiles/test.json").unwrap();
+        let actual = KeyTransformProfile::load("../test/profiles/test.toml").unwrap();
 
         let expected = key_profile!(
             "
             Test profile;
             CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑;
-            [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑;
+            [LEFT_SHIFT] CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑;
             "
         );
 
         assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_key_transform_profile_load_script() {
-        let actual = KeyTransformProfile::load("../test/profiles/test.yaml").unwrap();
-
-        // let expected = key_profile!(
-        //     "
-        //     Test profile;
-        //     CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑;
-        //     [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑;
-        //     "
-        // );
-        //
-        // assert_eq!(expected, actual);
+        
+        actual.save("../test/profiles/test-copy.toml").unwrap()
     }
 }

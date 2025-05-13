@@ -6,8 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
-    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VIRTUAL_KEY,
+    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
+    KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
@@ -71,7 +71,7 @@ impl KeyAction {
     fn create_input(&self) -> INPUT {
         let virtual_key = self.key.virtual_key();
         let scan_code = self.key.scan_code();
-        
+
         let mut flags = KEYEVENTF_SCANCODE;
         if scan_code.is_extended {
             flags |= KEYEVENTF_EXTENDEDKEY
@@ -79,7 +79,7 @@ impl KeyAction {
         if self.transition.is_up() {
             flags |= KEYEVENTF_KEYUP;
         }
-        
+
         INPUT {
             r#type: INPUT_KEYBOARD,
             Anonymous: INPUT_0 {
@@ -159,9 +159,9 @@ mod tests {
     use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::key_event::SELF_EVENT_MARKER;
     use crate::{assert_not, key, sc_key};
+    use serde::{Deserialize, Serialize};
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
-        KEYEVENTF_SCANCODE, VK_RETURN,
+        INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VK_RETURN,
     };
 
     #[macro_export]
@@ -220,18 +220,21 @@ mod tests {
 
     #[test]
     fn test_key_transition_serialize() {
-        let source = Down;
+        /* TOML requires wrapper */
+        #[derive(Debug, Serialize, Deserialize)]
+        struct Wrapper {
+            value: KeyTransition,
+        }
 
-        let json = serde_json::to_string_pretty(&source).unwrap();
-        let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
+        let source = Wrapper { value: Down };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<Wrapper>(&text).unwrap();
+        assert_eq!(source.value, actual.value);
 
-        assert_eq!(source, actual);
-
-        let source = Up;
-        let json = serde_json::to_string_pretty(&source).unwrap();
-
-        let actual = serde_json::from_str::<KeyTransition>(&json).unwrap();
-        assert_eq!(source, actual);
+        let source = Wrapper { value: Up };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<Wrapper>(&text).unwrap();
+        assert_eq!(source.value, actual.value);
     }
 
     #[test]
@@ -248,20 +251,20 @@ mod tests {
         };
         assert_eq!("NUM_ENTER↑", format!("{}", actual));
     }
-    
+
     #[test]
     fn test_key_action_parse() {
         let expected = KeyAction {
             key: key!("ENTER"),
             transition: Down,
         };
-        assert_eq!(expected, "ENTER↓".parse().unwrap() );
-        
+        assert_eq!(expected, "ENTER↓".parse().unwrap());
+
         let expected = KeyAction {
             key: key!("F3"),
             transition: Down,
         };
-        assert_eq!(expected, " F3\n*".parse().unwrap() );
+        assert_eq!(expected, " F3\n*".parse().unwrap());
     }
 
     #[test]
@@ -270,9 +273,9 @@ mod tests {
             key: key!("ENTER"),
             transition: Down,
         };
-        let json = serde_json::to_string_pretty(&source).unwrap();
+        let text = toml::to_string_pretty(&source).unwrap();
 
-        let actual = serde_json::from_str::<KeyAction>(&json).unwrap();
+        let actual = toml::from_str::<KeyAction>(&text).unwrap();
         assert_eq!(source, actual);
     }
 
@@ -320,9 +323,9 @@ mod tests {
     fn test_key_action_sequence_serialize() {
         let source = key_act_seq!("ENTER↓ → SHIFT↓");
 
-        let json = serde_json::to_string_pretty(&source).unwrap();
+        let text = toml::to_string_pretty(&source).unwrap();
 
-        let actual = serde_json::from_str::<KeyActionSequence>(&json).unwrap();
+        let actual = toml::from_str::<KeyActionSequence>(&text).unwrap();
         assert_eq!(source, actual);
     }
 
