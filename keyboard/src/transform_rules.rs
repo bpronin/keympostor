@@ -35,7 +35,7 @@ impl Display for KeyTransformRule {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct KeyTransformRules {
-    pub items: Vec<KeyTransformRule>,
+    pub(crate) items: Vec<KeyTransformRule>,
 }
 
 impl Display for KeyTransformRules {

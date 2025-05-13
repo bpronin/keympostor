@@ -12,6 +12,7 @@ use std::cell::RefCell;
 use std::env;
 use std::ops::Deref;
 use std::rc::Rc;
+use crate::util::dos_line_endings;
 
 thread_local! {
     static APP: RefCell<AppUi> = RefCell::new(
@@ -177,7 +178,7 @@ impl AppControl {
     }
 
     fn update_controls_profile_changed(&self, profile: &KeyTransformProfile) {
-        let s = profile.to_string();
+        let s = dos_line_endings(&profile.to_string());
         self.profile_view.set_text(&s);
     }
 

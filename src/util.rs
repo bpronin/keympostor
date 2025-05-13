@@ -2,6 +2,10 @@ extern crate native_windows_gui as nwg;
 use crate::res::RESOURCE_STRINGS;
 use crate::rs;
 
+pub(crate) fn dos_line_endings(unix_text: &str) -> String {
+    unix_text.replace("\r\n", "\n").replace('\r', "\n").replace('\n', "\r\n")
+}
+
 pub(crate) fn warn(text: &str) {
     nwg::message(&nwg::MessageParams {
         title: rs!(app_title),
