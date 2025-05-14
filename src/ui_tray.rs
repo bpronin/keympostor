@@ -2,44 +2,17 @@ use crate::res::RES;
 use crate::res::RESOURCE_STRINGS;
 use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
 use crate::rs;
+use crate::ui::{AppControl, AppEventHandler};
 use native_windows_gui as nwg;
-use crate::ui::AppControl;
 
 #[derive(Default)]
-pub struct Tray {
+pub(crate) struct Tray {
     notification: nwg::TrayNotification,
     menu: nwg::Menu,
     toggle_processing_enabled_item: nwg::MenuItem,
     open_app_item: nwg::MenuItem,
     exit_app_item: nwg::MenuItem,
     separator: nwg::MenuSeparator,
-}
-
-impl Tray {
-    pub(crate) fn handle_event(&self, app: &AppControl, evt: nwg::Event, handle: nwg::ControlHandle) {
-        match evt {
-            nwg::Event::OnMousePress(nwg::MousePressEvent::MousePressLeftUp) => {
-                if &handle == &self.notification {
-                    app.on_toggle_window_visibility();
-                }
-            }
-            nwg::Event::OnContextMenu => {
-                if &handle == &self.notification {
-                    self.show_menu();
-                }
-            }
-            nwg::Event::OnMenuItemSelected => {
-                if &handle == &self.open_app_item {
-                    app.on_open_window();
-                } else if &handle == &self.toggle_processing_enabled_item {
-                    app.on_toggle_processing_enabled();
-                } else if &handle == &self.exit_app_item {
-                    app.on_app_exit();
-                }
-            }
-            _ => {}
-        }
-    }
 }
 
 impl Tray {
@@ -88,8 +61,35 @@ impl Tray {
         }
     }
 
-    pub(crate) fn show_menu(&self) {
+    fn on_show_menu(&self) {
         let (x, y) = nwg::GlobalCursor::position();
         self.menu.popup(x, y);
+    }
+}
+
+impl AppEventHandler for Tray {
+    fn handle_event(&self, app: &AppControl, evt: nwg::Event, handle: nwg::ControlHandle) {
+        match evt {
+            nwg::Event::OnMousePress(nwg::MousePressEvent::MousePressLeftUp) => {
+                if &handle == &self.notification {
+                    app.on_toggle_window_visibility();
+                }
+            }
+            nwg::Event::OnContextMenu => {
+                if &handle == &self.notification {
+                    self.on_show_menu();
+                }
+            }
+            nwg::Event::OnMenuItemSelected => {
+                if &handle == &self.open_app_item {
+                    app.on_open_window();
+                } else if &handle == &self.toggle_processing_enabled_item {
+                    app.on_toggle_processing_enabled();
+                } else if &handle == &self.exit_app_item {
+                    app.on_app_exit();
+                }
+            }
+            _ => {}
+        }
     }
 }

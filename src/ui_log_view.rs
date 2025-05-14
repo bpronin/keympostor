@@ -2,25 +2,25 @@ use crate::res::RESOURCE_STRINGS;
 use crate::util::mono_font;
 use crate::{rs, ui};
 use keyboard::key_event::KeyEvent;
-use native_windows_gui::{NwgError, Tab, TextBox};
+use native_windows_gui as nwg;
 
 const MAX_LOG_LINES: usize = 256;
 
 #[derive(Default)]
 pub struct LogView {
-    view: TextBox,
+    view: nwg::TextBox,
 }
 
 impl LogView {
-    pub(crate) fn build_ui(&mut self, parent: &Tab) -> Result<(), NwgError> {
-        TextBox::builder()
+    pub(crate) fn build_ui(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
+        nwg::TextBox::builder()
             .parent(parent)
             .readonly(true)
             .font(Some(&mono_font(15)))
             .build(&mut self.view)
     }
 
-    pub(crate) fn view(&self) -> &TextBox {
+    pub(crate) fn view(&self) -> &nwg::TextBox {
         &self.view
     }
 

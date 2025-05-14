@@ -2,6 +2,7 @@ use super::*;
 use crate::res::RESOURCE_STRINGS;
 use crate::settings::AppSettings;
 use crate::ui_log_view::LogView;
+use crate::ui_main_menu::MainMenu;
 use crate::ui_profile_view::ProfileView;
 use crate::ui_tray::Tray;
 use crate::util::default_font;
@@ -36,26 +37,6 @@ pub(crate) struct AppControl {
     profile_view: ProfileView,
     main_menu: MainMenu,
     tray: Tray,
-}
-
-#[derive(Default)]
-struct MainMenu {
-    menu: nwg::Menu,
-    toggle_processing_enabled_item: nwg::MenuItem,
-    toggle_logging_enabled_item: nwg::MenuItem,
-    clear_log_item: nwg::MenuItem,
-    load_profile_item: nwg::MenuItem,
-    separator: nwg::MenuSeparator,
-    exit_app_item: nwg::MenuItem,
-}
-
-impl MainMenu {
-    pub(crate) fn update_ui(&self, is_processing_enabled: bool, is_silent: bool) {
-        self.toggle_processing_enabled_item
-            .set_checked(is_processing_enabled);
-
-        self.toggle_logging_enabled_item.set_checked(!is_silent);
-    }
 }
 
 impl AppControl {
@@ -154,7 +135,7 @@ impl AppControl {
         self.window.set_visible(!self.window.visible());
     }
 
-    fn on_load_profile(&self) {
+    pub(crate) fn on_load_profile(&self) {
         let mut dialog = nwg::FileDialog::default();
 
         nwg::FileDialog::builder()
@@ -170,7 +151,7 @@ impl AppControl {
         }
     }
 
-    fn on_log_view_clear(&self) {
+    pub(crate) fn on_log_view_clear(&self) {
         self.log_view.clear();
     }
 
@@ -201,54 +182,12 @@ impl NativeUi<AppUi> for AppControl {
             .title(rs!(app_title))
             .build(&mut app.window)?;
 
-        // Main menu
-
-        nwg::Menu::builder()
-            .parent(&app.window)
-            .text(rs!(file))
-            .build(&mut app.main_menu.menu)?;
-
-        nwg::MenuItem::builder()
-            .parent(&app.main_menu.menu)
-            .text(rs!(enabled))
-            .build(&mut app.main_menu.toggle_processing_enabled_item)?;
-
-        nwg::MenuSeparator::builder()
-            .parent(&app.main_menu.menu)
-            .build(&mut app.main_menu.separator)?;
-
-        nwg::MenuItem::builder()
-            .parent(&app.main_menu.menu)
-            .text(rs!(logging_enabled))
-            .build(&mut app.main_menu.toggle_logging_enabled_item)?;
-
-        nwg::MenuItem::builder()
-            .parent(&app.main_menu.menu)
-            .text(rs!(clear_log))
-            .build(&mut app.main_menu.clear_log_item)?;
-
-        nwg::MenuItem::builder()
-            .parent(&app.main_menu.menu)
-            .text(rs!(load_profile))
-            .build(&mut app.main_menu.load_profile_item)?;
-
-        nwg::MenuSeparator::builder()
-            .parent(&app.main_menu.menu)
-            .build(&mut app.main_menu.separator)?;
-
-        nwg::MenuItem::builder()
-            .parent(&app.main_menu.menu)
-            .text(rs!(exit))
-            .build(&mut app.main_menu.exit_app_item)?;
-
-        app.tray.build_ui(&app.window)?;
-
-        // Main view
-
         nwg::TextInput::builder()
             .parent(&app.window)
             .focus(true)
             .build(&mut app.text_editor)?;
+
+        /* Tabs */
 
         nwg::TabsContainer::builder()
             .parent(&app.window)
@@ -264,40 +203,29 @@ impl NativeUi<AppUi> for AppControl {
             .parent(&app.tab_container)
             .build(&mut app.tab_profile)?;
 
-        app.log_view.build_ui(&app.tab_log)?;
-        app.profile_view.build_ui(&app.tab_profile)?;
+        app.main_menu.build_ui(&mut app.window)?;
+        app.tray.build_ui(&mut app.window)?;
+        app.log_view.build_ui(&mut app.tab_log)?;
+        app.profile_view.build_ui(&mut app.tab_profile)?;
 
-        // Wrap-up
+        /* Wrap-up */
 
         let ui = AppUi {
             inner: Rc::new(app),
             default_handler: Default::default(),
         };
 
-        // Events
+        /* Events */
 
         let evt_ui = Rc::downgrade(&ui.inner);
         let handle_events = move |evt, _evt_data, handle| {
             if let Some(evt_ui) = evt_ui.upgrade() {
                 evt_ui.tray.handle_event(&evt_ui, evt, handle);
-
+                evt_ui.main_menu.handle_event(&evt_ui, evt, handle);
                 match evt {
                     nwg::Event::OnWindowClose => {
                         if &handle == &evt_ui.window {
                             evt_ui.on_window_close();
-                        }
-                    }
-                    nwg::Event::OnMenuItemSelected => {
-                        if &handle == &evt_ui.main_menu.load_profile_item {
-                            evt_ui.on_load_profile();
-                        } else if &handle == &evt_ui.main_menu.clear_log_item {
-                            evt_ui.on_log_view_clear();
-                        } else if &handle == &evt_ui.main_menu.exit_app_item {
-                            evt_ui.on_app_exit();
-                        } else if &handle == &evt_ui.main_menu.toggle_logging_enabled_item {
-                            evt_ui.on_toggle_logging_enabled();
-                        } else if &handle == &evt_ui.main_menu.toggle_processing_enabled_item {
-                            evt_ui.on_toggle_processing_enabled();
                         }
                     }
                     _ => {}
@@ -310,7 +238,7 @@ impl NativeUi<AppUi> for AppControl {
             handle_events,
         ));
 
-        // Layout
+        /* Layout */
 
         use nwg::stretch::{
             geometry::{Rect, Size},
@@ -401,6 +329,10 @@ impl Deref for AppUi {
     fn deref(&self) -> &AppControl {
         &self.inner
     }
+}
+
+pub(crate) trait AppEventHandler {
+    fn handle_event(&self, app: &AppControl, evt: nwg::Event, handle: nwg::ControlHandle);
 }
 
 pub(crate) fn default_profile_path() -> String {
