@@ -1,6 +1,9 @@
 extern crate native_windows_gui as nwg;
+
+use crate::ui_panic;
 use nwg::EmbedResource;
 use serde::Deserialize;
+use std::cell::RefCell;
 use std::fs;
 use std::sync::LazyLock;
 // pub(crate) const SOUND_GAME_LOCK_ON: &str = "./res/sound/game_lock_on.wav";
@@ -21,7 +24,7 @@ pub(crate) struct ResourceStrings {
     pub(crate) logging_enabled: String,
     pub(crate) _logging_enabled_: String,
     pub(crate) _logging_disabled_: String,
-    pub(crate) load_profile_filter: String
+    pub(crate) load_profile_filter: String,
 }
 
 pub(crate) static RESOURCE_STRINGS: LazyLock<ResourceStrings> = LazyLock::new(|| {
@@ -38,15 +41,33 @@ macro_rules! rs {
     };
 }
 
-pub(crate) struct Resources {
-    pub(crate) embedded: EmbedResource,
+thread_local! {
+    static EMBED_RES: RefCell<EmbedResource> = RefCell::new(
+        EmbedResource::load(None).expect("Unable to load embedded resources")
+    )
 }
 
-impl Default for Resources {
-    fn default() -> Self {
-        Self {
-            embedded: EmbedResource::load(None).unwrap(),
-        }
+pub(crate) static RES: Resources = Resources {};
+
+pub(crate) struct Resources {}
+
+impl Resources {
+    pub fn get_icon(&self, icon_id: usize) -> nwg::Icon {
+        let mut icon = nwg::Icon::default();
+
+        EMBED_RES.with_borrow(|embed| {
+            nwg::Icon::builder()
+                .source_embed(Some(embed))
+                .source_embed_id(icon_id)
+                .strict(true)
+                .size(Some((16, 16)))
+                .build(&mut icon)
+                .unwrap_or_else(|e| {
+                    ui_panic!("{}", e);
+                });
+        });
+
+        icon
     }
 }
 

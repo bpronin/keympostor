@@ -1,9 +1,10 @@
 use super::*;
-use crate::res::{Resources, RESOURCE_STRINGS};
-use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
+use crate::res::RESOURCE_STRINGS;
 use crate::settings::AppSettings;
 use crate::ui_log_view::LogView;
-use crate::util::{default_font, dos_line_endings, mono_font};
+use crate::ui_profile_view::ProfileView;
+use crate::ui_tray::Tray;
+use crate::util::default_font;
 use keyboard::key_event::KeyEvent;
 use keyboard::key_hook::KeyboardHandler;
 use keyboard::transform_rules::KeyTransformProfile;
@@ -13,7 +14,6 @@ use std::cell::RefCell;
 use std::env;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::ui_profile_view::ProfileView;
 
 thread_local! {
     static APP: RefCell<AppUi> = RefCell::new(
@@ -22,9 +22,8 @@ thread_local! {
 }
 
 #[derive(Default)]
-struct AppControl {
+pub(crate) struct AppControl {
     keyboard_handler: KeyboardHandler,
-    resources: Resources,
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
     tab_log_layout: nwg::FlexboxLayout,
@@ -36,8 +35,7 @@ struct AppControl {
     log_view: LogView,
     profile_view: ProfileView,
     main_menu: MainMenu,
-    tray: nwg::TrayNotification,
-    tray_menu: TrayMenu,
+    tray: Tray,
 }
 
 #[derive(Default)]
@@ -52,21 +50,12 @@ struct MainMenu {
 }
 
 impl MainMenu {
-    pub(crate) fn update_ui(&self, is_key_hook_enabled: bool, is_silent: bool) {
+    pub(crate) fn update_ui(&self, is_processing_enabled: bool, is_silent: bool) {
         self.toggle_processing_enabled_item
-            .set_checked(is_key_hook_enabled);
+            .set_checked(is_processing_enabled);
 
         self.toggle_logging_enabled_item.set_checked(!is_silent);
     }
-}
-
-#[derive(Default)]
-struct TrayMenu {
-    menu: nwg::Menu,
-    toggle_processing_enabled_item: nwg::MenuItem,
-    open_app_item: nwg::MenuItem,
-    exit_app_item: nwg::MenuItem,
-    separator: nwg::MenuSeparator,
 }
 
 impl AppControl {
@@ -102,21 +91,16 @@ impl AppControl {
         self.keyboard_handler.set_profile(profile);
     }
 
-    pub fn get_icon(&self, icon_id: usize) -> nwg::Icon {
-        let mut icon = nwg::Icon::default();
-        nwg::Icon::builder()
-            .source_embed(Some(&self.resources.embedded))
-            .source_embed_id(icon_id)
-            .strict(true)
-            .size(Some((16, 16)))
-            .build(&mut icon)
-            .unwrap_or_else(|e| {
-                ui_panic!("{}", e);
-            });
-        icon
+    fn update_controls(&self) {
+        self.main_menu.update_ui(
+            self.keyboard_handler.is_enabled(),
+            self.keyboard_handler.is_silent(),
+        );
+
+        self.tray.update_ui(self.keyboard_handler.is_enabled());
     }
 
-    pub fn run(&self) {
+    pub(crate) fn run(&self) {
         // let callback = |event: &KeyboardEvent| {self.on_log_view_update(event)};
         // let boxed_callback = Box::new(callback);
 
@@ -134,31 +118,20 @@ impl AppControl {
         nwg::dispatch_thread_events();
     }
 
-    fn update_controls(&self) {
-        self.main_menu.update_ui(
-            self.keyboard_handler.is_enabled(),
-            self.keyboard_handler.is_silent(),
-        );
-
-        self.tray_menu
-            .toggle_processing_enabled_item
-            .set_checked(self.keyboard_handler.is_enabled());
-
-        if self.keyboard_handler.is_enabled() {
-            self.tray.set_icon(&self.get_icon(IDI_ICON_GAME_LOCK_ON));
-        } else {
-            self.tray.set_icon(&self.get_icon(IDI_ICON_GAME_LOCK_OFF));
-        }
+    fn on_window_close(&self) {
+        // self.keyboard_handler.set_silent(true);
+        #[cfg(feature = "dev")]
+        self.on_app_exit();
     }
 
-    fn on_toggle_processing_enabled(&self) {
+    pub(crate) fn on_toggle_processing_enabled(&self) {
         self.keyboard_handler
             .set_enabled(!self.keyboard_handler.is_enabled());
         self.update_controls();
         self.write_settings();
     }
 
-    fn on_toggle_logging_enabled(&self) {
+    pub(crate) fn on_toggle_logging_enabled(&self) {
         self.keyboard_handler
             .set_silent(!self.keyboard_handler.is_silent());
 
@@ -168,32 +141,17 @@ impl AppControl {
         self.write_settings();
     }
 
-    fn on_app_exit(&self) {
+    pub(crate) fn on_app_exit(&self) {
         nwg::stop_thread_dispatch();
     }
 
-    fn on_window_close(&self) {
-        // self.keyboard_handler.set_silent(true);
-        #[cfg(feature = "dev")]
-        self.on_app_exit();
-    }
-
-    fn on_open_window(&self) {
+    pub(crate) fn on_open_window(&self) {
         self.window.set_visible(true);
         // self.keyboard_handler.set_silent(false);
     }
 
-    fn on_toggle_window_visibility(&self) {
+    pub(crate) fn on_toggle_window_visibility(&self) {
         self.window.set_visible(!self.window.visible());
-    }
-
-    fn on_tray_menu_show(&self) {
-        let (x, y) = nwg::GlobalCursor::position();
-        self.tray_menu.menu.popup(x, y);
-    }
-
-    fn on_log_view_clear(&self) {
-        self.log_view.clear();
     }
 
     fn on_load_profile(&self) {
@@ -210,6 +168,10 @@ impl AppControl {
             let path = dialog.get_selected_item().unwrap();
             self.read_profile(path.to_str().unwrap());
         }
+    }
+
+    fn on_log_view_clear(&self) {
+        self.log_view.clear();
     }
 
     fn on_log_view_update(&self, event: &KeyEvent) {
@@ -279,39 +241,7 @@ impl NativeUi<AppUi> for AppControl {
             .text(rs!(exit))
             .build(&mut app.main_menu.exit_app_item)?;
 
-        // Tray icon
-
-        nwg::TrayNotification::builder()
-            .parent(&app.window)
-            .icon(Some(&app.get_icon(IDI_ICON_GAME_LOCK_OFF)))
-            .tip(Some(rs!(tray_tip)))
-            .build(&mut app.tray)?;
-
-        // Tray menu
-
-        nwg::Menu::builder()
-            .popup(true)
-            .parent(&app.window)
-            .build(&mut app.tray_menu.menu)?;
-
-        nwg::MenuItem::builder()
-            .parent(&app.tray_menu.menu)
-            .text(rs!(enabled))
-            .build(&mut app.tray_menu.toggle_processing_enabled_item)?;
-
-        nwg::MenuItem::builder()
-            .text(rs!(open))
-            .parent(&app.tray_menu.menu)
-            .build(&mut app.tray_menu.open_app_item)?;
-
-        nwg::MenuSeparator::builder()
-            .parent(&app.tray_menu.menu)
-            .build(&mut app.tray_menu.separator)?;
-
-        nwg::MenuItem::builder()
-            .text(rs!(exit))
-            .parent(&app.tray_menu.menu)
-            .build(&mut app.tray_menu.exit_app_item)?;
+        app.tray.build_ui(&app.window)?;
 
         // Main view
 
@@ -335,7 +265,6 @@ impl NativeUi<AppUi> for AppControl {
             .build(&mut app.tab_profile)?;
 
         app.log_view.build_ui(&app.tab_log)?;
-        
         app.profile_view.build_ui(&app.tab_profile)?;
 
         // Wrap-up
@@ -350,20 +279,12 @@ impl NativeUi<AppUi> for AppControl {
         let evt_ui = Rc::downgrade(&ui.inner);
         let handle_events = move |evt, _evt_data, handle| {
             if let Some(evt_ui) = evt_ui.upgrade() {
+                evt_ui.tray.handle_event(&evt_ui, evt, handle);
+
                 match evt {
                     nwg::Event::OnWindowClose => {
                         if &handle == &evt_ui.window {
                             evt_ui.on_window_close();
-                        }
-                    }
-                    nwg::Event::OnMousePress(nwg::MousePressEvent::MousePressLeftUp) => {
-                        if &handle == &evt_ui.tray {
-                            evt_ui.on_toggle_window_visibility();
-                        }
-                    }
-                    nwg::Event::OnContextMenu => {
-                        if &handle == &evt_ui.tray {
-                            evt_ui.on_tray_menu_show();
                         }
                     }
                     nwg::Event::OnMenuItemSelected => {
@@ -371,22 +292,16 @@ impl NativeUi<AppUi> for AppControl {
                             evt_ui.on_load_profile();
                         } else if &handle == &evt_ui.main_menu.clear_log_item {
                             evt_ui.on_log_view_clear();
-                        } else if &handle == &evt_ui.main_menu.exit_app_item
-                            || &handle == &evt_ui.tray_menu.exit_app_item
-                        {
+                        } else if &handle == &evt_ui.main_menu.exit_app_item {
                             evt_ui.on_app_exit();
-                        } else if &handle == &evt_ui.tray_menu.open_app_item {
-                            evt_ui.on_open_window();
                         } else if &handle == &evt_ui.main_menu.toggle_logging_enabled_item {
                             evt_ui.on_toggle_logging_enabled();
-                        } else if &handle == &evt_ui.main_menu.toggle_processing_enabled_item
-                            || &handle == &evt_ui.tray_menu.toggle_processing_enabled_item
-                        {
+                        } else if &handle == &evt_ui.main_menu.toggle_processing_enabled_item {
                             evt_ui.on_toggle_processing_enabled();
                         }
                     }
                     _ => {}
-                }
+                };
             }
         };
 

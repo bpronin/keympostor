@@ -7,7 +7,6 @@ use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
 use crate::key::Key;
-use crate::key_action::KeyTransition::Up;
 
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
@@ -23,23 +22,6 @@ pub struct KeyEvent<'a> {
 impl KeyEvent<'_> {
     pub(crate) fn new(kb: KBDLLHOOKSTRUCT) -> Self {
         Self { kb, rule: None }
-    }
-
-    pub(crate) fn from_action(key_action: &KeyAction) -> Self {
-        let mut flags = Default::default();
-        if key_action.transition == Up {
-            flags |= LLKHF_UP
-        };
-        if key_action.key.is_ext_scan_code {
-            flags |= LLKHF_EXTENDED
-        };
-    
-        Self::new(KBDLLHOOKSTRUCT {
-            vkCode: key_action.key.vk_code as u32,
-            scanCode: key_action.key.scan_code as u32,
-            flags,
-            ..Default::default()
-        })
     }
 
     pub fn time(&self) -> u32 {
@@ -122,7 +104,27 @@ mod tests {
     use windows::Win32::UI::WindowsAndMessaging::{
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
+    
+    impl KeyEvent<'_> {
 
+        pub(crate) fn from_action(key_action: &KeyAction) -> Self {
+            let mut flags = Default::default();
+            if key_action.transition == Up {
+                flags |= LLKHF_UP
+            };
+            if key_action.key.is_ext_scan_code {
+                flags |= LLKHF_EXTENDED
+            };
+
+            Self::new(KBDLLHOOKSTRUCT {
+                vkCode: key_action.key.vk_code as u32,
+                scanCode: key_action.key.scan_code as u32,
+                flags,
+                ..Default::default()
+            })
+        }
+    }
+    
     #[macro_export]
     macro_rules! key_event {
         ($action:literal) => {
