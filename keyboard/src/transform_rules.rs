@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::str::FromStr;
+use std::str::{FromStr, Lines};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformRule {
@@ -38,6 +38,21 @@ pub struct KeyTransformRules {
     pub(crate) items: Vec<KeyTransformRule>,
 }
 
+impl KeyTransformRules {
+    fn from_lines(lines: Lines) -> Result<Self, String> {
+        // let mut items = lines.map(str::parse).collect::<Result<_, _>>()?;
+        let mut items = vec![];
+        for line in lines {
+            let ts = line.trim();
+
+            let item = ts.parse()?;
+            items.push(item);
+        }
+
+        Ok(Self { items })
+    }
+}
+
 impl Display for KeyTransformRules {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write_joined!(f, &self.items, "\n")
@@ -48,9 +63,7 @@ impl FromStr for KeyTransformRules {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self {
-            items: s.lines().map(str::parse).collect::<Result<_, _>>()?,
-        })
+        Self::from_lines(s.lines())
     }
 }
 
@@ -125,9 +138,7 @@ impl FromStr for KeyTransformProfile {
 
         Ok(Self {
             title: lines.next().expect("Error parsing title.").trim().into(),
-            rules: KeyTransformRules {
-                items: lines.map(str::parse).collect::<Result<_, _>>()?,
-            },
+            rules: KeyTransformRules::from_lines(lines)?,
         })
     }
 }
@@ -268,28 +279,23 @@ mod tests {
         }
     */
 
-    /*    todo:
-        #[test]
-        fn test_key_transform_rules_parse_expand_transition() {
-            let actual: KeyTransformProfile = "
-            Test profile;
-            A↓↑ : B↓↑;
-            "
-            .parse()
-            .unwrap();
+    #[test]
+    fn test_key_transform_rules_parse_expand_transition() {
+        let actual = key_profile!(
+            r#"
+            Test profile
+            A↓ : A↓↑ → B↓↑
+            "#
+        );
+        let expected = key_profile!(
+            r#"
+            Test profile
+            A↓ : A↓ → A↑ → B↓ → B↑ 
+            "#
+        );
 
-            println!("{}", actual);
-
-            let expected: KeyTransformProfile = "
-            Test profile;
-            A↓ → A↓: B↓ → B↑;
-            "
-            .parse()
-            .unwrap();
-
-            assert_eq!(expected, actual);
-        }
-    */
+        assert_eq!(expected, actual);
+    }
 
     #[test]
     fn test_key_transform_profile_serialize() {

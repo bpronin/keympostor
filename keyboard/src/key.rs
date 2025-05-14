@@ -466,17 +466,17 @@ mod tests {
         /* TOML requires wrapper */
         #[derive(Debug, Serialize, Deserialize)]
         struct Wrapper {
-            value: Key,
+            key: Key,
         }
         
-        let source = Wrapper{ value:key!("ENTER")};
+        let source = Wrapper{key:key!("ENTER")};
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.value, actual.value);
+        assert_eq!(source.key, actual.key);
         
-        let source = Wrapper{ value:key!("NUM_ENTER")};
+        let source = Wrapper{key:key!("NUM_ENTER")};
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.value, actual.value);
+        assert_eq!(source.key, actual.key);
     }
 }

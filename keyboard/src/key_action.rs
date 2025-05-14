@@ -68,6 +68,13 @@ pub struct KeyAction {
 }
 
 impl KeyAction {
+    fn new(key_name: &str, transition_symbol: char) -> Result<Self, String> {
+        Ok(Self {
+            key: key_name.parse()?,
+            transition: transition_symbol.to_string().parse()?,
+        })
+    }
+
     fn create_input(&self) -> INPUT {
         let virtual_key = self.key.virtual_key();
         let scan_code = self.key.scan_code();
@@ -114,10 +121,7 @@ impl FromStr for KeyAction {
             "Invalid key action suffix: `{transition_symbol}`."
         ));
 
-        Ok(Self {
-            key: key_name.parse()?,
-            transition: transition_symbol.to_string().parse()?,
-        })
+        Self::new(key_name, transition_symbol)
     }
 }
 
@@ -143,9 +147,21 @@ impl FromStr for KeyActionSequence {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let actions = s
-            .split(|c| "→>".contains(c))
-            .map(str::parse)
-            .collect::<Result<_, _>>()?;
+            .split(|ch| ['→', '>'].contains(&ch))
+            .flat_map(|part| {
+                let part = part.trim();
+
+                let (prefix, suffixes) = part
+                    .char_indices()
+                    .find(|(_, ch)| ['↑', '↓', '^', '*'].contains(ch))
+                    .map(|(ix, _)| part.split_at(ix))
+                    .unwrap_or((part, "↓↑"));
+
+                suffixes
+                    .chars()
+                    .map(move |suffix| KeyAction::new(prefix, suffix))
+            })
+            .collect::<Result<Vec<_>, Self::Err>>()?;
 
         Ok(Self { actions })
     }
@@ -329,39 +345,11 @@ mod tests {
         assert_eq!(source, actual);
     }
 
-    // #[test]
-    // fn test_key_action_sequence_create_input() {
-    //     let source = key_act_seq!("A↓ → NUM_ENTER↑");
-    //
-    //     let input = source.create_input();
-    //
-    //     assert_eq!(2, input.len());
-    //
-    //     let VK(vk) = source.actions[0].key else {
-    //         panic!("Not a VK")
-    //     };
-    //
-    //     assert_eq!(vk.value, unsafe { input[0].Anonymous.ki.wVk.0 } as u8);
-    //     assert_not!(unsafe {
-    //         input[0]
-    //             .Anonymous
-    //             .ki
-    //             .dwFlags
-    //             .contains(KEYEVENTF_EXTENDEDKEY)
-    //     });
-    //     assert!(!unsafe { input[0].Anonymous.ki.dwFlags.contains(KEYEVENTF_KEYUP) });
-    //
-    //     let SC(sc) = source.actions[1].key else {
-    //         panic!("Not a SC")
-    //     };
-    //     assert_eq!(sc.value, unsafe { input[1].Anonymous.ki.wScan } as u8);
-    //     assert!(unsafe {
-    //         input[1]
-    //             .Anonymous
-    //             .ki
-    //             .dwFlags
-    //             .contains(KEYEVENTF_EXTENDEDKEY)
-    //     });
-    //     assert!(unsafe { input[1].Anonymous.ki.dwFlags.contains(KEYEVENTF_KEYUP) });
-    // }
+    #[test]
+    fn test_key_action_sequence_parse_expand_transition() {
+        let expected: KeyActionSequence = "A↓ → A↑".parse().unwrap();
+
+        assert_eq!(expected, "A↓↑".parse().unwrap());
+        assert_eq!(expected, "A".parse().unwrap());
+    }
 }
