@@ -21,8 +21,8 @@ impl FromStr for KeyTransformRule {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.trim().split(":");
         Ok(Self {
-            source: parts.next().unwrap().parse()?,
-            target: parts.next().unwrap().parse()?,
+            source: parts.next().ok_or("Missing source part.")?.parse()?,
+            target: parts.next().ok_or("Missing target part.")?.parse()?,
         })
     }
 }
@@ -103,17 +103,17 @@ impl KeyTransformProfile {
     pub fn load(path: &str) -> Result<Self, String> {
         toml::from_str(
             &fs::read_to_string(&path)
-                .map_err(|e| format!("Unable to read {} file.\n{}", path, e))?,
+                .map_err(|e| format!("Unable to read {} file. {}", path, e))?,
         )
-        .map_err(|e| format!("Unable to parse {}.\n{}", path, e))
+        .map_err(|e| format!("Unable to parse {}. {}", path, e))
     }
 
     fn save(&self, path: &str) -> Result<(), String> {
         fs::write(
             path,
-            toml::to_string(self).map_err(|e| format!("Unable to serialize {}.\n{}", path, e))?,
+            toml::to_string(self).map_err(|e| format!("Unable to serialize {}. {}", path, e))?,
         )
-        .map_err(|e| format!("Unable to write {} file.\n{}", path, e))
+        .map_err(|e| format!("Unable to write {} file. {}", path, e))
     }
 }
 

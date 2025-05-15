@@ -1,15 +1,11 @@
 use crate::key::Key;
 use crate::key_action::{KeyAction, KeyTransition};
-use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
 use crate::key_modifiers::KeyModifiers;
 use crate::transform_rules::KeyTransformRule;
-use log::warn;
 use std::fmt::{Display, Formatter};
-use std::str::FromStr;
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
 };
-use crate::key_action::KeyTransition::Up;
 
 /// A marker to detect self generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
@@ -79,14 +75,13 @@ impl KeyEvent<'_> {
         true
     }
 
-    pub(crate) fn fmt_kb(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
+    #[allow(dead_code)]
+    pub(crate) fn fmt_kb(&self) -> String {
+        format!(
             "T:{:9} | VK: 0x{:02X} | SC: 0x{:02X} | F: 0b{:08b} | EX: 0x{:X}",
             self.kb.time, self.kb.vkCode, self.kb.scanCode, self.kb.flags.0, self.kb.dwExtraInfo,
         )
     }
-    
 }
 
 impl Display for KeyEvent<'_> {
@@ -111,15 +106,14 @@ mod tests {
     use crate::key_action::KeyTransition::{Down, Up};
     use crate::key_event::KeyAction;
     use crate::key_event::{KeyEvent, SELF_EVENT_MARKER};
+    use crate::key_modifiers::{KeyModifiers, KM_NONE};
     use crate::tests::init_logger;
     use crate::{assert_not, key_act};
     use windows::Win32::UI::WindowsAndMessaging::{
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
-    use crate::key_modifiers::{KeyModifiers, KM_NONE};
 
     impl KeyEvent<'_> {
-
         pub(crate) fn from_action(key_action: &KeyAction, modifiers: KeyModifiers) -> Self {
             let mut flags = Default::default();
             if key_action.transition == Up {
@@ -135,15 +129,15 @@ mod tests {
                 flags,
                 ..Default::default()
             };
-            
-            Self{
+
+            Self {
                 kb,
                 rule: None,
                 modifiers,
             }
         }
     }
-    
+
     #[macro_export]
     macro_rules! key_event {
         ($action:literal, $modifiers:expr) => {

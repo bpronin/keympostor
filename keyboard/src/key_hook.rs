@@ -1,5 +1,4 @@
 use crate::key_event::KeyEvent;
-use crate::key_modifiers::KeyModifiers;
 use crate::transform_map::KeyTransformMap;
 use crate::transform_rules::KeyTransformProfile;
 use log::debug;
