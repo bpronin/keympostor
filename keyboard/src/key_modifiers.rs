@@ -5,8 +5,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetKeyboardState, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT,
-    VK_RWIN,
+    VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN,
 };
 
 pub const KM_NONE: KeyModifiers = KeyModifiers(0);
@@ -23,13 +22,7 @@ pub const KM_RWIN: KeyModifiers = KeyModifiers(1 << 7);
 pub struct KeyModifiers(u8);
 
 impl KeyModifiers {
-    pub(crate) fn capture() -> Self {
-        let mut keys = [0u8; 256];
-        unsafe { GetKeyboardState(&mut keys) }.unwrap();
-        Self::from_keyboard_state(keys)
-    }
-
-    fn from_keyboard_state(keys: [u8; 256]) -> Self {
+    pub(crate) fn from_keyboard_state(keys: [u8; 256]) -> Self {
         let flag_keys = [
             VK_LSHIFT,
             VK_RSHIFT,
@@ -53,6 +46,37 @@ impl KeyModifiers {
 
     pub const fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
+    }
+
+    pub fn to_string_short(&self) -> String {
+        let mut text: [char; 8] = ['.'; 8];
+
+        if self.contains(KM_LSHIFT) {
+            text[0] = 'S';
+        }
+        if self.contains(KM_RSHIFT) {
+            text[7] = 'S';
+        }
+        if self.contains(KM_LCTRL) {
+            text[1] = 'C';
+        }
+        if self.contains(KM_RCTRL) {
+            text[6] = 'C';
+        }
+        if self.contains(KM_LALT) {
+            text[2] = 'A';
+        }
+        if self.contains(KM_RALT) {
+            text[5] = 'A';
+        }
+        if self.contains(KM_LWIN) {
+            text[3] = 'W';
+        }
+        if self.contains(KM_RWIN) {
+            text[4] = 'W';
+        }
+
+        text.iter().collect()
     }
 }
 
@@ -95,7 +119,7 @@ impl Display for KeyModifiers {
         if !names.is_empty() {
             write_joined!(f, names, " + ")
         } else {
-            write!(f, "{}", "UNASSIGNED")
+            Ok(())
         }
     }
 }
@@ -105,7 +129,7 @@ impl FromStr for KeyModifiers {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let ts = s.trim();
-        if ts.is_empty() || ts == "UNASSIGNED" {
+        if ts.is_empty() {
             Ok(KM_NONE)
         } else {
             let this = ts.split('+').fold(KM_NONE, |acc, part| {
@@ -204,7 +228,7 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_display() {
-        assert_eq!("UNASSIGNED", KM_NONE.to_string());
+        assert_eq!("", KM_NONE.to_string());
 
         assert_eq!("LEFT_SHIFT + RIGHT_WIN", (KM_LSHIFT | KM_RWIN).to_string());
         assert_eq!("RIGHT_CTRL + LEFT_ALT", (KM_LALT | KM_RCTRL).to_string());
@@ -215,11 +239,24 @@ mod tests {
                 .to_string()
         );
     }
+    
+    #[test]
+    fn test_key_modifiers_display_short() {
+        assert_eq!("........", KM_NONE.to_string_short());
+
+        assert_eq!("S...W...", (KM_LSHIFT | KM_RWIN).to_string_short());
+        assert_eq!("..A...C.", (KM_LALT | KM_RCTRL).to_string_short());
+
+        assert_eq!(
+            "SCAWWACS",
+            (KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL)
+                .to_string_short()
+        );
+    }
 
     #[test]
     fn test_key_modifiers_parse() {
         assert_eq!(KM_NONE, "".parse().unwrap());
-        assert_eq!(KM_NONE, "UNASSIGNED".parse().unwrap());
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_RWIN,

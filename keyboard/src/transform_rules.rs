@@ -1,7 +1,7 @@
 use crate::key_action::KeyActionSequence;
 use crate::key_trigger::KeyTrigger;
 use crate::write_joined;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -40,16 +40,9 @@ pub struct KeyTransformRules {
 
 impl KeyTransformRules {
     fn from_lines(lines: Lines) -> Result<Self, String> {
-        // let mut items = lines.map(str::parse).collect::<Result<_, _>>()?;
-        let mut items = vec![];
-        for line in lines {
-            let ts = line.trim();
-
-            let item = ts.parse()?;
-            items.push(item);
-        }
-
-        Ok(Self { items })
+        Ok(Self {
+            items: lines.map(|l| l.parse()).collect::<Result<Vec<_>, _>>()?,
+        })
     }
 }
 
@@ -87,19 +80,19 @@ impl<'de> Deserialize<'de> for KeyTransformRules {
     where
         D: Deserializer<'de>,
     {
-        let map = BTreeMap::<String, String>::deserialize(deserializer)?;
-        Ok(Self {
-            items: map
-                .iter()
-                .map(|entry| KeyTransformRule {
-                    source: entry.0.parse().unwrap(),
-                    target: entry.1.parse().unwrap(),
+        let items = BTreeMap::<String, String>::deserialize(deserializer)?
+            .iter()
+            .map(|(k, v)| {
+                Ok(KeyTransformRule {
+                    source: k.parse().map_err(de::Error::custom)?,
+                    target: v.parse().map_err(de::Error::custom)?,
                 })
-                .collect(),
-        })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Self { items })
     }
 }
-
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformProfile {
     pub title: String,

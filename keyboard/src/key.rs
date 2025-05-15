@@ -106,7 +106,7 @@ impl ScanCode {
     }
 
     pub(crate) fn from_ext_code(ext_code: u16) -> Result<&'static ScanCode, String> {
-        Self::from_code(ext_code as u8, ext_code & 0xE000 != 0)
+        Self::from_code(ext_code as u8, ext_code & 0xE000 == 0xE000)
     }
 
     pub(crate) fn from_symbol(symbol: &str) -> Result<&'static ScanCode, String> {

@@ -1,23 +1,35 @@
 use crate::key_event::KeyEvent;
+use crate::key_modifiers::KeyModifiers;
 use crate::transform_map::KeyTransformMap;
 use crate::transform_rules::KeyTransformProfile;
 use log::debug;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardState, SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
-use crate::key_modifiers::KeyModifiers;
 
 thread_local! {
-    static INNER: RefCell<InnerKeyboardHandler> = RefCell::new(InnerKeyboardHandler::default());
+    static INNER: RefCell<InnerKeyboardHandler> = RefCell::new(InnerKeyboardHandler::new());
 }
 
-#[derive(Default)]
 struct InnerKeyboardHandler {
     handle: Option<HHOOK>,
     transform_map: KeyTransformMap,
     callback: Option<Box<dyn Fn(&KeyEvent)>>,
     silent_processing: bool,
+   // keyboard_state: [u8; 256],
+}
+
+impl InnerKeyboardHandler {
+    fn new() -> Self {
+        Self {
+            handle: None,
+            transform_map: Default::default(),
+            callback: None,
+            silent_processing: false,
+           // keyboard_state: [0; 256],
+        }
+    }
 }
 
 impl InnerKeyboardHandler {
@@ -39,7 +51,7 @@ impl InnerKeyboardHandler {
             unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(Self::keyboard_proc), None, 0) }
                 .expect("Failed to install keyboard hook"),
         );
-            
+
         debug!("Keyboard hook installed");
     }
 
@@ -53,26 +65,32 @@ impl InnerKeyboardHandler {
     }
 
     extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-        INNER.with_borrow(|inner| {
+        INNER.with_borrow(|handler| {
             if code == HC_ACTION as i32 {
-                let mut event = KeyEvent::new(unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) });
+                let mut event = unsafe {
+                    let mut keyboard_state = [0; 256];
+                    GetKeyboardState(&mut keyboard_state).unwrap();
+                    KeyEvent::new(*(l_param.0 as *const KBDLLHOOKSTRUCT), keyboard_state)
+                    // GetKeyboardState(&mut handler.keyboard_state).unwrap();
+                    // KeyEvent::new(*(l_param.0 as *const KBDLLHOOKSTRUCT), handler.keyboard_state)
+                };
 
                 debug!("EVENT: {}", event);
 
                 if event.is_valid() {
                     if !event.is_private() {
-                        event.rule = inner.transform_map.get(&event, || KeyModifiers::capture())
+                        event.rule = handler.transform_map.get(&event)
                     };
 
-                    if !inner.silent_processing {
-                        if let Some(callback) = &inner.callback {
+                    if !handler.silent_processing {
+                        if let Some(callback) = &handler.callback {
                             callback(&event);
                         }
                     }
 
                     if let Some(rule) = event.rule {
                         debug!("RULE: {}", rule);
-                        
+
                         let input = rule.target.create_input();
                         unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
                         return LRESULT(1);
@@ -80,7 +98,7 @@ impl InnerKeyboardHandler {
                 }
             }
 
-            unsafe { CallNextHookEx(inner.handle, code, w_param, l_param) }
+            unsafe { CallNextHookEx(handler.handle, code, w_param, l_param) }
         })
     }
 }
