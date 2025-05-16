@@ -18,7 +18,7 @@ use std::rc::Rc;
 
 thread_local! {
     static APP: RefCell<AppUi> = RefCell::new(
-        AppControl::build_ui(Default::default()).expect("Failed to build application UI")
+        AppControl::build_ui(Default::default()).expect("Failed to build application UI.")
     )
 }
 
@@ -167,7 +167,7 @@ struct AppUi {
 
 impl NativeUi<AppUi> for AppControl {
     fn build_ui(mut app: AppControl) -> Result<AppUi, nwg::NwgError> {
-        nwg::init().expect("Failed to init Native Windows GUI");
+        nwg::init().expect("Failed to init Native Windows GUI.");
         nwg::Font::set_global_default(default_font(17).into());
 
         #[cfg(not(feature = "dev"))]

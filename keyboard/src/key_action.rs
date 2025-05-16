@@ -48,7 +48,7 @@ impl FromStr for KeyTransition {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut chars = s.trim().chars();
-        let symbol = chars.next().expect("Key transition symbol is empty.");
+        let symbol = chars.next().ok_or("Key transition symbol is empty.")?;
         if chars.next().is_none() {
             match symbol {
                 '↑' | '^' => Ok(Up),
@@ -113,13 +113,15 @@ impl FromStr for KeyAction {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let st = s.trim();
+
         let transition_symbol = st
             .chars()
             .last()
-            .expect(&format!("Error parsing key action. String is empty. `{s}`"));
-        let key_name = st.strip_suffix(transition_symbol).expect(&format!(
+            .ok_or(&format!("Error parsing key action. String is empty. `{s}`"))?;
+
+        let key_name = st.strip_suffix(transition_symbol).ok_or(&format!(
             "Invalid key action suffix: `{transition_symbol}`."
-        ));
+        ))?;
 
         Self::new(key_name, transition_symbol)
     }

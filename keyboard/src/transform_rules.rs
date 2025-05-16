@@ -130,7 +130,7 @@ impl FromStr for KeyTransformProfile {
         let mut lines = s.trim().lines();
 
         Ok(Self {
-            title: lines.next().expect("Error parsing title.").trim().into(),
+            title: lines.next().ok_or("Error parsing title.")?.trim().into(),
             rules: KeyTransformRules::from_lines(lines)?,
         })
     }
