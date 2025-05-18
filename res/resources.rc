@@ -2,7 +2,7 @@
    only `IDI_` defines are used for it. */
 
 #define RT_MANIFEST 24
-1 RT_MANIFEST "application.manifest"
+1 RT_MANIFEST "res/app.manifest"
 
 //#define IDI_ICON_APP 1001
 //IDI_ICON_APP ICON "res/img/app.ico"

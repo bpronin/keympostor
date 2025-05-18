@@ -16,7 +16,6 @@ struct InnerKeyboardHandler {
     transform_map: KeyTransformMap,
     callback: Option<Box<dyn Fn(&KeyEvent)>>,
     silent_processing: bool,
-   // keyboard_state: [u8; 256],
 }
 
 impl InnerKeyboardHandler {
@@ -26,7 +25,6 @@ impl InnerKeyboardHandler {
             transform_map: Default::default(),
             callback: None,
             silent_processing: false,
-           // keyboard_state: [0; 256],
         }
     }
 }
@@ -70,8 +68,6 @@ impl InnerKeyboardHandler {
                     let mut keyboard_state = [0; 256];
                     GetKeyboardState(&mut keyboard_state).unwrap();
                     KeyEvent::new(*(l_param.0 as *const KBDLLHOOKSTRUCT), keyboard_state)
-                    // GetKeyboardState(&mut handler.keyboard_state).unwrap();
-                    // KeyEvent::new(*(l_param.0 as *const KBDLLHOOKSTRUCT), handler.keyboard_state)
                 };
 
                 debug!("EVENT: {}", event);
