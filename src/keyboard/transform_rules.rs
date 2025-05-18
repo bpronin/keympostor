@@ -1,5 +1,5 @@
-use crate::key_action::KeyActionSequence;
-use crate::key_trigger::KeyTrigger;
+use crate::keyboard::key_action::KeyActionSequence;
+use crate::keyboard::key_trigger::KeyTrigger;
 use crate::write_joined;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
@@ -8,9 +8,9 @@ use std::fs;
 use std::str::{FromStr, Lines};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeyTransformRule {
-    pub source: KeyTrigger,
-    pub target: KeyActionSequence,
+pub(crate) struct KeyTransformRule {
+    pub(crate) source: KeyTrigger,
+    pub(crate) target: KeyActionSequence,
 }
 
 impl FromStr for KeyTransformRule {
@@ -32,7 +32,7 @@ impl Display for KeyTransformRule {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct KeyTransformRules {
+pub(crate) struct KeyTransformRules {
     pub(crate) items: Vec<KeyTransformRule>,
 }
 
@@ -93,13 +93,13 @@ impl<'de> Deserialize<'de> for KeyTransformRules {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeyTransformProfile {
-    pub title: String,
-    pub rules: KeyTransformRules,
+pub(crate) struct KeyTransformProfile {
+    pub(crate) title: String,
+    pub(crate) rules: KeyTransformRules,
 }
 
 impl KeyTransformProfile {
-    pub fn load(path: &str) -> Result<Self, String> {
+    pub(crate) fn load(path: &str) -> Result<Self, String> {
         toml::from_str(
             &fs::read_to_string(&path)
                 .map_err(|e| format!("Unable to read {} file. {}", path, e))?,
@@ -139,13 +139,12 @@ impl FromStr for KeyTransformProfile {
 
 #[cfg(test)]
 mod tests {
-    use crate::key::Key;
-    use crate::key_action::KeyTransition::Down;
-    use crate::key_action::{KeyAction, KeyActionSequence};
-    use crate::key_modifiers::{KM_LSHIFT, KM_RSHIFT};
-    use crate::key_trigger::KeyTrigger;
-    use crate::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
-    use crate::{key, key_act, key_trig};
+    use crate::keyboard::key_action::KeyActionSequence;
+    use crate::keyboard::key_trigger::KeyTrigger;
+    use crate::keyboard::transform_rules::{
+        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
+    };
+    use crate::{key_action_seq, key_trigger};
 
     #[macro_export]
     macro_rules! key_rule {
@@ -164,16 +163,14 @@ mod tests {
     #[test]
     fn test_key_transform_rule_source() {
         let rule = key_rule!("[CTRL + SHIFT] ENTER↓ : ENTER↓");
-        assert_eq!(key_trig!("[CTRL + SHIFT] ENTER↓"), rule.source);
+        assert_eq!(key_trigger!("[CTRL + SHIFT] ENTER↓"), rule.source);
     }
 
     #[test]
     fn test_key_transform_rule_display() {
         let source = KeyTransformRule {
-            source: key_trig!("[LEFT_SHIFT]ENTER↓"),
-            target: KeyActionSequence {
-                actions: vec![key_act!("ENTER↓")],
-            },
+            source: key_trigger!("[LEFT_SHIFT] ENTER ↓"),
+            target: key_action_seq!("ENTER↓"),
         };
 
         assert_eq!("[LEFT_SHIFT]ENTER↓ : ENTER↓", format!("{}", source));
@@ -182,28 +179,18 @@ mod tests {
     #[test]
     fn test_key_transform_rule_parse() {
         let expected = KeyTransformRule {
-            source: KeyTrigger {
-                action: key_act!("ENTER↓"),
-                modifiers: KM_LSHIFT | KM_RSHIFT,
-            },
-            target: KeyActionSequence {
-                actions: vec![key_act!("ENTER↓")],
-            },
+            source: key_trigger!("[LEFT_SHIFT + RIGHT_SHIFT] ENTER↓"),
+            target: key_action_seq!("ENTER↓"),
         };
 
-        assert_eq!(expected, "[SHIFT] ENTER ↓ : ENTER ↓".parse().unwrap());
+        assert_eq!(expected, "[SHIFT] ENTER↓ : ENTER ↓".parse().unwrap());
     }
 
     #[test]
     fn test_key_transform_rule_serialize() {
         let source = KeyTransformRule {
-            source: KeyTrigger {
-                action: key_act!("ENTER↓"),
-                modifiers: KM_LSHIFT,
-            },
-            target: KeyActionSequence {
-                actions: vec![key_act!("ENTER↓")],
-            },
+            source: key_trigger!("[LEFT_SHIFT] ENTER↓"),
+            target: key_action_seq!("ENTER↓"),
         };
 
         let text = toml::to_string_pretty(&source).unwrap();
@@ -279,7 +266,7 @@ mod tests {
 
     #[test]
     fn test_key_transform_profile_serialize() {
-        let actual = KeyTransformProfile::load("../test/profiles/test.toml").unwrap();
+        let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
 
         println!("{}", actual);
         let expected = key_profile!(

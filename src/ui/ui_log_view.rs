@@ -1,7 +1,7 @@
+use crate::keyboard::key_event::KeyEvent;
 use crate::res::RESOURCE_STRINGS;
 use crate::rs;
 use crate::util::{default_profile_path, mono_font};
-use keyboard::key_event::KeyEvent;
 use native_windows_gui as nwg;
 
 const MAX_LOG_LINES: usize = 256;

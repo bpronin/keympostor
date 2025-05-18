@@ -1,7 +1,7 @@
-use crate::key::Key;
-use crate::key_action::{KeyAction, KeyTransition};
-use crate::key_modifiers::KeyModifiers;
-use crate::transform_rules::KeyTransformRule;
+use crate::keyboard::key::Key;
+use crate::keyboard::key_action::{KeyAction, KeyTransition};
+use crate::keyboard::key_modifiers::KeyModifiers;
+use crate::keyboard::transform_rules::KeyTransformRule;
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
@@ -13,10 +13,10 @@ use windows::Win32::UI::WindowsAndMessaging::{
 pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 
 #[derive(Debug, PartialEq)]
-pub struct KeyEvent<'a> {
+pub(crate) struct KeyEvent<'a> {
     kb: KBDLLHOOKSTRUCT,
-    pub rule: Option<&'a KeyTransformRule>,
-    pub modifiers: KeyModifiers,
+    pub(crate) rule: Option<&'a KeyTransformRule>,
+    pub(crate) modifiers: KeyModifiers,
 }
 
 impl KeyEvent<'_> {
@@ -28,11 +28,11 @@ impl KeyEvent<'_> {
         }
     }
 
-    pub fn time(&self) -> u32 {
+    pub(crate) fn time(&self) -> u32 {
         self.kb.time
     }
 
-    pub fn action(&self) -> KeyAction {
+    pub(crate) fn action(&self) -> KeyAction {
         KeyAction {
             key: self.key(),
             transition: self.transition(),
@@ -51,11 +51,11 @@ impl KeyEvent<'_> {
         KeyTransition::from_bool(self.kb.flags.contains(LLKHF_UP))
     }
 
-    pub fn is_injected(&self) -> bool {
+    pub(crate) fn is_injected(&self) -> bool {
         self.kb.flags.contains(LLKHF_INJECTED)
     }
 
-    pub fn is_private(&self) -> bool {
+    pub(crate) fn is_private(&self) -> bool {
         self.is_injected() && (self.kb.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr())
     }
 
@@ -87,12 +87,12 @@ impl Display for KeyEvent<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::key_action::KeyTransition::{Down, Up};
-    use crate::key_event::KeyAction;
-    use crate::key_event::{KeyEvent, SELF_EVENT_MARKER};
-    use crate::key_modifiers::{KeyModifiers, KM_NONE};
-    use crate::tests::init_logger;
-    use crate::{assert_not, key_act};
+    use crate::keyboard::key_action::KeyAction;
+    use crate::keyboard::key_action::KeyTransition::{Down, Up};
+    use crate::keyboard::key_event::{KeyEvent, SELF_EVENT_MARKER};
+    use crate::keyboard::key_modifiers::{KeyModifiers, KM_NONE};
+    use crate::keyboard::tests::init_logger;
+    use crate::{assert_not, key_action};
     use windows::Win32::UI::WindowsAndMessaging::{
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
@@ -154,7 +154,7 @@ mod tests {
     fn test_key_event_from_action() {
         init_logger();
 
-        let actual = KeyEvent::from_action(&key_act!("A↓"), KM_NONE);
+        let actual = KeyEvent::from_action(&key_action!("A↓"), KM_NONE);
 
         assert_eq!(0, actual.time());
         assert_eq!("SC_A", actual.key().scan_code().name);
@@ -167,6 +167,6 @@ mod tests {
 
     #[test]
     fn test_key_event_action() {
-        assert_eq!(key_act!("A↓"), key_event!("A↓", KM_NONE).action());
+        assert_eq!(key_action!("A↓"), key_event!("A↓", KM_NONE).action());
     }
 }

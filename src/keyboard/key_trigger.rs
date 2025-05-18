@@ -1,14 +1,14 @@
-use crate::key_action::KeyAction;
-use crate::key_modifiers::{KeyModifiers, KM_NONE};
+use crate::keyboard::key_action::KeyAction;
+use crate::keyboard::key_modifiers::{KeyModifiers, KM_NONE};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub struct KeyTrigger {
-    pub action: KeyAction,
+pub(crate) struct KeyTrigger {
+    pub(crate) action: KeyAction,
     #[serde(default = "default_modifiers")]
-    pub modifiers: KeyModifiers,
+    pub(crate) modifiers: KeyModifiers,
 }
 
 impl Display for KeyTrigger {
@@ -45,25 +45,25 @@ fn default_modifiers() -> KeyModifiers {
 
 #[cfg(test)]
 mod tests {
-    use crate::key_trigger::KeyAction;
-    use crate::key_trigger::KeyModifiers;
-    use crate::key_trigger::KeyTrigger;
-    use crate::{key_act, key_mod};
+    use crate::keyboard::key_trigger::KeyAction;
+    use crate::keyboard::key_trigger::KeyModifiers;
+    use crate::keyboard::key_trigger::KeyTrigger;
+    use crate::{key_action, key_mod};
 
     #[macro_export]
-    macro_rules! key_trig {
+    macro_rules! key_trigger {
         ($text:literal) => {
             $text.parse::<KeyTrigger>().unwrap()
         };
     }
 
     #[test]
-    fn test_parse() {
+    fn test_key_trigger_parse() {
         let expected = KeyTrigger {
-            action: key_act!("A*"),
+            action: key_action!("A*"),
             modifiers: key_mod!("SHIFT"),
         };
-        
-        assert_eq!(expected, key_trig!("[SHIFT] A*"));
+
+        assert_eq!(expected, key_trigger!("[SHIFT] A*"));
     }
 }

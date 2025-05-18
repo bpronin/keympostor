@@ -1,18 +1,17 @@
 mod key;
 mod key_action;
 mod key_const;
-pub mod key_event;
-pub mod key_hook;
+pub(crate) mod key_event;
+pub(crate) mod key_hook;
 mod key_modifiers;
-mod transform_map;
-pub mod transform_rules;
 mod key_trigger;
-mod util;
+mod transform_map;
+pub(crate) mod transform_rules;
 
 #[cfg(test)]
 mod tests {
-    use crate::key::{ScanCode, VirtualKey};
-    use crate::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
+    use crate::keyboard::key::{ScanCode, VirtualKey};
+    use crate::keyboard::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
     use log::LevelFilter;
     use simple_logger::SimpleLogger;
     use std::collections::BTreeMap;
@@ -140,7 +139,7 @@ mod tests {
 
     use crate::keys::{ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
 
-    pub static SCANCODE_NAMES: [[&str; 2]; MAX_SCAN_CODE] = [
+    pub(crate) static SCANCODE_NAMES: [[&str; 2]; MAX_SCAN_CODE] = [
         ["UNASSIGNED", "UNASSIGNED"],
         ["SC_ESC", "SC_"],
         ["SC_1", "SC_1"],
@@ -279,7 +278,7 @@ mod tests {
         ["SC_F24", "UNASSIGNED"],
     ];
 
-    pub static VIRTUAL_KEY_NAMES: [&str; MAX_VK_CODE] = [
+    pub(crate) static VIRTUAL_KEY_NAMES: [&str; MAX_VK_CODE] = [
         "UNASSIGNED",
         "VK_LBUTTON",
         "VK_RBUTTON",

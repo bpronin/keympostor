@@ -1,25 +1,25 @@
 use crate::write_joined;
 use core::ops;
 use ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN,
 };
 
-pub const KM_NONE: KeyModifiers = KeyModifiers(0);
-pub const KM_LSHIFT: KeyModifiers = KeyModifiers(1);
-pub const KM_RSHIFT: KeyModifiers = KeyModifiers(1 << 1);
-pub const KM_LCTRL: KeyModifiers = KeyModifiers(1 << 2);
-pub const KM_RCTRL: KeyModifiers = KeyModifiers(1 << 3);
-pub const KM_LALT: KeyModifiers = KeyModifiers(1 << 4);
-pub const KM_RALT: KeyModifiers = KeyModifiers(1 << 5);
-pub const KM_LWIN: KeyModifiers = KeyModifiers(1 << 6);
-pub const KM_RWIN: KeyModifiers = KeyModifiers(1 << 7);
+pub(crate) const KM_NONE: KeyModifiers = KeyModifiers(0);
+pub(crate) const KM_LSHIFT: KeyModifiers = KeyModifiers(1);
+pub(crate) const KM_RSHIFT: KeyModifiers = KeyModifiers(1 << 1);
+pub(crate) const KM_LCTRL: KeyModifiers = KeyModifiers(1 << 2);
+pub(crate) const KM_RCTRL: KeyModifiers = KeyModifiers(1 << 3);
+pub(crate) const KM_LALT: KeyModifiers = KeyModifiers(1 << 4);
+pub(crate) const KM_RALT: KeyModifiers = KeyModifiers(1 << 5);
+pub(crate) const KM_LWIN: KeyModifiers = KeyModifiers(1 << 6);
+pub(crate) const KM_RWIN: KeyModifiers = KeyModifiers(1 << 7);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
-pub struct KeyModifiers(u8);
+pub(crate) struct KeyModifiers(u8);
 
 impl KeyModifiers {
     pub(crate) fn from_keyboard_state(keys: [u8; 256]) -> Self {
@@ -44,11 +44,11 @@ impl KeyModifiers {
         Self(value as u8)
     }
 
-    pub const fn contains(&self, other: Self) -> bool {
+    pub(crate) const fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
     }
 
-    pub fn to_string_short(&self) -> String {
+    pub(crate) fn to_string_short(&self) -> String {
         let mut text: [char; 8] = ['.'; 8];
 
         if self.contains(KM_LSHIFT) {
@@ -212,9 +212,9 @@ impl Not for KeyModifiers {
 
 #[cfg(test)]
 mod tests {
-    use crate::key_modifiers::{
-        KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL, KM_RSHIFT,
-        KM_RWIN,
+    use crate::keyboard::key_modifiers::{
+        KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL, KM_RSHIFT, KM_RWIN,
+        KeyModifiers,
     };
     use serde::{Deserialize, Serialize};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
@@ -239,7 +239,7 @@ mod tests {
                 .to_string()
         );
     }
-    
+
     #[test]
     fn test_key_modifiers_display_short() {
         assert_eq!("........", KM_NONE.to_string_short());

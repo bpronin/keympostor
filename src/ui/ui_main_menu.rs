@@ -6,7 +6,7 @@ use native_windows_gui as nwg;
 use native_windows_gui::{ControlHandle, Event, Window};
 
 #[derive(Default)]
-pub struct MainMenu {
+pub(crate) struct MainMenu {
     menu: nwg::Menu,
     toggle_processing_enabled_item: nwg::MenuItem,
     toggle_logging_enabled_item: nwg::MenuItem,

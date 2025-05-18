@@ -52,7 +52,7 @@ pub(crate) static RES: Resources = Resources {};
 pub(crate) struct Resources {}
 
 impl Resources {
-    pub fn get_icon(&self, icon_id: usize) -> nwg::Icon {
+    pub(crate) fn get_icon(&self, icon_id: usize) -> nwg::Icon {
         let mut icon = nwg::Icon::default();
 
         EMBED_RES.with_borrow(|embed| {

@@ -284,23 +284,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "keyboard"
-version = "0.1.0"
-dependencies = [
- "log",
- "serde",
- "simple_logger",
- "toml",
- "windows",
-]
-
-[[package]]
 name = "keympostor"
 version = "0.1.0"
 dependencies = [
  "criterion",
  "embed-resource",
- "keyboard",
  "log",
  "native-windows-gui",
  "serde",

@@ -1,6 +1,6 @@
-use crate::key::Key;
-use crate::key_action::KeyTransition::{Down, Up};
-use crate::key_event::SELF_EVENT_MARKER;
+use crate::keyboard::key::Key;
+use crate::keyboard::key_action::KeyTransition::{Down, Up};
+use crate::keyboard::key_event::SELF_EVENT_MARKER;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
@@ -11,7 +11,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub enum KeyTransition {
+pub(crate) enum KeyTransition {
     #[serde(alias = "UP", alias = "up")]
     Up,
     #[serde(alias = "DOWN", alias = "down")]
@@ -62,9 +62,9 @@ impl FromStr for KeyTransition {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub struct KeyAction {
-    pub key: Key,
-    pub transition: KeyTransition,
+pub(crate) struct KeyAction {
+    pub(crate) key: Key,
+    pub(crate) transition: KeyTransition,
 }
 
 impl KeyAction {
@@ -128,7 +128,7 @@ impl FromStr for KeyAction {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeyActionSequence {
+pub(crate) struct KeyActionSequence {
     pub(crate) actions: Vec<KeyAction>,
 }
 
@@ -171,11 +171,11 @@ impl FromStr for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
-    use crate::key::ScanCode;
-    use crate::key_action::Key;
-    use crate::key_action::KeyTransition::{Down, Up};
-    use crate::key_action::{KeyAction, KeyActionSequence, KeyTransition};
-    use crate::key_event::SELF_EVENT_MARKER;
+    use crate::keyboard::key::ScanCode;
+    use crate::keyboard::key_action::Key;
+    use crate::keyboard::key_action::KeyTransition::{Down, Up};
+    use crate::keyboard::key_action::{KeyAction, KeyActionSequence, KeyTransition};
+    use crate::keyboard::key_event::SELF_EVENT_MARKER;
     use crate::{assert_not, key, sc_key};
     use serde::{Deserialize, Serialize};
     use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -183,14 +183,14 @@ mod tests {
     };
 
     #[macro_export]
-    macro_rules! key_act {
+    macro_rules! key_action {
         ($text:literal) => {
             $text.parse::<KeyAction>().unwrap()
         };
     }
 
     #[macro_export]
-    macro_rules! key_act_seq {
+    macro_rules! key_action_seq {
         ($text:literal) => {
             $text.parse::<KeyActionSequence>().unwrap()
         };
@@ -299,7 +299,7 @@ mod tests {
 
     #[test]
     fn test_key_action_create_input() {
-        let actual = key_act!("ENTER*").create_input();
+        let actual = key_action!("ENTER*").create_input();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
@@ -311,7 +311,7 @@ mod tests {
             );
         };
 
-        let actual = key_act!("NUM_ENTER^").create_input();
+        let actual = key_action!("NUM_ENTER^").create_input();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
@@ -332,24 +332,23 @@ mod tests {
 
     #[test]
     fn test_key_action_sequence_display() {
-        let actual = key_act_seq!("ENTER↓ → SHIFT↑");
+        let actual = key_action_seq!("ENTER↓ → SHIFT↑");
 
         assert_eq!("ENTER↓ → SHIFT↑", format!("{}", actual));
     }
 
     #[test]
     fn test_key_action_sequence_serialize() {
-        let source = key_act_seq!("ENTER↓ → SHIFT↓");
-
+        let source = key_action_seq!("ENTER↓ → SHIFT↓");
         let text = toml::to_string_pretty(&source).unwrap();
-
-        let actual = toml::from_str::<KeyActionSequence>(&text).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+        
         assert_eq!(source, actual);
     }
 
     #[test]
     fn test_key_action_sequence_parse_expand_transition() {
-        let expected: KeyActionSequence = "A↓ → A↑".parse().unwrap();
+        let expected = key_action_seq!("A↓ → A↑");
 
         assert_eq!(expected, "A↓↑".parse().unwrap());
         assert_eq!(expected, "A".parse().unwrap());

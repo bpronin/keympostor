@@ -1,11 +1,11 @@
-use crate::key_action::KeyAction;
-use crate::key_event::KeyEvent;
-use crate::key_modifiers::KeyModifiers;
-use crate::transform_rules::{KeyTransformProfile, KeyTransformRule};
+use crate::keyboard::key_action::KeyAction;
+use crate::keyboard::key_event::KeyEvent;
+use crate::keyboard::key_modifiers::KeyModifiers;
+use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct KeyTransformMap {
+pub(crate) struct KeyTransformMap {
     map: HashMap<KeyAction, HashMap<KeyModifiers, KeyTransformRule>>,
 }
 
@@ -25,22 +25,7 @@ impl KeyTransformMap {
         self.map.get(key_action)
     }
 
-    // pub(crate) fn get(
-    //     &self,
-    //     event: &KeyEvent,
-    //     get_modifiers: fn() -> KeyModifiers,
-    // ) -> Option<&KeyTransformRule> {
-    //     if let Some(rules) = self.get_group(&event.action()) {
-    //         rules.get(&get_modifiers())
-    //     } else {
-    //         None
-    //     }
-    // }
-
-    pub(crate) fn get(
-        &self,
-        event: &KeyEvent
-    ) -> Option<&KeyTransformRule> {
+    pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         if let Some(rules) = self.get_group(&event.action()) {
             rules.get(&event.modifiers)
         } else {
@@ -67,12 +52,12 @@ impl Default for KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::key_modifiers::{KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
-    use crate::transform_map::KeyAction;
-    use crate::transform_map::KeyEvent;
-    use crate::transform_map::KeyTransformMap;
-    use crate::transform_rules::KeyTransformRule;
-    use crate::{assert_none, assert_not, key_act, key_event, key_rule};
+    use crate::keyboard::key_modifiers::{KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
+    use crate::keyboard::transform_map::KeyAction;
+    use crate::keyboard::transform_map::KeyEvent;
+    use crate::keyboard::transform_map::KeyTransformMap;
+    use crate::keyboard::transform_rules::KeyTransformRule;
+    use crate::{assert_none, assert_not, key_action, key_event, key_rule};
 
     #[test]
     fn test_get_group() {
@@ -86,8 +71,8 @@ mod tests {
         map.put(key_rule!("[ALT] B↓ : ENTER↓"));
         map.put(key_rule!("[ALT + WIN] B↓ : NUM_ENTER↓"));
 
-        assert_none!(map.get_group(&key_act!("A^")));
-        assert_none!(map.get_group(&key_act!("C*")));
+        assert_none!(map.get_group(&key_action!("A^")));
+        assert_none!(map.get_group(&key_action!("C*")));
 
         let expected_for_a = [
             key_rule!("A↓ : B↓"),
@@ -100,7 +85,7 @@ mod tests {
             key_rule!("[ALT + WIN] B↓ : NUM_ENTER↓"),
         ];
 
-        let actual = map.get_group(&key_act!("A↓")).unwrap();
+        let actual = map.get_group(&key_action!("A↓")).unwrap();
         assert!(
             expected_for_a
                 .iter()
@@ -112,7 +97,7 @@ mod tests {
                 .all(|rule| { actual.get(&rule.source.modifiers) == Some(rule) })
         );
 
-        let actual = map.get_group(&key_act!("B↓")).unwrap();
+        let actual = map.get_group(&key_action!("B↓")).unwrap();
         assert!(
             expected_for_b
                 .iter()
@@ -127,11 +112,11 @@ mod tests {
 
     #[test]
     fn test_get() {
-        let all_up =  KM_NONE;
-        let shift_down =  KM_LSHIFT;
-        let alt_down =  KM_LALT;
-        let ctrl_down =  KM_LCTRL;
-        let ctrl_alt_down =  KM_LCTRL | KM_LALT;
+        let all_up = KM_NONE;
+        let shift_down = KM_LSHIFT;
+        let alt_down = KM_LALT;
+        let ctrl_down = KM_LCTRL;
+        let ctrl_alt_down = KM_LCTRL | KM_LALT;
 
         let mut map = KeyTransformMap::default();
         map.put(key_rule!("A↓ : B↓"));

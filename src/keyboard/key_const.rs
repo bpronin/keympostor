@@ -1,10 +1,10 @@
-use crate::key::{Key, ScanCode, VirtualKey};
+use crate::keyboard::key::{Key, ScanCode, VirtualKey};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
-pub static KEYS: LazyLock<Keys> = LazyLock::new(|| Keys::new());
+pub(crate) static KEYS: LazyLock<Keys> = LazyLock::new(|| Keys::new());
 
-pub struct Keys {
+pub(crate) struct Keys {
     key_to_name_map: HashMap<Key, &'static str>,
     name_to_key_map: HashMap<&'static str, Key>,
 }
@@ -548,7 +548,7 @@ macro_rules! new_sc {
     };
 }
 
-pub const MAX_SCAN_CODE: usize = 136;
+pub(crate) const MAX_SCAN_CODE: usize = 136;
 pub(crate) static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
     new_sc!(0x00, "UNASSIGNED", "UNASSIGNED"),
     new_sc!(0x01, "SC_ESC", "SC_"),

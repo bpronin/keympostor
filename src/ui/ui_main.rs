@@ -1,11 +1,11 @@
 use super::*;
+use crate::keyboard::key_event::KeyEvent;
+use crate::keyboard::key_hook::KeyboardHandler;
+use crate::keyboard::transform_rules::KeyTransformProfile;
 use crate::res::RESOURCE_STRINGS;
 use crate::settings::AppSettings;
-use crate::{rs, ui_panic, ui_warn, util};
 use crate::util::default_font;
-use keyboard::key_event::KeyEvent;
-use keyboard::key_hook::KeyboardHandler;
-use keyboard::transform_rules::KeyTransformProfile;
+use crate::{rs, ui_panic, ui_warn, util};
 use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
@@ -339,7 +339,7 @@ impl Deref for AppUi {
     }
 }
 
-pub fn run() {
+pub(crate) fn run() {
     nwg::init().expect("Failed to init Native Windows GUI.");
     App::build_ui(Default::default())
         .expect("Failed to build application UI.")

@@ -1,10 +1,10 @@
-use crate::key_event::KeyEvent;
-use crate::transform_map::KeyTransformMap;
-use crate::transform_rules::KeyTransformProfile;
+use crate::keyboard::key_event::KeyEvent;
+use crate::keyboard::transform_map::KeyTransformMap;
+use crate::keyboard::transform_rules::KeyTransformProfile;
 use log::debug;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardState, INPUT, SendInput};
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardState, SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 thread_local! {
@@ -65,22 +65,22 @@ impl Drop for KeyboardHook {
 }
 
 #[derive(Debug, Default)]
-pub struct KeyboardHandler {}
+pub(crate) struct KeyboardHandler {}
 
 impl KeyboardHandler {
-    pub fn set_profile(&self, profile: KeyTransformProfile) {
+    pub(crate) fn set_profile(&self, profile: KeyTransformProfile) {
         HOOK.with_borrow_mut(|hook| hook.load_profile(profile));
     }
 
-    pub fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
+    pub(crate) fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
         HOOK.with_borrow_mut(|hook| hook.set_callback(callback));
     }
 
-    pub fn is_enabled(&self) -> bool {
+    pub(crate) fn is_enabled(&self) -> bool {
         HOOK.with_borrow(|hook| hook.handle.is_some())
     }
 
-    pub fn set_enabled(&self, enabled: bool) {
+    pub(crate) fn set_enabled(&self, enabled: bool) {
         HOOK.with_borrow_mut(|hook| {
             if enabled {
                 hook.install()
@@ -90,11 +90,11 @@ impl KeyboardHandler {
         })
     }
 
-    pub fn is_silent(&self) -> bool {
+    pub(crate) fn is_silent(&self) -> bool {
         HOOK.with_borrow(|hook| hook.is_silent)
     }
 
-    pub fn set_silent(&self, silent: bool) {
+    pub(crate) fn set_silent(&self, silent: bool) {
         HOOK.with_borrow_mut(|inner| inner.set_silent(silent));
     }
 }

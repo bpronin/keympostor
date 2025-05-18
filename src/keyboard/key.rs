@@ -1,5 +1,5 @@
 use crate::append_prefix;
-use crate::key_const::{KEYS, SCAN_CODES, VIRTUAL_KEYS};
+use crate::keyboard::key_const::{KEYS, SCAN_CODES, VIRTUAL_KEYS};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -9,19 +9,19 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct VirtualKey {
-    pub value: u8,
-    pub name: &'static str,
+pub(crate) struct VirtualKey {
+    pub(crate) value: u8,
+    pub(crate) name: &'static str,
 }
 
 impl VirtualKey {
-    pub fn from_code(code: u8) -> Result<&'static VirtualKey, String> {
+    pub(crate) fn from_code(code: u8) -> Result<&'static VirtualKey, String> {
         VIRTUAL_KEYS
             .get(code as usize)
             .ok_or(format!("Illegal virtual key code `{}`.", code))
     }
 
-    pub fn from_name(name: &str) -> Result<&'static VirtualKey, String> {
+    pub(crate) fn from_name(name: &str) -> Result<&'static VirtualKey, String> {
         let vk_name = append_prefix!(name, "VK_");
         let position = VIRTUAL_KEYS.iter().position(|probe| probe.name == vk_name);
 
@@ -32,7 +32,7 @@ impl VirtualKey {
         }
     }
 
-    pub fn from_code_name(s: &str) -> Result<&'static VirtualKey, String> {
+    pub(crate) fn from_code_name(s: &str) -> Result<&'static VirtualKey, String> {
         let src = s.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix.")?;
         let code = u8::from_str_radix(src, 16)
             .map_err(|_| format!("Error parsing virtual key code `{}`.", s))?;
@@ -44,11 +44,11 @@ impl VirtualKey {
         Self::from_code_name(st).or_else(|_| Self::from_name(st))
     }
 
-    pub fn code_name(&self) -> String {
+    pub(crate) fn code_name(&self) -> String {
         format!("VC_0x{:02X}", self.value)
     }
 
-    pub fn to_scan_code(&self) -> Result<&'static ScanCode, String> {
+    pub(crate) fn to_scan_code(&self) -> Result<&'static ScanCode, String> {
         let ext_code = unsafe { MapVirtualKeyW(self.value as u32, MAPVK_VK_TO_VSC_EX) };
         if ext_code > 0 {
             let code = ext_code as u8;
@@ -75,10 +75,10 @@ impl FromStr for VirtualKey {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct ScanCode {
-    pub value: u8,
-    pub is_extended: bool,
-    pub name: &'static str,
+pub(crate) struct ScanCode {
+    pub(crate) value: u8,
+    pub(crate) is_extended: bool,
+    pub(crate) name: &'static str,
 }
 
 impl ScanCode {
@@ -99,7 +99,7 @@ impl ScanCode {
             .ok_or(format!("Illegal scan code name `{}`.", name))
     }
 
-    pub fn from_code_name(s: &str) -> Result<&'static ScanCode, String> {
+    pub(crate) fn from_code_name(s: &str) -> Result<&'static ScanCode, String> {
         let code = u16::from_str_radix(s.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix.")?, 16)
             .map_err(|_| format!("Error parsing scan code `{}`.", s))?;
         Self::from_ext_code(code)
@@ -126,7 +126,7 @@ impl ScanCode {
         Self::from_code_name(st).or_else(|_| Self::from_name(st).or_else(|_| Self::from_symbol(st)))
     }
 
-    pub fn ext_value(&self) -> u16 {
+    pub(crate) fn ext_value(&self) -> u16 {
         if self.is_extended {
             self.value as u16 | 0xE0 << 8
         } else {
@@ -134,11 +134,11 @@ impl ScanCode {
         }
     }
 
-    pub fn code_name(&self) -> String {
+    pub(crate) fn code_name(&self) -> String {
         format!("SC_0x{:04X}", self.ext_value())
     }
 
-    pub fn to_virtual_key(&self) -> Result<&'static VirtualKey, String> {
+    pub(crate) fn to_virtual_key(&self) -> Result<&'static VirtualKey, String> {
         let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
         if vk_code > 0 {
             VirtualKey::from_code(vk_code as u8)
@@ -163,29 +163,32 @@ impl FromStr for ScanCode {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct Key {
+pub(crate) struct Key {
     pub(crate) vk_code: u8,
     pub(crate) scan_code: u8,
     pub(crate) is_ext_scan_code: bool,
 }
 
 impl Key {
-    pub fn name(&self) -> &'static str {
+    pub(crate) fn name(&self) -> &'static str {
         KEYS.name_of(self)
     }
 
-    pub fn virtual_key(&self) -> &'static VirtualKey {
+    pub(crate) fn virtual_key(&self) -> &'static VirtualKey {
         VirtualKey::from_code(self.vk_code).unwrap()
     }
 
-    pub fn scan_code(&self) -> &'static ScanCode {
+    pub(crate) fn scan_code(&self) -> &'static ScanCode {
         ScanCode::from_code(self.scan_code, self.is_ext_scan_code).unwrap()
     }
 
     pub(crate) fn code_name(&self) -> String {
-        format!("{} - {}", self.virtual_key().code_name(), self.scan_code().code_name())
+        format!(
+            "{} - {}",
+            self.virtual_key().code_name(),
+            self.scan_code().code_name()
+        )
     }
-
 }
 
 impl Display for Key {
@@ -218,16 +221,16 @@ impl<'de> Deserialize<'de> for Key {
     {
         let text = String::deserialize(deserializer)?;
         let key = text.parse().map_err(de::Error::custom)?;
-        
+
         Ok(key)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::key::{Key, ScanCode, VirtualKey};
-    use std::str::FromStr;
+    use crate::keyboard::key::{Key, ScanCode, VirtualKey};
     use serde::{Deserialize, Serialize};
+    use std::str::FromStr;
 
     #[macro_export]
     macro_rules! vk_key {
@@ -429,7 +432,7 @@ mod tests {
             },
             Key::from_str("NUM_ENTER").unwrap()
         );
-        
+
         assert_eq!(
             Key {
                 vk_code: 0x72,
@@ -445,22 +448,34 @@ mod tests {
     fn test_key_parse_fails() {
         Key::from_str("BANANA").unwrap();
     }
-    
+
     #[test]
     fn test_key_display() {
-        assert_eq!("ENTER", format!("{}", Key {
-            vk_code: 0x0D,
-            scan_code: 0x1C,
-            is_ext_scan_code: false,
-        }));
-        
-        assert_eq!("NUM_ENTER", format!("{}", Key {
-            vk_code: 0x0D,
-            scan_code: 0x1C,
-            is_ext_scan_code: true,
-        }));
+        assert_eq!(
+            "ENTER",
+            format!(
+                "{}",
+                Key {
+                    vk_code: 0x0D,
+                    scan_code: 0x1C,
+                    is_ext_scan_code: false,
+                }
+            )
+        );
+
+        assert_eq!(
+            "NUM_ENTER",
+            format!(
+                "{}",
+                Key {
+                    vk_code: 0x0D,
+                    scan_code: 0x1C,
+                    is_ext_scan_code: true,
+                }
+            )
+        );
     }
-    
+
     #[test]
     fn test_key_serialize() {
         /* TOML requires wrapper */
@@ -468,13 +483,15 @@ mod tests {
         struct Wrapper {
             key: Key,
         }
-        
-        let source = Wrapper{key:key!("ENTER")};
+
+        let source = Wrapper { key: key!("ENTER") };
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str::<Wrapper>(&text).unwrap();
         assert_eq!(source.key, actual.key);
-        
-        let source = Wrapper{key:key!("NUM_ENTER")};
+
+        let source = Wrapper {
+            key: key!("NUM_ENTER"),
+        };
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str::<Wrapper>(&text).unwrap();
         assert_eq!(source.key, actual.key);
