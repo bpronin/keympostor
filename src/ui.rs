@@ -5,6 +5,7 @@ use crate::ui_log_view::LogView;
 use crate::ui_main_menu::MainMenu;
 use crate::ui_profile_view::ProfileView;
 use crate::ui_tray::Tray;
+use crate::util;
 use crate::util::default_font;
 use keyboard::key_event::KeyEvent;
 use keyboard::key_hook::KeyboardHandler;
@@ -14,10 +15,9 @@ use nwg::NativeUi;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
-use crate::util;
 
 #[derive(Default)]
-pub(crate) struct AppControl {
+pub(crate) struct App {
     keyboard_handler: KeyboardHandler,
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
@@ -33,7 +33,7 @@ pub(crate) struct AppControl {
     tray: Tray,
 }
 
-impl AppControl {
+impl App {
     fn read_settings(&self) {
         let settings = AppSettings::load().unwrap_or_else(|e| {
             ui_panic!("{}", e);
@@ -142,22 +142,15 @@ impl AppControl {
     pub(crate) fn on_log_view_clear(&self) {
         self.log_view.clear();
     }
-
-    fn on_log_view_update(&self, event: &KeyEvent) {
-        self.log_view.update_ui(event);
-    }
 }
 
 struct AppUi {
-    app: Rc<AppControl>,
+    app: Rc<App>,
     default_handler: RefCell<Option<nwg::EventHandler>>,
 }
 
-impl NativeUi<AppUi> for AppControl {
-    fn build_ui(mut app: AppControl) -> Result<AppUi, nwg::NwgError> {
-        nwg::init().expect("Failed to init Native Windows GUI.");
-        nwg::Font::set_global_default(default_font(17).into());
-
+impl AppUi {
+    fn build(mut app: App) -> Result<Self, nwg::NwgError> {
         #[cfg(not(feature = "dev"))]
         let window_flags = nwg::WindowFlags::MAIN_WINDOW;
 
@@ -195,32 +188,36 @@ impl NativeUi<AppUi> for AppControl {
         app.tray.build_ui(&mut app.window)?;
         app.log_view.build_ui(&mut app.tab_log)?;
         app.profile_view.build_ui(&mut app.tab_profile)?;
-        
+
         /* Wrap-up */
 
-        let ui = AppUi {
+        Ok(Self {
             app: Rc::new(app),
             default_handler: Default::default(),
-        };
+        })
+    }
 
+    fn setup_event_handlers(&self) {
         /* Components callbacks */
 
-        let app_rc = Rc::downgrade(&ui.app);
+        let app_rc = Rc::downgrade(&self.app);
         let kbd_handler_callback = move |event: &KeyEvent| {
             if let Some(app) = app_rc.upgrade() {
-                app.on_log_view_update(event)
+                app.log_view.update_ui(event);
             }
         };
-        ui.app.keyboard_handler.set_callback(Some(Box::new(kbd_handler_callback)));
+        self.app
+            .keyboard_handler
+            .set_callback(Some(Box::new(kbd_handler_callback)));
 
         /* Windows events */
-        
-        let app_rc = Rc::downgrade(&ui.app);
+
+        let app_rc = Rc::downgrade(&self.app);
         let default_handler = move |evt, _evt_data, handle| {
             if let Some(app) = app_rc.upgrade() {
                 app.tray.handle_event(&app, evt, handle);
                 app.main_menu.handle_event(&app, evt, handle);
-                
+
                 match evt {
                     nwg::Event::OnWindowClose => {
                         if &handle == &app.window {
@@ -232,13 +229,13 @@ impl NativeUi<AppUi> for AppControl {
             }
         };
 
-        *ui.default_handler.borrow_mut() = Some(nwg::full_bind_event_handler(
-            &ui.window.handle,
+        *self.default_handler.borrow_mut() = Some(nwg::full_bind_event_handler(
+            &self.window.handle,
             default_handler,
         ));
+    }
 
-        /* Layout */
-
+    fn layout(&self) -> Result<(), nwg::NwgError> {
         use nwg::stretch::{
             geometry::{Rect, Size},
             style::{Dimension as D, FlexDirection},
@@ -273,40 +270,54 @@ impl NativeUi<AppUi> for AppControl {
         };
 
         /* Log tab layout */
+
         nwg::FlexboxLayout::builder()
-            .parent(&ui.tab_container)
+            .parent(&self.tab_container)
             .padding(TAB_PADDING)
-            .child(ui.log_view.view())
+            .child(self.log_view.view())
             .child_margin(TAB_MARGIN)
             .child_flex_grow(1.0)
-            .build(&ui.tab_log_layout)?;
+            .build(&self.tab_log_layout)?;
 
         /* Profile tab layout */
+
         nwg::FlexboxLayout::builder()
-            .parent(&ui.tab_container)
+            .parent(&self.tab_container)
             .padding(TAB_PADDING)
-            .child(ui.profile_view.view())
+            .child(self.profile_view.view())
             .child_margin(TAB_MARGIN)
             .child_flex_grow(1.0)
-            .build(&ui.tab_profiles_layout)?;
+            .build(&self.tab_profiles_layout)?;
 
         /* Main window layout */
+
         nwg::FlexboxLayout::builder()
-            .parent(&ui.window)
+            .parent(&self.window)
             .flex_direction(FlexDirection::Column)
             .padding(PADDING)
             /* Tabs */
-            .child(&ui.tab_container)
+            .child(&self.tab_container)
             .child_margin(MARGIN)
             .child_flex_grow(1.0)
             /* Test editor */
-            .child(&ui.text_editor)
+            .child(&self.text_editor)
             .child_margin(MARGIN)
             .child_size(Size {
                 width: D::Auto,
                 height: D::Points(32.0),
             })
-            .build(&ui.layout)?;
+            .build(&self.layout)
+    }
+}
+
+impl NativeUi<AppUi> for App {
+    fn build_ui(app: App) -> Result<AppUi, nwg::NwgError> {
+        nwg::init().expect("Failed to init Native Windows GUI.");
+        nwg::Font::set_global_default(default_font(17).into());
+
+        let ui = AppUi::build(app)?;
+        ui.setup_event_handlers();
+        ui.layout()?;
 
         Ok(ui)
     }
@@ -322,15 +333,15 @@ impl Drop for AppUi {
 }
 
 impl Deref for AppUi {
-    type Target = AppControl;
+    type Target = App;
 
-    fn deref(&self) -> &AppControl {
+    fn deref(&self) -> &App {
         &self.app
     }
 }
 
 pub fn run_app() {
-    AppControl::build_ui(Default::default())
+    App::build_ui(Default::default())
         .expect("Failed to build application UI.")
         .run();
 }
