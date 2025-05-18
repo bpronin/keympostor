@@ -1,7 +1,8 @@
 use crate::keyboard::key_event::KeyEvent;
 use crate::res::RESOURCE_STRINGS;
 use crate::rs;
-use crate::util::{default_profile_path, mono_font};
+use crate::ui::ui_util::mono_font;
+use crate::util::default_profile_path;
 use native_windows_gui as nwg;
 
 const MAX_LOG_LINES: usize = 256;
@@ -29,7 +30,7 @@ impl LogView {
         {
             self.view.appendln("--- Debug UI");
             self.view
-                .appendln(&format!("--- {}", default_profile_path()));
+                .appendln(&format!("--- {}", &default_profile_path()));
         }
     }
 

@@ -35,8 +35,9 @@ mod tests {
     use crate::settings::AppSettings;
 
     #[test]
-    fn test_load() {
-        let settings = AppSettings::load().unwrap();
-        dbg!(&settings);
+    fn test_load_save() {
+        let settings = AppSettings::load();
+        assert!(settings.is_ok());
+        assert!(settings.unwrap().save().is_ok());
     }
 }

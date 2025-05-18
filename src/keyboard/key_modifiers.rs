@@ -48,7 +48,7 @@ impl KeyModifiers {
         self.0 & other.0 == other.0
     }
 
-    pub(crate) fn to_string_short(&self) -> String {
+    /*pub(crate) fn to_string_short(&self) -> String {
         let mut text: [char; 8] = ['.'; 8];
 
         if self.contains(KM_LSHIFT) {
@@ -77,7 +77,7 @@ impl KeyModifiers {
         }
 
         text.iter().collect()
-    }
+    }*/
 }
 
 impl Display for KeyModifiers {
@@ -240,7 +240,7 @@ mod tests {
         );
     }
 
-    #[test]
+    /*#[test]
     fn test_key_modifiers_display_short() {
         assert_eq!("........", KM_NONE.to_string_short());
 
@@ -252,7 +252,7 @@ mod tests {
             (KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL)
                 .to_string_short()
         );
-    }
+    }*/
 
     #[test]
     fn test_key_modifiers_parse() {

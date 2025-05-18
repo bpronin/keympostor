@@ -342,7 +342,7 @@ mod tests {
         let source = key_action_seq!("ENTER↓ → SHIFT↓");
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
-        
+
         assert_eq!(source, actual);
     }
 

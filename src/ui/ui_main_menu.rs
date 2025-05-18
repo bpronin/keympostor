@@ -3,7 +3,6 @@ use crate::rs;
 
 use crate::ui::ui_main::App;
 use native_windows_gui as nwg;
-use native_windows_gui::{ControlHandle, Event, Window};
 
 #[derive(Default)]
 pub(crate) struct MainMenu {
@@ -17,7 +16,7 @@ pub(crate) struct MainMenu {
 }
 
 impl MainMenu {
-    pub(crate) fn build_ui(&mut self, parent: &Window) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::Menu::builder()
             .parent(parent)
             .text(rs!(file))
@@ -64,7 +63,7 @@ impl MainMenu {
         self.toggle_logging_enabled_item.set_checked(!is_silent);
     }
 
-    pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
+    pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: nwg::ControlHandle) {
         match evt {
             nwg::Event::OnMenuItemSelected => {
                 if &handle == &self.load_profile_item {

@@ -4,9 +4,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    MapVirtualKeyW, OemKeyScan, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
-};
+use windows::Win32::UI::Input::KeyboardAndMouse::OemKeyScan;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VirtualKey {
@@ -48,7 +46,7 @@ impl VirtualKey {
         format!("VC_0x{:02X}", self.value)
     }
 
-    pub(crate) fn to_scan_code(&self) -> Result<&'static ScanCode, String> {
+    /*pub(crate) fn to_scan_code(&self) -> Result<&'static ScanCode, String> {
         let ext_code = unsafe { MapVirtualKeyW(self.value as u32, MAPVK_VK_TO_VSC_EX) };
         if ext_code > 0 {
             let code = ext_code as u8;
@@ -57,7 +55,7 @@ impl VirtualKey {
         } else {
             Err(format!("Unable to convert virtual key {self} to scancode."))
         }
-    }
+    }*/
 }
 
 impl Display for VirtualKey {
@@ -138,14 +136,14 @@ impl ScanCode {
         format!("SC_0x{:04X}", self.ext_value())
     }
 
-    pub(crate) fn to_virtual_key(&self) -> Result<&'static VirtualKey, String> {
+    /*pub(crate) fn to_virtual_key(&self) -> Result<&'static VirtualKey, String> {
         let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
         if vk_code > 0 {
             VirtualKey::from_code(vk_code as u8)
         } else {
             Err(format!("Unable to convert scancode {self} to virtual key."))
         }
-    }
+    }*/
 }
 
 impl Display for ScanCode {
@@ -292,7 +290,7 @@ mod tests {
         );
     }
 
-    #[test]
+    /*#[test]
     fn test_vk_to_scan_code() {
         assert_eq!(
             sc_key!("SC_ENTER"),
@@ -309,7 +307,7 @@ mod tests {
     #[should_panic]
     fn test_vk_to_scan_code_fails() {
         vk_key!("VK_LBUTTON").to_scan_code().unwrap();
-    }
+    }*/
 
     #[test]
     fn test_sc_from_code() {
@@ -389,7 +387,7 @@ mod tests {
         assert_eq!(0xE021, ScanCode::from_ext_code(0xE021).unwrap().ext_value());
     }
 
-    #[test]
+    /*#[test]
     fn test_sc_to_virtual_key() {
         assert_eq!(
             vk_key!("VK_RETURN"),
@@ -406,7 +404,7 @@ mod tests {
     #[should_panic]
     fn test_sc_to_virtual_key_fails() {
         sc_key!("SC_F24").to_virtual_key().unwrap();
-    }
+    }*/
 
     #[test]
     fn test_sc_display() {

@@ -1,11 +1,10 @@
+use crate::{rs, ui_panic, ui_warn};
 use super::*;
 use crate::keyboard::key_event::KeyEvent;
 use crate::keyboard::key_hook::KeyboardHandler;
 use crate::keyboard::transform_rules::KeyTransformProfile;
 use crate::res::RESOURCE_STRINGS;
 use crate::settings::AppSettings;
-use crate::util::default_font;
-use crate::{rs, ui_panic, ui_warn, util};
 use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
@@ -15,6 +14,8 @@ use ui_log_view::LogView;
 use ui_main_menu::MainMenu;
 use ui_profile_view::ProfileView;
 use ui_tray::Tray;
+use crate::ui::ui_util::default_font;
+use crate::util::default_profile_path;
 
 #[derive(Default)]
 pub(crate) struct App {
@@ -77,7 +78,7 @@ impl App {
 
     pub(crate) fn run(&self) {
         self.read_settings();
-        self.read_profile(&util::default_profile_path());
+        self.read_profile(&default_profile_path());
 
         self.update_controls();
         self.log_view.init();

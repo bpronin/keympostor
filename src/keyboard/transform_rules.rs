@@ -268,7 +268,6 @@ mod tests {
     fn test_key_transform_profile_serialize() {
         let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
 
-        println!("{}", actual);
         let expected = key_profile!(
             r#"
             Test profile

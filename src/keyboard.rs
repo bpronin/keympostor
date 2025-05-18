@@ -10,11 +10,8 @@ pub(crate) mod transform_rules;
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key::{ScanCode, VirtualKey};
-    use crate::keyboard::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
     use log::LevelFilter;
     use simple_logger::SimpleLogger;
-    use std::collections::BTreeMap;
 
     pub(crate) fn init_logger() {
         SimpleLogger::new()
@@ -23,60 +20,62 @@ mod tests {
             .unwrap();
     }
 
-    // #[test]
-    // #[ignore]
-    // fn generate_keys() {
-    //     let mut id = 0;
-    //     for vk_code in 0..MAX_VK_CODE {
-    //         let vk_key = VirtualKey::from_code(vk_code as u8).unwrap();
-    //         let vk_name = vk_key.name;
-    //         let name = if let Some(name) = vk_name.strip_prefix("VK_") {
-    //             name
-    //         } else {
-    //             vk_name
-    //         };
-    //
-    //         let vk_opt = format!("Some(&VIRTUAL_KEYS[{}])", vk_code);
-    //
-    //         let sc_opt = if let Ok(sc_key) = vk_key.to_scan_code() {
-    //             format!(
-    //                 "Some(&SCAN_CODES[{}][{}])",
-    //                 sc_key.value, sc_key.is_extended as u8
-    //             )
-    //         } else {
-    //             "None".to_string()
-    //         };
-    //
-    //         println!("new_key!({}, \"{}\", {}, {}),", id, name, vk_opt, sc_opt);
-    //
-    //         id = id + 1;
-    //     }
-    //
-    //     for ext_sc in [false, true] {
-    //         for sc_code in 0..MAX_SCAN_CODE {
-    //             let sc_key = ScanCode::from_code(sc_code as u8, ext_sc).unwrap();
-    //             let sc_name = sc_key.name;
-    //             let name = if let Some(name) = sc_name.strip_prefix("SC_") {
-    //                 name
-    //             } else {
-    //                 sc_name
-    //             };
-    //
-    //             if sc_key.to_virtual_key().is_ok() {
-    //                 continue;
-    //             }
-    //
-    //             let sc_opt = format!(
-    //                 "Some(&SCAN_CODES[{}][{}])",
-    //                 sc_key.value, sc_key.is_extended as u8
-    //             );
-    //
-    //             println!("new_key!({}, \"{}\", None, {}),", id, name, sc_opt);
-    //
-    //             id = id + 1;
-    //         }
-    //     }
-    // }
+    /*  *** Key codes generation stuff ***
+
+    #[test]
+    #[ignore]
+    fn generate_keys() {
+        let mut id = 0;
+        for vk_code in 0..MAX_VK_CODE {
+            let vk_key = VirtualKey::from_code(vk_code as u8).unwrap();
+            let vk_name = vk_key.name;
+            let name = if let Some(name) = vk_name.strip_prefix("VK_") {
+                name
+            } else {
+                vk_name
+            };
+
+            let vk_opt = format!("Some(&VIRTUAL_KEYS[{}])", vk_code);
+
+            let sc_opt = if let Ok(sc_key) = vk_key.to_scan_code() {
+                format!(
+                    "Some(&SCAN_CODES[{}][{}])",
+                    sc_key.value, sc_key.is_extended as u8
+                )
+            } else {
+                "None".to_string()
+            };
+
+            println!("new_key!({}, \"{}\", {}, {}),", id, name, vk_opt, sc_opt);
+
+            id = id + 1;
+        }
+
+        for ext_sc in [false, true] {
+            for sc_code in 0..MAX_SCAN_CODE {
+                let sc_key = ScanCode::from_code(sc_code as u8, ext_sc).unwrap();
+                let sc_name = sc_key.name;
+                let name = if let Some(name) = sc_name.strip_prefix("SC_") {
+                    name
+                } else {
+                    sc_name
+                };
+
+                if sc_key.to_virtual_key().is_ok() {
+                    continue;
+                }
+
+                let sc_opt = format!(
+                    "Some(&SCAN_CODES[{}][{}])",
+                    sc_key.value, sc_key.is_extended as u8
+                );
+
+                println!("new_key!({}, \"{}\", None, {}),", id, name, sc_opt);
+
+                id = id + 1;
+            }
+        }
+    }
 
     #[test]
     #[ignore]
@@ -135,7 +134,6 @@ mod tests {
             );
         })
     }
-    /*    *** Key codes generation stuff ***
 
     use crate::keys::{ScanCode, VirtualKey, MAX_SCAN_CODE, MAX_VK_CODE};
 
@@ -558,21 +556,21 @@ mod tests {
     fn fmt_scancode_name(key_name: &str) -> String {
         "SC_".to_string()
             + &key_name
-                .to_uppercase()
-                .replace(' ', "_")
-                .replace('`', "BACKTICK")
-                .replace('\'', "APOSTROPHE")
-                .replace('/', "SLASH")
-                .replace('\\', "BACKSLASH")
-                .replace('+', "PLUS")
-                .replace('-', "MINUS")
-                .replace('*', "MUL")
-                .replace('=', "EQ")
-                .replace('[', "L_BRACKET")
-                .replace(']', "R_BRACKET")
-                .replace(';', "SEMICOLON")
-                .replace(',', "COMMA")
-                .replace('.', "DOT")
+            .to_uppercase()
+            .replace(' ', "_")
+            .replace('`', "BACKTICK")
+            .replace('\'', "APOSTROPHE")
+            .replace('/', "SLASH")
+            .replace('\\', "BACKSLASH")
+            .replace('+', "PLUS")
+            .replace('-', "MINUS")
+            .replace('*', "MUL")
+            .replace('=', "EQ")
+            .replace('[', "L_BRACKET")
+            .replace(']', "R_BRACKET")
+            .replace(';', "SEMICOLON")
+            .replace(',', "COMMA")
+            .replace('.', "DOT")
     }
 
     fn find_scancode_name(scancode: u8, extended: bool) -> String {
@@ -642,7 +640,7 @@ mod tests {
                 value: vk_code as u8,
                 name: VIRTUAL_KEY_NAMES[vk_code],
             };
-            println!("virtual_key!(0x{:02X}, \"{}\"),", vk.value, vk.name,);
+            println!("virtual_key!(0x{:02X}, \"{}\"),", vk.value, vk.name, );
         }
     }
 
@@ -667,5 +665,7 @@ mod tests {
                 sc.value, sc.name, ext_sc.value, ext_sc.name,
             );
         }
-    }  */
+    }
+
+    */
 }

@@ -5,6 +5,7 @@ mod ui_main;
 mod ui_main_menu;
 mod ui_profile_view;
 mod ui_tray;
+mod ui_util;
 
 pub(crate) fn run_app() {
     ui_main::run();

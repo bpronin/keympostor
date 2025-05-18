@@ -1,6 +1,6 @@
 use crate::keyboard::transform_rules::KeyTransformProfile;
-use crate::util::{dos_line_endings, mono_font};
 use native_windows_gui::{NwgError, Tab, TextBox};
+use crate::ui::ui_util::{dos_line_endings, mono_font};
 
 #[derive(Default)]
 pub(crate) struct ProfileView {

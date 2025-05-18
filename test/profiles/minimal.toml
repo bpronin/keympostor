@@ -1,37 +1,5 @@
-{
-  "title": "Q key down",
-  "rules": [
-    {
-      "source": {
-        "action": {
-          "key": "VK_Q",
-          "transition": "Down"
-        }
-      },
-      "target": {
-        "actions": [
-          {
-            "key": "VK_X",
-            "transition": "Down"
-          }
-        ]
-      }
-    },
-    {
-      "source": {
-        "action": {
-          "key": "SC_W",
-          "transition": "Down"
-        }
-      },
-      "target": {
-        "actions": [
-          {
-            "key": "SC_Z",
-            "transition": "Down"
-          }
-        ]
-      }
-    }
-  ]
-}
+title = "Minimal profile"
+
+[rules]
+"Q↓" = "X↓"
+"Q↑" = "X↑"

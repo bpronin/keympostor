@@ -18,8 +18,7 @@ impl Keys {
                 panic!("Duplicate name: {}", name)
             };
             if key_to_name_map.insert(key, name).is_some() {
-                // panic!("Duplicate key: {}", key.code_name())
-                eprintln!("Duplicate key for name: {}", name)
+                panic!("Duplicate key: {}", key.code_name())
             };
         }
         Self {
@@ -272,6 +271,7 @@ macro_rules! new_vk {
 }
 
 pub(crate) const MAX_VK_CODE: usize = 256;
+
 pub(crate) static VIRTUAL_KEYS: [VirtualKey; MAX_VK_CODE] = [
     new_vk!(0x00, "UNASSIGNED"),
     new_vk!(0x01, "VK_LBUTTON"),
@@ -549,6 +549,7 @@ macro_rules! new_sc {
 }
 
 pub(crate) const MAX_SCAN_CODE: usize = 136;
+
 pub(crate) static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
     new_sc!(0x00, "UNASSIGNED", "UNASSIGNED"),
     new_sc!(0x01, "SC_ESC", "SC_"),
@@ -687,3 +688,36 @@ pub(crate) static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
     new_sc!(0x86, "SC_F23", "UNASSIGNED"),
     new_sc!(0x87, "SC_F24", "UNASSIGNED"),
 ];
+
+#[cfg(test)]
+mod tests {
+    use crate::keyboard::key_const::{KEYS, KEY_NAMES};
+
+    #[test]
+    fn test_key_by_name() {
+        assert!(KEY_NAMES.iter().all(|(name, key)| {
+            KEYS.by_name(name) == key
+        }))
+    }
+    
+    #[test]
+    fn test_key_name() {
+        assert!(KEY_NAMES.iter().all(|(name, key)| {
+            KEYS.name_of(key) == *name
+        }))
+    }
+    
+    #[test]
+    fn test_key_vk() {
+        KEY_NAMES.iter().for_each(|(_name, key)| {
+            key.virtual_key(); /* should not panic */
+        })
+    }
+    
+    #[test]
+    fn test_key_sc() {
+        KEY_NAMES.iter().for_each(|(_name, key)| {
+            key.scan_code(); /* should not panic */
+        })
+    }
+}
