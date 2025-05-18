@@ -59,22 +59,6 @@ impl KeyEvent<'_> {
         self.is_injected() && (self.kb.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr())
     }
 
-    pub fn is_valid(&self) -> bool {
-        // if self.kb.scanCode > MAX_SCAN_CODE as u32 {
-        //     warn!("Ignored invalid scan code: 0x{:02X}.", self.kb.scanCode);
-        //     false
-        // } else if self.kb.vkCode > MAX_VK_CODE as u32 {
-        //     warn!("Ignored invalid virtual key: 0x{:02X}.", self.kb.vkCode);
-        //     false
-        // } else if self.kb.time == 0 {
-        //     warn!("Ignored invalid time: {}.", self.kb.time);
-        //     false
-        // } else {
-        //     true
-        // }
-        true
-    }
-
     #[allow(dead_code)]
     pub(crate) fn fmt_kb(&self) -> String {
         format!(

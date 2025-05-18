@@ -4,34 +4,48 @@ use crate::transform_rules::KeyTransformProfile;
 use log::debug;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardState, SendInput, INPUT};
+use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardState, INPUT, SendInput};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 thread_local! {
-    static INNER: RefCell<InnerKeyboardHandler> = RefCell::new(InnerKeyboardHandler::new());
+    static HOOK: RefCell<KeyboardHook> = RefCell::new(KeyboardHook::default());
 }
 
-struct InnerKeyboardHandler {
-    handle: Option<HHOOK>,
+#[derive(Default)]
+struct KeyboardHook {
     transform_map: KeyTransformMap,
+    handle: Option<HHOOK>,
     callback: Option<Box<dyn Fn(&KeyEvent)>>,
-    silent_processing: bool,
+    is_silent: bool,
 }
 
-impl InnerKeyboardHandler {
-    fn new() -> Self {
-        Self {
-            handle: None,
-            transform_map: Default::default(),
-            callback: None,
-            silent_processing: false,
+impl KeyboardHook {
+    fn install(&mut self) {
+        self.handle = Some(
+            unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), None, 0) }
+                .expect("Failed to install keyboard hook."),
+        );
+
+        debug!("Keyboard hook installed");
+    }
+
+    fn uninstall(&mut self) {
+        if let Some(handle) = self.handle {
+            unsafe { UnhookWindowsHookEx(handle) }.expect("Failed to uninstall keyboard hook.");
+            self.handle = None;
+
+            debug!("Keyboard hook uninstalled");
         }
     }
-}
 
-impl InnerKeyboardHandler {
     fn load_profile(&mut self, profile: KeyTransformProfile) {
         self.transform_map = KeyTransformMap::from_profile(profile);
+    }
+
+    fn set_silent(&mut self, silent: bool) {
+        self.is_silent = silent;
+
+        debug!("Silent processing: {silent}");
     }
 
     fn set_callback(&mut self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
@@ -42,66 +56,11 @@ impl InnerKeyboardHandler {
             debug!("Callback removed");
         }
     }
-
-    fn install_hook(&mut self) {
-        self.handle = Some(
-            unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(Self::keyboard_proc), None, 0) }
-                .expect("Failed to install keyboard hook"),
-        );
-
-        debug!("Keyboard hook installed");
-    }
-
-    fn uninstall_hook(&mut self) {
-        if let Some(handle) = self.handle {
-            unsafe { UnhookWindowsHookEx(handle) }.expect("Failed to uninstall keyboard hook");
-            self.handle = None;
-
-            debug!("Keyboard hook uninstalled");
-        }
-    }
-
-    extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-        INNER.with_borrow(|handler| {
-            if code == HC_ACTION as i32 {
-                let mut event = unsafe {
-                    let mut keyboard_state = [0; 256];
-                    GetKeyboardState(&mut keyboard_state).unwrap();
-                    KeyEvent::new(*(l_param.0 as *const KBDLLHOOKSTRUCT), keyboard_state)
-                };
-
-                debug!("EVENT: {}", event);
-
-                if event.is_valid() {
-                    if !event.is_private() {
-                        event.rule = handler.transform_map.get(&event)
-                    };
-
-                    if !handler.silent_processing {
-                        if let Some(callback) = &handler.callback {
-                            callback(&event);
-                        }
-                    }
-
-                    if let Some(rule) = event.rule {
-                        debug!("RULE: {}", rule);
-
-                        let input = rule.target.create_input();
-                        unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
-                        return LRESULT(1);
-                    }
-                }
-            }
-
-            unsafe { CallNextHookEx(handler.handle, code, w_param, l_param) }
-        })
-    }
 }
 
-impl Drop for InnerKeyboardHandler {
+impl Drop for KeyboardHook {
     fn drop(&mut self) {
-        self.set_callback(None);
-        self.uninstall_hook();
+        self.uninstall();
     }
 }
 
@@ -110,34 +69,66 @@ pub struct KeyboardHandler {}
 
 impl KeyboardHandler {
     pub fn set_profile(&self, profile: KeyTransformProfile) {
-        INNER.with_borrow_mut(|inner| inner.load_profile(profile));
+        HOOK.with_borrow_mut(|hook| hook.load_profile(profile));
     }
 
     pub fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
-        INNER.with_borrow_mut(|inner| inner.set_callback(callback));
+        HOOK.with_borrow_mut(|hook| hook.set_callback(callback));
     }
 
     pub fn is_enabled(&self) -> bool {
-        INNER.with_borrow(|inner| inner.handle.is_some())
+        HOOK.with_borrow(|hook| hook.handle.is_some())
     }
 
     pub fn set_enabled(&self, enabled: bool) {
-        INNER.with_borrow_mut(|inner| {
+        HOOK.with_borrow_mut(|hook| {
             if enabled {
-                inner.install_hook()
+                hook.install()
             } else {
-                inner.uninstall_hook()
+                hook.uninstall()
             }
         })
     }
 
     pub fn is_silent(&self) -> bool {
-        INNER.with_borrow(|inner| inner.silent_processing)
+        HOOK.with_borrow(|hook| hook.is_silent)
     }
 
     pub fn set_silent(&self, silent: bool) {
-        INNER.with_borrow_mut(|inner| inner.silent_processing = silent);
-
-        debug!("Silent processing: {silent}.");
+        HOOK.with_borrow_mut(|inner| inner.set_silent(silent));
     }
+}
+
+extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+    HOOK.with_borrow(|hook| {
+        if code == HC_ACTION as i32 {
+            let mut event = unsafe {
+                let mut keyboard_state = [0; 256];
+                GetKeyboardState(&mut keyboard_state).unwrap();
+                KeyEvent::new(*(l_param.0 as *const KBDLLHOOKSTRUCT), keyboard_state)
+            };
+
+            debug!("EVENT: {}", event);
+
+            if !event.is_private() {
+                event.rule = hook.transform_map.get(&event)
+            };
+
+            if let Some(callback) = &hook.callback {
+                if !&hook.is_silent {
+                    callback(&event);
+                }
+            }
+
+            if let Some(rule) = event.rule {
+                debug!("RULE: {}", rule);
+
+                let input = rule.target.create_input();
+                unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
+                return LRESULT(1);
+            }
+        }
+
+        unsafe { CallNextHookEx(hook.handle, code, w_param, l_param) }
+    })
 }
