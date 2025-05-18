@@ -146,7 +146,7 @@ impl App {
 
 struct AppUi {
     app: Rc<App>,
-    default_handler: RefCell<Option<nwg::EventHandler>>,
+    event_handler: RefCell<Option<nwg::EventHandler>>,
 }
 
 impl AppUi {
@@ -193,7 +193,7 @@ impl AppUi {
 
         Ok(Self {
             app: Rc::new(app),
-            default_handler: Default::default(),
+            event_handler: Default::default(),
         })
     }
 
@@ -213,7 +213,7 @@ impl AppUi {
         /* Windows events */
 
         let app_rc = Rc::downgrade(&self.app);
-        let default_handler = move |evt, _evt_data, handle| {
+        let event_handler = move |evt, _evt_data, handle| {
             if let Some(app) = app_rc.upgrade() {
                 app.tray.handle_event(&app, evt, handle);
                 app.main_menu.handle_event(&app, evt, handle);
@@ -229,9 +229,9 @@ impl AppUi {
             }
         };
 
-        *self.default_handler.borrow_mut() = Some(nwg::full_bind_event_handler(
+        *self.event_handler.borrow_mut() = Some(nwg::full_bind_event_handler(
             &self.window.handle,
-            default_handler,
+            event_handler,
         ));
     }
 
@@ -312,7 +312,6 @@ impl AppUi {
 
 impl NativeUi<AppUi> for App {
     fn build_ui(app: App) -> Result<AppUi, nwg::NwgError> {
-        nwg::init().expect("Failed to init Native Windows GUI.");
         nwg::Font::set_global_default(default_font(17).into());
 
         let ui = AppUi::build(app)?;
@@ -325,7 +324,7 @@ impl NativeUi<AppUi> for App {
 
 impl Drop for AppUi {
     fn drop(&mut self) {
-        let handler = self.default_handler.borrow();
+        let handler = self.event_handler.borrow();
         if handler.is_some() {
             nwg::unbind_event_handler(handler.as_ref().unwrap());
         }
@@ -341,6 +340,7 @@ impl Deref for AppUi {
 }
 
 pub fn run_app() {
+    nwg::init().expect("Failed to init Native Windows GUI.");
     App::build_ui(Default::default())
         .expect("Failed to build application UI.")
         .run();
