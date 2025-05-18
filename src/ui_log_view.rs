@@ -1,13 +1,13 @@
 use crate::res::RESOURCE_STRINGS;
-use crate::util::mono_font;
-use crate::{rs, ui};
+use crate::util::{default_profile_path, mono_font};
+use crate::{rs};
 use keyboard::key_event::KeyEvent;
 use native_windows_gui as nwg;
 
 const MAX_LOG_LINES: usize = 256;
 
 #[derive(Default)]
-pub struct LogView {
+pub(crate) struct LogView {
     view: nwg::TextBox,
 }
 
@@ -29,7 +29,7 @@ impl LogView {
         {
             self.view.appendln("--- Debug UI");
             self.view
-                .appendln(&format!("--- {}", &ui::default_profile_path()));
+                .appendln(&format!("--- {}", default_profile_path()));
         }
     }
 

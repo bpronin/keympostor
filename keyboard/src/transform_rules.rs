@@ -108,13 +108,13 @@ impl KeyTransformProfile {
         .map_err(|e| format!("Unable to parse {}. {}", path, e))
     }
 
-    fn save(&self, path: &str) -> Result<(), String> {
-        fs::write(
-            path,
-            toml::to_string(self).map_err(|e| format!("Unable to serialize {}. {}", path, e))?,
-        )
-        .map_err(|e| format!("Unable to write {} file. {}", path, e))
-    }
+    // fn save(&self, path: &str) -> Result<(), String> {
+    //     fs::write(
+    //         path,
+    //         toml::to_string(self).map_err(|e| format!("Unable to serialize {}. {}", path, e))?,
+    //     )
+    //     .map_err(|e| format!("Unable to write {} file. {}", path, e))
+    // }
 }
 
 impl Display for KeyTransformProfile {
@@ -305,6 +305,6 @@ mod tests {
 
         assert_eq!(expected, actual);
 
-        actual.save("../test/profiles/test-copy.toml").unwrap()
+        // actual.save("../test/profiles/test-copy.toml").unwrap()
     }
 }

@@ -1,6 +1,6 @@
 use crate::res::RESOURCE_STRINGS;
 use crate::rs;
-use crate::ui::{AppControl, AppEventHandler};
+use crate::ui::{AppControl};
 use native_windows_gui as nwg;
 use native_windows_gui::{ControlHandle, Event, Window};
 
@@ -62,10 +62,8 @@ impl MainMenu {
 
         self.toggle_logging_enabled_item.set_checked(!is_silent);
     }
-}
 
-impl AppEventHandler for MainMenu {
-    fn handle_event(&self, app: &AppControl, evt: Event, handle: ControlHandle) {
+    pub(crate) fn handle_event(&self, app: &AppControl, evt: Event, handle: ControlHandle) {
         match evt {
             nwg::Event::OnMenuItemSelected => {
                 if &handle == &self.load_profile_item {

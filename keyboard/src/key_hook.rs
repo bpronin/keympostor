@@ -137,6 +137,7 @@ impl KeyboardHandler {
 
     pub fn set_silent(&self, silent: bool) {
         INNER.with_borrow_mut(|inner| inner.silent_processing = silent);
+
         debug!("Silent processing: {silent}.");
     }
 }

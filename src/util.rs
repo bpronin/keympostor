@@ -1,4 +1,6 @@
 extern crate native_windows_gui as nwg;
+
+use std::env;
 use crate::res::RESOURCE_STRINGS;
 use crate::rs;
 
@@ -59,3 +61,9 @@ macro_rules! ui_panic {
 //         eprintln!("Failed to play sound {}", filename);
 //     }
 // }
+
+pub(crate) fn default_profile_path() -> String {
+    let mut args = env::args();
+    args.next(); /* executable name */
+    args.next().unwrap_or("profiles/default.toml".to_string())
+}

@@ -2,7 +2,7 @@ use crate::res::RES;
 use crate::res::RESOURCE_STRINGS;
 use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
 use crate::rs;
-use crate::ui::{AppControl, AppEventHandler};
+use crate::ui::{AppControl};
 use native_windows_gui as nwg;
 
 #[derive(Default)]
@@ -65,10 +65,8 @@ impl Tray {
         let (x, y) = nwg::GlobalCursor::position();
         self.menu.popup(x, y);
     }
-}
 
-impl AppEventHandler for Tray {
-    fn handle_event(&self, app: &AppControl, evt: nwg::Event, handle: nwg::ControlHandle) {
+    pub(crate) fn handle_event(&self, app: &AppControl, evt: nwg::Event, handle: nwg::ControlHandle) {
         match evt {
             nwg::Event::OnMousePress(nwg::MousePressEvent::MousePressLeftUp) => {
                 if &handle == &self.notification {

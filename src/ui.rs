@@ -12,15 +12,9 @@ use keyboard::transform_rules::KeyTransformProfile;
 use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;
-use std::env;
 use std::ops::Deref;
 use std::rc::Rc;
-
-thread_local! {
-    static APP: RefCell<AppUi> = RefCell::new(
-        AppControl::build_ui(Default::default()).expect("Failed to build application UI.")
-    )
-}
+use crate::util;
 
 #[derive(Default)]
 pub(crate) struct AppControl {
@@ -82,14 +76,8 @@ impl AppControl {
     }
 
     pub(crate) fn run(&self) {
-        // let callback = |event: &KeyboardEvent| {self.on_log_view_update(event)};
-        // let boxed_callback = Box::new(callback);
-
-        let boxed_callback = Box::new(on_key_event);
-        self.keyboard_handler.set_callback(Some(boxed_callback));
-
         self.read_settings();
-        self.read_profile(&default_profile_path());
+        self.read_profile(&util::default_profile_path());
 
         self.update_controls();
         self.log_view.init();
@@ -161,7 +149,7 @@ impl AppControl {
 }
 
 struct AppUi {
-    inner: Rc<AppControl>,
+    app: Rc<AppControl>,
     default_handler: RefCell<Option<nwg::EventHandler>>,
 }
 
@@ -207,25 +195,36 @@ impl NativeUi<AppUi> for AppControl {
         app.tray.build_ui(&mut app.window)?;
         app.log_view.build_ui(&mut app.tab_log)?;
         app.profile_view.build_ui(&mut app.tab_profile)?;
-
+        
         /* Wrap-up */
 
         let ui = AppUi {
-            inner: Rc::new(app),
+            app: Rc::new(app),
             default_handler: Default::default(),
         };
 
-        /* Events */
+        /* Components callbacks */
 
-        let evt_ui = Rc::downgrade(&ui.inner);
-        let handle_events = move |evt, _evt_data, handle| {
-            if let Some(evt_ui) = evt_ui.upgrade() {
-                evt_ui.tray.handle_event(&evt_ui, evt, handle);
-                evt_ui.main_menu.handle_event(&evt_ui, evt, handle);
+        let app_rc = Rc::downgrade(&ui.app);
+        let kbd_handler_callback = move |event: &KeyEvent| {
+            if let Some(app) = app_rc.upgrade() {
+                app.on_log_view_update(event)
+            }
+        };
+        ui.app.keyboard_handler.set_callback(Some(Box::new(kbd_handler_callback)));
+
+        /* Windows events */
+        
+        let app_rc = Rc::downgrade(&ui.app);
+        let default_handler = move |evt, _evt_data, handle| {
+            if let Some(app) = app_rc.upgrade() {
+                app.tray.handle_event(&app, evt, handle);
+                app.main_menu.handle_event(&app, evt, handle);
+                
                 match evt {
                     nwg::Event::OnWindowClose => {
-                        if &handle == &evt_ui.window {
-                            evt_ui.on_window_close();
+                        if &handle == &app.window {
+                            app.on_window_close();
                         }
                     }
                     _ => {}
@@ -235,7 +234,7 @@ impl NativeUi<AppUi> for AppControl {
 
         *ui.default_handler.borrow_mut() = Some(nwg::full_bind_event_handler(
             &ui.window.handle,
-            handle_events,
+            default_handler,
         ));
 
         /* Layout */
@@ -314,7 +313,6 @@ impl NativeUi<AppUi> for AppControl {
 }
 
 impl Drop for AppUi {
-    // To make sure that everything is freed without issues, the default handler must be unbound.
     fn drop(&mut self) {
         let handler = self.default_handler.borrow();
         if handler.is_some() {
@@ -327,25 +325,12 @@ impl Deref for AppUi {
     type Target = AppControl;
 
     fn deref(&self) -> &AppControl {
-        &self.inner
+        &self.app
     }
 }
 
-pub(crate) trait AppEventHandler {
-    fn handle_event(&self, app: &AppControl, evt: nwg::Event, handle: nwg::ControlHandle);
-}
-
-pub(crate) fn default_profile_path() -> String {
-    let mut args = env::args();
-    args.next(); /* executable name */
-    args.next().unwrap_or("profiles/default.toml".to_string())
-}
-
-// todo: try to get rid of it
-fn on_key_event(event: &KeyEvent) {
-    APP.with_borrow(|app| app.on_log_view_update(event));
-}
-
 pub fn run_app() {
-    APP.with_borrow(|app| app.run());
+    AppControl::build_ui(Default::default())
+        .expect("Failed to build application UI.")
+        .run();
 }
