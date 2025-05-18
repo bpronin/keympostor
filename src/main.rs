@@ -9,6 +9,6 @@ fn main() {
         .with_level(LevelFilter::Debug)
         .init()
         .expect("Failed to initialize logger.");
- 
+
     ui::run_app();
 }

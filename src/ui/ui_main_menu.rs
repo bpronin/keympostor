@@ -1,6 +1,7 @@
 use crate::res::RESOURCE_STRINGS;
 use crate::rs;
-use crate::ui::{App};
+
+use crate::ui::ui_main::App;
 use native_windows_gui as nwg;
 use native_windows_gui::{ControlHandle, Event, Window};
 

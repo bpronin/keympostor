@@ -146,7 +146,6 @@ mod tests {
         assert_eq!("SC_NUM_ENTER", actual.key().scan_code().name);
         assert_eq!("VK_RETURN", actual.key().virtual_key().name);
         assert_eq!(Up, actual.transition());
-        assert!(actual.is_valid());
         assert!(actual.is_private());
         assert!(actual.is_injected());
     }

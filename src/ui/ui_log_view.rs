@@ -1,6 +1,6 @@
 use crate::res::RESOURCE_STRINGS;
+use crate::rs;
 use crate::util::{default_profile_path, mono_font};
-use crate::{rs};
 use keyboard::key_event::KeyEvent;
 use native_windows_gui as nwg;
 

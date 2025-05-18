@@ -2,8 +2,8 @@ use crate::res::RES;
 use crate::res::RESOURCE_STRINGS;
 use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
 use crate::rs;
-use crate::ui::{App};
 use native_windows_gui as nwg;
+use crate::ui::ui_main::App;
 
 #[derive(Default)]
 pub(crate) struct Tray {

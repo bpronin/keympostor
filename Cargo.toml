@@ -19,7 +19,7 @@ toml = "0.8.22"
 dev = []
 
 [dev-dependencies]
-criterion = "0.5.1"
+criterion = "0.6.0"
 
 [[bench]]
 name = "benchmarks"

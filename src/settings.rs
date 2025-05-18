@@ -15,8 +15,7 @@ impl AppSettings {
     pub(crate) fn load() -> Result<Self, String> {
         let text = fs::read_to_string(&FILE_PATH)
             .map_err(|e| format!("Unable to read {} file.\n{}", FILE_PATH, e))?;
-        toml::from_str(&text)
-            .map_err(|e| format!("Unable to parse {}.\n{}", FILE_PATH, e))
+        toml::from_str(&text).map_err(|e| format!("Unable to parse {}.\n{}", FILE_PATH, e))
     }
 
     pub(crate) fn save(&self) -> Result<(), String> {

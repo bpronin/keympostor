@@ -1,11 +1,14 @@
 extern crate native_windows_gui as nwg;
 
-use std::env;
 use crate::res::RESOURCE_STRINGS;
 use crate::rs;
+use std::env;
 
 pub(crate) fn dos_line_endings(unix_text: &str) -> String {
-    unix_text.replace("\r\n", "\n").replace('\r', "\n").replace('\n', "\r\n")
+    unix_text
+        .replace("\r\n", "\n")
+        .replace('\r', "\n")
+        .replace('\n', "\r\n")
 }
 
 pub(crate) fn default_font(size: u32) -> nwg::Font {

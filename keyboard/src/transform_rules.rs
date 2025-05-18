@@ -13,8 +13,6 @@ pub struct KeyTransformRule {
     pub target: KeyActionSequence,
 }
 
-impl KeyTransformRule {}
-
 impl FromStr for KeyTransformRule {
     type Err = String;
 
@@ -93,6 +91,7 @@ impl<'de> Deserialize<'de> for KeyTransformRules {
         Ok(Self { items })
     }
 }
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformProfile {
     pub title: String,
@@ -171,15 +170,9 @@ mod tests {
     #[test]
     fn test_key_transform_rule_display() {
         let source = KeyTransformRule {
-            source: KeyTrigger {
-                action: key_act!("ENTER↓"),
-                modifiers: KM_LSHIFT,
-            },
+            source: key_trig!("[LEFT_SHIFT]ENTER↓"),
             target: KeyActionSequence {
-                actions: vec![KeyAction {
-                    key: key!("ENTER"),
-                    transition: Down,
-                }],
+                actions: vec![key_act!("ENTER↓")],
             },
         };
 
@@ -194,10 +187,7 @@ mod tests {
                 modifiers: KM_LSHIFT | KM_RSHIFT,
             },
             target: KeyActionSequence {
-                actions: vec![KeyAction {
-                    key: key!("ENTER"),
-                    transition: Down,
-                }],
+                actions: vec![key_act!("ENTER↓")],
             },
         };
 
@@ -212,10 +202,7 @@ mod tests {
                 modifiers: KM_LSHIFT,
             },
             target: KeyActionSequence {
-                actions: vec![KeyAction {
-                    key: key!("ENTER"),
-                    transition: Down,
-                }],
+                actions: vec![key_act!("ENTER↓")],
             },
         };
 
