@@ -1,12 +1,10 @@
-extern crate embed_resource;
-
 use std::fs;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
 
 const RESOURCES_FILE: &str = "res/resources.rc";
-const RESOURCES_IDS_FILE: &str = "src/res_ids.rs";
+const RESOURCES_IDS_FILE: &str = "src/res/res_ids.rs";
 
 fn main() {
     embed_resource::compile(RESOURCES_FILE, embed_resource::NONE)

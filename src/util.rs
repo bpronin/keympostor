@@ -1,5 +1,3 @@
-extern crate native_windows_gui as nwg;
-
 use std::env;
 
 pub(crate) fn default_profile_path() -> String {
@@ -18,7 +16,6 @@ pub(crate) fn default_profile_path() -> String {
 //         eprintln!("Failed to play sound {}", filename);
 //     }
 // }
-
 
 #[macro_export]
 macro_rules! append_prefix {
@@ -42,7 +39,7 @@ macro_rules! write_joined {
             write!($dst, "{}", item)?;
             first = false;
         }
-        
+
         Ok(())
     }};
 }

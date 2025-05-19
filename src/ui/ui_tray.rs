@@ -1,7 +1,7 @@
 use crate::res::RES;
 use crate::res::RESOURCE_STRINGS;
-use crate::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
-use crate::rs;
+use crate::res::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
+use crate::{r_icon, rs};
 use crate::ui::ui_main::App;
 use native_windows_gui as nwg;
 
@@ -19,7 +19,7 @@ impl Tray {
     pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::TrayNotification::builder()
             .parent(parent)
-            .icon(Some(&RES.get_icon(IDI_ICON_GAME_LOCK_OFF)))
+            .icon(Some(r_icon!(IDI_ICON_GAME_LOCK_OFF)))
             .tip(Some(rs!(tray_tip)))
             .build(&mut self.notification)?;
 
@@ -54,10 +54,10 @@ impl Tray {
 
         if is_processing_enabled {
             self.notification
-                .set_icon(&RES.get_icon(IDI_ICON_GAME_LOCK_ON));
+                .set_icon(r_icon!(IDI_ICON_GAME_LOCK_ON));
         } else {
             self.notification
-                .set_icon(&RES.get_icon(IDI_ICON_GAME_LOCK_OFF));
+                .set_icon(r_icon!(IDI_ICON_GAME_LOCK_OFF));
         }
     }
 
