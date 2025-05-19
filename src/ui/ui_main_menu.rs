@@ -1,7 +1,7 @@
-use crate::res::RESOURCE_STRINGS;
+use crate::res::RESOURCES;
 use crate::rs;
 
-use crate::ui::ui_main::App;
+use crate::ui::App;
 use native_windows_gui as nwg;
 
 #[derive(Default)]

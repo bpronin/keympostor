@@ -4,14 +4,52 @@
 #define RT_MANIFEST 24
 1 RT_MANIFEST "res/app.manifest"
 
-//#define IDI_ICON_APP 1001
-//IDI_ICON_APP ICON "res/img/app.ico"
+/* Icons */
 
+#define IDI_ICON_APP 1001
 #define IDI_ICON_GAME_LOCK_ON 1002
-IDI_ICON_GAME_LOCK_ON ICON "res/img/GameLockOn.ico"
-
 #define IDI_ICON_GAME_LOCK_OFF 1003
-IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
-
 //#define IDI_ICON_NUM_LOCK 1004
+
+IDI_ICON_APP ICON "res/img/app.ico"
+IDI_ICON_GAME_LOCK_ON ICON "res/img/GameLockOn.ico"
+IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
 //IDI_ICON_NUM_LOCK ICON "res/img/NumLock.ico"
+
+/* Strings */
+
+//#define IDS_APP_TITLE 1001
+//#define IDS_TRAY_TIP 1002
+//#define IDS_CLEAR_LOG 1003
+//#define IDS_FILE 1004
+//#define IDS_EXIT 1005
+//#define IDS__LOGGING_ENABLED_ 1006
+//#define IDS__LOGGING_DISABLED_ 1007
+//#define IDS_LOAD_PROFILE 1008
+//#define IDS_LOG 1009
+//#define IDS_OPEN 1013
+//#define IDS_ENABLED 1014
+//#define IDS_LOGGING_ENABLED 1015
+//#define IDS__LOGGING_ENABLED_ 1016
+//#define IDS__LOGGING_DISABLED_ 1017
+//#define IDS_LOAD_PROFILE_FILTER 1018
+//
+//BEGIN
+//    IDS_APP_TITLE "Keympostor"
+//    IDS_TRAY_TIP "Keympostor"
+//    IDS_CLEAR_LOG "Clear log"
+//    IDS_FILE "File"
+//    IDS_EXIT "Exit"
+//    IDS_PROFILE ""
+//    IDS_load_profile ""
+//    IDS_log ""
+//    IDS_file ""
+//    IDS_exit ""
+//    IDS_tray_tip ""
+//    IDS_open ""
+//    IDS_enabled ""
+//    IDS_logging_enabled ""
+//    IDS__logging_enabled_ ""
+//    IDS__logging_disabled_ ""
+//    IDS_load_profile_filter ""
+//END

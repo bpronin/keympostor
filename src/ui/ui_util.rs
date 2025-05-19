@@ -1,4 +1,4 @@
-use crate::res::RESOURCE_STRINGS;
+use crate::res::RESOURCES;
 use crate::rs;
 use native_windows_gui as nwg;
 

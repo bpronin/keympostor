@@ -1,5 +1,5 @@
 use crate::keyboard::key_event::KeyEvent;
-use crate::res::RESOURCE_STRINGS;
+use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::ui_util::mono_font;
 use crate::util::default_profile_path;

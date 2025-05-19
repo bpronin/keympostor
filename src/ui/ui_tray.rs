@@ -1,8 +1,7 @@
-use crate::res::RESOURCES;
-use crate::res::RESOURCE_STRINGS;
 use crate::res::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
+use crate::res::RESOURCES;
+use crate::ui::App;
 use crate::{r_icon, rs};
-use crate::ui::ui_main::App;
 use native_windows_gui as nwg;
 
 #[derive(Default)]
@@ -53,11 +52,9 @@ impl Tray {
             .set_checked(is_processing_enabled);
 
         if is_processing_enabled {
-            self.notification
-                .set_icon(r_icon!(IDI_ICON_GAME_LOCK_ON));
+            self.notification.set_icon(r_icon!(IDI_ICON_GAME_LOCK_ON));
         } else {
-            self.notification
-                .set_icon(r_icon!(IDI_ICON_GAME_LOCK_OFF));
+            self.notification.set_icon(r_icon!(IDI_ICON_GAME_LOCK_OFF));
         }
     }
 
