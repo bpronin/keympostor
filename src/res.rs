@@ -35,13 +35,7 @@ pub(crate) static RESOURCE_STRINGS: LazyLock<ResourceStrings> = LazyLock::new(||
     .expect("Unable to parse strings resources file")
 });
 
-pub(crate) static RES: Resources = Resources {};
-
-thread_local! {
-    static EMBED_RES: RefCell<nwg::EmbedResource> = RefCell::new(
-        nwg::EmbedResource::load(None).expect("Unable to load embedded resources")
-    )
-}
+pub(crate) static RESOURCES: Resources = Resources {};
 
 #[macro_export]
 macro_rules! rs {
@@ -53,17 +47,23 @@ macro_rules! rs {
 #[macro_export]
 macro_rules! r_icon {
     ($res_id:ident) => {
-        &RES.get_icon($res_id)
+        &RESOURCES.get_icon($res_id)
     };
 }
 
 pub(crate) struct Resources {}
 
 impl Resources {
+    thread_local! {
+        static EMBED_RES: RefCell<nwg::EmbedResource> = RefCell::new(
+            nwg::EmbedResource::load(None).expect("Unable to load embedded resources")
+        )
+    }
+
     pub(crate) fn get_icon(&self, res_id: usize) -> nwg::Icon {
         let mut icon = nwg::Icon::default();
 
-        EMBED_RES.with_borrow(|embed| {
+        Self::EMBED_RES.with_borrow(|embed| {
             nwg::Icon::builder()
                 .source_embed(Some(embed))
                 .source_embed_id(res_id)

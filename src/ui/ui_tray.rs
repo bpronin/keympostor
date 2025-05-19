@@ -1,4 +1,4 @@
-use crate::res::RES;
+use crate::res::RESOURCES;
 use crate::res::RESOURCE_STRINGS;
 use crate::res::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
 use crate::{r_icon, rs};
