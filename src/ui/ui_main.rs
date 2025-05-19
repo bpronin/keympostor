@@ -1,6 +1,6 @@
 use super::*;
 use crate::keyboard::key_event::KeyEvent;
-use crate::res::res_ids::IDI_ICON_APP;
+use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LOG, IDS_PROFILE};
 use crate::res::RESOURCES;
 use crate::ui::ui_util::default_font;
 use crate::{r_icon, rs};
@@ -27,7 +27,7 @@ impl AppUi {
             .size((700, 300))
             .icon(Some(r_icon!(IDI_ICON_APP)))
             .flags(window_flags)
-            .title(rs!(app_title))
+            .title(rs!(IDS_APP_TITLE))
             .build(&mut app.window)?;
 
         nwg::TextInput::builder()
@@ -42,12 +42,12 @@ impl AppUi {
             .build(&mut app.tab_container)?;
 
         nwg::Tab::builder()
-            .text(rs!(log))
+            .text(rs!(IDS_LOG))
             .parent(&app.tab_container)
             .build(&mut app.tab_log)?;
 
         nwg::Tab::builder()
-            .text(rs!(profile))
+            .text(rs!(IDS_PROFILE))
             .parent(&app.tab_container)
             .build(&mut app.tab_profile)?;
 

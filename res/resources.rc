@@ -18,38 +18,35 @@ IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
 
 /* Strings */
 
-//#define IDS_APP_TITLE 1001
-//#define IDS_TRAY_TIP 1002
-//#define IDS_CLEAR_LOG 1003
-//#define IDS_FILE 1004
-//#define IDS_EXIT 1005
-//#define IDS__LOGGING_ENABLED_ 1006
-//#define IDS__LOGGING_DISABLED_ 1007
-//#define IDS_LOAD_PROFILE 1008
-//#define IDS_LOG 1009
-//#define IDS_OPEN 1013
-//#define IDS_ENABLED 1014
-//#define IDS_LOGGING_ENABLED 1015
-//#define IDS__LOGGING_ENABLED_ 1016
-//#define IDS__LOGGING_DISABLED_ 1017
-//#define IDS_LOAD_PROFILE_FILTER 1018
-//
-//BEGIN
-//    IDS_APP_TITLE "Keympostor"
-//    IDS_TRAY_TIP "Keympostor"
-//    IDS_CLEAR_LOG "Clear log"
-//    IDS_FILE "File"
-//    IDS_EXIT "Exit"
-//    IDS_PROFILE ""
-//    IDS_load_profile ""
-//    IDS_log ""
-//    IDS_file ""
-//    IDS_exit ""
-//    IDS_tray_tip ""
-//    IDS_open ""
-//    IDS_enabled ""
-//    IDS_logging_enabled ""
-//    IDS__logging_enabled_ ""
-//    IDS__logging_disabled_ ""
-//    IDS_load_profile_filter ""
-//END
+#define IDS_APP_TITLE 1001
+#define IDS_CLEAR_LOG 1002
+#define IDS_ENABLED 1003
+#define IDS_EXIT 1004
+#define IDS_FILE 1005
+#define IDS_LOAD_PROFILE 1006
+#define IDS_LOG 1007
+#define IDS_LOGGING_ENABLED 1008
+#define IDS_OPEN 1009
+#define IDS_PROFILE 1010
+#define IDS_TRAY_TIP 1012
+#define IDS__LOGGING_DISABLED_ 1013
+#define IDS__LOGGING_ENABLED_ 1014
+#define IDS_LOAD_PROFILE_FILE_FILTER 1015
+
+STRINGTABLE
+BEGIN
+    IDS_APP_TITLE "Keympostor"
+    IDS_CLEAR_LOG "Clear log"
+    IDS_ENABLED "Enabled"
+    IDS_EXIT "Exit"
+    IDS_FILE "File"
+    IDS_LOAD_PROFILE "Load profile"
+    IDS_LOG "Log"
+    IDS_LOGGING_ENABLED "Logging enabled"
+    IDS_OPEN "Open"
+    IDS_PROFILE "Profile"
+    IDS_TRAY_TIP "Keympostor"
+    IDS__LOGGING_DISABLED_ "--- Logging disabled ---"
+    IDS__LOGGING_ENABLED_ "--- Logging enabled ---"
+    IDS_LOAD_PROFILE_FILE_FILTER "Profile files(*.toml)|Any(*.*)"
+END

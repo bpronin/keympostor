@@ -1,4 +1,4 @@
-use crate::res::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON};
+use crate::res::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON, IDS_ENABLED, IDS_EXIT, IDS_OPEN, IDS_TRAY_TIP};
 use crate::res::RESOURCES;
 use crate::ui::App;
 use crate::{r_icon, rs};
@@ -19,7 +19,7 @@ impl Tray {
         nwg::TrayNotification::builder()
             .parent(parent)
             .icon(Some(r_icon!(IDI_ICON_GAME_LOCK_OFF)))
-            .tip(Some(rs!(tray_tip)))
+            .tip(Some(rs!(IDS_TRAY_TIP)))
             .build(&mut self.notification)?;
 
         nwg::Menu::builder()
@@ -29,11 +29,11 @@ impl Tray {
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
-            .text(rs!(enabled))
+            .text(rs!(IDS_ENABLED))
             .build(&mut self.toggle_processing_enabled_item)?;
 
         nwg::MenuItem::builder()
-            .text(rs!(open))
+            .text(rs!(IDS_OPEN))
             .parent(&self.menu)
             .build(&mut self.open_app_item)?;
 
@@ -42,7 +42,7 @@ impl Tray {
             .build(&mut self.separator)?;
 
         nwg::MenuItem::builder()
-            .text(rs!(exit))
+            .text(rs!(IDS_EXIT))
             .parent(&self.menu)
             .build(&mut self.exit_app_item)
     }

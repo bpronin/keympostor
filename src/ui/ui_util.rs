@@ -1,6 +1,7 @@
 use crate::res::RESOURCES;
 use crate::rs;
 use native_windows_gui as nwg;
+use crate::res::res_ids::IDS_APP_TITLE;
 
 pub(crate) fn dos_line_endings(unix_text: &str) -> String {
     unix_text
@@ -31,7 +32,7 @@ pub(crate) fn mono_font(size: u32) -> nwg::Font {
 
 pub(crate) fn warn(text: &str) {
     nwg::message(&nwg::MessageParams {
-        title: rs!(app_title),
+        title: rs!(IDS_APP_TITLE),
         content: text,
         buttons: nwg::MessageButtons::Ok,
         icons: nwg::MessageIcons::Warning,
@@ -48,6 +49,6 @@ macro_rules! ui_warn {
 #[macro_export]
 macro_rules! ui_panic {
     ($($arg:tt)*) => {
-        nwg::fatal_message(rs!(app_title), &format!($($arg)*));
+        nwg::fatal_message(rs!(IDS_APP_TITLE), &format!($($arg)*));
     }
 }

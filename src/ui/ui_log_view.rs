@@ -1,4 +1,5 @@
 use crate::keyboard::key_event::KeyEvent;
+use crate::res::res_ids::{IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_};
 use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::ui_util::mono_font;
@@ -55,9 +56,9 @@ impl LogView {
 
     pub(crate) fn update_log_enabled(&self, is_log_enabled: bool) {
         if is_log_enabled {
-            self.view.appendln(rs!(_logging_enabled_));
+            self.view.appendln(rs!(IDS__LOGGING_ENABLED_));
         } else {
-            self.view.appendln(rs!(_logging_disabled_));
+            self.view.appendln(rs!(IDS__LOGGING_DISABLED_));
         }
     }
 

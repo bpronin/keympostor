@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "dev"), windows_subsystem = "windows")]
 
+use crate::res::res_ids::{IDS_APP_TITLE, IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
 use crate::res::RESOURCES;
 use crate::rs;
 use crate::keyboard::key_hook::KeyboardHandler;
@@ -132,8 +133,8 @@ impl App {
         let mut dialog = nwg::FileDialog::default();
 
         nwg::FileDialog::builder()
-            .title(rs!(load_profile))
-            .filters(rs!(load_profile_filter))
+            .title(rs!(IDS_LOAD_PROFILE))
+            .filters(rs!(IDS_LOAD_PROFILE_FILE_FILTER))
             .action(nwg::FileDialogAction::Open)
             .build(&mut dialog)
             .unwrap();

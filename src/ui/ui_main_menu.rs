@@ -3,6 +3,7 @@ use crate::rs;
 
 use crate::ui::App;
 use native_windows_gui as nwg;
+use crate::res::res_ids::{IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOAD_PROFILE, IDS_LOGGING_ENABLED};
 
 #[derive(Default)]
 pub(crate) struct MainMenu {
@@ -19,12 +20,12 @@ impl MainMenu {
     pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::Menu::builder()
             .parent(parent)
-            .text(rs!(file))
+            .text(rs!(IDS_FILE))
             .build(&mut self.menu)?;
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
-            .text(rs!(enabled))
+            .text(rs!(IDS_ENABLED))
             .build(&mut self.toggle_processing_enabled_item)?;
 
         nwg::MenuSeparator::builder()
@@ -33,17 +34,17 @@ impl MainMenu {
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
-            .text(rs!(logging_enabled))
+            .text(rs!(IDS_LOGGING_ENABLED))
             .build(&mut self.toggle_logging_enabled_item)?;
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
-            .text(rs!(clear_log))
+            .text(rs!(IDS_CLEAR_LOG))
             .build(&mut self.clear_log_item)?;
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
-            .text(rs!(load_profile))
+            .text(rs!(IDS_LOAD_PROFILE))
             .build(&mut self.load_profile_item)?;
 
         nwg::MenuSeparator::builder()
@@ -52,7 +53,7 @@ impl MainMenu {
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
-            .text(rs!(exit))
+            .text(rs!(IDS_EXIT))
             .build(&mut self.exit_app_item)
     }
 
