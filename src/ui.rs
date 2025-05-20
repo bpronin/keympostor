@@ -1,7 +1,5 @@
-#![cfg_attr(not(feature = "dev"), windows_subsystem = "windows")]
-
 use crate::res::res_ids::{IDS_APP_TITLE, IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
-use crate::res::RESOURCES;
+use crate::res::RES;
 use crate::rs;
 use crate::keyboard::key_hook::KeyboardHandler;
 use crate::keyboard::transform_rules::KeyTransformProfile;

@@ -1,8 +1,10 @@
 use crate::keyboard::key::{Key, ScanCode, VirtualKey};
+use std::cell::RefCell;
 use std::collections::HashMap;
-use std::sync::LazyLock;
 
-pub(crate) static KEYS: LazyLock<Keys> = LazyLock::new(|| Keys::new());
+thread_local! {
+    pub(crate) static KEYS: RefCell<Keys> = RefCell::new(Keys::new());
+}
 
 pub(crate) struct Keys {
     key_to_name_map: HashMap<Key, &'static str>,
@@ -695,25 +697,29 @@ mod tests {
 
     #[test]
     fn test_key_by_name() {
-        assert!(KEY_NAMES.iter().all(|(name, key)| {
-            KEYS.by_name(name) == key
-        }))
+        assert!(
+            KEY_NAMES
+                .iter()
+                .all(|(name, key)| { KEYS.with_borrow(|k| *k.by_name(name)) == *key })
+        )
     }
-    
+
     #[test]
     fn test_key_name() {
-        assert!(KEY_NAMES.iter().all(|(name, key)| {
-            KEYS.name_of(key) == *name
-        }))
+        assert!(
+            KEY_NAMES
+                .iter()
+                .all(|(name, key)| { KEYS.with_borrow(|k| k.name_of(key)) == *name })
+        )
     }
-    
+
     #[test]
     fn test_key_vk() {
         KEY_NAMES.iter().for_each(|(_name, key)| {
             key.virtual_key(); /* should not panic */
         })
     }
-    
+
     #[test]
     fn test_key_sc() {
         KEY_NAMES.iter().for_each(|(_name, key)| {

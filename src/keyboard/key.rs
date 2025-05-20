@@ -169,7 +169,7 @@ pub(crate) struct Key {
 
 impl Key {
     pub(crate) fn name(&self) -> &'static str {
-        KEYS.name_of(self)
+        KEYS.with_borrow(|k| k.name_of(self))
     }
 
     pub(crate) fn virtual_key(&self) -> &'static VirtualKey {
@@ -199,7 +199,7 @@ impl FromStr for Key {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(*KEYS.by_name(s.trim()))
+        Ok(KEYS.with_borrow(|k| *k.by_name(s.trim())))
     }
 }
 

@@ -1,7 +1,7 @@
 use super::*;
 use crate::keyboard::key_event::KeyEvent;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LOG, IDS_PROFILE};
-use crate::res::RESOURCES;
+use crate::res::RES;
 use crate::ui::ui_util::default_font;
 use crate::{r_icon, rs};
 use native_windows_gui as nwg;
