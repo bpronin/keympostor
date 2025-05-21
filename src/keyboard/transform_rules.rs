@@ -246,6 +246,30 @@ mod tests {
         }
     */
 
+    /*    todo:;
+        #[test]
+        fn test_key_transform_rules_parse_split_keys() {
+            let actual: KeyTransformProfile = "
+            Test profile;
+            A↓,B↓ : C↓;
+            "
+            .parse()
+            .unwrap();
+
+            println!("{}", actual);
+
+            let expected: KeyTransformProfile = "
+            Test profile;
+            A↓ : C↓;
+            B↓ : C↓;
+            "
+            .parse()
+            .unwrap();
+
+            assert_eq!(expected, actual);
+        }
+    */
+
     #[test]
     fn test_key_transform_rules_parse_expand_transition() {
         let actual = key_profile!(
@@ -265,7 +289,7 @@ mod tests {
     }
 
     #[test]
-    fn test_key_transform_profile_serialize() {
+    fn test_key_transform_profile_load() {
         let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
 
         let expected = key_profile!(
@@ -279,5 +303,10 @@ mod tests {
         assert_eq!(expected, actual);
 
         // actual.save("../test/profiles/test-copy.toml").unwrap()
+    }
+
+    #[test]
+    fn test_key_transform_profile_load_fails() {
+        assert!(KeyTransformProfile::load("test/profiles/bad.toml").is_err());
     }
 }

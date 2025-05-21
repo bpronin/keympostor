@@ -35,10 +35,8 @@ impl Keys {
             .expect(&format!("Unsupported key: {}", key.code_name()))
     }
 
-    pub(crate) fn by_name(&self, name: &str) -> &Key {
-        self.name_to_key_map
-            .get(name)
-            .expect(&format!("Unsupported key name: `{}`", name))
+    pub(crate) fn by_name(&self, name: &str) -> Option<&Key> {
+        self.name_to_key_map.get(name)
     }
 }
 
@@ -92,7 +90,6 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("BROWSER_STOP", 0xA9, 0x68, true),
     new_key!("C", 0x43, 0x2E, false),
     new_key!("CAPS_LOCK", 0x14, 0x3A, false),
-    new_key!("CLEAR", 0x0C, 0x4C, false),
     new_key!("COMMA", 0xBC, 0x33, false),
     new_key!("CONVERT", 0x1C, 0x00, false),
     new_key!("CRSEL", 0xF7, 0x00, false),
@@ -193,6 +190,7 @@ static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
     new_key!("NUM_7", 0x67, 0x47, false),
     new_key!("NUM_8", 0x68, 0x48, false),
     new_key!("NUM_9", 0x69, 0x49, false),
+    new_key!("NUM_CLEAR", 0x0C, 0x4C, false),
     new_key!("NUM_DELETE", 0x2E, 0x53, false),
     new_key!("NUM_DIV", 0x6F, 0x35, true),
     new_key!("NUM_DOT", 0x6E, 0x53, false),
@@ -700,7 +698,7 @@ mod tests {
         assert!(
             KEY_NAMES
                 .iter()
-                .all(|(name, key)| { KEYS.with_borrow(|k| *k.by_name(name)) == *key })
+                .all(|(name, key)| { KEYS.with_borrow(|k| *k.by_name(name).unwrap()) == *key })
         )
     }
 

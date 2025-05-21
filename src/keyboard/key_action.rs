@@ -178,6 +178,7 @@ mod tests {
     use crate::keyboard::key_event::SELF_EVENT_MARKER;
     use crate::{assert_not, key, sc_key};
     use serde::{Deserialize, Serialize};
+    use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VK_RETURN,
     };
@@ -219,21 +220,18 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_key_transition_parse_fails_illegal() {
-        assert_eq!(Down, "BANANA".parse().unwrap());
+        assert!(KeyTransition::from_str("BANANA").is_err())
     }
 
     #[test]
-    #[should_panic]
     fn test_key_transition_parse_fails_empty() {
-        assert_eq!(Down, "".parse().unwrap());
+        assert!(KeyTransition::from_str("").is_err())
     }
 
     #[test]
-    #[should_panic]
     fn test_key_transition_parse_fails_to_long() {
-        assert_eq!(Down, "↑↑↑".parse().unwrap());
+        assert!(KeyTransition::from_str("↑↑↑").is_err())
     }
 
     #[test]

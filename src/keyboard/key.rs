@@ -4,7 +4,6 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use windows::Win32::UI::Input::KeyboardAndMouse::OemKeyScan;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VirtualKey {
@@ -107,21 +106,21 @@ impl ScanCode {
         Self::from_code(ext_code as u8, ext_code & 0xE000 == 0xE000)
     }
 
-    pub(crate) fn from_symbol(symbol: &str) -> Result<&'static ScanCode, String> {
-        if symbol.len() == 1 {
-            let ch = symbol.chars().next().unwrap();
-            let oem_code = unsafe { OemKeyScan(ch as u16) };
-            let ext_code = oem_code as u8;
-            //todo? let is_shift = oem_code & 0x0001_0000 != 0;
-            ScanCode::from_code(ext_code, false)
-        } else {
-            Err(format!("Illegal key symbol `{}`.", symbol))
-        }
-    }
+    // pub(crate) fn from_symbol(symbol: &str) -> Result<&'static ScanCode, String> {
+    //     if symbol.len() == 1 {
+    //         let ch = symbol.chars().next().unwrap();
+    //         let oem_code = unsafe { OemKeyScan(ch as u16) };
+    //         let ext_code = oem_code as u8;
+    //         //todo? let is_shift = oem_code & 0x0001_0000 != 0;
+    //         ScanCode::from_code(ext_code, false)
+    //     } else {
+    //         Err(format!("Illegal key symbol `{}`.", symbol))
+    //     }
+    // }
 
     fn from_text(s: &str) -> Result<&'static ScanCode, String> {
         let st = s.trim();
-        Self::from_code_name(st).or_else(|_| Self::from_name(st).or_else(|_| Self::from_symbol(st)))
+        Self::from_code_name(st).or_else(|_| Self::from_name(st))
     }
 
     pub(crate) fn ext_value(&self) -> u16 {
@@ -199,7 +198,12 @@ impl FromStr for Key {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(KEYS.with_borrow(|k| *k.by_name(s.trim())))
+        KEYS.with_borrow(|keys| {
+            let key = keys
+                .by_name(s.trim())
+                .ok_or(format!("Illegal key name: `{}`.", s))?;
+            Ok(*key)
+        })
     }
 }
 
@@ -277,9 +281,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_vk_parse_fails() {
-        VirtualKey::from_str("BANANA").unwrap();
+        assert!(VirtualKey::from_str("BANANA").is_err());
     }
 
     #[test]
@@ -341,17 +344,17 @@ mod tests {
         );
     }
 
-    #[test]
-    fn test_sc_from_symbol() {
-        let actual = ScanCode::from_symbol("A").unwrap();
-        assert_eq!("SC_A", actual.name);
-
-        let actual = ScanCode::from_symbol("`").unwrap();
-        assert_eq!("SC_BACKTICK", actual.name);
-
-        let actual = ScanCode::from_symbol("~").unwrap();
-        assert_eq!("SC_BACKTICK", actual.name);
-    }
+    // #[test]
+    // fn test_sc_from_symbol() {
+    //     let actual = ScanCode::from_symbol("A").unwrap();
+    //     assert_eq!("SC_A", actual.name);
+    //
+    //     let actual = ScanCode::from_symbol("`").unwrap();
+    //     assert_eq!("SC_BACKTICK", actual.name);
+    //
+    //     let actual = ScanCode::from_symbol("~").unwrap();
+    //     assert_eq!("SC_BACKTICK", actual.name);
+    // }
 
     #[test]
     fn test_sc_from_ext_code() {
@@ -372,13 +375,12 @@ mod tests {
             "SC_NUM_ENTER",
             ScanCode::from_str("SC_0xE01C").unwrap().name
         );
-        assert_eq!("SC_BACKTICK", ScanCode::from_str("`").unwrap().name);
+        // assert_eq!("SC_BACKTICK", ScanCode::from_str("`").unwrap().name);
     }
 
     #[test]
-    #[should_panic]
     fn test_sc_parse_fails() {
-        ScanCode::from_str("BANANA").unwrap();
+        assert!(ScanCode::from_str("BANANA").is_err());
     }
 
     #[test]
@@ -442,9 +444,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_key_parse_fails() {
-        Key::from_str("BANANA").unwrap();
+        assert!(Key::from_str("BANANA").is_err());
     }
 
     #[test]

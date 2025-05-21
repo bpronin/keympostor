@@ -3,7 +3,7 @@ use crate::res::res_ids::{IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_};
 use crate::res::RES;
 use crate::rs;
 use crate::ui::ui_util::mono_font;
-use crate::util::default_profile_path;
+
 use native_windows_gui as nwg;
 
 const MAX_LOG_LINES: usize = 256;
@@ -31,7 +31,7 @@ impl LogView {
         {
             self.view.appendln("--- Debug UI");
             self.view
-                .appendln(&format!("--- {}", &default_profile_path()));
+                .appendln(&format!("--- {}", &crate::util::default_profile_path()));
         }
     }
 

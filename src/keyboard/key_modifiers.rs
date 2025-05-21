@@ -1,7 +1,7 @@
 use crate::write_joined;
 use core::ops;
 use ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -132,26 +132,27 @@ impl FromStr for KeyModifiers {
         if ts.is_empty() {
             Ok(KM_NONE)
         } else {
-            let this = ts.split('+').fold(KM_NONE, |acc, part| {
-                let tp = part.trim();
-                match tp {
-                    "LEFT_SHIFT" => acc | KM_LSHIFT,
-                    "RIGHT_SHIFT" => acc | KM_RSHIFT,
-                    "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
-                    "LEFT_CTRL" => acc | KM_LCTRL,
-                    "RIGHT_CTRL" => acc | KM_RCTRL,
-                    "CTRL" => acc | KM_LCTRL | KM_RCTRL,
-                    "LEFT_ALT" => acc | KM_LALT,
-                    "RIGHT_ALT" => acc | KM_RALT,
-                    "ALT" => acc | KM_LALT | KM_RALT,
-                    "LEFT_WIN" => acc | KM_LWIN,
-                    "RIGHT_WIN" => acc | KM_RWIN,
-                    "WIN" => acc | KM_LWIN | KM_RWIN,
-                    &_ => panic!("Error parsing key modifier: `{tp}`"),
-                }
+            let this = ts.split('+').fold(KM_NONE, |acc, part| match part.trim() {
+                "LEFT_SHIFT" => acc | KM_LSHIFT,
+                "RIGHT_SHIFT" => acc | KM_RSHIFT,
+                "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
+                "LEFT_CTRL" => acc | KM_LCTRL,
+                "RIGHT_CTRL" => acc | KM_RCTRL,
+                "CTRL" => acc | KM_LCTRL | KM_RCTRL,
+                "LEFT_ALT" => acc | KM_LALT,
+                "RIGHT_ALT" => acc | KM_RALT,
+                "ALT" => acc | KM_LALT | KM_RALT,
+                "LEFT_WIN" => acc | KM_LWIN,
+                "RIGHT_WIN" => acc | KM_RWIN,
+                "WIN" => acc | KM_LWIN | KM_RWIN,
+                &_ => KM_NONE,
             });
-
-            Ok(this)
+            
+            if this != KM_NONE {
+                Ok(this)
+            } else {
+                Err(format!("Error parsing key modifiers: `{s}`"))
+            }
         }
     }
 }
@@ -212,9 +213,10 @@ impl Not for KeyModifiers {
 
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
     use crate::keyboard::key_modifiers::{
-        KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL, KM_RSHIFT, KM_RWIN,
-        KeyModifiers,
+        KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL, KM_RSHIFT,
+        KM_RWIN,
     };
     use serde::{Deserialize, Serialize};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
@@ -270,9 +272,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic]
     fn test_key_modifiers_parse_fails() {
-        "BANANA".parse::<KeyModifiers>().unwrap();
+        assert!(KeyModifiers::from_str("BANANA").is_err());
     }
 
     #[test]
