@@ -5,28 +5,31 @@ const FILE_PATH: &str = "settings.toml";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct AppSettings {
-    #[serde(default = "default_true")]
     pub(crate) key_processing_enabled: bool,
-    #[serde(default = "default_true")]
     pub(crate) silent_key_processing: bool,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            key_processing_enabled: true,
+            silent_key_processing: false,
+        }
+    }
 }
 
 impl AppSettings {
     pub(crate) fn load() -> Result<Self, String> {
         let text = fs::read_to_string(&FILE_PATH)
-            .map_err(|e| format!("Unable to read {}. {}", FILE_PATH, e))?;
-        toml::from_str(&text).map_err(|e| format!("Unable to parse {}. {}", FILE_PATH, e))
+            .map_err(|e| format!("Error reading `{}`. {}", FILE_PATH, e))?;
+        toml::from_str(&text).map_err(|e| format!("Error parsing `{}`. {}", FILE_PATH, e))
     }
 
     pub(crate) fn save(&self) -> Result<(), String> {
         let text = toml::to_string_pretty(self)
-            .map_err(|e| format!("Unable to serialize {}. {}", FILE_PATH, e))?;
-        fs::write(FILE_PATH, text).map_err(|e| format!("Unable to write {}. {}", FILE_PATH, e))
+            .map_err(|e| format!("Error serializing `{}`. {}", FILE_PATH, e))?;
+        fs::write(FILE_PATH, text).map_err(|e| format!("Error writing `{}`. {}", FILE_PATH, e))
     }
-}
-
-fn default_true() -> bool {
-    true
 }
 
 #[cfg(test)]

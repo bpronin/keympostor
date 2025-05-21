@@ -1,17 +1,17 @@
-use crate::res::res_ids::{IDS_APP_TITLE, IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
-use crate::res::RES;
-use crate::rs;
 use crate::keyboard::key_hook::KeyboardHandler;
 use crate::keyboard::transform_rules::KeyTransformProfile;
+use crate::res::res_ids::{IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
+use crate::res::RES;
+use crate::rs;
 use crate::settings::AppSettings;
 use crate::ui::ui_log_view::LogView;
 use crate::ui::ui_main_menu::MainMenu;
 use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
 use crate::util::default_profile_path;
+use crate::{ui_warn};
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
-use crate::{ui_panic, ui_warn};
 
 mod ui_log_view;
 mod ui_main;
@@ -40,7 +40,8 @@ pub(crate) struct App {
 impl App {
     fn read_settings(&self) {
         let settings = AppSettings::load().unwrap_or_else(|e| {
-            ui_panic!("{}", e);
+            ui_warn!("{}", e);
+            Default::default()
         });
 
         self.keyboard_handler
@@ -50,9 +51,7 @@ impl App {
     }
 
     fn write_settings(&self) {
-        let mut settings = AppSettings::load().unwrap_or_else(|e| {
-            ui_panic!("{}", e);
-        });
+        let mut settings = AppSettings::load().unwrap_or_default();
 
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
@@ -64,8 +63,10 @@ impl App {
 
     fn read_profile(&self, path: &str) {
         let profile = KeyTransformProfile::load(path).unwrap_or_else(|e| {
-            ui_panic!("{}", e);
+            ui_warn!("{}", e);
+            Default::default()
         });
+
         self.profile_view.update_ui(&profile);
         self.keyboard_handler.set_profile(profile);
     }

@@ -31,7 +31,7 @@ impl Display for KeyTransformRule {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Default)]
 pub(crate) struct KeyTransformRules {
     pub(crate) items: Vec<KeyTransformRule>,
 }
@@ -114,6 +114,15 @@ impl KeyTransformProfile {
     //     )
     //     .map_err(|e| format!("Unable to write {} file. {}", path, e))
     // }
+}
+
+impl Default for KeyTransformProfile {
+    fn default() -> Self {
+        Self {
+            title: "No profile".to_string(),
+            rules: Default::default(),
+        }
+    }
 }
 
 impl Display for KeyTransformProfile {

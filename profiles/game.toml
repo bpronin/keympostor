@@ -41,8 +41,8 @@ title = "Game"
 
 "NUM_9*" = "E*"
 "NUM_9^" = "E^"
-"NUM_PADE_UP*" = "E*"
-"NUM_PADE_UP^" = "E^"
+"NUM_PAGE_UP*" = "E*"
+"NUM_PAGE_UP^" = "E^"
 
 "NUM_PLUS*" = "TAB*"
 "NUM_PLUS^" = "TAB^"
