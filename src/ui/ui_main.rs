@@ -75,7 +75,7 @@ impl AppUi {
         };
         self.app
             .keyboard_handler
-            .set_callback(Some(Box::new(kbd_handler_callback)));
+            .set_listener(Some(Box::new(kbd_handler_callback)));
 
         /* Windows events */
 

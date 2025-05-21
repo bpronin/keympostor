@@ -11,11 +11,15 @@ thread_local! {
     static HOOK: RefCell<KeyboardHook> = RefCell::new(KeyboardHook::default());
 }
 
+extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+    HOOK.with_borrow(|hook| hook.handle(code, w_param, l_param))
+}
+
 #[derive(Default)]
 struct KeyboardHook {
     transform_map: KeyTransformMap,
     handle: Option<HHOOK>,
-    callback: Option<Box<dyn Fn(&KeyEvent)>>,
+    listener: Option<Box<dyn Fn(&KeyEvent)>>,
     is_silent: bool,
 }
 
@@ -37,9 +41,44 @@ impl KeyboardHook {
             debug!("Keyboard hook uninstalled");
         }
     }
+    
+    fn handle(&self, code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+        if code == HC_ACTION as i32 {
+            let event = self.create_event(l_param);
+            self.notify_processing(&event);
+            if self.process_event(event) {
+                return LRESULT(1);
+            }
+        }
+        unsafe { CallNextHookEx(self.handle, code, w_param, l_param) }
+    }
 
-    fn load_profile(&mut self, profile: KeyTransformProfile) {
-        self.transform_map = KeyTransformMap::from_profile(profile);
+    fn create_event(&self, l_param: LPARAM) -> KeyEvent {
+        let mut event = unsafe {
+            let mut keyboard_state = [0; 256];
+            GetKeyboardState(&mut keyboard_state).unwrap();
+            KeyEvent::new(*(l_param.0 as *const KBDLLHOOKSTRUCT), keyboard_state)
+        };
+
+        if !event.is_private() {
+            event.rule = self.transform_map.get(&event)
+        };
+
+        debug!("EVENT: {}", event);
+
+        event
+    }
+
+    fn process_event(&self, event: KeyEvent) -> bool {
+        if let Some(rule) = event.rule {
+            debug!("RULE: {}", rule);
+
+            let input = rule.target.create_input();
+            unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
+            true
+        } else {
+            false
+        }
     }
 
     fn set_silent(&mut self, silent: bool) {
@@ -48,13 +87,25 @@ impl KeyboardHook {
         debug!("Silent processing: {silent}");
     }
 
-    fn set_callback(&mut self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
-        self.callback = callback;
-        if self.callback.is_some() {
-            debug!("Callback set");
+    fn set_listener(&mut self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
+        self.listener = listener;
+        if self.listener.is_some() {
+            debug!("Listener set");
         } else {
-            debug!("Callback removed");
+            debug!("Listener removed");
         }
+    }
+
+    fn notify_processing(&self, event: &KeyEvent) {
+        if let Some(listener) = &self.listener {
+            if !&self.is_silent {
+                listener(&event);
+            }
+        }
+    }
+
+    fn load_profile(&mut self, profile: KeyTransformProfile) {
+        self.transform_map = KeyTransformMap::from_profile(profile);
     }
 }
 
@@ -72,8 +123,8 @@ impl KeyboardHandler {
         HOOK.with_borrow_mut(|hook| hook.load_profile(profile));
     }
 
-    pub(crate) fn set_callback(&self, callback: Option<Box<dyn Fn(&KeyEvent)>>) {
-        HOOK.with_borrow_mut(|hook| hook.set_callback(callback));
+    pub(crate) fn set_listener(&self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
+        HOOK.with_borrow_mut(|hook| hook.set_listener(listener));
     }
 
     pub(crate) fn is_enabled(&self) -> bool {
@@ -97,38 +148,4 @@ impl KeyboardHandler {
     pub(crate) fn set_silent(&self, silent: bool) {
         HOOK.with_borrow_mut(|inner| inner.set_silent(silent));
     }
-}
-
-extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-    HOOK.with_borrow(|hook| {
-        if code == HC_ACTION as i32 {
-            let mut event = unsafe {
-                let mut keyboard_state = [0; 256];
-                GetKeyboardState(&mut keyboard_state).unwrap();
-                KeyEvent::new(*(l_param.0 as *const KBDLLHOOKSTRUCT), keyboard_state)
-            };
-
-            debug!("EVENT: {}", event);
-
-            if !event.is_private() {
-                event.rule = hook.transform_map.get(&event)
-            };
-
-            if let Some(callback) = &hook.callback {
-                if !&hook.is_silent {
-                    callback(&event);
-                }
-            }
-
-            if let Some(rule) = event.rule {
-                debug!("RULE: {}", rule);
-
-                let input = rule.target.create_input();
-                unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
-                return LRESULT(1);
-            }
-        }
-
-        unsafe { CallNextHookEx(hook.handle, code, w_param, l_param) }
-    })
 }
