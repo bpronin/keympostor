@@ -1,5 +1,5 @@
 use crate::keyboard::key_action::KeyAction;
-use crate::keyboard::key_modifiers::{KeyModifiers, KM_NONE};
+use crate::keyboard::key_modifiers::{KeyModifiers, KM_ALL, KM_NONE};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -7,7 +7,6 @@ use std::str::FromStr;
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub(crate) struct KeyTrigger {
     pub(crate) action: KeyAction,
-    #[serde(default = "default_modifiers")]
     pub(crate) modifiers: KeyModifiers,
 }
 
@@ -33,22 +32,20 @@ impl FromStr for KeyTrigger {
         } else {
             Ok(Self {
                 action: s.parse()?,
-                modifiers: KM_NONE,
+                modifiers: KM_ALL,
             })
         }
     }
 }
 
-fn default_modifiers() -> KeyModifiers {
-    KM_NONE
-}
-
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
     use crate::keyboard::key_trigger::KeyAction;
     use crate::keyboard::key_trigger::KeyModifiers;
     use crate::keyboard::key_trigger::KeyTrigger;
     use crate::{key_action, key_mod};
+    use crate::keyboard::key_modifiers::{KM_ALL, KM_NONE};
 
     #[macro_export]
     macro_rules! key_trigger {
@@ -59,11 +56,28 @@ mod tests {
 
     #[test]
     fn test_key_trigger_parse() {
-        let expected = KeyTrigger {
-            action: key_action!("A*"),
-            modifiers: key_mod!("SHIFT"),
-        };
-
-        assert_eq!(expected, key_trigger!("[SHIFT] A*"));
+        assert_eq!(
+            KeyTrigger {
+                action: key_action!("A*"),
+                modifiers: key_mod!("LEFT_SHIFT"),
+            },
+            KeyTrigger::from_str("[LEFT_SHIFT] A*").unwrap()
+        );
+        
+        assert_eq!(
+            KeyTrigger {
+                action: key_action!("A*"),
+                modifiers: KM_NONE,
+            },
+            KeyTrigger::from_str("[] A*").unwrap()
+        );
+        
+        assert_eq!(
+            KeyTrigger {
+                action: key_action!("A*"),
+                modifiers: KM_ALL,
+            },
+            KeyTrigger::from_str("A*").unwrap()
+        );
     }
 }

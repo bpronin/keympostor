@@ -52,7 +52,7 @@ impl Default for KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key_modifiers::{KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
+    use crate::keyboard::key_modifiers::{KM_ALL, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
     use crate::keyboard::transform_map::KeyAction;
     use crate::keyboard::transform_map::KeyEvent;
     use crate::keyboard::transform_map::KeyTransformMap;
@@ -64,25 +64,25 @@ mod tests {
         let mut map = KeyTransformMap::default();
 
         map.put(key_rule!("A↓ : B↓"));
-        map.put(key_rule!("[SHIFT] A↓ : C↓"));
-        map.put(key_rule!("[CTRL] A↓ : D↓"));
+        map.put(key_rule!("[LEFT_SHIFT] A↓ : C↓"));
+        map.put(key_rule!("[LEFT_CTRL] A↓ : D↓"));
 
         map.put(key_rule!("B↓ : BACKSPACE↓"));
-        map.put(key_rule!("[ALT] B↓ : ENTER↓"));
-        map.put(key_rule!("[ALT + WIN] B↓ : NUM_ENTER↓"));
+        map.put(key_rule!("[LEFT_ALT] B↓ : ENTER↓"));
+        map.put(key_rule!("[LEFT_ALT + LEFT_WIN] B↓ : NUM_ENTER↓"));
 
         assert_none!(map.get_group(&key_action!("A^")));
         assert_none!(map.get_group(&key_action!("C*")));
 
         let expected_for_a = [
             key_rule!("A↓ : B↓"),
-            key_rule!("[SHIFT] A↓ : C↓"),
-            key_rule!("[CTRL] A↓ : D↓"),
+            key_rule!("[LEFT_SHIFT] A↓ : C↓"),
+            key_rule!("[LEFT_CTRL] A↓ : D↓"),
         ];
         let expected_for_b = [
             key_rule!("B↓ : BACKSPACE↓"),
-            key_rule!("[ALT] B↓  : ENTER↓"),
-            key_rule!("[ALT + WIN] B↓ : NUM_ENTER↓"),
+            key_rule!("[LEFT_ALT] B↓  : ENTER↓"),
+            key_rule!("[LEFT_ALT + LEFT_WIN] B↓ : NUM_ENTER↓"),
         ];
 
         let actual = map.get_group(&key_action!("A↓")).unwrap();
@@ -112,6 +112,7 @@ mod tests {
 
     #[test]
     fn test_get() {
+        let any_down = KM_ALL;
         let all_up = KM_NONE;
         let shift_down = KM_LSHIFT;
         let alt_down = KM_LALT;
@@ -120,12 +121,18 @@ mod tests {
 
         let mut map = KeyTransformMap::default();
         map.put(key_rule!("A↓ : B↓"));
+        map.put(key_rule!("[]X↓ : Y↓"));
         map.put(key_rule!("[LEFT_SHIFT] A↓ : C↓"));
         map.put(key_rule!("[LEFT_ALT + LEFT_CTRL] A↓ : D↓"));
 
         assert_eq!(
             &key_rule!("A↓ : B↓"),
-            map.get(&key_event!("A↓", all_up)).unwrap()
+            map.get(&key_event!("A↓", any_down)).unwrap()
+        );
+        
+        assert_eq!(
+            &key_rule!("[]X↓ : Y↓"),
+            map.get(&key_event!("X↓", all_up)).unwrap()
         );
 
         assert_eq!(

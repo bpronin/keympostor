@@ -17,6 +17,145 @@ pub(crate) const KM_LALT: KeyModifiers = KeyModifiers(1 << 4);
 pub(crate) const KM_RALT: KeyModifiers = KeyModifiers(1 << 5);
 pub(crate) const KM_LWIN: KeyModifiers = KeyModifiers(1 << 6);
 pub(crate) const KM_RWIN: KeyModifiers = KeyModifiers(1 << 7);
+pub(crate) const KM_ALL: KeyModifiers = KeyModifiers(u8::MAX);
+
+// #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
+// struct KeyModifiersMatrix(u64);
+//
+// impl KeyModifiersMatrix {
+//     pub(crate) fn new(items: &[KeyModifiers]) -> Self {
+//         let mut bytes = [0u8; 8];
+//         for (i, item) in items.iter().enumerate() {
+//             bytes[i] = item.0;
+//         }
+//         Self(u64::from_be_bytes(bytes))
+//     }
+//
+//     pub(crate) fn has_item(&self, item: KeyModifiers) -> bool {
+//         // self.0.to_be_bytes().iter().any(|b| b & item.0 == item.0)
+//         for i in 0..8 {
+//             let b = ((self.0 >> (8 * i)) & 0xFF) as u8;
+//             if b & item.0 == item.0 {
+//                 return true;
+//             }
+//         }
+//         false
+//     }
+// }
+// impl Display for KeyModifiersMatrix {
+//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+//         let items = self
+//             .0
+//             .to_be_bytes()
+//             .iter()
+//             .filter_map(|b| {
+//                 if *b != 0 {
+//                     Some(KeyModifiers(*b))
+//                 } else {
+//                     None
+//                 }
+//             })
+//             .collect::<Vec<_>>();
+//
+//         if !items.is_empty() {
+//             write_joined!(f, items, ", ")
+//         } else {
+//             Ok(())
+//         }
+//     }
+// }
+//
+// impl FromStr for KeyModifiersMatrix {
+//     type Err = String;
+//
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         let ts = s.trim();
+//         let value = if ts.is_empty() {
+//             KeyModifiersMatrix::default()
+//         } else {
+//             let items = ts
+//                 .split(',')
+//                 .map(|s| s.parse().unwrap())
+//                 .collect::<Vec<KeyModifiers>>();
+//             KeyModifiersMatrix::new(&items)
+//         };
+//         Ok(value)
+//     }
+// }
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
+struct KeyModifiersMatrix {
+    items: [KeyModifiers; 8],
+}
+
+impl KeyModifiersMatrix {
+    pub(crate) fn new(modifiers: &[KeyModifiers]) -> Self {
+        let mut items = [KeyModifiers::default(); 8];
+        for (i, m) in modifiers.iter().enumerate() {
+            items[i] = *m;
+        }
+        Self { items }
+    }
+
+    pub(crate) fn has_item(&self, item: KeyModifiers) -> bool {
+        for i in self.items {
+            if i.contains(item) {
+                return true;
+            }
+        }
+        false
+    }
+}
+
+impl Display for KeyModifiersMatrix {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if !self.items.is_empty() {
+            write_joined!(f, self.items.iter().filter(|&x| { *x != KM_NONE }), ", ")
+        } else {
+            Ok(())
+        }
+    }
+}
+
+impl FromStr for KeyModifiersMatrix {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let ts = s.trim();
+        let value = if ts.is_empty() {
+            KeyModifiersMatrix::default()
+        } else {
+            let mut items = [KeyModifiers::default(); 8];
+            for (i, s) in ts.split(',').enumerate() {
+                items[i] = s.parse()?
+            }
+            KeyModifiersMatrix { items }
+        };
+
+        Ok(value)
+    }
+}
+
+impl Serialize for KeyModifiersMatrix {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        Ok(self.to_string().serialize(serializer)?)
+    }
+}
+
+impl<'de> Deserialize<'de> for KeyModifiersMatrix {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let text = String::deserialize(deserializer)?;
+        let modifiers = text.parse().map_err(de::Error::custom)?;
+
+        Ok(modifiers)
+    }
+}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
 pub(crate) struct KeyModifiers(u8);
@@ -128,16 +267,16 @@ impl FromStr for KeyModifiers {
             let this = ts.split('+').fold(KM_NONE, |acc, part| match part.trim() {
                 "LEFT_SHIFT" => acc | KM_LSHIFT,
                 "RIGHT_SHIFT" => acc | KM_RSHIFT,
-                "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
+                // "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
                 "LEFT_CTRL" => acc | KM_LCTRL,
                 "RIGHT_CTRL" => acc | KM_RCTRL,
-                "CTRL" => acc | KM_LCTRL | KM_RCTRL,
+                // "CTRL" => acc | KM_LCTRL | KM_RCTRL,
                 "LEFT_ALT" => acc | KM_LALT,
                 "RIGHT_ALT" => acc | KM_RALT,
-                "ALT" => acc | KM_LALT | KM_RALT,
+                // "ALT" => acc | KM_LALT | KM_RALT,
                 "LEFT_WIN" => acc | KM_LWIN,
                 "RIGHT_WIN" => acc | KM_RWIN,
-                "WIN" => acc | KM_LWIN | KM_RWIN,
+                // "WIN" => acc | KM_LWIN | KM_RWIN,
                 &_ => KM_NONE,
             });
 
@@ -178,12 +317,12 @@ impl BitOr for KeyModifiers {
     }
 }
 
-impl BitAnd for KeyModifiers {
-    type Output = Self;
-    fn bitand(self, other: Self) -> Self {
-        Self(self.0 & other.0)
-    }
-}
+// impl BitAnd for KeyModifiers {
+//     type Output = Self;
+//     fn bitand(self, other: Self) -> Self {
+//         Self(self.0 & other.0)
+//     }
+// }
 
 impl BitOrAssign for KeyModifiers {
     fn bitor_assign(&mut self, other: Self) {
@@ -191,24 +330,25 @@ impl BitOrAssign for KeyModifiers {
     }
 }
 
-impl BitAndAssign for KeyModifiers {
-    fn bitand_assign(&mut self, other: Self) {
-        self.0.bitand_assign(other.0)
-    }
-}
+// impl BitAndAssign for KeyModifiers {
+//     fn bitand_assign(&mut self, other: Self) {
+//         self.0.bitand_assign(other.0)
+//     }
+// }
 
-impl Not for KeyModifiers {
-    type Output = Self;
-    fn not(self) -> Self {
-        Self(self.0.not())
-    }
-}
+// impl Not for KeyModifiers {
+//     type Output = Self;
+//     fn not(self) -> Self {
+//         Self(self.0.not())
+//     }
+// }
 
 #[cfg(test)]
 mod tests {
+    use crate::assert_not;
     use crate::keyboard::key_modifiers::{
-        KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL, KM_RSHIFT,
-        KM_RWIN,
+        KeyModifiers, KeyModifiersMatrix, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
+        KM_RSHIFT, KM_RWIN,
     };
     use serde::{Deserialize, Serialize};
     use std::str::FromStr;
@@ -221,6 +361,13 @@ mod tests {
         };
     }
 
+    #[macro_export]
+    macro_rules! key_mod_mx {
+        ($text:literal) => {
+            $text.parse::<KeyModifiersMatrix>().unwrap()
+        };
+    }
+
     #[test]
     fn test_key_modifiers_display() {
         assert_eq!("", KM_NONE.to_string());
@@ -228,11 +375,11 @@ mod tests {
         assert_eq!("LEFT_SHIFT + RIGHT_WIN", (KM_LSHIFT | KM_RWIN).to_string());
         assert_eq!("RIGHT_CTRL + LEFT_ALT", (KM_LALT | KM_RCTRL).to_string());
 
-        assert_eq!(
-            "SHIFT + CTRL + ALT + WIN",
-            (KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL)
-                .to_string()
-        );
+        // assert_eq!(
+        //     "SHIFT + CTRL + ALT + WIN",
+        //     (KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL)
+        //         .to_string()
+        // );
     }
 
     #[test]
@@ -258,10 +405,10 @@ mod tests {
             "LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN".parse().unwrap()
         );
 
-        assert_eq!(
-            KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL,
-            "SHIFT + WIN + ALT + CTRL".parse().unwrap()
-        );
+        // assert_eq!(
+        //     KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL,
+        //     "SHIFT + WIN + ALT + CTRL".parse().unwrap()
+        // );
     }
 
     #[test]
@@ -299,5 +446,62 @@ mod tests {
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str::<Wrapper>(&text).unwrap();
         assert_eq!(source.value, actual.value);
+    }
+
+    /////////////////
+
+    #[test]
+    fn test_key_modifiers_matrix_display() {
+        let actual = KeyModifiersMatrix::new(&[
+            KM_LALT,
+            KM_RSHIFT,
+            KM_RCTRL,
+            KM_NONE,
+            KM_RCTRL | KM_RWIN,
+            KM_NONE,
+        ])
+        .to_string();
+
+        assert_eq!(
+            "LEFT_ALT, RIGHT_SHIFT, RIGHT_CTRL, RIGHT_CTRL + RIGHT_WIN",
+            actual
+        );
+    }
+
+    #[test]
+    fn test_key_modifiers_matrix_parse() {
+        let expected = KeyModifiersMatrix::new(&[KM_LALT, KM_RSHIFT, KM_RCTRL, KM_RCTRL | KM_RWIN]);
+
+        assert_eq!(
+            expected,
+            KeyModifiersMatrix::from_str(
+                "LEFT_ALT, RIGHT_SHIFT, RIGHT_CTRL, RIGHT_CTRL + RIGHT_WIN"
+            )
+            .unwrap()
+        );
+    }
+
+    // #[test]
+    // fn test_key_modifiers_matrix_parse_empty() {
+    //     let expected = KeyModifiersMatrix::new(&[
+    //         KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL,
+    //     ]);
+    //
+    //     assert_eq!(expected, KeyModifiersMatrix::from_str("").unwrap());
+    // }
+
+    #[test]
+    fn test_key_modifiers_matrix_contains() {
+        let matrix = KeyModifiersMatrix::new(&[KM_LALT, KM_RSHIFT, KM_RCTRL, KM_RCTRL | KM_RWIN]);
+
+        assert!(matrix.has_item(KM_LALT));
+        assert_not!(matrix.has_item(KM_RALT));
+        assert!(matrix.has_item(KM_RSHIFT));
+        assert_not!(matrix.has_item(KM_LSHIFT));
+        assert!(matrix.has_item(KM_RCTRL | KM_RWIN));
+        assert_not!(matrix.has_item(KM_RALT | KM_LWIN));
+
+        let matrix = KeyModifiersMatrix::new(&[KM_LALT, KM_RSHIFT, KM_RCTRL, KM_RCTRL | KM_RWIN]);
+        assert_not!(matrix.has_item(KM_RALT | KM_RSHIFT));
     }
 }
