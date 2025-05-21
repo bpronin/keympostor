@@ -48,7 +48,7 @@ impl KeyModifiers {
         self.0 & other.0 == other.0
     }
 
-    /*pub(crate) fn to_string_short(&self) -> String {
+    pub(crate) fn to_string_short(&self) -> String {
         let mut text: [char; 8] = ['.'; 8];
 
         if self.contains(KM_LSHIFT) {
@@ -77,42 +77,35 @@ impl KeyModifiers {
         }
 
         text.iter().collect()
-    }*/
+    }
 }
 
 impl Display for KeyModifiers {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut names: Vec<&str> = vec![];
 
-        if self.contains(KM_LSHIFT | KM_RSHIFT) {
-            names.push("SHIFT");
-        } else if self.contains(KM_LSHIFT) {
+        if self.contains(KM_LSHIFT) {
             names.push("LEFT_SHIFT");
-        } else if self.contains(KM_RSHIFT) {
+        }
+        if self.contains(KM_RSHIFT) {
             names.push("RIGHT_SHIFT");
         }
-
-        if self.contains(KM_LCTRL | KM_RCTRL) {
-            names.push("CTRL");
-        } else if self.contains(KM_LCTRL) {
+        if self.contains(KM_LCTRL) {
             names.push("LEFT_CTRL");
-        } else if self.contains(KM_RCTRL) {
+        }
+        if self.contains(KM_RCTRL) {
             names.push("RIGHT_CTRL");
         }
-
-        if self.contains(KM_LALT | KM_RALT) {
-            names.push("ALT");
-        } else if self.contains(KM_LALT) {
+        if self.contains(KM_LALT) {
             names.push("LEFT_ALT");
-        } else if self.contains(KM_RALT) {
+        }
+        if self.contains(KM_RALT) {
             names.push("RIGHT_ALT");
         }
-
-        if self.contains(KM_LWIN | KM_RWIN) {
-            names.push("WIN");
-        } else if self.contains(KM_LWIN) {
+        if self.contains(KM_LWIN) {
             names.push("LEFT_WIN");
-        } else if self.contains(KM_RWIN) {
+        }
+        if self.contains(KM_RWIN) {
             names.push("RIGHT_WIN");
         }
 
@@ -147,7 +140,7 @@ impl FromStr for KeyModifiers {
                 "WIN" => acc | KM_LWIN | KM_RWIN,
                 &_ => KM_NONE,
             });
-            
+
             if this != KM_NONE {
                 Ok(this)
             } else {
@@ -213,12 +206,12 @@ impl Not for KeyModifiers {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
     use crate::keyboard::key_modifiers::{
         KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL, KM_RSHIFT,
         KM_RWIN,
     };
     use serde::{Deserialize, Serialize};
+    use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
     #[macro_export]
@@ -242,7 +235,7 @@ mod tests {
         );
     }
 
-    /*#[test]
+    #[test]
     fn test_key_modifiers_display_short() {
         assert_eq!("........", KM_NONE.to_string_short());
 
@@ -254,7 +247,7 @@ mod tests {
             (KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL)
                 .to_string_short()
         );
-    }*/
+    }
 
     #[test]
     fn test_key_modifiers_parse() {

@@ -42,7 +42,7 @@ impl LogView {
             if event.rule.is_some() { "!" } else { "" },
             if event.is_injected() { ">" } else { "" },
             if event.is_private() { "<" } else { "" },
-            event.modifiers,
+            event.modifiers.to_string_short(),
             action.key,
             action.key.virtual_key(),
             action.key.scan_code(),
