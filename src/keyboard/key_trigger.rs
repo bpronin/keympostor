@@ -1,5 +1,5 @@
 use crate::keyboard::key_action::KeyAction;
-use crate::keyboard::key_modifiers::{KeyModifiers, KM_ALL, KM_NONE};
+use crate::keyboard::key_modifiers::{KeyModifiers, KM_ALL};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -17,6 +17,14 @@ impl KeyTrigger {
             action: KeyAction::from_keyboard_input(input),
             modifiers: KeyModifiers::from_keyboard_state(keyboard_state),
         }
+    }
+
+    fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
+        let list = s
+            .split(',')
+            .map(|s| s.trim().parse())
+            .collect::<Result<Vec<_>, String>>()?;
+        Ok(list)
     }
 }
 
@@ -119,5 +127,12 @@ mod tests {
             },
             KeyTrigger::from_str("A*").unwrap()
         );
+    }
+
+    #[test]
+    fn test_key_trigger_parse_group() {
+        let expected = vec![key_trigger!("A*"), key_trigger!("[LEFT_CTRL]B^"), key_trigger!("C*")];
+        let actual = KeyTrigger::from_str_group("A*, [LEFT_CTRL]B^, C*").unwrap();
+        assert_eq!(expected, actual);
     }
 }
