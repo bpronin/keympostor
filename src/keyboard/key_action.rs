@@ -135,7 +135,7 @@ impl FromStr for KeyAction {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct KeyActionSequence {
     pub(crate) actions: Vec<KeyAction>,
 }

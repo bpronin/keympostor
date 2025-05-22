@@ -19,7 +19,7 @@ impl KeyTrigger {
         }
     }
 
-    fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
+    pub(crate) fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
         let list = s
             .split(',')
             .map(|s| s.trim().parse())
