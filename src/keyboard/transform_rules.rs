@@ -42,6 +42,20 @@ impl KeyTransformRules {
             items: lines.map(|l| l.parse()).collect::<Result<Vec<_>, _>>()?,
         })
     }
+    // fn from_lines(lines: Lines) -> Result<Self, String> {
+    //     let mut items = vec![];
+    //     for line in lines {
+    //         dbg!(&line);
+    // 
+    //         for element in line.split(','){
+    //             let rule = element.parse()?;
+    //             dbg!(&rule);
+    //             items.push(rule);
+    //         }
+    //     }
+    // 
+    //     Ok(Self { items })
+    // }
 }
 
 impl Display for KeyTransformRules {
@@ -154,6 +168,7 @@ mod tests {
         KeyTransformProfile, KeyTransformRule, KeyTransformRules,
     };
     use crate::{key_action_seq, key_trigger};
+    use std::str::FromStr;
 
     #[macro_export]
     macro_rules! key_rule {
@@ -191,7 +206,7 @@ mod tests {
     //         source: key_trigger!("[LEFT_SHIFT + RIGHT_SHIFT] ENTER↓"),
     //         target: key_action_seq!("ENTER↓"),
     //     };
-    // 
+    //
     //     assert_eq!(expected, "[SHIFT] ENTER↓ : ENTER ↓".parse().unwrap());
     // }
 
@@ -255,29 +270,29 @@ mod tests {
         }
     */
 
-    /*    todo:;
-        #[test]
-        fn test_key_transform_rules_parse_split_keys() {
-            let actual: KeyTransformProfile = "
-            Test profile;
-            A↓,B↓ : C↓;
+    #[test]
+    fn test_key_transform_rules_parse_split_keys() {
+        let actual = KeyTransformProfile::from_str(
             "
-            .parse()
-            .unwrap();
+            Test profile
+            A↓,B↓ : C↓
+            ",
+        )
+        .unwrap();
 
-            println!("{}", actual);
+        println!("{}", actual);
 
-            let expected: KeyTransformProfile = "
-            Test profile;
-            A↓ : C↓;
-            B↓ : C↓;
+        let expected = KeyTransformProfile::from_str(
             "
-            .parse()
-            .unwrap();
+            Test profile
+            A↓ : C↓
+            B↓ : C↓
+            ",
+        )
+        .unwrap();
 
-            assert_eq!(expected, actual);
-        }
-    */
+        assert_eq!(expected, actual);
+    }
 
     #[test]
     fn test_key_transform_rules_parse_expand_transition() {
@@ -300,15 +315,20 @@ mod tests {
     #[test]
     fn test_key_transform_profile_load() {
         let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
-
+        
+        /* NOTE: rules deserialized as sorted map */
+        
         let expected = key_profile!(
             r#"
             Test profile
-            CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
             [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑
+            []CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
             "#
         );
 
+        println!("{}", expected.rules);
+        println!("{}", actual.rules);
+        
         assert_eq!(expected, actual);
 
         // actual.save("../test/profiles/test-copy.toml").unwrap()

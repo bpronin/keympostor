@@ -26,8 +26,8 @@ impl KeyTransformMap {
     }
 
     pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
-        if let Some(rules) = self.get_group(&event.action()) {
-            rules.get(&event.modifiers)
+        if let Some(rules) = self.get_group(&event.trigger.action) {
+            rules.get(&event.trigger.modifiers)
         } else {
             None
         }
@@ -52,7 +52,8 @@ impl Default for KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key_modifiers::{KM_ALL, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
+    use crate::keyboard::key_trigger::KeyTrigger;
+use crate::keyboard::key_modifiers::{KM_ALL, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE};
     use crate::keyboard::transform_map::KeyAction;
     use crate::keyboard::transform_map::KeyEvent;
     use crate::keyboard::transform_map::KeyTransformMap;

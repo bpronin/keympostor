@@ -1,6 +1,6 @@
 use crate::write_joined;
 use core::ops;
-use ops::{BitAnd, BitAndAssign, BitOr, BitOrAssign, Not};
+use ops::{BitOr, BitOrAssign};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;

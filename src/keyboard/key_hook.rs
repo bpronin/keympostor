@@ -55,12 +55,14 @@ impl KeyboardHook {
 
     fn create_event(&self, l_param: LPARAM) -> KeyEvent {
         let mut event = unsafe {
-            let mut keyboard_state = [0; 256];
-            GetKeyboardState(&mut keyboard_state).unwrap();
-            KeyEvent::new(*(l_param.0 as *const KBDLLHOOKSTRUCT), keyboard_state)
+            let mut state = [0u8; 256];
+            GetKeyboardState(&mut state).unwrap();
+
+            let input = *(l_param.0 as *const KBDLLHOOKSTRUCT);
+            KeyEvent::new(&input, state)
         };
 
-        if !event.is_private() {
+        if !(event.is_injected && event.is_private) {
             event.rule = self.transform_map.get(&event)
         };
 

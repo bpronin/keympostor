@@ -36,18 +36,18 @@ impl LogView {
     }
 
     pub(crate) fn update_ui(&self, event: &KeyEvent) {
-        let action = event.action();
+        let action = event.trigger.action;
         let line = format!(
             "{:1}{:1}{:1} | [{:8}] {:20}| {:22}| {:18} | {:1} | T: {:9} ",
             if event.rule.is_some() { "!" } else { "" },
-            if event.is_injected() { ">" } else { "" },
-            if event.is_private() { "<" } else { "" },
-            event.modifiers.to_string_short(),
+            if event.is_injected { ">" } else { "" },
+            if event.is_private { "<" } else { "" },
+            event.trigger.modifiers.to_string_short(),
             action.key,
             action.key.virtual_key(),
             action.key.scan_code(),
             action.transition,
-            event.time(),
+            event.time,
         );
 
         self.trim_log_text();

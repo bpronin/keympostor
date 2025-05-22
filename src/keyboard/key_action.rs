@@ -9,6 +9,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
     KEYEVENTF_SCANCODE, VIRTUAL_KEY,
 };
+use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub(crate) enum KeyTransition {
@@ -19,8 +20,8 @@ pub(crate) enum KeyTransition {
 }
 
 impl KeyTransition {
-    pub(crate) fn from_bool(up: bool) -> KeyTransition {
-        if up { Up } else { Down }
+    pub(crate) fn from_keyboard_input(input: &KBDLLHOOKSTRUCT) -> Self {
+        if input.flags.contains(LLKHF_UP) { Up } else { Down }
     }
 
     pub(crate) fn is_up(&self) -> bool {
@@ -73,6 +74,13 @@ impl KeyAction {
             key: key_name.parse()?,
             transition: transition_symbol.to_string().parse()?,
         })
+    }
+
+    pub(crate) fn from_keyboard_input(input: &KBDLLHOOKSTRUCT) -> Self {
+        Self {
+            key: Key::from_keyboard_input(input),
+            transition: KeyTransition::from_keyboard_input(input),
+        }
     }
 
     fn create_input(&self) -> INPUT {
@@ -206,7 +214,7 @@ mod tests {
     #[test]
     fn test_key_transition_basics() {
         assert_eq!(Up, KeyTransition::default());
-        assert_eq!(Up, KeyTransition::from_bool(true));
+        assert_eq!(Up, if true { Up } else { Down });
         assert!(Up.is_up());
         assert_not!(Down.is_up());
     }

@@ -4,6 +4,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
+use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) struct VirtualKey {
@@ -167,6 +168,14 @@ pub(crate) struct Key {
 }
 
 impl Key {
+    pub(crate) fn from_keyboard_input(input: &KBDLLHOOKSTRUCT) -> Self {
+        Self {
+            vk_code: input.vkCode as u8,
+            scan_code: input.scanCode as u8,
+            is_ext_scan_code: input.flags.contains(LLKHF_EXTENDED),
+        }
+    }
+
     pub(crate) fn name(&self) -> &'static str {
         KEYS.with_borrow(|k| k.name_of(self))
     }
