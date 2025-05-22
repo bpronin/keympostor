@@ -7,6 +7,7 @@ mod key_modifiers;
 mod key_trigger;
 mod transform_map;
 pub(crate) mod transform_rules;
+mod parse;
 
 #[cfg(test)]
 mod tests {

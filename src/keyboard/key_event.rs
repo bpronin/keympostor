@@ -54,14 +54,6 @@ mod tests {
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
 
-    #[allow(dead_code)]
-    pub(crate) fn fmt_kb_input(input: &KBDLLHOOKSTRUCT) -> String {
-        format!(
-            "T:{:9} | VK: 0x{:02X} | SC: 0x{:02X} | F: 0b{:08b} | EX: 0x{:X}",
-            input.time, input.vkCode, input.scanCode, input.flags.0, input.dwExtraInfo,
-        )
-    }
-
     #[macro_export]
     macro_rules! key_event {
         ($action:literal, $modifiers:expr) => {
@@ -76,6 +68,14 @@ mod tests {
                 rule: None,
             }
         };
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn fmt_keyboard_input(input: &KBDLLHOOKSTRUCT) -> String {
+        format!(
+            "T:{:9} | VK: 0x{:02X} | SC: 0x{:02X} | F: 0b{:08b} | EX: 0x{:X}",
+            input.time, input.vkCode, input.scanCode, input.flags.0, input.dwExtraInfo,
+        )
     }
 
     #[test]

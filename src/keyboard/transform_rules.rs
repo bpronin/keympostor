@@ -5,42 +5,11 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::str::{FromStr, Lines};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct KeyTransformRule {
     pub(crate) source: KeyTrigger,
     pub(crate) target: KeyActionSequence,
-}
-
-impl KeyTransformRule {
-    fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
-        let mut parts = s.trim().split(":");
-        let triggers = KeyTrigger::from_str_group(parts.next().ok_or("Missing source part.")?)?;
-        let actions = KeyActionSequence::from_str(parts.next().ok_or("Missing target part.")?)?;
-
-        let mut rules = vec![];
-        for trigger in triggers {
-            rules.push(KeyTransformRule {
-                source: trigger,
-                target: actions.clone(),
-            })
-        }
-
-        Ok(rules)
-    }
-}
-
-impl FromStr for KeyTransformRule {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut parts = s.trim().split(":");
-        Ok(Self {
-            source: parts.next().ok_or("Missing source part.")?.parse()?,
-            target: parts.next().ok_or("Missing target part.")?.parse()?,
-        })
-    }
 }
 
 impl Display for KeyTransformRule {
@@ -54,29 +23,9 @@ pub(crate) struct KeyTransformRules {
     pub(crate) items: Vec<KeyTransformRule>,
 }
 
-impl KeyTransformRules {
-    fn from_lines(lines: Lines) -> Result<Self, String> {
-        let mut items = vec![];
-        for line in lines {
-            let rules = KeyTransformRule::from_str_group(line.trim())?;
-            items.extend(rules);
-        }
-
-        Ok(Self { items })
-    }
-}
-
 impl Display for KeyTransformRules {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write_joined!(f, &self.items, "\n")
-    }
-}
-
-impl FromStr for KeyTransformRules {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_lines(s.trim().lines())
     }
 }
 
@@ -153,30 +102,12 @@ impl Display for KeyTransformProfile {
     }
 }
 
-impl FromStr for KeyTransformProfile {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut lines = s.trim().lines();
-
-        Ok(Self {
-            title: lines.next().ok_or("Error parsing title.")?.trim().into(),
-            rules: KeyTransformRules::from_lines(lines)?,
-        })
-    }
-}
-
-/* --- TESTS --- */
-
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key_action::KeyActionSequence;
     use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::keyboard::transform_rules::{
-        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
-    };
+    use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
     use crate::{key_action_seq, key_trigger};
-    use std::str::FromStr;
 
     #[macro_export]
     macro_rules! key_rule {
@@ -209,28 +140,6 @@ mod tests {
     }
 
     #[test]
-    fn test_key_transform_rule_parse() {
-        let expected = KeyTransformRule {
-            source: key_trigger!("[LEFT_SHIFT] ENTER↓"),
-            target: key_action_seq!("A↓"),
-        };
-
-        let actual = "[LEFT_SHIFT] ENTER↓ : A↓".parse().unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_key_transform_rule_parse_group() {
-        let expected = vec![
-            key_rule!("A* : ENTER*"),
-            key_rule!("[LEFT_CTRL]B* : ENTER*"),
-            key_rule!("C^ : ENTER*"),
-        ];
-        let actual = KeyTransformRule::from_str_group("A*, [LEFT_CTRL]B*, C^ : ENTER*").unwrap();
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
     fn test_key_transform_rule_serialize() {
         let source = KeyTransformRule {
             source: key_trigger!("[LEFT_SHIFT] ENTER↓"),
@@ -241,29 +150,6 @@ mod tests {
 
         let actual = toml::from_str::<KeyTransformRule>(&text).unwrap();
         assert_eq!(source, actual);
-    }
-
-    #[test]
-    fn test_key_transform_profile_parse() {
-        let actual = key_profile!(
-            r#"
-            Test profile
-            A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
-            [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
-            "#
-        );
-
-        let expected = KeyTransformProfile {
-            title: "Test profile".to_string(),
-            rules: KeyTransformRules {
-                items: vec![
-                    key_rule!("A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
-                    key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓: ENTER↓ → ENTER↑"),
-                ],
-            },
-        };
-
-        assert_eq!(expected, actual);
     }
 
     /*    todo:;
@@ -289,44 +175,6 @@ mod tests {
             assert_eq!(expected, actual);
         }
     */
-
-    #[test]
-    fn test_key_transform_rules_parse_split_keys() {
-        let actual = KeyTransformRules::from_str(
-            "
-            A↓,B↓ : C↓
-            ",
-        )
-        .unwrap();
-        
-        let expected = KeyTransformRules::from_str(
-            "
-            A↓ : C↓
-            B↓ : C↓
-            ",
-        )
-        .unwrap();
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_key_transform_rules_parse_expand_transition() {
-        let actual = key_profile!(
-            "
-            Test profile
-            A↓ : A↓↑ → B↓↑
-            "
-        );
-        let expected = key_profile!(
-            "
-            Test profile
-            A↓ : A↓ → A↑ → B↓ → B↑ 
-            "
-        );
-
-        assert_eq!(expected, actual);
-    }
 
     #[test]
     fn test_key_transform_profile_load() {

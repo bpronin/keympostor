@@ -3,7 +3,6 @@ use crate::keyboard::key_const::{KEYS, SCAN_CODES, VIRTUAL_KEYS};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -37,11 +36,6 @@ impl VirtualKey {
         Self::from_code(code)
     }
 
-    fn from_text(s: &str) -> Result<&'static VirtualKey, String> {
-        let st = s.trim();
-        Self::from_code_name(st).or_else(|_| Self::from_name(st))
-    }
-
     pub(crate) fn code_name(&self) -> String {
         format!("VC_0x{:02X}", self.value)
     }
@@ -61,14 +55,6 @@ impl VirtualKey {
 impl Display for VirtualKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name, f)
-    }
-}
-
-impl FromStr for VirtualKey {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_text(s).copied()
     }
 }
 
@@ -119,11 +105,6 @@ impl ScanCode {
     //     }
     // }
 
-    fn from_text(s: &str) -> Result<&'static ScanCode, String> {
-        let st = s.trim();
-        Self::from_code_name(st).or_else(|_| Self::from_name(st))
-    }
-
     pub(crate) fn ext_value(&self) -> u16 {
         if self.is_extended {
             self.value as u16 | 0xE0 << 8
@@ -149,14 +130,6 @@ impl ScanCode {
 impl Display for ScanCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name, f)
-    }
-}
-
-impl FromStr for ScanCode {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_text(s).copied()
     }
 }
 
@@ -200,19 +173,6 @@ impl Key {
 impl Display for Key {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name(), f)
-    }
-}
-
-impl FromStr for Key {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        KEYS.with_borrow(|keys| {
-            let key = keys
-                .by_name(s.trim())
-                .ok_or(format!("Illegal key name: `{}`.", s))?;
-            Ok(*key)
-        })
     }
 }
 
@@ -280,18 +240,6 @@ mod tests {
     #[test]
     fn test_vk_from_code_name() {
         assert_eq!("VK_RETURN", VirtualKey::from_str("VK_0x0D").unwrap().name);
-    }
-
-    #[test]
-    fn test_vk_parse() {
-        assert_eq!("VK_RETURN", VirtualKey::from_str("VK_RETURN").unwrap().name);
-        assert_eq!("VK_RETURN", VirtualKey::from_str("RETURN").unwrap().name);
-        assert_eq!("VK_RETURN", VirtualKey::from_str("VK_0x0D").unwrap().name);
-    }
-
-    #[test]
-    fn test_vk_parse_fails() {
-        assert!(VirtualKey::from_str("BANANA").is_err());
     }
 
     #[test]
@@ -377,22 +325,6 @@ mod tests {
     }
 
     #[test]
-    fn test_sc_parse() {
-        assert_eq!("SC_ENTER", ScanCode::from_str("SC_ENTER").unwrap().name);
-        assert_eq!("SC_ENTER", ScanCode::from_str("ENTER").unwrap().name);
-        assert_eq!(
-            "SC_NUM_ENTER",
-            ScanCode::from_str("SC_0xE01C").unwrap().name
-        );
-        // assert_eq!("SC_BACKTICK", ScanCode::from_str("`").unwrap().name);
-    }
-
-    #[test]
-    fn test_sc_parse_fails() {
-        assert!(ScanCode::from_str("BANANA").is_err());
-    }
-
-    #[test]
     fn test_sc_ext_value() {
         assert_eq!(0x1C, ScanCode::from_ext_code(0x1C).unwrap().ext_value());
         assert_eq!(0xE021, ScanCode::from_ext_code(0xE021).unwrap().ext_value());
@@ -420,41 +352,6 @@ mod tests {
     #[test]
     fn test_sc_display() {
         assert_eq!("SC_ENTER", format!("{}", sc_key!("SC_ENTER")));
-    }
-
-    #[test]
-    fn test_key_parse() {
-        assert_eq!(
-            Key {
-                vk_code: 0x0D,
-                scan_code: 0x1C,
-                is_ext_scan_code: false,
-            },
-            Key::from_str("ENTER").unwrap()
-        );
-
-        assert_eq!(
-            Key {
-                vk_code: 0x0D,
-                scan_code: 0x1C,
-                is_ext_scan_code: true,
-            },
-            Key::from_str("NUM_ENTER").unwrap()
-        );
-
-        assert_eq!(
-            Key {
-                vk_code: 0x72,
-                scan_code: 0x3D,
-                is_ext_scan_code: false,
-            },
-            Key::from_str("F3").unwrap()
-        );
-    }
-
-    #[test]
-    fn test_key_parse_fails() {
-        assert!(Key::from_str("BANANA").is_err());
     }
 
     #[test]

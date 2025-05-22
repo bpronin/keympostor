@@ -1,9 +1,8 @@
 use crate::write_joined;
 use core::ops;
-use ops::{BitOr, BitOrAssign};
+use ops::{BitOr};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN,
 };
@@ -84,8 +83,8 @@ pub(crate) const KM_ALL: KeyModifiers = KeyModifiers(u8::MAX);
 // }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
-struct KeyModifiersMatrix {
-    items: [KeyModifiers; 8],
+pub(crate) struct KeyModifiersMatrix {
+    pub(crate) items: [KeyModifiers; 8],
 }
 
 impl KeyModifiersMatrix {
@@ -114,25 +113,6 @@ impl Display for KeyModifiersMatrix {
         } else {
             Ok(())
         }
-    }
-}
-
-impl FromStr for KeyModifiersMatrix {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        let value = if ts.is_empty() {
-            KeyModifiersMatrix::default()
-        } else {
-            let mut items = [KeyModifiers::default(); 8];
-            for (i, s) in ts.split(',').enumerate() {
-                items[i] = s.parse()?
-            }
-            KeyModifiersMatrix { items }
-        };
-
-        Ok(value)
     }
 }
 
@@ -256,39 +236,6 @@ impl Display for KeyModifiers {
     }
 }
 
-impl FromStr for KeyModifiers {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        if ts.is_empty() {
-            Ok(KM_NONE)
-        } else {
-            let this = ts.split('+').fold(KM_NONE, |acc, part| match part.trim() {
-                "LEFT_SHIFT" => acc | KM_LSHIFT,
-                "RIGHT_SHIFT" => acc | KM_RSHIFT,
-                // "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
-                "LEFT_CTRL" => acc | KM_LCTRL,
-                "RIGHT_CTRL" => acc | KM_RCTRL,
-                // "CTRL" => acc | KM_LCTRL | KM_RCTRL,
-                "LEFT_ALT" => acc | KM_LALT,
-                "RIGHT_ALT" => acc | KM_RALT,
-                // "ALT" => acc | KM_LALT | KM_RALT,
-                "LEFT_WIN" => acc | KM_LWIN,
-                "RIGHT_WIN" => acc | KM_RWIN,
-                // "WIN" => acc | KM_LWIN | KM_RWIN,
-                &_ => KM_NONE,
-            });
-
-            if this != KM_NONE {
-                Ok(this)
-            } else {
-                Err(format!("Error parsing key modifiers: `{s}`"))
-            }
-        }
-    }
-}
-
 impl Serialize for KeyModifiers {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
@@ -324,11 +271,11 @@ impl BitOr for KeyModifiers {
 //     }
 // }
 
-impl BitOrAssign for KeyModifiers {
-    fn bitor_assign(&mut self, other: Self) {
-        self.0.bitor_assign(other.0)
-    }
-}
+// impl BitOrAssign for KeyModifiers {
+//     fn bitor_assign(&mut self, other: Self) {
+//         self.0.bitor_assign(other.0)
+//     }
+// }
 
 // impl BitAndAssign for KeyModifiers {
 //     fn bitand_assign(&mut self, other: Self) {
@@ -351,7 +298,6 @@ mod tests {
         KM_RSHIFT, KM_RWIN,
     };
     use serde::{Deserialize, Serialize};
-    use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
     #[macro_export]
@@ -397,26 +343,6 @@ mod tests {
     }
 
     #[test]
-    fn test_key_modifiers_parse() {
-        assert_eq!(KM_NONE, "".parse().unwrap());
-
-        assert_eq!(
-            KM_LSHIFT | KM_RSHIFT | KM_RWIN,
-            "LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN".parse().unwrap()
-        );
-
-        // assert_eq!(
-        //     KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL,
-        //     "SHIFT + WIN + ALT + CTRL".parse().unwrap()
-        // );
-    }
-
-    #[test]
-    fn test_key_modifiers_parse_fails() {
-        assert!(KeyModifiers::from_str("BANANA").is_err());
-    }
-
-    #[test]
     fn test_key_modifiers_capture() {
         let mut keys = [0u8; 256];
         assert_eq!(KM_NONE, KeyModifiers::from_keyboard_state(keys));
@@ -448,8 +374,6 @@ mod tests {
         assert_eq!(source.value, actual.value);
     }
 
-    /////////////////
-
     #[test]
     fn test_key_modifiers_matrix_display() {
         let actual = KeyModifiersMatrix::new(&[
@@ -467,28 +391,6 @@ mod tests {
             actual
         );
     }
-
-    #[test]
-    fn test_key_modifiers_matrix_parse() {
-        let expected = KeyModifiersMatrix::new(&[KM_LALT, KM_RSHIFT, KM_RCTRL, KM_RCTRL | KM_RWIN]);
-
-        assert_eq!(
-            expected,
-            KeyModifiersMatrix::from_str(
-                "LEFT_ALT, RIGHT_SHIFT, RIGHT_CTRL, RIGHT_CTRL + RIGHT_WIN"
-            )
-            .unwrap()
-        );
-    }
-
-    // #[test]
-    // fn test_key_modifiers_matrix_parse_empty() {
-    //     let expected = KeyModifiersMatrix::new(&[
-    //         KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL,
-    //     ]);
-    //
-    //     assert_eq!(expected, KeyModifiersMatrix::from_str("").unwrap());
-    // }
 
     #[test]
     fn test_key_modifiers_matrix_contains() {

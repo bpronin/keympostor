@@ -4,7 +4,6 @@ use crate::keyboard::key_event::SELF_EVENT_MARKER;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
     KEYEVENTF_SCANCODE, VIRTUAL_KEY,
@@ -21,7 +20,11 @@ pub(crate) enum KeyTransition {
 
 impl KeyTransition {
     pub(crate) fn from_keyboard_input(input: &KBDLLHOOKSTRUCT) -> Self {
-        if input.flags.contains(LLKHF_UP) { Up } else { Down }
+        if input.flags.contains(LLKHF_UP) {
+            Up
+        } else {
+            Down
+        }
     }
 
     pub(crate) fn is_up(&self) -> bool {
@@ -44,24 +47,6 @@ impl Display for KeyTransition {
     }
 }
 
-impl FromStr for KeyTransition {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut chars = s.trim().chars();
-        let symbol = chars.next().ok_or("Key transition symbol is empty.")?;
-        if chars.next().is_none() {
-            match symbol {
-                '↑' | '^' => Ok(Up),
-                '↓' | '*' => Ok(Down),
-                _ => Err(format!("Illegal key transition symbol `{}`.", s)),
-            }
-        } else {
-            Err(format!("Key transition symbols `{}` is too long.", s))
-        }
-    }
-}
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub(crate) struct KeyAction {
     pub(crate) key: Key,
@@ -69,13 +54,6 @@ pub(crate) struct KeyAction {
 }
 
 impl KeyAction {
-    fn new(key_name: &str, transition_symbol: char) -> Result<Self, String> {
-        Ok(Self {
-            key: key_name.parse()?,
-            transition: transition_symbol.to_string().parse()?,
-        })
-    }
-
     pub(crate) fn from_keyboard_input(input: &KBDLLHOOKSTRUCT) -> Self {
         Self {
             key: Key::from_keyboard_input(input),
@@ -116,25 +94,6 @@ impl Display for KeyAction {
     }
 }
 
-impl FromStr for KeyAction {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let st = s.trim();
-
-        let transition_symbol = st
-            .chars()
-            .last()
-            .ok_or(&format!("Error parsing key action. String is empty. `{s}`"))?;
-
-        let key_name = st.strip_suffix(transition_symbol).ok_or(&format!(
-            "Invalid key action suffix: `{transition_symbol}`."
-        ))?;
-
-        Self::new(key_name, transition_symbol)
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct KeyActionSequence {
     pub(crate) actions: Vec<KeyAction>,
@@ -152,31 +111,6 @@ impl Display for KeyActionSequence {
     }
 }
 
-impl FromStr for KeyActionSequence {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let actions = s
-            .split(|ch| ['→', '>'].contains(&ch))
-            .flat_map(|part| {
-                let part = part.trim();
-
-                let (prefix, suffixes) = part
-                    .char_indices()
-                    .find(|(_, ch)| ['↑', '↓', '^', '*'].contains(ch))
-                    .map(|(ix, _)| part.split_at(ix))
-                    .unwrap_or((part, "↓↑"));
-
-                suffixes
-                    .chars()
-                    .map(move |suffix| KeyAction::new(prefix, suffix))
-            })
-            .collect::<Result<Vec<_>, Self::Err>>()?;
-
-        Ok(Self { actions })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key::ScanCode;
@@ -186,7 +120,6 @@ mod tests {
     use crate::keyboard::key_event::SELF_EVENT_MARKER;
     use crate::{assert_not, key, sc_key};
     use serde::{Deserialize, Serialize};
-    use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VK_RETURN,
     };
@@ -217,29 +150,6 @@ mod tests {
         assert_eq!(Up, if true { Up } else { Down });
         assert!(Up.is_up());
         assert_not!(Down.is_up());
-    }
-
-    #[test]
-    fn test_key_transition_parse() {
-        assert_eq!(Down, "↓".parse().unwrap());
-        assert_eq!(Up, "↑".parse().unwrap());
-        assert_eq!(Down, "*".parse().unwrap());
-        assert_eq!(Up, "^".parse().unwrap());
-    }
-
-    #[test]
-    fn test_key_transition_parse_fails_illegal() {
-        assert!(KeyTransition::from_str("BANANA").is_err())
-    }
-
-    #[test]
-    fn test_key_transition_parse_fails_empty() {
-        assert!(KeyTransition::from_str("").is_err())
-    }
-
-    #[test]
-    fn test_key_transition_parse_fails_to_long() {
-        assert!(KeyTransition::from_str("↑↑↑").is_err())
     }
 
     #[test]
@@ -274,21 +184,6 @@ mod tests {
             transition: Up,
         };
         assert_eq!("NUM_ENTER↑", format!("{}", actual));
-    }
-
-    #[test]
-    fn test_key_action_parse() {
-        let expected = KeyAction {
-            key: key!("ENTER"),
-            transition: Down,
-        };
-        assert_eq!(expected, "ENTER↓".parse().unwrap());
-
-        let expected = KeyAction {
-            key: key!("F3"),
-            transition: Down,
-        };
-        assert_eq!(expected, " F3\n*".parse().unwrap());
     }
 
     #[test]
@@ -350,13 +245,5 @@ mod tests {
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
-    }
-
-    #[test]
-    fn test_key_action_sequence_parse_expand_transition() {
-        let expected = key_action_seq!("A↓ → A↑");
-
-        assert_eq!(expected, "A↓↑".parse().unwrap());
-        assert_eq!(expected, "A".parse().unwrap());
     }
 }

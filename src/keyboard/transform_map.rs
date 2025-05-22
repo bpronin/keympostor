@@ -4,7 +4,7 @@ use crate::keyboard::key_modifiers::KeyModifiers;
 use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub(crate) struct KeyTransformMap {
     map: HashMap<KeyAction, HashMap<KeyModifiers, KeyTransformRule>>,
 }
@@ -39,14 +39,6 @@ impl KeyTransformMap {
             .entry(trigger.action)
             .or_default()
             .insert(trigger.modifiers, rule);
-    }
-}
-
-impl Default for KeyTransformMap {
-    fn default() -> Self {
-        Self {
-            map: HashMap::new(),
-        }
     }
 }
 
