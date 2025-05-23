@@ -88,6 +88,17 @@ impl FromStr for KeyAction {
     }
 }
 
+impl KeyActionSequence {
+    fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
+        let list = s
+            .split(',')
+            .map(|s| s.trim().parse())
+            .collect::<Result<Vec<_>, String>>()?;
+
+        Ok(list)
+    }
+}
+
 impl FromStr for KeyActionSequence {
     type Err = String;
 
@@ -166,6 +177,7 @@ impl KeyTrigger {
             .split(',')
             .map(|s| s.trim().parse())
             .collect::<Result<Vec<_>, String>>()?;
+
         Ok(list)
     }
 }
@@ -192,6 +204,7 @@ impl FromStr for KeyTrigger {
 impl KeyTransformRule {
     fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
         let mut parts = s.trim().split(":");
+
         let triggers = KeyTrigger::from_str_group(parts.next().ok_or("Missing source part.")?)?;
         let actions = KeyActionSequence::from_str(parts.next().ok_or("Missing target part.")?)?;
 
@@ -266,23 +279,25 @@ mod tests {
     use crate::keyboard::transform_rules::{
         KeyTransformProfile, KeyTransformRule, KeyTransformRules,
     };
-    use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
+    use crate::{
+        key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_rules, key_trigger,
+    };
     use std::str::FromStr;
 
     #[test]
-    fn test_vk_parse() {
+    fn test_vk_from_str() {
         assert_eq!("VK_RETURN", VirtualKey::from_str("VK_RETURN").unwrap().name);
         assert_eq!("VK_RETURN", VirtualKey::from_str("RETURN").unwrap().name);
         assert_eq!("VK_RETURN", VirtualKey::from_str("VK_0x0D").unwrap().name);
     }
 
     #[test]
-    fn test_vk_parse_fails() {
+    fn test_vk_from_str_fails() {
         assert!(VirtualKey::from_str("BANANA").is_err());
     }
 
     #[test]
-    fn test_sc_parse() {
+    fn test_sc_from_str() {
         assert_eq!("SC_ENTER", ScanCode::from_str("SC_ENTER").unwrap().name);
         assert_eq!("SC_ENTER", ScanCode::from_str("ENTER").unwrap().name);
         assert_eq!(
@@ -292,12 +307,12 @@ mod tests {
     }
 
     #[test]
-    fn test_sc_parse_fails() {
+    fn test_sc_from_str_fails() {
         assert!(ScanCode::from_str("BANANA").is_err());
     }
 
     #[test]
-    fn test_key_parse() {
+    fn test_key_from_str() {
         assert_eq!(
             Key {
                 vk_code: 0x0D,
@@ -327,78 +342,78 @@ mod tests {
     }
 
     #[test]
-    fn test_key_parse_fails() {
+    fn test_key_from_str_fails() {
         assert!(Key::from_str("BANANA").is_err());
     }
 
     #[test]
-    fn test_key_transition_parse() {
-        assert_eq!(Down, "↓".parse().unwrap());
-        assert_eq!(Up, "↑".parse().unwrap());
-        assert_eq!(Down, "*".parse().unwrap());
-        assert_eq!(Up, "^".parse().unwrap());
+    fn test_key_transition_from_str() {
+        assert_eq!(Down, KeyTransition::from_str("↓").unwrap());
+        assert_eq!(Up, KeyTransition::from_str("↑").unwrap());
+        assert_eq!(Down, KeyTransition::from_str("*").unwrap());
+        assert_eq!(Up, KeyTransition::from_str("^").unwrap());
     }
 
     #[test]
-    fn test_key_transition_parse_fails_illegal() {
+    fn test_key_transition_from_str_fails_illegal() {
         assert!(KeyTransition::from_str("BANANA").is_err())
     }
 
     #[test]
-    fn test_key_transition_parse_fails_empty() {
+    fn test_key_transition_from_str_fails_empty() {
         assert!(KeyTransition::from_str("").is_err())
     }
 
     #[test]
-    fn test_key_transition_parse_fails_to_long() {
+    fn test_key_transition_from_str_fails_to_long() {
         assert!(KeyTransition::from_str("↑↑↑").is_err())
     }
 
     #[test]
-    fn test_key_action_parse() {
+    fn test_key_action_from_str() {
         let expected = KeyAction {
             key: key!("ENTER"),
             transition: Down,
         };
-        assert_eq!(expected, "ENTER↓".parse().unwrap());
+        assert_eq!(expected, KeyAction::from_str("ENTER↓").unwrap());
 
         let expected = KeyAction {
             key: key!("F3"),
             transition: Down,
         };
-        assert_eq!(expected, " F3\n*".parse().unwrap());
+        assert_eq!(expected, KeyAction::from_str("    F3\n*").unwrap());
+    }
+
+    // #[test]
+    // fn test_key_action_sequence_from_str_no_transiion() {
+    //     let actual = KeyActionSequence::from_str_group("A").unwrap();
+    // 
+    //     assert_eq!(key_action_seq!("A↓"), actual[0]);
+    //     assert_eq!(key_action_seq!("A↑"), actual[1]);
+    // }
+
+    #[test]
+    fn test_key_action_sequence_from_str_up_down_transition() {
+        assert_eq!(key_action_seq!("A↓ → A↑"), KeyActionSequence::from_str("A↓↑").unwrap());
     }
 
     #[test]
-    fn test_key_action_sequence_parse_expand_transition() {
-        let expected = key_action_seq!("A↓ → A↑");
-
-        assert_eq!(expected, "A↓↑".parse().unwrap());
-        assert_eq!(expected, "A".parse().unwrap());
-    }
-
-    #[test]
-    fn test_key_modifiers_parse() {
-        assert_eq!(KM_NONE, "".parse().unwrap());
+    fn test_key_modifiers_from_str() {
+        assert_eq!(KM_NONE, KeyModifiers::from_str("").unwrap());
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_RWIN,
-            "LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN".parse().unwrap()
+            KeyModifiers::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
         );
-
-        // assert_eq!(
-        //     KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL,
-        //     "SHIFT + WIN + ALT + CTRL".parse().unwrap()
-        // );
     }
 
     #[test]
-    fn test_key_modifiers_parse_fails() {
+    fn test_key_modifiers_from_str_fails() {
         assert!(KeyModifiers::from_str("BANANA").is_err());
     }
 
     #[test]
-    fn test_keyboard_state_all_parse() {
+    fn test_keyboard_state_all_from_str() {
         assert_eq!(
             All(KM_LSHIFT | KM_RSHIFT | KM_RWIN),
             KeyboardState::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
@@ -408,12 +423,12 @@ mod tests {
     }
 
     #[test]
-    fn test_keyboard_state_any_parse() {
+    fn test_keyboard_state_any_from_str() {
         assert_eq!(Any, KeyboardState::from_str("*").unwrap());
     }
 
     #[test]
-    fn test_key_trigger_parse_modifiers() {
+    fn test_key_trigger_from_str_all_modifiers() {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
@@ -424,7 +439,7 @@ mod tests {
     }
 
     #[test]
-    fn test_key_trigger_parse_none() {
+    fn test_key_trigger_parse_no_modifiers() {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
@@ -435,7 +450,7 @@ mod tests {
     }
 
     #[test]
-    fn test_key_trigger_parse_any() {
+    fn test_key_trigger_parse_any_modifiers() {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
@@ -454,7 +469,7 @@ mod tests {
     }
 
     #[test]
-    fn test_key_trigger_parse_group() {
+    fn test_key_trigger_from_str_group() {
         let expected = vec![
             key_trigger!("A*"),
             key_trigger!("[LEFT_CTRL]B^"),
@@ -465,18 +480,17 @@ mod tests {
     }
 
     #[test]
-    fn test_key_transform_rule_parse() {
+    fn test_key_transform_rule_from_str() {
         let expected = KeyTransformRule {
             source: key_trigger!("[LEFT_SHIFT] ENTER↓"),
             target: key_action_seq!("A↓"),
         };
 
-        let actual = "[LEFT_SHIFT] ENTER↓ : A↓".parse().unwrap();
-        assert_eq!(expected, actual);
+        assert_eq!(expected, KeyTransformRule::from_str("[LEFT_SHIFT] ENTER↓ : A↓").unwrap());
     }
 
     #[test]
-    fn test_key_transform_rule_parse_group() {
+    fn test_key_transform_rule_from_str_group() {
         let expected = vec![
             key_rule!("A* : ENTER*"),
             key_rule!("[LEFT_CTRL]B* : ENTER*"),
@@ -487,7 +501,58 @@ mod tests {
     }
 
     #[test]
-    fn test_key_transform_profile_parse() {
+    fn test_key_transform_rules_from_str_up_down_transition() {
+        let actual = key_rules!(
+            "
+            A↓ : A↓↑ → B↓↑
+            "
+        );
+        let expected = key_rules!(
+            "
+            A↓ : A↓ → A↑ → B↓ → B↑ 
+            "
+        );
+
+        assert_eq!(expected, actual);
+    }
+    
+    // #[test]
+    // fn test_key_transform_rules_from_str_no_transition() {
+    //     let actual = key_rules!(
+    //         "
+    //         A : B
+    //         "
+    //     );
+    //     let expected = key_rules!(
+    //         "
+    //         A↓ : B↓
+    //         A↑ : B↑
+    //         "
+    //     );
+    //
+    //     assert_eq!(expected, actual);
+    // }
+    
+    #[test]
+    fn test_key_transform_rules_from_str_group() {
+        let actual = key_rules!(
+            "
+            A↓,B↓ : C↓
+            "
+        );
+
+        let expected = key_rules!(
+            "
+            A↓ : C↓
+            B↓ : C↓
+            "
+        );
+
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_key_transform_profile_from_str() {
         let actual = key_profile!(
             "
             Test profile
@@ -508,61 +573,5 @@ mod tests {
 
         assert_eq!(expected, actual);
     }
-
-    #[test]
-    fn test_key_transform_rules_parse_split_keys() {
-        let actual = KeyTransformRules::from_str(
-            "
-        A↓,B↓ : C↓
-        ",
-        )
-        .unwrap();
-
-        let expected = KeyTransformRules::from_str(
-            "
-        A↓ : C↓
-        B↓ : C↓
-        ",
-        )
-        .unwrap();
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_key_transform_rules_parse_expand_transition() {
-        let actual = key_profile!(
-            "
-            Test profile
-            A↓ : A↓↑ → B↓↑
-            "
-        );
-        let expected = key_profile!(
-            "
-            Test profile
-            A↓ : A↓ → A↑ → B↓ → B↑ 
-            "
-        );
-
-        assert_eq!(expected, actual);
-    }
-
-    // #[test]
-    // fn test_key_transform_rules_parse_expand_rules() {
-    //     let actual = key_profile!(
-    //         "
-    //         Test profile
-    //         A : B
-    //         "
-    //     );
-    //     let expected = key_profile!(
-    //         "
-    //         Test profile
-    //         A↓ : B↓
-    //         A↑ : B↑
-    //         "
-    //     );
-    // 
-    //     assert_eq!(expected, actual);
-    // }
+ 
 }
