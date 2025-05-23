@@ -119,7 +119,6 @@ mod tests {
     use crate::keyboard::key_action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::keyboard::key_event::SELF_EVENT_MARKER;
     use crate::{assert_not, key, sc_key};
-    use serde::{Deserialize, Serialize};
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VK_RETURN,
     };
@@ -153,25 +152,6 @@ mod tests {
     }
 
     #[test]
-    fn test_key_transition_serialize() {
-        /* TOML requires wrapper */
-        #[derive(Debug, Serialize, Deserialize)]
-        struct Wrapper {
-            value: KeyTransition,
-        }
-
-        let source = Wrapper { value: Down };
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.value, actual.value);
-
-        let source = Wrapper { value: Up };
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.value, actual.value);
-    }
-
-    #[test]
     fn test_key_action_display() {
         let actual = KeyAction {
             key: key!("ENTER"),
@@ -184,18 +164,6 @@ mod tests {
             transition: Up,
         };
         assert_eq!("NUM_ENTER↑", format!("{}", actual));
-    }
-
-    #[test]
-    fn test_key_action_serialize() {
-        let source = KeyAction {
-            key: key!("ENTER"),
-            transition: Down,
-        };
-        let text = toml::to_string_pretty(&source).unwrap();
-
-        let actual = toml::from_str::<KeyAction>(&text).unwrap();
-        assert_eq!(source, actual);
     }
 
     #[test]
@@ -236,14 +204,5 @@ mod tests {
         let actual = key_action_seq!("ENTER↓ → SHIFT↑");
 
         assert_eq!("ENTER↓ → SHIFT↑", format!("{}", actual));
-    }
-
-    #[test]
-    fn test_key_action_sequence_serialize() {
-        let source = key_action_seq!("ENTER↓ → SHIFT↓");
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str(&text).unwrap();
-
-        assert_eq!(source, actual);
     }
 }

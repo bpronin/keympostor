@@ -1,6 +1,5 @@
 use crate::append_prefix;
 use crate::keyboard::key_const::{KEYS, SCAN_CODES, VIRTUAL_KEYS};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
@@ -40,7 +39,8 @@ impl VirtualKey {
         format!("VC_0x{:02X}", self.value)
     }
 
-    /*pub(crate) fn to_scan_code(&self) -> Result<&'static ScanCode, String> {
+    /*
+    pub(crate) fn to_scan_code(&self) -> Result<&'static ScanCode, String> {
         let ext_code = unsafe { MapVirtualKeyW(self.value as u32, MAPVK_VK_TO_VSC_EX) };
         if ext_code > 0 {
             let code = ext_code as u8;
@@ -49,7 +49,8 @@ impl VirtualKey {
         } else {
             Err(format!("Unable to convert virtual key {self} to scancode."))
         }
-    }*/
+    }
+    */
 }
 
 impl Display for VirtualKey {
@@ -93,18 +94,6 @@ impl ScanCode {
         Self::from_code(ext_code as u8, ext_code & 0xE000 == 0xE000)
     }
 
-    // pub(crate) fn from_symbol(symbol: &str) -> Result<&'static ScanCode, String> {
-    //     if symbol.len() == 1 {
-    //         let ch = symbol.chars().next().unwrap();
-    //         let oem_code = unsafe { OemKeyScan(ch as u16) };
-    //         let ext_code = oem_code as u8;
-    //         //todo? let is_shift = oem_code & 0x0001_0000 != 0;
-    //         ScanCode::from_code(ext_code, false)
-    //     } else {
-    //         Err(format!("Illegal key symbol `{}`.", symbol))
-    //     }
-    // }
-
     pub(crate) fn ext_value(&self) -> u16 {
         if self.is_extended {
             self.value as u16 | 0xE0 << 8
@@ -117,14 +106,16 @@ impl ScanCode {
         format!("SC_0x{:04X}", self.ext_value())
     }
 
-    /*pub(crate) fn to_virtual_key(&self) -> Result<&'static VirtualKey, String> {
+    /*
+    pub(crate) fn to_virtual_key(&self) -> Result<&'static VirtualKey, String> {
         let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
         if vk_code > 0 {
             VirtualKey::from_code(vk_code as u8)
         } else {
             Err(format!("Unable to convert scancode {self} to virtual key."))
         }
-    }*/
+    }
+    */
 }
 
 impl Display for ScanCode {
@@ -176,31 +167,9 @@ impl Display for Key {
     }
 }
 
-impl Serialize for Key {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        serializer.serialize_str(&self.name())
-    }
-}
-
-impl<'de> Deserialize<'de> for Key {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let text = String::deserialize(deserializer)?;
-        let key = text.parse().map_err(de::Error::custom)?;
-
-        Ok(key)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
-    use serde::{Deserialize, Serialize};
     use std::str::FromStr;
 
     #[macro_export]
@@ -250,7 +219,8 @@ mod tests {
         );
     }
 
-    /*#[test]
+    /*
+    #[test]
     fn test_vk_to_scan_code() {
         assert_eq!(
             sc_key!("SC_ENTER"),
@@ -267,7 +237,8 @@ mod tests {
     #[should_panic]
     fn test_vk_to_scan_code_fails() {
         vk_key!("VK_LBUTTON").to_scan_code().unwrap();
-    }*/
+    }
+    */
 
     #[test]
     fn test_sc_from_code() {
@@ -301,18 +272,6 @@ mod tests {
         );
     }
 
-    // #[test]
-    // fn test_sc_from_symbol() {
-    //     let actual = ScanCode::from_symbol("A").unwrap();
-    //     assert_eq!("SC_A", actual.name);
-    //
-    //     let actual = ScanCode::from_symbol("`").unwrap();
-    //     assert_eq!("SC_BACKTICK", actual.name);
-    //
-    //     let actual = ScanCode::from_symbol("~").unwrap();
-    //     assert_eq!("SC_BACKTICK", actual.name);
-    // }
-
     #[test]
     fn test_sc_from_ext_code() {
         let actual = ScanCode::from_ext_code(0x1C).unwrap();
@@ -330,7 +289,8 @@ mod tests {
         assert_eq!(0xE021, ScanCode::from_ext_code(0xE021).unwrap().ext_value());
     }
 
-    /*#[test]
+    /*
+    #[test]
     fn test_sc_to_virtual_key() {
         assert_eq!(
             vk_key!("VK_RETURN"),
@@ -347,7 +307,8 @@ mod tests {
     #[should_panic]
     fn test_sc_to_virtual_key_fails() {
         sc_key!("SC_F24").to_virtual_key().unwrap();
-    }*/
+    }
+    */
 
     #[test]
     fn test_sc_display() {
@@ -379,26 +340,5 @@ mod tests {
                 }
             )
         );
-    }
-
-    #[test]
-    fn test_key_serialize() {
-        /* TOML requires wrapper */
-        #[derive(Debug, Serialize, Deserialize)]
-        struct Wrapper {
-            key: Key,
-        }
-
-        let source = Wrapper { key: key!("ENTER") };
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.key, actual.key);
-
-        let source = Wrapper {
-            key: key!("NUM_ENTER"),
-        };
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.key, actual.key);
     }
 }

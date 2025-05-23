@@ -9,6 +9,7 @@ use crate::keyboard::key_modifiers::{
 use crate::keyboard::key_trigger::KeyTrigger;
 use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
 use std::str::{FromStr, Lines};
+use test_helpers::before_all;
 
 impl FromStr for VirtualKey {
     type Err = String;
@@ -259,17 +260,28 @@ impl FromStr for KeyTransformProfile {
     }
 }
 
+#[before_all]
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::parse::KeyActionSequence;
-use std::str::FromStr;
-    use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
-    use crate::keyboard::key_action::{KeyAction, KeyTransition};
     use crate::keyboard::key_action::KeyTransition::{Down, Up};
-    use crate::keyboard::key_modifiers::{KeyModifiers, KeyModifiersMatrix, KM_ALL, KM_LALT, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT, KM_RWIN};
+    use crate::keyboard::key_action::{KeyAction, KeyTransition};
+    use crate::keyboard::key_modifiers::{
+        KeyModifiers, KeyModifiersMatrix, KM_ALL, KM_LALT, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT,
+        KM_RWIN,
+    };
     use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
+    use crate::keyboard::parse::KeyActionSequence;
+    use crate::keyboard::tests::setup_logger;
+    use crate::keyboard::transform_rules::{
+        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
+    };
+    use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
+    use std::str::FromStr;
+
+    fn before_all() {
+        setup_logger();
+    }
 
     #[test]
     fn test_vk_parse() {
@@ -291,7 +303,6 @@ use std::str::FromStr;
             "SC_NUM_ENTER",
             ScanCode::from_str("SC_0xE01C").unwrap().name
         );
-        // assert_eq!("SC_BACKTICK", ScanCode::from_str("`").unwrap().name);
     }
 
     #[test]
@@ -413,14 +424,14 @@ use std::str::FromStr;
         );
     }
 
-    // #[test]
-    // fn test_key_modifiers_matrix_parse_empty() {
-    //     let expected = KeyModifiersMatrix::new(&[
-    //         KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL,
-    //     ]);
-    //
-    //     assert_eq!(expected, KeyModifiersMatrix::from_str("").unwrap());
-    // }
+    #[test]
+    fn test_key_modifiers_matrix_parse_empty() {
+        let expected = KeyModifiersMatrix::new(&[
+            KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL,
+        ]);
+
+        assert_eq!(expected, KeyModifiersMatrix::from_str("").unwrap());
+    }
 
     #[test]
     fn test_key_trigger_parse() {
@@ -542,4 +553,28 @@ use std::str::FromStr;
 
         assert_eq!(expected, actual);
     }
+
+    /*    todo:;
+        #[test]
+        fn test_key_transform_rules_parse_split_transition() {
+            let actual: KeyTransformProfile = "
+            Test profile;
+            A : B;
+            "
+            .parse()
+            .unwrap();
+
+            println!("{}", actual);
+
+            let expected: KeyTransformProfile = "
+            Test profile;
+            A↓ : B↓;
+            A↑ : B↑;
+            "
+            .parse()
+            .unwrap();
+
+            assert_eq!(expected, actual);
+        }
+    */
 }

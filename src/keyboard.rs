@@ -5,22 +5,23 @@ pub(crate) mod key_event;
 pub(crate) mod key_hook;
 mod key_modifiers;
 mod key_trigger;
+mod parse;
+mod serialize;
 mod transform_map;
 pub(crate) mod transform_rules;
-mod parse;
 
 #[cfg(test)]
 mod tests {
     use log::LevelFilter;
     use simple_logger::SimpleLogger;
 
-    pub(crate) fn init_logger() {
+    pub(crate) fn setup_logger() {
         SimpleLogger::new()
             .with_level(LevelFilter::Debug)
             .init()
             .unwrap();
     }
-
+    
     /*  *** Key codes generation stuff ***
 
     #[test]

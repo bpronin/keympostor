@@ -41,7 +41,7 @@ impl KeyboardHook {
             debug!("Keyboard hook uninstalled");
         }
     }
-    
+
     fn handle(&self, code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
         if code == HC_ACTION as i32 {
             let event = self.create_event(l_param);

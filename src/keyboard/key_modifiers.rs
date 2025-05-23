@@ -1,7 +1,7 @@
 use crate::write_joined;
 use core::ops;
-use ops::{BitOr};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use ops::BitOr;
+use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN,
@@ -82,7 +82,7 @@ pub(crate) const KM_ALL: KeyModifiers = KeyModifiers(u8::MAX);
 //     }
 // }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Default)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) struct KeyModifiersMatrix {
     pub(crate) items: [KeyModifiers; 8],
 }
@@ -106,34 +106,15 @@ impl KeyModifiersMatrix {
     }
 }
 
+impl Default for KeyModifiersMatrix {
+    fn default() -> Self {
+        Self { items: [KM_ALL; 8] }
+    }
+}
+
 impl Display for KeyModifiersMatrix {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if !self.items.is_empty() {
-            write_joined!(f, self.items.iter().filter(|&x| { *x != KM_NONE }), ", ")
-        } else {
-            Ok(())
-        }
-    }
-}
-
-impl Serialize for KeyModifiersMatrix {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        Ok(self.to_string().serialize(serializer)?)
-    }
-}
-
-impl<'de> Deserialize<'de> for KeyModifiersMatrix {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let text = String::deserialize(deserializer)?;
-        let modifiers = text.parse().map_err(de::Error::custom)?;
-
-        Ok(modifiers)
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write_joined!(f, self.items.iter().filter(|&x| { *x != KM_NONE }), ", ")
     }
 }
 
@@ -200,7 +181,7 @@ impl KeyModifiers {
 }
 
 impl Display for KeyModifiers {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut names: Vec<&str> = vec![];
 
         if self.contains(KM_LSHIFT) {
@@ -236,27 +217,6 @@ impl Display for KeyModifiers {
     }
 }
 
-impl Serialize for KeyModifiers {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        Ok(self.to_string().serialize(serializer)?)
-    }
-}
-
-impl<'de> Deserialize<'de> for KeyModifiers {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let text = String::deserialize(deserializer)?;
-        let modifiers = text.parse().map_err(de::Error::custom)?;
-
-        Ok(modifiers)
-    }
-}
-
 impl BitOr for KeyModifiers {
     type Output = Self;
     fn bitor(self, other: Self) -> Self {
@@ -264,40 +224,13 @@ impl BitOr for KeyModifiers {
     }
 }
 
-// impl BitAnd for KeyModifiers {
-//     type Output = Self;
-//     fn bitand(self, other: Self) -> Self {
-//         Self(self.0 & other.0)
-//     }
-// }
-
-// impl BitOrAssign for KeyModifiers {
-//     fn bitor_assign(&mut self, other: Self) {
-//         self.0.bitor_assign(other.0)
-//     }
-// }
-
-// impl BitAndAssign for KeyModifiers {
-//     fn bitand_assign(&mut self, other: Self) {
-//         self.0.bitand_assign(other.0)
-//     }
-// }
-
-// impl Not for KeyModifiers {
-//     type Output = Self;
-//     fn not(self) -> Self {
-//         Self(self.0.not())
-//     }
-// }
-
 #[cfg(test)]
 mod tests {
     use crate::assert_not;
     use crate::keyboard::key_modifiers::{
-        KeyModifiers, KeyModifiersMatrix, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
-        KM_RSHIFT, KM_RWIN,
+        KeyModifiers, KeyModifiersMatrix, KM_ALL, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT,
+        KM_RCTRL, KM_RSHIFT, KM_RWIN,
     };
-    use serde::{Deserialize, Serialize};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
     #[macro_export]
@@ -331,7 +264,6 @@ mod tests {
     #[test]
     fn test_key_modifiers_display_short() {
         assert_eq!("........", KM_NONE.to_string_short());
-
         assert_eq!("S...W...", (KM_LSHIFT | KM_RWIN).to_string_short());
         assert_eq!("..A...C.", (KM_LALT | KM_RCTRL).to_string_short());
 
@@ -344,34 +276,18 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_capture() {
-        let mut keys = [0u8; 256];
-        assert_eq!(KM_NONE, KeyModifiers::from_keyboard_state(keys));
+        let mut keyboard_state = [0u8; 256];
+        assert_eq!(KM_NONE, KeyModifiers::from_keyboard_state(keyboard_state));
 
-        keys[VK_LSHIFT.0 as usize] = 0x80;
-        keys[VK_RSHIFT.0 as usize] = 0x80;
-        keys[VK_LCONTROL.0 as usize] = 0x80;
-        keys[VK_RWIN.0 as usize] = 0x80;
+        keyboard_state[VK_LSHIFT.0 as usize] = 0x80;
+        keyboard_state[VK_RSHIFT.0 as usize] = 0x80;
+        keyboard_state[VK_LCONTROL.0 as usize] = 0x80;
+        keyboard_state[VK_RWIN.0 as usize] = 0x80;
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_LCTRL | KM_RWIN,
-            KeyModifiers::from_keyboard_state(keys)
+            KeyModifiers::from_keyboard_state(keyboard_state)
         );
-    }
-
-    #[test]
-    fn test_key_modifiers_serialize() {
-        /* TOML requires wrapper */
-        #[derive(Debug, Serialize, Deserialize)]
-        struct Wrapper {
-            value: KeyModifiers,
-        }
-
-        let source = Wrapper {
-            value: "LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN".parse().unwrap(),
-        };
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.value, actual.value);
     }
 
     #[test]
@@ -405,5 +321,16 @@ mod tests {
 
         let matrix = KeyModifiersMatrix::new(&[KM_LALT, KM_RSHIFT, KM_RCTRL, KM_RCTRL | KM_RWIN]);
         assert_not!(matrix.has_item(KM_RALT | KM_RSHIFT));
+
+        let matrix = KeyModifiersMatrix::default();
+        assert!(matrix.has_item(KM_NONE));
+        assert!(matrix.has_item(KM_ALL));
+        assert!(matrix.has_item(KM_RALT));
+        assert!(matrix.has_item(KM_RSHIFT));
+        assert!(matrix.has_item(KM_LSHIFT));
+        assert!(matrix.has_item(KM_RCTRL | KM_RWIN));
+        assert!(matrix.has_item(KM_RALT | KM_LWIN));
+        assert!(matrix.has_item(KM_LALT));
     }
+    
 }
