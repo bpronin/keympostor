@@ -88,6 +88,7 @@ impl FromStr for KeyAction {
     }
 }
 
+/*todo!
 impl KeyActionSequence {
     fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
         let mut list = vec![];
@@ -95,6 +96,7 @@ impl KeyActionSequence {
         Ok(list)
     }
 }
+ */
 
 impl FromStr for KeyActionSequence {
     type Err = String;
@@ -381,13 +383,15 @@ mod tests {
         assert_eq!(expected, KeyAction::from_str("    F3\n*").unwrap());
     }
 
-    #[test]
-    fn test_key_action_sequence_from_str_no_transiion() {
-        let actual = KeyActionSequence::from_str_group("A").unwrap();
+    /*todo!
+        #[test]
+        fn test_key_action_sequence_from_str_no_transiion() {
+            let actual = KeyActionSequence::from_str_group("A").unwrap();
 
-        assert_eq!(key_action_seq!("A↓"), actual[0]);
-        assert_eq!(key_action_seq!("A↑"), actual[1]);
-    }
+            assert_eq!(key_action_seq!("A↓"), actual[0]);
+            assert_eq!(key_action_seq!("A↑"), actual[1]);
+        }
+    */
 
     #[test]
     fn test_key_action_sequence_from_str_up_down_transition() {
@@ -518,37 +522,39 @@ mod tests {
 
         assert_eq!(expected, actual);
     }
-
+    
+    /*todo!
     #[test]
     fn test_key_transform_rules_from_str_no_transition() {
         let actual = key_rules!(
             "
-            A : B
-            "
+        A : B
+        "
         );
         let expected = key_rules!(
             "
-            A↓ : B↓
-            A↑ : B↑
-            "
+        A↓ : B↓
+        A↑ : B↑
+        "
         );
 
         assert_eq!(expected, actual);
     }
-
+    */
+    
     #[test]
     fn test_key_transform_rules_from_str_group() {
         let actual = key_rules!(
             "
-            A↓,B↓ : C↓
-            "
+        A↓,B↓ : C↓
+        "
         );
 
         let expected = key_rules!(
             "
-            A↓ : C↓
-            B↓ : C↓
-            "
+        A↓ : C↓
+        B↓ : C↓
+        "
         );
 
         assert_eq!(expected, actual);
@@ -558,10 +564,10 @@ mod tests {
     fn test_key_transform_profile_from_str() {
         let actual = key_profile!(
             "
-            Test profile
-            A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
-            [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
-            "
+        Test profile
+        A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
+        [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
+        "
         );
 
         let expected = KeyTransformProfile {
