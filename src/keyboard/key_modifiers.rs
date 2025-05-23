@@ -1,11 +1,29 @@
 use crate::write_joined;
 use core::ops;
 use ops::BitOr;
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN,
 };
+use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub(crate) enum KeyboardState {
+    Any,
+    All(KeyModifiers),
+}
+
+impl Display for KeyboardState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Any => write!(f, "[*]"),
+            All(modifiers) => write!(f, "[{}]", modifiers),
+        }
+    }
+}
 
 pub(crate) const KM_NONE: KeyModifiers = KeyModifiers(0);
 pub(crate) const KM_LSHIFT: KeyModifiers = KeyModifiers(1);
@@ -17,70 +35,6 @@ pub(crate) const KM_RALT: KeyModifiers = KeyModifiers(1 << 5);
 pub(crate) const KM_LWIN: KeyModifiers = KeyModifiers(1 << 6);
 pub(crate) const KM_RWIN: KeyModifiers = KeyModifiers(1 << 7);
 pub(crate) const KM_ALL: KeyModifiers = KeyModifiers(u8::MAX);
-
-// #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
-// struct KeyModifiersMatrix(u64);
-//
-// impl KeyModifiersMatrix {
-//     pub(crate) fn new(items: &[KeyModifiers]) -> Self {
-//         let mut bytes = [0u8; 8];
-//         for (i, item) in items.iter().enumerate() {
-//             bytes[i] = item.0;
-//         }
-//         Self(u64::from_be_bytes(bytes))
-//     }
-//
-//     pub(crate) fn has_item(&self, item: KeyModifiers) -> bool {
-//         // self.0.to_be_bytes().iter().any(|b| b & item.0 == item.0)
-//         for i in 0..8 {
-//             let b = ((self.0 >> (8 * i)) & 0xFF) as u8;
-//             if b & item.0 == item.0 {
-//                 return true;
-//             }
-//         }
-//         false
-//     }
-// }
-// impl Display for KeyModifiersMatrix {
-//     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-//         let items = self
-//             .0
-//             .to_be_bytes()
-//             .iter()
-//             .filter_map(|b| {
-//                 if *b != 0 {
-//                     Some(KeyModifiers(*b))
-//                 } else {
-//                     None
-//                 }
-//             })
-//             .collect::<Vec<_>>();
-//
-//         if !items.is_empty() {
-//             write_joined!(f, items, ", ")
-//         } else {
-//             Ok(())
-//         }
-//     }
-// }
-//
-// impl FromStr for KeyModifiersMatrix {
-//     type Err = String;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         let ts = s.trim();
-//         let value = if ts.is_empty() {
-//             KeyModifiersMatrix::default()
-//         } else {
-//             let items = ts
-//                 .split(',')
-//                 .map(|s| s.parse().unwrap())
-//                 .collect::<Vec<KeyModifiers>>();
-//             KeyModifiersMatrix::new(&items)
-//         };
-//         Ok(value)
-//     }
-// }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) struct KeyModifiersMatrix {
@@ -332,5 +286,4 @@ mod tests {
         assert!(matrix.has_item(KM_RALT | KM_LWIN));
         assert!(matrix.has_item(KM_LALT));
     }
-    
 }

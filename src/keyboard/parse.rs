@@ -2,8 +2,9 @@ use crate::keyboard::key::{Key, ScanCode, VirtualKey};
 use crate::keyboard::key_action::KeyTransition::{Down, Up};
 use crate::keyboard::key_action::{KeyAction, KeyActionSequence, KeyTransition};
 use crate::keyboard::key_const::KEYS;
+use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
 use crate::keyboard::key_modifiers::{
-    KeyModifiers, KeyModifiersMatrix, KM_ALL, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
+    KeyModifiers, KeyboardState, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
     KM_RSHIFT, KM_RWIN,
 };
 use crate::keyboard::key_trigger::KeyTrigger;
@@ -116,22 +117,14 @@ impl FromStr for KeyActionSequence {
     }
 }
 
-impl FromStr for KeyModifiersMatrix {
+impl FromStr for KeyboardState {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        let value = if ts.is_empty() {
-            KeyModifiersMatrix::default()
-        } else {
-            let mut items = [KeyModifiers::default(); 8];
-            for (i, s) in ts.split(',').enumerate() {
-                items[i] = s.parse()?
-            }
-            KeyModifiersMatrix { items }
-        };
-
-        Ok(value)
+        Ok(match s.trim() {
+            "*" => Any,
+            &_ => All(KeyModifiers::from_str(s)?),
+        })
     }
 }
 
@@ -185,13 +178,13 @@ impl FromStr for KeyTrigger {
         if let Some(s) = s.strip_prefix('[') {
             let mut parts = s.split(']');
             Ok(Self {
-                modifiers: parts.next().unwrap().parse()?,
+                state: parts.next().unwrap().parse()?, /* Modifiers go first! */
                 action: parts.next().unwrap().parse()?,
             })
         } else {
             Ok(Self {
                 action: s.parse()?,
-                modifiers: KM_ALL,
+                state: Any,
             })
         }
     }
@@ -266,9 +259,10 @@ mod tests {
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
     use crate::keyboard::key_action::KeyTransition::{Down, Up};
     use crate::keyboard::key_action::{KeyAction, KeyTransition};
+    use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
     use crate::keyboard::key_modifiers::{
-        KeyModifiers, KeyModifiersMatrix, KM_ALL, KM_LALT, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT,
-        KM_RWIN,
+        KeyModifiers, KeyModifiersMatrix, KeyboardState, KM_ALL, KM_LALT, KM_LSHIFT, KM_NONE, KM_RCTRL,
+        KM_RSHIFT, KM_RWIN,
     };
     use crate::keyboard::key_trigger::KeyTrigger;
     use crate::keyboard::parse::KeyActionSequence;
@@ -278,7 +272,6 @@ mod tests {
     };
     use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
     use std::str::FromStr;
-
     fn before_all() {
         setup_logger();
     }
@@ -412,49 +405,65 @@ mod tests {
     }
 
     #[test]
-    fn test_key_modifiers_matrix_parse() {
-        let expected = KeyModifiersMatrix::new(&[KM_LALT, KM_RSHIFT, KM_RCTRL, KM_RCTRL | KM_RWIN]);
-
+    fn test_keyboard_state_all_parse() {
         assert_eq!(
-            expected,
-            KeyModifiersMatrix::from_str(
-                "LEFT_ALT, RIGHT_SHIFT, RIGHT_CTRL, RIGHT_CTRL + RIGHT_WIN"
-            )
-            .unwrap()
+            All(KM_LSHIFT | KM_RSHIFT | KM_RWIN),
+            KeyboardState::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
         );
+        
+        assert_eq!(All(KM_NONE), KeyboardState::from_str("").unwrap());
     }
 
     #[test]
-    fn test_key_modifiers_matrix_parse_empty() {
-        let expected = KeyModifiersMatrix::new(&[
-            KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL,
-        ]);
-
-        assert_eq!(expected, KeyModifiersMatrix::from_str("").unwrap());
+    fn test_keyboard_state_any_parse() {
+        assert_eq!(Any, KeyboardState::from_str("*").unwrap());
     }
 
+    // #[test]
+    // fn test_key_modifiers_matrix_parse_empty() {
+    //     let expected = KeyModifiersMatrix::new(&[
+    //         KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL,
+    //     ]);
+    //
+    //     assert_eq!(expected, KeyModifiersMatrix::from_str("").unwrap());
+    // }
+
     #[test]
-    fn test_key_trigger_parse() {
+    fn test_key_trigger_parse_modifiers() {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                modifiers: key_mod!("LEFT_SHIFT"),
+                state: All(key_mod!("LEFT_SHIFT")),
             },
             KeyTrigger::from_str("[LEFT_SHIFT] A*").unwrap()
         );
+    }
 
+    #[test]
+    fn test_key_trigger_parse_none() {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                modifiers: KM_NONE,
+                state: All(KM_NONE),
             },
             KeyTrigger::from_str("[] A*").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_trigger_parse_any() {
+        assert_eq!(
+            KeyTrigger {
+                action: key_action!("A*"),
+                state: Any,
+            },
+            KeyTrigger::from_str("[*]A*").unwrap()
         );
 
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                modifiers: KM_ALL,
+                state: Any,
             },
             KeyTrigger::from_str("A*").unwrap()
         );
@@ -496,11 +505,11 @@ mod tests {
     #[test]
     fn test_key_transform_profile_parse() {
         let actual = key_profile!(
-            r#"
+            "
             Test profile
             A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
             [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
-            "#
+            "
         );
 
         let expected = KeyTransformProfile {

@@ -1,4 +1,5 @@
-use crate::keyboard::key_trigger::KeyTrigger;
+use crate::keyboard::key_action::KeyAction;
+use crate::keyboard::key_modifiers::KeyModifiers;
 use crate::keyboard::transform_rules::KeyTransformRule;
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_INJECTED};
@@ -10,7 +11,8 @@ pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 
 #[derive(Debug, PartialEq)]
 pub(crate) struct KeyEvent<'a> {
-    pub(crate) trigger: KeyTrigger,
+    pub(crate) action: KeyAction,
+    pub(crate) modifiers: KeyModifiers,
     pub(crate) rule: Option<&'a KeyTransformRule>,
     pub(crate) time: u32,
     pub(crate) is_injected: bool,
@@ -20,7 +22,8 @@ pub(crate) struct KeyEvent<'a> {
 impl KeyEvent<'_> {
     pub(crate) fn new(input: &KBDLLHOOKSTRUCT, keyboard_state: [u8; 256]) -> Self {
         Self {
-            trigger: KeyTrigger::from_keyboard_input(input, keyboard_state),
+            action: KeyAction::from_keyboard_input(input),
+            modifiers: KeyModifiers::from_keyboard_state(keyboard_state),
             rule: None,
             time: input.time,
             is_injected: input.flags.contains(LLKHF_INJECTED),
@@ -34,11 +37,11 @@ impl Display for KeyEvent<'_> {
         write!(
             f,
             "[{:8}] {:20} | {:22} | {:16} | {:1} | {:3} | {:3} | T:{:9} |",
-            self.trigger.modifiers,
-            self.trigger.action.key,
-            self.trigger.action.key.virtual_key(),
-            self.trigger.action.key.scan_code(),
-            self.trigger.action.transition,
+            self.modifiers,
+            self.action.key,
+            self.action.key.virtual_key(),
+            self.action.key.scan_code(),
+            self.action.transition,
             if self.is_injected { "INJ" } else { "" },
             if self.is_private { "PRV" } else { "" },
             self.time,
@@ -53,15 +56,14 @@ mod tests {
     use windows::Win32::UI::WindowsAndMessaging::{
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
+    use crate::keyboard::key_modifiers::KeyModifiers;
 
     #[macro_export]
     macro_rules! key_event {
-        ($action:literal, $modifiers:expr) => {
+        ($action:literal, $state:expr) => {
             KeyEvent {
-                trigger: KeyTrigger {
-                    action: $action.parse().unwrap(),
-                    modifiers: $modifiers,
-                },
+                action: $action.parse().unwrap(),
+                modifiers: KeyModifiers::from_keyboard_state($state),
                 time: 0,
                 is_injected: false,
                 is_private: false,
@@ -92,30 +94,10 @@ mod tests {
         );
 
         assert_eq!(1000, actual.time);
-        assert_eq!("SC_NUM_ENTER", actual.trigger.action.key.scan_code().name);
-        assert_eq!("VK_RETURN", actual.trigger.action.key.virtual_key().name);
-        assert_eq!(Up, actual.trigger.action.transition);
+        assert_eq!("SC_NUM_ENTER", actual.action.key.scan_code().name);
+        assert_eq!("VK_RETURN", actual.action.key.virtual_key().name);
+        assert_eq!(Up, actual.action.transition);
         assert!(actual.is_private);
         assert!(actual.is_injected);
     }
-
-    // #[test]
-    // fn test_key_event_from_trigger() {
-    //     init_logger();
-    //
-    //     let actual = KeyEvent::from_trigger(&key_trigger!("A↓"));
-    //
-    //     assert_eq!(0, actual.time());
-    //     assert_eq!("SC_A", actual.key().scan_code().name);
-    //     assert_eq!("VK_A", actual.key().virtual_key().name);
-    //     assert_eq!(Down, actual.transition());
-    //     // assert_not!(actual.is_valid());
-    //     assert_not!(actual.is_private());
-    //     assert_not!(actual.is_injected());
-    // }
-    //
-    // #[test]
-    // fn test_key_event_trigger() {
-    //     assert_eq!(key_trigger!("A↓"), key_event!("A↓", KM_NONE).trigger);
-    // }
 }
