@@ -94,14 +94,31 @@ impl Display for KeyAction {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub(crate) struct KeyActionSequence {
     pub(crate) actions: Vec<KeyAction>,
+    #[serde(skip_serializing, skip_deserializing)]
+    pub(crate) input: Vec<INPUT>,
 }
 
 impl KeyActionSequence {
-    pub(crate) fn create_input(&self) -> Vec<INPUT> {
-        self.actions.iter().map(|a| a.create_input()).collect()
+    pub(crate) fn new(actions: Vec<KeyAction>) -> Self {
+        let input = actions.iter().map(|a| a.create_input()).collect();
+        Self { actions, input }
+    }
+}
+
+impl PartialEq<Self> for KeyActionSequence {
+    fn eq(&self, other: &Self) -> bool {
+        self.actions == other.actions
+    }
+}
+
+impl Eq for KeyActionSequence {}
+
+impl Debug for KeyActionSequence {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.actions)
     }
 }
 

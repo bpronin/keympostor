@@ -90,10 +90,7 @@ impl FromStr for KeyAction {
 
 impl KeyActionSequence {
     fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
-        let list = s
-            .split(',')
-            .map(|s| s.trim().parse())
-            .collect::<Result<Vec<_>, String>>()?;
+        let mut list = vec![];
 
         Ok(list)
     }
@@ -123,7 +120,7 @@ impl FromStr for KeyActionSequence {
             })
             .collect::<Result<Vec<_>, Self::Err>>()?;
 
-        Ok(Self { actions })
+        Ok(Self::new(actions))
     }
 }
 
@@ -384,17 +381,20 @@ mod tests {
         assert_eq!(expected, KeyAction::from_str("    F3\n*").unwrap());
     }
 
-    // #[test]
-    // fn test_key_action_sequence_from_str_no_transiion() {
-    //     let actual = KeyActionSequence::from_str_group("A").unwrap();
-    // 
-    //     assert_eq!(key_action_seq!("A↓"), actual[0]);
-    //     assert_eq!(key_action_seq!("A↑"), actual[1]);
-    // }
+    #[test]
+    fn test_key_action_sequence_from_str_no_transiion() {
+        let actual = KeyActionSequence::from_str_group("A").unwrap();
+
+        assert_eq!(key_action_seq!("A↓"), actual[0]);
+        assert_eq!(key_action_seq!("A↑"), actual[1]);
+    }
 
     #[test]
     fn test_key_action_sequence_from_str_up_down_transition() {
-        assert_eq!(key_action_seq!("A↓ → A↑"), KeyActionSequence::from_str("A↓↑").unwrap());
+        assert_eq!(
+            key_action_seq!("A↓ → A↑"),
+            KeyActionSequence::from_str("A↓↑").unwrap()
+        );
     }
 
     #[test]
@@ -486,7 +486,10 @@ mod tests {
             target: key_action_seq!("A↓"),
         };
 
-        assert_eq!(expected, KeyTransformRule::from_str("[LEFT_SHIFT] ENTER↓ : A↓").unwrap());
+        assert_eq!(
+            expected,
+            KeyTransformRule::from_str("[LEFT_SHIFT] ENTER↓ : A↓").unwrap()
+        );
     }
 
     #[test]
@@ -515,24 +518,24 @@ mod tests {
 
         assert_eq!(expected, actual);
     }
-    
-    // #[test]
-    // fn test_key_transform_rules_from_str_no_transition() {
-    //     let actual = key_rules!(
-    //         "
-    //         A : B
-    //         "
-    //     );
-    //     let expected = key_rules!(
-    //         "
-    //         A↓ : B↓
-    //         A↑ : B↑
-    //         "
-    //     );
-    //
-    //     assert_eq!(expected, actual);
-    // }
-    
+
+    #[test]
+    fn test_key_transform_rules_from_str_no_transition() {
+        let actual = key_rules!(
+            "
+            A : B
+            "
+        );
+        let expected = key_rules!(
+            "
+            A↓ : B↓
+            A↑ : B↑
+            "
+        );
+
+        assert_eq!(expected, actual);
+    }
+
     #[test]
     fn test_key_transform_rules_from_str_group() {
         let actual = key_rules!(
@@ -573,5 +576,4 @@ mod tests {
 
         assert_eq!(expected, actual);
     }
- 
 }

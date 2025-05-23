@@ -56,7 +56,6 @@ mod tests {
     use windows::Win32::UI::WindowsAndMessaging::{
         KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP,
     };
-    use crate::keyboard::key_modifiers::KeyModifiers;
 
     #[macro_export]
     macro_rules! key_event {

@@ -80,7 +80,7 @@ mod tests {
             $text.parse::<KeyTransformRule>().unwrap()
         };
     }
-    
+
     #[macro_export]
     macro_rules! key_rules {
         ($text:literal) => {
