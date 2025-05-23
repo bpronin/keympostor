@@ -1,29 +1,13 @@
+use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
 use crate::write_joined;
 use core::ops;
 use ops::BitOr;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN,
 };
-use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub(crate) enum KeyboardState {
-    Any,
-    All(KeyModifiers),
-}
-
-impl Display for KeyboardState {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Any => write!(f, "[*]"),
-            All(modifiers) => write!(f, "[{}]", modifiers),
-        }
-    }
-}
 
 pub(crate) const KM_NONE: KeyModifiers = KeyModifiers(0);
 pub(crate) const KM_LSHIFT: KeyModifiers = KeyModifiers(1);
@@ -34,43 +18,6 @@ pub(crate) const KM_LALT: KeyModifiers = KeyModifiers(1 << 4);
 pub(crate) const KM_RALT: KeyModifiers = KeyModifiers(1 << 5);
 pub(crate) const KM_LWIN: KeyModifiers = KeyModifiers(1 << 6);
 pub(crate) const KM_RWIN: KeyModifiers = KeyModifiers(1 << 7);
-pub(crate) const KM_ALL: KeyModifiers = KeyModifiers(u8::MAX);
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) struct KeyModifiersMatrix {
-    pub(crate) items: [KeyModifiers; 8],
-}
-
-impl KeyModifiersMatrix {
-    pub(crate) fn new(modifiers: &[KeyModifiers]) -> Self {
-        let mut items = [KeyModifiers::default(); 8];
-        for (i, m) in modifiers.iter().enumerate() {
-            items[i] = *m;
-        }
-        Self { items }
-    }
-
-    pub(crate) fn has_item(&self, item: KeyModifiers) -> bool {
-        for i in self.items {
-            if i.contains(item) {
-                return true;
-            }
-        }
-        false
-    }
-}
-
-impl Default for KeyModifiersMatrix {
-    fn default() -> Self {
-        Self { items: [KM_ALL; 8] }
-    }
-}
-
-impl Display for KeyModifiersMatrix {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write_joined!(f, self.items.iter().filter(|&x| { *x != KM_NONE }), ", ")
-    }
-}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
 pub(crate) struct KeyModifiers(u8);
@@ -178,12 +125,26 @@ impl BitOr for KeyModifiers {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+pub(crate) enum KeyboardState {
+    Any,
+    All(KeyModifiers),
+}
+
+impl Display for KeyboardState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            Any => write!(f, "[*]"),
+            All(modifiers) => write!(f, "[{}]", modifiers),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::assert_not;
     use crate::keyboard::key_modifiers::{
-        KeyModifiers, KeyModifiersMatrix, KM_ALL, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT,
-        KM_RCTRL, KM_RSHIFT, KM_RWIN,
+        KeyModifiers, KeyboardState, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
+        KM_RSHIFT, KM_RWIN,
     };
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
@@ -191,13 +152,6 @@ mod tests {
     macro_rules! key_mod {
         ($text:literal) => {
             $text.parse::<KeyModifiers>().unwrap()
-        };
-    }
-
-    #[macro_export]
-    macro_rules! key_mod_mx {
-        ($text:literal) => {
-            $text.parse::<KeyModifiersMatrix>().unwrap()
         };
     }
 
@@ -230,60 +184,27 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_capture() {
-        let mut keyboard_state = [0u8; 256];
-        assert_eq!(KM_NONE, KeyModifiers::from_keyboard_state(keyboard_state));
+        let mut keys = [0u8; 256];
+        assert_eq!(KM_NONE, KeyModifiers::from_keyboard_state(keys));
 
-        keyboard_state[VK_LSHIFT.0 as usize] = 0x80;
-        keyboard_state[VK_RSHIFT.0 as usize] = 0x80;
-        keyboard_state[VK_LCONTROL.0 as usize] = 0x80;
-        keyboard_state[VK_RWIN.0 as usize] = 0x80;
+        keys[VK_LSHIFT.0 as usize] = 0x80;
+        keys[VK_RSHIFT.0 as usize] = 0x80;
+        keys[VK_LCONTROL.0 as usize] = 0x80;
+        keys[VK_RWIN.0 as usize] = 0x80;
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_LCTRL | KM_RWIN,
-            KeyModifiers::from_keyboard_state(keyboard_state)
+            KeyModifiers::from_keyboard_state(keys)
         );
     }
 
     #[test]
-    fn test_key_modifiers_matrix_display() {
-        let actual = KeyModifiersMatrix::new(&[
-            KM_LALT,
-            KM_RSHIFT,
-            KM_RCTRL,
-            KM_NONE,
-            KM_RCTRL | KM_RWIN,
-            KM_NONE,
-        ])
-        .to_string();
-
+    fn test_keyboard_state_display() {
         assert_eq!(
-            "LEFT_ALT, RIGHT_SHIFT, RIGHT_CTRL, RIGHT_CTRL + RIGHT_WIN",
-            actual
+            "[LEFT_SHIFT + RIGHT_WIN]",
+            KeyboardState::All(KM_LSHIFT | KM_RWIN).to_string()
         );
-    }
-
-    #[test]
-    fn test_key_modifiers_matrix_contains() {
-        let matrix = KeyModifiersMatrix::new(&[KM_LALT, KM_RSHIFT, KM_RCTRL, KM_RCTRL | KM_RWIN]);
-
-        assert!(matrix.has_item(KM_LALT));
-        assert_not!(matrix.has_item(KM_RALT));
-        assert!(matrix.has_item(KM_RSHIFT));
-        assert_not!(matrix.has_item(KM_LSHIFT));
-        assert!(matrix.has_item(KM_RCTRL | KM_RWIN));
-        assert_not!(matrix.has_item(KM_RALT | KM_LWIN));
-
-        let matrix = KeyModifiersMatrix::new(&[KM_LALT, KM_RSHIFT, KM_RCTRL, KM_RCTRL | KM_RWIN]);
-        assert_not!(matrix.has_item(KM_RALT | KM_RSHIFT));
-
-        let matrix = KeyModifiersMatrix::default();
-        assert!(matrix.has_item(KM_NONE));
-        assert!(matrix.has_item(KM_ALL));
-        assert!(matrix.has_item(KM_RALT));
-        assert!(matrix.has_item(KM_RSHIFT));
-        assert!(matrix.has_item(KM_LSHIFT));
-        assert!(matrix.has_item(KM_RCTRL | KM_RWIN));
-        assert!(matrix.has_item(KM_RALT | KM_LWIN));
-        assert!(matrix.has_item(KM_LALT));
+        assert_eq!("[]", KeyboardState::All(KM_NONE).to_string());
+        assert_eq!("[*]", KeyboardState::Any.to_string());
     }
 }

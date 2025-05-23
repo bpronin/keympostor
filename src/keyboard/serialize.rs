@@ -1,5 +1,5 @@
 use crate::keyboard::key::Key;
-use crate::keyboard::key_modifiers::{KeyModifiers, KeyModifiersMatrix};
+use crate::keyboard::key_modifiers::{KeyModifiers};
 use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
@@ -23,26 +23,6 @@ impl<'de> Deserialize<'de> for Key {
             .map_err(de::Error::custom)
     }
 }
-
-// impl Serialize for KeyModifiersMatrix {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: Serializer,
-//     {
-//         serializer.serialize_str(&self.to_string())
-//     }
-// }
-
-// impl<'de> Deserialize<'de> for KeyModifiersMatrix {
-//     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-//     where
-//         D: Deserializer<'de>,
-//     {
-//         String::deserialize(deserializer)?
-//             .parse()
-//             .map_err(de::Error::custom)
-//     }
-// }
 
 impl Serialize for KeyModifiers {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

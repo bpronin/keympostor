@@ -10,7 +10,6 @@ use crate::keyboard::key_modifiers::{
 use crate::keyboard::key_trigger::KeyTrigger;
 use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
 use std::str::{FromStr, Lines};
-use test_helpers::before_all;
 
 impl FromStr for VirtualKey {
     type Err = String;
@@ -253,7 +252,6 @@ impl FromStr for KeyTransformProfile {
     }
 }
 
-#[before_all]
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
@@ -261,20 +259,15 @@ mod tests {
     use crate::keyboard::key_action::{KeyAction, KeyTransition};
     use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
     use crate::keyboard::key_modifiers::{
-        KeyModifiers, KeyModifiersMatrix, KeyboardState, KM_ALL, KM_LALT, KM_LSHIFT, KM_NONE, KM_RCTRL,
-        KM_RSHIFT, KM_RWIN,
+        KeyModifiers, KeyboardState, KM_LSHIFT, KM_NONE, KM_RSHIFT, KM_RWIN,
     };
     use crate::keyboard::key_trigger::KeyTrigger;
     use crate::keyboard::parse::KeyActionSequence;
-    use crate::keyboard::tests::setup_logger;
     use crate::keyboard::transform_rules::{
         KeyTransformProfile, KeyTransformRule, KeyTransformRules,
     };
     use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
     use std::str::FromStr;
-    fn before_all() {
-        setup_logger();
-    }
 
     #[test]
     fn test_vk_parse() {
@@ -410,7 +403,7 @@ mod tests {
             All(KM_LSHIFT | KM_RSHIFT | KM_RWIN),
             KeyboardState::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
         );
-        
+
         assert_eq!(All(KM_NONE), KeyboardState::from_str("").unwrap());
     }
 
@@ -418,15 +411,6 @@ mod tests {
     fn test_keyboard_state_any_parse() {
         assert_eq!(Any, KeyboardState::from_str("*").unwrap());
     }
-
-    // #[test]
-    // fn test_key_modifiers_matrix_parse_empty() {
-    //     let expected = KeyModifiersMatrix::new(&[
-    //         KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL, KM_ALL,
-    //     ]);
-    //
-    //     assert_eq!(expected, KeyModifiersMatrix::from_str("").unwrap());
-    // }
 
     #[test]
     fn test_key_trigger_parse_modifiers() {
@@ -563,27 +547,22 @@ mod tests {
         assert_eq!(expected, actual);
     }
 
-    /*    todo:;
-        #[test]
-        fn test_key_transform_rules_parse_split_transition() {
-            let actual: KeyTransformProfile = "
-            Test profile;
-            A : B;
-            "
-            .parse()
-            .unwrap();
-
-            println!("{}", actual);
-
-            let expected: KeyTransformProfile = "
-            Test profile;
-            A↓ : B↓;
-            A↑ : B↑;
-            "
-            .parse()
-            .unwrap();
-
-            assert_eq!(expected, actual);
-        }
-    */
+    // #[test]
+    // fn test_key_transform_rules_parse_expand_rules() {
+    //     let actual = key_profile!(
+    //         "
+    //         Test profile
+    //         A : B
+    //         "
+    //     );
+    //     let expected = key_profile!(
+    //         "
+    //         Test profile
+    //         A↓ : B↓
+    //         A↑ : B↑
+    //         "
+    //     );
+    // 
+    //     assert_eq!(expected, actual);
+    // }
 }

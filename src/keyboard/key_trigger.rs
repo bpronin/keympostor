@@ -1,5 +1,5 @@
 use crate::keyboard::key_action::KeyAction;
-use crate::keyboard::key_modifiers::{KeyModifiers, KeyboardState};
+use crate::keyboard::key_modifiers::KeyboardState;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
@@ -17,12 +17,12 @@ impl Display for KeyTrigger {
 
 #[cfg(test)]
 mod tests {
+    use crate::key_action;
     use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
+    use crate::keyboard::key_modifiers::KM_LSHIFT;
     use crate::keyboard::key_modifiers::KM_NONE;
     use crate::keyboard::key_trigger::KeyAction;
-    use crate::keyboard::key_trigger::KeyModifiers;
     use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::{key_action, key_mod};
 
     #[macro_export]
     macro_rules! key_trigger {
@@ -37,7 +37,7 @@ mod tests {
             "[LEFT_SHIFT]A↓",
             KeyTrigger {
                 action: key_action!("A↓"),
-                state: All(key_mod!("LEFT_SHIFT")),
+                state: All(KM_LSHIFT),
             }
             .to_string()
         );
