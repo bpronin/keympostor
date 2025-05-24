@@ -1,5 +1,5 @@
 use crate::keyboard::key::Key;
-use crate::keyboard::key_modifiers::{KeyModifiers};
+use crate::keyboard::key_modifiers::KeyModifiers;
 use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
@@ -81,64 +81,125 @@ impl<'de> Deserialize<'de> for KeyTransformRules {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key::Key;
+    use crate::keyboard::key_action::KeyAction;
     use crate::keyboard::key_action::KeyActionSequence;
     use crate::keyboard::key_action::KeyTransition::{Down, Up};
-    use crate::keyboard::key_action::{KeyAction, KeyTransition};
     use crate::keyboard::key_modifiers::KeyModifiers;
+    use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
     use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
-    use crate::{key, key_action_seq, key_profile, key_trigger};
+    use crate::keyboard::transform_rules::{
+        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
+    };
+    use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
     use serde::{Deserialize, Serialize};
+
+    /* TOML requires root node to be annotated as #[derive(Serialize, Deserialize)] */
+    #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+    struct Wrapper<T> {
+        value: T,
+    }
 
     #[test]
     fn test_key_serialize() {
-        /* TOML requires wrapper */
-        #[derive(Debug, Serialize, Deserialize)]
-        struct Wrapper {
-            key: Key,
-        }
-
-        let source = Wrapper { key: key!("ENTER") };
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.key, actual.key);
-
         let source = Wrapper {
-            key: key!("NUM_ENTER"),
+            value: key!("ENTER"),
         };
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.key, actual.key);
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = Wrapper {
+            value: key!("NUM_ENTER"),
+        };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
     }
 
     #[test]
     fn test_key_transition_serialize() {
-        /* TOML requires wrapper */
-        #[derive(Debug, Serialize, Deserialize)]
-        struct Wrapper {
-            value: KeyTransition,
-        }
-
         let source = Wrapper { value: Down };
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.value, actual.value);
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
 
         let source = Wrapper { value: Up };
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.value, actual.value);
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+    }
+
+    #[test]
+    fn test_key_modifiers_serialize() {
+        let source = Wrapper {
+            value: key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN"),
+        };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+    }
+
+    #[test]
+    fn test_keyboard_state_serialize() {
+        let source = Wrapper {
+            value: All(key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN")),
+        };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = Wrapper { value: Any };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
     }
 
     #[test]
     fn test_key_action_serialize() {
-        let source = KeyAction {
-            key: key!("ENTER"),
-            transition: Down,
-        };
+        let source = key_action!("A*");
         let text = toml::to_string_pretty(&source).unwrap();
-
         let actual = toml::from_str::<KeyAction>(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = key_action!("B^");
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<KeyAction>(&text).unwrap();
+
+        assert_eq!(source, actual);
+    }
+
+    #[test]
+    fn test_key_trigger_serialize() {
+        let source = key_trigger!("[LEFT_SHIFT] A*");
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<KeyTrigger>(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = key_trigger!("[] B*");
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<KeyTrigger>(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = key_trigger!("[*] C^");
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<KeyTrigger>(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = key_trigger!("D^");
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<KeyTrigger>(&text).unwrap();
+
         assert_eq!(source, actual);
     }
 
@@ -152,33 +213,28 @@ mod tests {
     }
 
     #[test]
-    fn test_key_modifiers_serialize() {
-        /* TOML requires wrapper */
-        #[derive(Debug, Serialize, Deserialize)]
-        struct Wrapper {
-            value: KeyModifiers,
-        }
-
-        let source = Wrapper {
-            value: "LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN".parse().unwrap(),
-        };
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<Wrapper>(&text).unwrap();
-        assert_eq!(source.value, actual.value);
-    }
-
-    #[test]
     fn test_key_transform_rule_serialize() {
-        let source = KeyTransformRule {
-            source: key_trigger!("[LEFT_SHIFT] ENTER↓"),
-            target: key_action_seq!("ENTER↓"),
-        };
-
+        let source = key_rule!("[LEFT_SHIFT] ENTER↓ : ENTER↓");
         let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
 
-        let actual = toml::from_str::<KeyTransformRule>(&text).unwrap();
         assert_eq!(source, actual);
     }
+
+    // #[test]
+    // fn test_key_transform_rules_deserialize() {
+    //     let text = r#"
+    //     "A*, B*" = "C*"
+    //     "#;
+    //     let actual: KeyTransformRules = toml::from_str(&text).unwrap();
+    //     let expected = KeyTransformRules {
+    //         items: vec![
+    //             key_rule!("A* : C*"),
+    //             key_rule!("B* : C*")
+    //         ],
+    //     };
+    //     assert_eq!(expected, actual);
+    // }
 
     #[test]
     fn test_key_transform_profile_load() {
@@ -199,5 +255,14 @@ mod tests {
     #[test]
     fn test_key_transform_profile_load_fails() {
         assert!(KeyTransformProfile::load("test/profiles/bad.toml").is_err());
+    }
+
+    #[test]
+    fn test_key_transform_profile_save() {
+        let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
+        actual.save("test/profiles/test-copy.toml").unwrap();
+        let expected = KeyTransformProfile::load("test/profiles/test-copy.toml").unwrap();
+
+        assert_eq!(expected, actual);
     }
 }

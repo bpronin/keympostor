@@ -43,13 +43,14 @@ impl KeyTransformProfile {
         .map_err(|e| format!("Unable to parse {}. {}", path, e))
     }
 
-    // fn save(&self, path: &str) -> Result<(), String> {
-    //     fs::write(
-    //         path,
-    //         toml::to_string(self).map_err(|e| format!("Unable to serialize {}. {}", path, e))?,
-    //     )
-    //     .map_err(|e| format!("Unable to write {} file. {}", path, e))
-    // }
+    pub(crate) fn save(&self, path: &str) -> Result<(), String> {
+        fs::write(
+            path,
+            toml::to_string_pretty(self)
+                .map_err(|e| format!("Unable to serialize {}. {}", path, e))?,
+        )
+        .map_err(|e| format!("Unable to write {} file. {}", path, e))
+    }
 }
 
 impl Default for KeyTransformProfile {
