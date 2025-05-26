@@ -248,7 +248,7 @@ impl FromStr for KeyTrigger {
 }
 
 impl KeyTransformRule {
-    fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
+    fn from_str_list(s: &str) -> Result<Vec<Self>, String> {
         let mut parts = s.trim().split(":");
 
         let triggers = KeyTrigger::from_str_list(parts.next().ok_or("Missing source part.")?)?;
@@ -282,7 +282,7 @@ impl KeyTransformRules {
     fn from_lines(lines: Lines) -> Result<Self, String> {
         let mut items = vec![];
         for line in lines {
-            let rules = KeyTransformRule::from_str_group(line.trim())?;
+            let rules = KeyTransformRule::from_str_list(line.trim())?;
             items.extend(rules);
         }
 
@@ -461,17 +461,21 @@ mod tests {
 
     #[test]
     fn test_key_action_from_str() {
-        let expected = KeyAction {
-            key: key!("ENTER"),
-            transition: Down,
-        };
-        assert_eq!(expected, KeyAction::from_str("ENTER↓").unwrap());
+        assert_eq!(
+            KeyAction {
+                key: key!("ENTER"),
+                transition: Down,
+            },
+            KeyAction::from_str("ENTER↓").unwrap()
+        );
 
-        let expected = KeyAction {
-            key: key!("F3"),
-            transition: Down,
-        };
-        assert_eq!(expected, KeyAction::from_str("    F3\n*").unwrap());
+        assert_eq!(
+            KeyAction {
+                key: key!("F3"),
+                transition: Down,
+            },
+            KeyAction::from_str("    F3\n*").unwrap()
+        );
     }
 
     #[test]
@@ -539,8 +543,8 @@ mod tests {
 
     /*todo!
         #[test]
-        fn test_key_action_sequence_from_str_no_transiion() {
-            let actual = KeyActionSequence::from_str_group("A").unwrap();
+        fn test_key_action_sequence_from_str_no_transition() {
+            let actual = KeyActionSequence::from_str_list("A").unwrap();
 
             assert_eq!(key_action_seq!("A↓"), actual[0]);
             assert_eq!(key_action_seq!("A↑"), actual[1]);
@@ -600,17 +604,19 @@ mod tests {
 
     #[test]
     fn test_key_trigger_from_str_list() {
-        let expected = vec![
-            key_trigger!("A*"),
-            key_trigger!("[LEFT_CTRL]B^"),
-            key_trigger!("C*"),
-        ];
-        let actual = KeyTrigger::from_str_list("A*, [LEFT_CTRL]B^, C*").unwrap();
-        assert_eq!(expected, actual);
+        assert_eq!(
+            vec![
+                key_trigger!("A*"),
+                key_trigger!("[LEFT_CTRL]B^"),
+                key_trigger!("C*"),
+            ],
+            KeyTrigger::from_str_list("A*, [LEFT_CTRL]B^, C*").unwrap()
+        );
 
-        let expected = vec![key_trigger!("A*")];
-        let actual = KeyTrigger::from_str_list("A*").unwrap();
-        assert_eq!(expected, actual);
+        assert_eq!(
+            vec![key_trigger!("A*")],
+            KeyTrigger::from_str_list("A*").unwrap()
+        );
     }
 
     #[test]
@@ -629,7 +635,7 @@ mod tests {
             vec![key_trigger!("[LEFT_CTRL]A↓"), key_trigger!("[LEFT_CTRL]A↑")],
             KeyTrigger::from_str_list("[LEFT_CTRL]A↓↑").unwrap()
         );
-        
+
         assert_eq!(
             vec![key_trigger!("[LEFT_CTRL]A↓"), key_trigger!("[LEFT_CTRL]A↑")],
             KeyTrigger::from_str_list("[LEFT_CTRL]A").unwrap()
@@ -647,7 +653,7 @@ mod tests {
             ],
             KeyTrigger::from_str_list("A,B").unwrap()
         );
-        
+
         assert_eq!(
             vec![
                 key_trigger!("[LEFT_SHIFT]A↓"),
@@ -663,25 +669,23 @@ mod tests {
 
     #[test]
     fn test_key_transform_rule_from_str() {
-        let expected = KeyTransformRule {
-            trigger: key_trigger!("[LEFT_SHIFT] ENTER↓"),
-            actions: key_action_seq!("A↓"),
-        };
-
         assert_eq!(
-            expected,
+            KeyTransformRule {
+                trigger: key_trigger!("[LEFT_SHIFT] ENTER↓"),
+                actions: key_action_seq!("A↓"),
+            },
             KeyTransformRule::from_str("[LEFT_SHIFT] ENTER↓ : A↓").unwrap()
         );
     }
 
     #[test]
-    fn test_key_transform_rule_from_str_group() {
+    fn test_key_transform_rule_from_str_list() {
         let expected = vec![
             key_rule!("A* : ENTER*"),
             key_rule!("[LEFT_CTRL]B* : ENTER*"),
             key_rule!("C^ : ENTER*"),
         ];
-        let actual = KeyTransformRule::from_str_group("A*, [LEFT_CTRL]B*, C^ : ENTER*").unwrap();
+        let actual = KeyTransformRule::from_str_list("A*, [LEFT_CTRL]B*, C^ : ENTER*").unwrap();
         assert_eq!(expected, actual);
     }
 
@@ -689,18 +693,10 @@ mod tests {
 
     #[test]
     fn test_key_transform_rules_from_str_up_down_transition() {
-        let actual = key_rules!(
-            "
-            A↓ : A↓↑ → B↓↑
-            "
+        assert_eq!(
+            key_rules!("A↓ : A↓ → A↑ → B↓ → B↑"),
+            key_rules!("A↓ : A↓↑ → B↓↑")
         );
-        let expected = key_rules!(
-            "
-            A↓ : A↓ → A↑ → B↓ → B↑ 
-            "
-        );
-
-        assert_eq!(expected, actual);
     }
 
     /*todo!
@@ -723,45 +719,39 @@ mod tests {
     */
 
     #[test]
-    fn test_key_transform_rules_from_str_group() {
-        let actual = key_rules!(
-            "
-            A↓, B↓ : C↓
-            "
+    fn test_key_transform_rules_from_str_list() {
+        assert_eq!(
+            key_rules!(
+                r#"
+                A↓ : C↓
+                B↓ : C↓
+                "#
+            ),
+            key_rules!("A↓, B↓ : C↓")
         );
-
-        let expected = key_rules!(
-            "
-            A↓ : C↓
-            B↓ : C↓
-            "
-        );
-
-        assert_eq!(expected, actual);
     }
 
     // Transform profile
 
     #[test]
     fn test_key_transform_profile_from_str() {
-        let actual = key_profile!(
-            r#"
-            Test profile
-            A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
-            [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
-            "#
-        );
-
-        let expected = KeyTransformProfile {
-            title: "Test profile".to_string(),
-            rules: KeyTransformRules {
-                items: vec![
-                    key_rule!("A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
-                    key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓: ENTER↓ → ENTER↑"),
-                ],
+        assert_eq!(
+            KeyTransformProfile {
+                title: "Test profile".to_string(),
+                rules: KeyTransformRules {
+                    items: vec![
+                        key_rule!("A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
+                        key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓: ENTER↓ → ENTER↑"),
+                    ],
+                },
             },
-        };
-
-        assert_eq!(expected, actual);
+            key_profile!(
+                r#"
+                Test profile
+                A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
+                [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
+                "#
+            )
+        );
     }
 }
