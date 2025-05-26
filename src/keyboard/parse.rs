@@ -552,7 +552,7 @@ mod tests {
     #[test]
     fn test_key_action_sequence_from_str_list() {
         assert_eq!(
-            vec![KeyActionSequence::new(vec![key_action!("A↓")]), ],
+            vec![KeyActionSequence::new(vec![key_action!("A↓")]),],
             KeyActionSequence::from_str_list("A↓").unwrap()
         );
 
@@ -561,7 +561,7 @@ mod tests {
                 key_action!("A↓"),
                 key_action!("B↑"),
                 key_action!("C↓")
-            ]), ],
+            ]),],
             KeyActionSequence::from_str_list("A↓ → B↑ → C↓").unwrap()
         );
     }
@@ -572,7 +572,7 @@ mod tests {
             vec![key_action_seq!("A↓"), key_action_seq!("A↑")],
             KeyActionSequence::from_str_list("A").unwrap()
         );
-        
+
         assert_eq!(
             vec![key_action_seq!("A↓"), key_action_seq!("A↑")],
             KeyActionSequence::from_str_list("A↓↑").unwrap()
@@ -590,7 +590,7 @@ mod tests {
             ],
             KeyActionSequence::from_str_list("A → B → C↓").unwrap()
         );
-        
+
         assert_eq!(
             vec![
                 key_action_seq!("C↓ → A↓ → B↓"),
