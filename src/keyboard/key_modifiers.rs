@@ -125,7 +125,7 @@ impl BitOr for KeyModifiersState {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub(crate) enum KeyModifiers {
     Any,
     All(KeyModifiersState),
@@ -143,7 +143,7 @@ impl Display for KeyModifiers {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key_modifiers::{
-        KeyModifiersState, KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
+        KeyModifiers, KeyModifiersState, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
         KM_RSHIFT, KM_RWIN,
     };
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};

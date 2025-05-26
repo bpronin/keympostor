@@ -722,6 +722,13 @@ mod tests {
     #[test]
     fn test_key_transform_rule_from_str_list() {
         let expected = vec![
+            key_rule!("NUM_DOT↓ : LEFT_ALT↓"),
+            key_rule!("NUM_DELETE↓ : LEFT_ALT↓"),
+        ];
+        let actual = KeyTransformRule::from_str_list("NUM_DOT↓, NUM_DELETE↓ : LEFT_ALT↓").unwrap();
+        assert_eq!(expected, actual);
+        
+        let expected = vec![
             key_rule!("A* : ENTER*"),
             key_rule!("[LEFT_CTRL]B* : ENTER*"),
             key_rule!("C^ : ENTER*"),

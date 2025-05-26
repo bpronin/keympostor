@@ -1,13 +1,13 @@
 use crate::keyboard::key_action::KeyAction;
 use crate::keyboard::key_event::KeyEvent;
 use crate::keyboard::key_modifiers::KeyModifiers;
+use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
 use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
 use std::collections::HashMap;
-use KeyModifiers::{All, Any};
 
 #[derive(Debug, Default)]
 pub(crate) struct KeyTransformMap {
-    map: HashMap<KeyAction, Vec<KeyTransformRule>>,
+    map: HashMap<KeyAction, HashMap<KeyModifiers, KeyTransformRule>>,
 }
 
 impl KeyTransformMap {
@@ -20,19 +20,16 @@ impl KeyTransformMap {
     }
 
     pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
-        if let Some(rules) = self.map.get(&event.action) {
-            rules.iter().find(|&rule| match rule.trigger.modifiers {
-                Any => true,
-                All(modifiers) => event.modifiers == modifiers,
-            })
-        } else {
-            None
-        }
+        let map = self.map.get(&event.action)?;
+        map.get(&All(event.modifiers_state)).or(map.get(&Any))
     }
 
     fn put(&mut self, rule: KeyTransformRule) {
         let trigger = rule.trigger;
-        self.map.entry(trigger.action).or_default().push(rule);
+        self.map
+            .entry(trigger.action)
+            .or_default()
+            .insert(trigger.modifiers, rule);
     }
 }
 
@@ -109,7 +106,7 @@ mod tests {
     #[test]
     fn test_get_ignore_modifiers() {
         let mut map = KeyTransformMap::default();
-        map.put(key_rule!("[*] A↓ : B↓"));
+        map.put(key_rule!("A↓ : B↓"));
 
         let expected = &key_rule!("[*] A↓ : B↓");
         assert_eq!(expected, map.get(&key_event!("A↓", KS_ALL_UP)).unwrap());

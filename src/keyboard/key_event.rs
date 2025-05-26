@@ -12,7 +12,7 @@ pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 #[derive(Debug, PartialEq)]
 pub(crate) struct KeyEvent<'a> {
     pub(crate) action: KeyAction,
-    pub(crate) modifiers: KeyModifiersState,
+    pub(crate) modifiers_state: KeyModifiersState,
     pub(crate) rule: Option<&'a KeyTransformRule>,
     pub(crate) time: u32,
     pub(crate) is_injected: bool,
@@ -23,7 +23,7 @@ impl KeyEvent<'_> {
     pub(crate) fn new(input: &KBDLLHOOKSTRUCT, keyboard_state: [u8; 256]) -> Self {
         Self {
             action: KeyAction::from_keyboard_input(input),
-            modifiers: KeyModifiersState::from_keyboard_state(keyboard_state),
+            modifiers_state: KeyModifiersState::from_keyboard_state(keyboard_state),
             rule: None,
             time: input.time,
             is_injected: input.flags.contains(LLKHF_INJECTED),
@@ -37,7 +37,7 @@ impl Display for KeyEvent<'_> {
         write!(
             f,
             "[{:8}] {:20} | {:22} | {:16} | {:1} | {:3} | {:3} | T:{:9} |",
-            self.modifiers,
+            self.modifiers_state,
             self.action.key,
             self.action.key.virtual_key(),
             self.action.key.scan_code(),
@@ -62,7 +62,7 @@ mod tests {
         ($action:literal, $state:expr) => {
             KeyEvent {
                 action: $action.parse().unwrap(),
-                modifiers: KeyModifiersState::from_keyboard_state($state),
+                modifiers_state: KeyModifiersState::from_keyboard_state($state),
                 time: 0,
                 is_injected: false,
                 is_private: false,

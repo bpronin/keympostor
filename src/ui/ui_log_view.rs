@@ -41,7 +41,7 @@ impl LogView {
             if event.rule.is_some() { "!" } else { "" },
             if event.is_injected { ">" } else { "" },
             if event.is_private { "<" } else { "" },
-            event.modifiers.to_string_short(),
+            event.modifiers_state.to_string_short(),
             event.action.key,
             event.action.key.virtual_key(),
             event.action.key.scan_code(),
