@@ -1,4 +1,4 @@
-use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
+use crate::keyboard::key_modifiers::KeyModifiers::All;
 use crate::write_joined;
 use core::ops;
 use ops::BitOr;
@@ -133,9 +133,10 @@ pub(crate) enum KeyModifiers {
 
 impl Display for KeyModifiers {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Any => write!(f, "[*]"),
-            All(modifiers) => write!(f, "[{}]", modifiers),
+        if let All(modifiers) = self {
+            write!(f, "[{}]", modifiers)
+        } else {
+            Ok(())
         }
     }
 }
@@ -205,6 +206,6 @@ mod tests {
             KeyModifiers::All(KM_LSHIFT | KM_RWIN).to_string()
         );
         assert_eq!("[]", KeyModifiers::All(KM_NONE).to_string());
-        assert_eq!("[*]", KeyModifiers::Any.to_string());
+        assert_eq!("", KeyModifiers::Any.to_string());
     }
 }

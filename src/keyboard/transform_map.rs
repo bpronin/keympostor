@@ -21,7 +21,8 @@ impl KeyTransformMap {
 
     pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         let map = self.map.get(&event.action)?;
-        map.get(&All(event.modifiers_state)).or(map.get(&Any))
+        map.get(&All(event.modifiers_state))
+            .or_else(|| map.get(&Any))
     }
 
     fn put(&mut self, rule: KeyTransformRule) {
@@ -108,7 +109,7 @@ mod tests {
         let mut map = KeyTransformMap::default();
         map.put(key_rule!("A↓ : B↓"));
 
-        let expected = &key_rule!("[*] A↓ : B↓");
+        let expected = &key_rule!("A↓ : B↓");
         assert_eq!(expected, map.get(&key_event!("A↓", KS_ALL_UP)).unwrap());
         assert_eq!(expected, map.get(&key_event!("A↓", KS_LSHIFT)).unwrap());
         assert_eq!(expected, map.get(&key_event!("A↓", KS_LCTRL)).unwrap());

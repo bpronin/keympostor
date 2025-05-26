@@ -3,6 +3,7 @@ use crate::keyboard::key_modifiers::KeyModifiersState;
 use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
+use std::str::FromStr;
 
 impl Serialize for Key {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
@@ -64,15 +65,14 @@ impl<'de> Deserialize<'de> for KeyTransformRules {
     where
         D: Deserializer<'de>,
     {
-        let items = BTreeMap::<String, String>::deserialize(deserializer)?
-            .iter()
-            .map(|(k, v)| {
-                Ok(KeyTransformRule {
-                    trigger: k.parse().map_err(de::Error::custom)?,
-                    actions: v.parse().map_err(de::Error::custom)?,
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
+        let mut items = Vec::new();
+
+        for (k, v) in BTreeMap::<String, String>::deserialize(deserializer)? {
+            let rules = KeyTransformRule::from_str_pair(&k, &v).map_err(de::Error::custom)?;
+            for rule in rules {
+                items.push(rule);
+            }
+        }
 
         Ok(Self { items })
     }
@@ -87,7 +87,9 @@ mod tests {
     use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::key_modifiers::KeyModifiersState;
     use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
+    use crate::keyboard::transform_rules::{
+        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
+    };
     use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
     use serde::{Deserialize, Serialize};
 
@@ -188,7 +190,7 @@ mod tests {
 
         assert_eq!(source, actual);
 
-        let source = key_trigger!("[*] C^");
+        let source = key_trigger!("C^");
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str::<KeyTrigger>(&text).unwrap();
 
@@ -219,20 +221,20 @@ mod tests {
         assert_eq!(source, actual);
     }
 
-    // #[test]
-    // fn test_key_transform_rules_deserialize() {
-    //     let text = r#"
-    //     "A*, B*" = "C*"
-    //     "#;
-    //     let actual: KeyTransformRules = toml::from_str(&text).unwrap();
-    //     let expected = KeyTransformRules {
-    //         items: vec![
-    //             key_rule!("A* : C*"),
-    //             key_rule!("B* : C*")
-    //         ],
-    //     };
-    //     assert_eq!(expected, actual);
-    // }
+    #[test]
+    fn test_key_transform_rules_deserialize() {
+        assert_eq!(
+            KeyTransformRules {
+                items: vec![key_rule!("A* : C*"), key_rule!("B* : C*")],
+            },
+            toml::from_str(
+                r#"
+                "A*, B*" = "C*"
+                "#,
+            )
+            .unwrap()
+        );
+    }
 
     #[test]
     fn test_key_transform_profile_load() {

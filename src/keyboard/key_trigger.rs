@@ -52,7 +52,7 @@ mod tests {
         );
 
         assert_eq!(
-            "[*]A↓",
+            "A↓",
             KeyTrigger {
                 action: key_action!("A↓"),
                 modifiers: Any,

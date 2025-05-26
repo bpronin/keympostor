@@ -15,8 +15,8 @@ impl FromStr for VirtualKey {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.trim();
-        Self::from_code_name(s).or_else(|_| Self::from_name(s))
+        let ts = s.trim();
+        Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
     }
 }
 
@@ -24,8 +24,8 @@ impl FromStr for ScanCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.trim();
-        Self::from_code_name(s).or_else(|_| Self::from_name(s))
+        let ts = s.trim();
+        Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
     }
 }
 
@@ -57,10 +57,10 @@ impl FromStr for KeyTransition {
 
 impl KeyAction {
     fn from_str_expand(s: &str) -> Result<Vec<Self>, String> {
-        let s = s.trim();
+        let ts = s.trim();
         let mut list = Vec::new();
 
-        if let Some(k) = s.strip_suffix("*^") {
+        if let Some(k) = ts.strip_suffix("*^") {
             let key = Key::from_str(k)?;
             list.push(KeyAction {
                 key: key.clone(),
@@ -70,7 +70,7 @@ impl KeyAction {
                 key,
                 transition: Up,
             });
-        } else if let Some(k) = s.strip_suffix("↓↑") {
+        } else if let Some(k) = ts.strip_suffix("↓↑") {
             let key = Key::from_str(k)?;
             list.push(KeyAction {
                 key: key.clone(),
@@ -80,28 +80,28 @@ impl KeyAction {
                 key,
                 transition: Up,
             });
-        } else if let Some(k) = s.strip_suffix("*") {
+        } else if let Some(k) = ts.strip_suffix('*') {
             list.push(KeyAction {
                 key: Key::from_str(k)?,
                 transition: Down,
             });
-        } else if let Some(k) = s.strip_suffix("↓") {
+        } else if let Some(k) = ts.strip_suffix('↓') {
             list.push(KeyAction {
                 key: Key::from_str(k)?,
                 transition: Down,
             });
-        } else if let Some(k) = s.strip_suffix("^") {
+        } else if let Some(k) = ts.strip_suffix('^') {
             list.push(KeyAction {
                 key: Key::from_str(k)?,
                 transition: Up,
             });
-        } else if let Some(k) = s.strip_suffix("↑") {
+        } else if let Some(k) = ts.strip_suffix('↑') {
             list.push(KeyAction {
                 key: Key::from_str(k)?,
                 transition: Up,
             });
         } else {
-            let key = Key::from_str(s)?;
+            let key = Key::from_str(ts)?;
             list.push(KeyAction {
                 key: key.clone(),
                 transition: Down,
@@ -129,22 +129,21 @@ impl KeyActionSequence {
         let mut down_actions = Vec::new();
         let mut up_actions = Vec::new();
 
-        let mut has_up_actions = false;
-        for part in s.split(|ch| ['→', '>'].contains(&ch)) {
+        let mut is_expanded = false;
+        for part in s.split(|c| ['→', '>'].contains(&c)) {
             let actions = KeyAction::from_str_expand(part)?;
+            down_actions.push(actions[0]);
             if actions.len() == 1 {
-                down_actions.push(actions[0]);
                 up_actions.push(actions[0]);
             } else {
-                down_actions.push(actions[0]);
                 up_actions.push(actions[1]);
-                has_up_actions = true;
+                is_expanded = true;
             }
         }
 
         let mut list = Vec::new();
         list.push(KeyActionSequence::new(down_actions));
-        if has_up_actions {
+        if is_expanded {
             list.push(KeyActionSequence::new(up_actions))
         }
 
@@ -164,10 +163,8 @@ impl FromStr for KeyModifiers {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(match s.trim() {
-            "*" => Any,
-            &_ => All(KeyModifiersState::from_str(s)?),
-        })
+        /* `Any` is parsed outside from `None` */
+        Ok(All(KeyModifiersState::from_str(s.trim())?))
     }
 }
 
@@ -175,30 +172,30 @@ impl FromStr for KeyModifiersState {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.trim();
-        if s.is_empty() {
+        let ts = s.trim();
+        if ts.is_empty() {
             Ok(KM_NONE)
         } else {
-            let this = s.split('+').fold(KM_NONE, |acc, part| match part.trim() {
+            let this = ts.split('+').fold(KM_NONE, |acc, part| match part.trim() {
                 "LEFT_SHIFT" => acc | KM_LSHIFT,
                 "RIGHT_SHIFT" => acc | KM_RSHIFT,
-                // "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
+                "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
                 "LEFT_CTRL" => acc | KM_LCTRL,
                 "RIGHT_CTRL" => acc | KM_RCTRL,
-                // "CTRL" => acc | KM_LCTRL | KM_RCTRL,
+                "CTRL" => acc | KM_LCTRL | KM_RCTRL,
                 "LEFT_ALT" => acc | KM_LALT,
                 "RIGHT_ALT" => acc | KM_RALT,
-                // "ALT" => acc | KM_LALT | KM_RALT,
+                "ALT" => acc | KM_LALT | KM_RALT,
                 "LEFT_WIN" => acc | KM_LWIN,
                 "RIGHT_WIN" => acc | KM_RWIN,
-                // "WIN" => acc | KM_LWIN | KM_RWIN,
+                "WIN" => acc | KM_LWIN | KM_RWIN,
                 &_ => KM_NONE,
             });
 
             if this != KM_NONE {
                 Ok(this)
             } else {
-                Err(format!("Error parsing key modifiers: `{s}`"))
+                Err(format!("Error parsing key modifiers: `{ts}`"))
             }
         }
     }
@@ -214,16 +211,16 @@ impl KeyTrigger {
     }
 
     fn from_str_expand(s: &str) -> Result<Vec<KeyTrigger>, String> {
-        let s = s.trim();
+        let ts = s.trim();
         let mut list = Vec::new();
-        if let Some(s) = s.strip_prefix('[') {
+        if let Some(s) = ts.strip_prefix('[') {
             let mut parts = s.split(']');
             let modifiers = KeyModifiers::from_str(parts.next().unwrap())?;
             for action in KeyAction::from_str_expand(parts.next().unwrap())? {
                 list.push(Self { action, modifiers });
             }
         } else {
-            for action in KeyAction::from_str_expand(s)? {
+            for action in KeyAction::from_str_expand(ts)? {
                 list.push(Self {
                     action,
                     modifiers: Any,
@@ -239,8 +236,8 @@ impl FromStr for KeyTrigger {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let s = s.trim();
-        if let Some(s) = s.strip_prefix('[') {
+        let ts = s.trim();
+        if let Some(s) = ts.strip_prefix('[') {
             let mut parts = s.split(']');
             Ok(Self {
                 modifiers: KeyModifiers::from_str(parts.next().expect("Missing modifiers part"))?, /* Modifiers go first! */
@@ -248,7 +245,7 @@ impl FromStr for KeyTrigger {
             })
         } else {
             Ok(Self {
-                action: KeyAction::from_str(s)?,
+                action: KeyAction::from_str(ts)?,
                 modifiers: Any,
             })
         }
@@ -256,11 +253,9 @@ impl FromStr for KeyTrigger {
 }
 
 impl KeyTransformRule {
-    fn from_str_list(s: &str) -> Result<Vec<Self>, String> {
-        let mut parts = s.trim().split(":");
-
-        let triggers = KeyTrigger::from_str_list(parts.next().ok_or("Missing source part.")?)?;
-        let actions = KeyActionSequence::from_str(parts.next().ok_or("Missing target part.")?)?;
+    pub(crate) fn from_str_pair(trigger_str: &str, action_str: &str) -> Result<Vec<Self>, String> {
+        let triggers = KeyTrigger::from_str_list(trigger_str)?;
+        let actions = KeyActionSequence::from_str(action_str)?;
 
         let mut rules = Vec::new();
         for trigger in triggers {
@@ -272,17 +267,21 @@ impl KeyTransformRule {
 
         Ok(rules)
     }
+
+    fn from_str_list(s: &str) -> Result<Vec<Self>, String> {
+        let mut parts = s.trim().split(":");
+        Self::from_str_pair(
+            parts.next().ok_or("Missing source part.")?,
+            parts.next().ok_or("Missing target part.")?,
+        )
+    }
 }
 
 impl FromStr for KeyTransformRule {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut parts = s.trim().split(":");
-        Ok(Self {
-            trigger: KeyTrigger::from_str(parts.next().ok_or("Missing source part.")?)?,
-            actions: KeyActionSequence::from_str(parts.next().ok_or("Missing target part.")?)?,
-        })
+        Ok((&Self::from_str_list(s)?[0]).clone())
     }
 }
 
@@ -435,34 +434,17 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_from_str() {
-        assert_eq!(KM_NONE, KeyModifiersState::from_str("").unwrap());
+        assert_eq!(All(KM_NONE), KeyModifiers::from_str("").unwrap());
 
         assert_eq!(
-            KM_LSHIFT | KM_RSHIFT | KM_RWIN,
-            KeyModifiersState::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
+            All(KM_LSHIFT | KM_RSHIFT | KM_RWIN),
+            KeyModifiers::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
         );
     }
 
     #[test]
     fn test_key_modifiers_from_str_fails() {
-        assert!(KeyModifiersState::from_str("BANANA").is_err());
-    }
-
-    // Keyboard state
-
-    #[test]
-    fn test_keyboard_state_all_from_str() {
-        assert_eq!(
-            All(KM_LSHIFT | KM_RSHIFT | KM_RWIN),
-            KeyModifiers::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
-        );
-
-        assert_eq!(All(KM_NONE), KeyModifiers::from_str("").unwrap());
-    }
-
-    #[test]
-    fn test_keyboard_state_any_from_str() {
-        assert_eq!(Any, KeyModifiers::from_str("*").unwrap());
+        assert!(KeyModifiers::from_str("BANANA").is_err());
     }
 
     // Key action
@@ -631,7 +613,7 @@ mod tests {
                 action: key_action!("A*"),
                 modifiers: Any,
             },
-            KeyTrigger::from_str("[*]A*").unwrap()
+            KeyTrigger::from_str("A*").unwrap()
         );
 
         assert_eq!(
@@ -727,7 +709,7 @@ mod tests {
         ];
         let actual = KeyTransformRule::from_str_list("NUM_DOT↓, NUM_DELETE↓ : LEFT_ALT↓").unwrap();
         assert_eq!(expected, actual);
-        
+
         let expected = vec![
             key_rule!("A* : ENTER*"),
             key_rule!("[LEFT_CTRL]B* : ENTER*"),
