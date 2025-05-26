@@ -1,4 +1,4 @@
-use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
+use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
 use crate::write_joined;
 use core::ops;
 use ops::BitOr;
@@ -9,20 +9,20 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN,
 };
 
-pub(crate) const KM_NONE: KeyModifiers = KeyModifiers(0);
-pub(crate) const KM_LSHIFT: KeyModifiers = KeyModifiers(1);
-pub(crate) const KM_RSHIFT: KeyModifiers = KeyModifiers(1 << 1);
-pub(crate) const KM_LCTRL: KeyModifiers = KeyModifiers(1 << 2);
-pub(crate) const KM_RCTRL: KeyModifiers = KeyModifiers(1 << 3);
-pub(crate) const KM_LALT: KeyModifiers = KeyModifiers(1 << 4);
-pub(crate) const KM_RALT: KeyModifiers = KeyModifiers(1 << 5);
-pub(crate) const KM_LWIN: KeyModifiers = KeyModifiers(1 << 6);
-pub(crate) const KM_RWIN: KeyModifiers = KeyModifiers(1 << 7);
+pub(crate) const KM_NONE: KeyModifiersState = KeyModifiersState(0);
+pub(crate) const KM_LSHIFT: KeyModifiersState = KeyModifiersState(1);
+pub(crate) const KM_RSHIFT: KeyModifiersState = KeyModifiersState(1 << 1);
+pub(crate) const KM_LCTRL: KeyModifiersState = KeyModifiersState(1 << 2);
+pub(crate) const KM_RCTRL: KeyModifiersState = KeyModifiersState(1 << 3);
+pub(crate) const KM_LALT: KeyModifiersState = KeyModifiersState(1 << 4);
+pub(crate) const KM_RALT: KeyModifiersState = KeyModifiersState(1 << 5);
+pub(crate) const KM_LWIN: KeyModifiersState = KeyModifiersState(1 << 6);
+pub(crate) const KM_RWIN: KeyModifiersState = KeyModifiersState(1 << 7);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
-pub(crate) struct KeyModifiers(u8);
+pub(crate) struct KeyModifiersState(u8);
 
-impl KeyModifiers {
+impl KeyModifiersState {
     pub(crate) fn from_keyboard_state(keys: [u8; 256]) -> Self {
         let flag_keys = [
             VK_LSHIFT,
@@ -81,7 +81,7 @@ impl KeyModifiers {
     }
 }
 
-impl Display for KeyModifiers {
+impl Display for KeyModifiersState {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut names: Vec<&str> = vec![];
 
@@ -118,7 +118,7 @@ impl Display for KeyModifiers {
     }
 }
 
-impl BitOr for KeyModifiers {
+impl BitOr for KeyModifiersState {
     type Output = Self;
     fn bitor(self, other: Self) -> Self {
         Self(self.0 | other.0)
@@ -126,12 +126,12 @@ impl BitOr for KeyModifiers {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub(crate) enum KeyboardState {
+pub(crate) enum KeyModifiers {
     Any,
-    All(KeyModifiers),
+    All(KeyModifiersState),
 }
 
-impl Display for KeyboardState {
+impl Display for KeyModifiers {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Any => write!(f, "[*]"),
@@ -143,7 +143,7 @@ impl Display for KeyboardState {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key_modifiers::{
-        KeyModifiers, KeyboardState, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
+        KeyModifiersState, KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
         KM_RSHIFT, KM_RWIN,
     };
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
@@ -151,7 +151,7 @@ mod tests {
     #[macro_export]
     macro_rules! key_mod {
         ($text:literal) => {
-            $text.parse::<KeyModifiers>().unwrap()
+            $text.parse::<KeyModifiersState>().unwrap()
         };
     }
 
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     fn test_key_modifiers_capture() {
         let mut keys = [0u8; 256];
-        assert_eq!(KM_NONE, KeyModifiers::from_keyboard_state(keys));
+        assert_eq!(KM_NONE, KeyModifiersState::from_keyboard_state(keys));
 
         keys[VK_LSHIFT.0 as usize] = 0x80;
         keys[VK_RSHIFT.0 as usize] = 0x80;
@@ -194,7 +194,7 @@ mod tests {
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_LCTRL | KM_RWIN,
-            KeyModifiers::from_keyboard_state(keys)
+            KeyModifiersState::from_keyboard_state(keys)
         );
     }
 
@@ -202,9 +202,9 @@ mod tests {
     fn test_keyboard_state_display() {
         assert_eq!(
             "[LEFT_SHIFT + RIGHT_WIN]",
-            KeyboardState::All(KM_LSHIFT | KM_RWIN).to_string()
+            KeyModifiers::All(KM_LSHIFT | KM_RWIN).to_string()
         );
-        assert_eq!("[]", KeyboardState::All(KM_NONE).to_string());
-        assert_eq!("[*]", KeyboardState::Any.to_string());
+        assert_eq!("[]", KeyModifiers::All(KM_NONE).to_string());
+        assert_eq!("[*]", KeyModifiers::Any.to_string());
     }
 }

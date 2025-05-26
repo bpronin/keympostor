@@ -75,7 +75,7 @@ impl KeyboardHook {
         if let Some(rule) = event.rule {
             debug!("RULE: {}", rule);
 
-            unsafe { SendInput(&rule.target.input, size_of::<INPUT>() as i32) };
+            unsafe { SendInput(&rule.actions.input, size_of::<INPUT>() as i32) };
             true
         } else {
             false

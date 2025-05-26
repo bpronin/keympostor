@@ -1,9 +1,9 @@
 use crate::keyboard::key_action::KeyAction;
 use crate::keyboard::key_event::KeyEvent;
-use crate::keyboard::key_modifiers::KeyboardState;
+use crate::keyboard::key_modifiers::KeyModifiers;
 use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
 use std::collections::HashMap;
-use KeyboardState::{All, Any};
+use KeyModifiers::{All, Any};
 
 #[derive(Debug, Default)]
 pub(crate) struct KeyTransformMap {
@@ -21,7 +21,7 @@ impl KeyTransformMap {
 
     pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         if let Some(rules) = self.map.get(&event.action) {
-            rules.iter().find(|&rule| match rule.source.state {
+            rules.iter().find(|&rule| match rule.trigger.modifiers {
                 Any => true,
                 All(modifiers) => event.modifiers == modifiers,
             })
@@ -31,14 +31,14 @@ impl KeyTransformMap {
     }
 
     fn put(&mut self, rule: KeyTransformRule) {
-        let trigger = rule.source;
+        let trigger = rule.trigger;
         self.map.entry(trigger.action).or_default().push(rule);
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key_modifiers::KeyModifiers;
+    use crate::keyboard::key_modifiers::KeyModifiersState;
     use crate::keyboard::transform_map::KeyEvent;
     use crate::keyboard::transform_map::KeyTransformMap;
     use crate::keyboard::transform_rules::KeyTransformRule;

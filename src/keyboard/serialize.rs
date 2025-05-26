@@ -1,5 +1,5 @@
 use crate::keyboard::key::Key;
-use crate::keyboard::key_modifiers::KeyModifiers;
+use crate::keyboard::key_modifiers::KeyModifiersState;
 use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
@@ -24,7 +24,7 @@ impl<'de> Deserialize<'de> for Key {
     }
 }
 
-impl Serialize for KeyModifiers {
+impl Serialize for KeyModifiersState {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -33,7 +33,7 @@ impl Serialize for KeyModifiers {
     }
 }
 
-impl<'de> Deserialize<'de> for KeyModifiers {
+impl<'de> Deserialize<'de> for KeyModifiersState {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: Deserializer<'de>,
@@ -52,7 +52,7 @@ impl Serialize for KeyTransformRules {
         let map = BTreeMap::from_iter(
             self.items
                 .iter()
-                .map(|rule| (rule.source.to_string(), rule.target.to_string()))
+                .map(|rule| (rule.trigger.to_string(), rule.actions.to_string()))
                 .collect::<Vec<_>>(),
         );
         map.serialize(serializer)
@@ -68,8 +68,8 @@ impl<'de> Deserialize<'de> for KeyTransformRules {
             .iter()
             .map(|(k, v)| {
                 Ok(KeyTransformRule {
-                    source: k.parse().map_err(de::Error::custom)?,
-                    target: v.parse().map_err(de::Error::custom)?,
+                    trigger: k.parse().map_err(de::Error::custom)?,
+                    actions: v.parse().map_err(de::Error::custom)?,
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -84,8 +84,8 @@ mod tests {
     use crate::keyboard::key_action::KeyAction;
     use crate::keyboard::key_action::KeyActionSequence;
     use crate::keyboard::key_action::KeyTransition::{Down, Up};
-    use crate::keyboard::key_modifiers::KeyModifiers;
-    use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
+    use crate::keyboard::key_modifiers::KeyModifiersState;
+    use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::key_trigger::KeyTrigger;
     use crate::keyboard::transform_rules::{
         KeyTransformProfile, KeyTransformRule, KeyTransformRules,

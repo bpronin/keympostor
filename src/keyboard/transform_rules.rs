@@ -7,13 +7,13 @@ use std::fs;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct KeyTransformRule {
-    pub(crate) source: KeyTrigger,
-    pub(crate) target: KeyActionSequence,
+    pub(crate) trigger: KeyTrigger,
+    pub(crate) actions: KeyActionSequence,
 }
 
 impl Display for KeyTransformRule {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} : {}", self.source, self.target)
+        write!(f, "{} : {}", self.trigger, self.actions)
     }
 }
 
@@ -99,8 +99,8 @@ mod tests {
     #[test]
     fn test_key_transform_rule_display() {
         let source = KeyTransformRule {
-            source: key_trigger!("[LEFT_SHIFT] ENTER ↓"),
-            target: key_action_seq!("ENTER↓"),
+            trigger: key_trigger!("[LEFT_SHIFT] ENTER ↓"),
+            actions: key_action_seq!("ENTER↓"),
         };
 
         assert_eq!("[LEFT_SHIFT]ENTER↓ : ENTER↓", format!("{}", source));
@@ -109,6 +109,6 @@ mod tests {
     #[test]
     fn test_key_transform_rule_source() {
         let rule = key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓");
-        assert_eq!(key_trigger!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓"), rule.source);
+        assert_eq!(key_trigger!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓"), rule.trigger);
     }
 }

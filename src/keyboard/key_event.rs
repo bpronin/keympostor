@@ -1,5 +1,5 @@
 use crate::keyboard::key_action::KeyAction;
-use crate::keyboard::key_modifiers::KeyModifiers;
+use crate::keyboard::key_modifiers::KeyModifiersState;
 use crate::keyboard::transform_rules::KeyTransformRule;
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_INJECTED};
@@ -12,7 +12,7 @@ pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 #[derive(Debug, PartialEq)]
 pub(crate) struct KeyEvent<'a> {
     pub(crate) action: KeyAction,
-    pub(crate) modifiers: KeyModifiers,
+    pub(crate) modifiers: KeyModifiersState,
     pub(crate) rule: Option<&'a KeyTransformRule>,
     pub(crate) time: u32,
     pub(crate) is_injected: bool,
@@ -23,7 +23,7 @@ impl KeyEvent<'_> {
     pub(crate) fn new(input: &KBDLLHOOKSTRUCT, keyboard_state: [u8; 256]) -> Self {
         Self {
             action: KeyAction::from_keyboard_input(input),
-            modifiers: KeyModifiers::from_keyboard_state(keyboard_state),
+            modifiers: KeyModifiersState::from_keyboard_state(keyboard_state),
             rule: None,
             time: input.time,
             is_injected: input.flags.contains(LLKHF_INJECTED),
@@ -62,7 +62,7 @@ mod tests {
         ($action:literal, $state:expr) => {
             KeyEvent {
                 action: $action.parse().unwrap(),
-                modifiers: KeyModifiers::from_keyboard_state($state),
+                modifiers: KeyModifiersState::from_keyboard_state($state),
                 time: 0,
                 is_injected: false,
                 is_private: false,

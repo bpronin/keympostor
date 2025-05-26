@@ -1,24 +1,24 @@
 use crate::keyboard::key_action::KeyAction;
-use crate::keyboard::key_modifiers::KeyboardState;
+use crate::keyboard::key_modifiers::KeyModifiers;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct KeyTrigger {
     pub(crate) action: KeyAction,
-    pub(crate) state: KeyboardState,
+    pub(crate) modifiers: KeyModifiers,
 }
 
 impl Display for KeyTrigger {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.state, self.action)
+        write!(f, "{}{}", self.modifiers, self.action)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::key_action;
-    use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
+    use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::key_modifiers::KM_LSHIFT;
     use crate::keyboard::key_modifiers::KM_NONE;
     use crate::keyboard::key_trigger::KeyAction;
@@ -37,7 +37,7 @@ mod tests {
             "[LEFT_SHIFT]A↓",
             KeyTrigger {
                 action: key_action!("A↓"),
-                state: All(KM_LSHIFT),
+                modifiers: All(KM_LSHIFT),
             }
             .to_string()
         );
@@ -46,7 +46,7 @@ mod tests {
             "[]A↓",
             KeyTrigger {
                 action: key_action!("A↓"),
-                state: All(KM_NONE),
+                modifiers: All(KM_NONE),
             }
             .to_string()
         );
@@ -55,7 +55,7 @@ mod tests {
             "[*]A↓",
             KeyTrigger {
                 action: key_action!("A↓"),
-                state: Any,
+                modifiers: Any,
             }
             .to_string()
         );

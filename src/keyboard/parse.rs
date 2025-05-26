@@ -2,9 +2,9 @@ use crate::keyboard::key::{Key, ScanCode, VirtualKey};
 use crate::keyboard::key_action::KeyTransition::{Down, Up};
 use crate::keyboard::key_action::{KeyAction, KeyActionSequence, KeyTransition};
 use crate::keyboard::key_const::KEY_MAP;
-use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
+use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
 use crate::keyboard::key_modifiers::{
-    KeyModifiers, KeyboardState, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
+    KeyModifiersState, KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
     KM_RSHIFT, KM_RWIN,
 };
 use crate::keyboard::key_trigger::KeyTrigger;
@@ -71,8 +71,8 @@ impl FromStr for KeyAction {
             .ok_or(&format!("Invalid key action suffix: `{suffix}`."))?;
 
         let action = Self {
-            key: prefix.parse()?,
-            transition: suffix.to_string().parse()?,
+            key: Key::from_str(prefix)?,
+            transition: KeyTransition::from_str(&suffix.to_string())?,
         };
 
         Ok(action)
@@ -106,8 +106,8 @@ impl FromStr for KeyActionSequence {
 
                 suffixes.chars().map(move |suffix| {
                     Ok(KeyAction {
-                        key: prefix.parse()?,
-                        transition: suffix.to_string().parse()?,
+                        key: Key::from_str(prefix)?,
+                        transition: KeyTransition::from_str(&suffix.to_string())?,
                     })
                 })
             })
@@ -117,18 +117,18 @@ impl FromStr for KeyActionSequence {
     }
 }
 
-impl FromStr for KeyboardState {
+impl FromStr for KeyModifiers {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(match s.trim() {
             "*" => Any,
-            &_ => All(KeyModifiers::from_str(s)?),
+            &_ => All(KeyModifiersState::from_str(s)?),
         })
     }
 }
 
-impl FromStr for KeyModifiers {
+impl FromStr for KeyModifiersState {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -163,12 +163,9 @@ impl FromStr for KeyModifiers {
 
 impl KeyTrigger {
     fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
-        let list = s
-            .split(',')
-            .map(|s| s.trim().parse())
-            .collect::<Result<Vec<_>, String>>()?;
-
-        Ok(list)
+        s.split(',')
+            .map(|s| KeyTrigger::from_str(s))
+            .collect::<Result<Vec<_>, String>>()
     }
 }
 
@@ -176,16 +173,17 @@ impl FromStr for KeyTrigger {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        if let Some(s) = s.strip_prefix('[') {
+        let ts = s.trim();
+        if let Some(s) = ts.strip_prefix('[') {
             let mut parts = s.split(']');
             Ok(Self {
-                state: parts.next().unwrap().parse()?, /* Modifiers go first! */
-                action: parts.next().unwrap().parse()?,
+                modifiers: KeyModifiers::from_str(parts.next().expect("Missing modifiers part"))?, /* Modifiers go first! */
+                action: KeyAction::from_str(parts.next().expect("Missing action part."))?,
             })
         } else {
             Ok(Self {
-                action: s.parse()?,
-                state: Any,
+                action: KeyAction::from_str(ts)?,
+                modifiers: Any,
             })
         }
     }
@@ -201,8 +199,8 @@ impl KeyTransformRule {
         let mut rules = vec![];
         for trigger in triggers {
             rules.push(KeyTransformRule {
-                source: trigger,
-                target: actions.clone(),
+                trigger: trigger,
+                actions: actions.clone(),
             })
         }
 
@@ -216,8 +214,8 @@ impl FromStr for KeyTransformRule {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut parts = s.trim().split(":");
         Ok(Self {
-            source: parts.next().ok_or("Missing source part.")?.parse()?,
-            target: parts.next().ok_or("Missing target part.")?.parse()?,
+            trigger: KeyTrigger::from_str(parts.next().ok_or("Missing source part.")?)?,
+            actions: KeyActionSequence::from_str(parts.next().ok_or("Missing target part.")?)?,
         })
     }
 }
@@ -260,9 +258,9 @@ mod tests {
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
     use crate::keyboard::key_action::KeyTransition::{Down, Up};
     use crate::keyboard::key_action::{KeyAction, KeyTransition};
-    use crate::keyboard::key_modifiers::KeyboardState::{All, Any};
+    use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::key_modifiers::{
-        KeyModifiers, KeyboardState, KM_LSHIFT, KM_NONE, KM_RSHIFT, KM_RWIN,
+        KeyModifiersState, KeyModifiers, KM_LSHIFT, KM_NONE, KM_RSHIFT, KM_RWIN,
     };
     use crate::keyboard::key_trigger::KeyTrigger;
     use crate::keyboard::parse::KeyActionSequence;
@@ -371,17 +369,17 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_from_str() {
-        assert_eq!(KM_NONE, KeyModifiers::from_str("").unwrap());
+        assert_eq!(KM_NONE, KeyModifiersState::from_str("").unwrap());
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_RWIN,
-            KeyModifiers::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
+            KeyModifiersState::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
         );
     }
 
     #[test]
     fn test_key_modifiers_from_str_fails() {
-        assert!(KeyModifiers::from_str("BANANA").is_err());
+        assert!(KeyModifiersState::from_str("BANANA").is_err());
     }
 
     // Keyboard state
@@ -390,18 +388,18 @@ mod tests {
     fn test_keyboard_state_all_from_str() {
         assert_eq!(
             All(KM_LSHIFT | KM_RSHIFT | KM_RWIN),
-            KeyboardState::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
+            KeyModifiers::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
         );
 
-        assert_eq!(All(KM_NONE), KeyboardState::from_str("").unwrap());
+        assert_eq!(All(KM_NONE), KeyModifiers::from_str("").unwrap());
     }
 
     #[test]
     fn test_keyboard_state_any_from_str() {
-        assert_eq!(Any, KeyboardState::from_str("*").unwrap());
+        assert_eq!(Any, KeyModifiers::from_str("*").unwrap());
     }
 
-    // Key Action
+    // Key action
 
     #[test]
     fn test_key_action_from_str() {
@@ -445,29 +443,29 @@ mod tests {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                state: All(key_mod!("LEFT_SHIFT")),
+                modifiers: All(key_mod!("LEFT_SHIFT")),
             },
             KeyTrigger::from_str("[LEFT_SHIFT] A*").unwrap()
         );
     }
 
     #[test]
-    fn test_key_trigger_parse_no_modifiers() {
+    fn test_key_trigger_from_str_no_modifiers() {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                state: All(KM_NONE),
+                modifiers: All(KM_NONE),
             },
             KeyTrigger::from_str("[] A*").unwrap()
         );
     }
 
     #[test]
-    fn test_key_trigger_parse_any_modifiers() {
+    fn test_key_trigger_from_str_any_modifiers() {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                state: Any,
+                modifiers: Any,
             },
             KeyTrigger::from_str("[*]A*").unwrap()
         );
@@ -475,7 +473,7 @@ mod tests {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                state: Any,
+                modifiers: Any,
             },
             KeyTrigger::from_str("A*").unwrap()
         );
@@ -504,8 +502,8 @@ mod tests {
     #[test]
     fn test_key_transform_rule_from_str() {
         let expected = KeyTransformRule {
-            source: key_trigger!("[LEFT_SHIFT] ENTER↓"),
-            target: key_action_seq!("A↓"),
+            trigger: key_trigger!("[LEFT_SHIFT] ENTER↓"),
+            actions: key_action_seq!("A↓"),
         };
 
         assert_eq!(
