@@ -15,10 +15,8 @@ impl FromStr for VirtualKey {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let st = s.trim();
-        Self::from_code_name(st)
-            .or_else(|_| Self::from_name(st))
-            .copied()
+        let ts = s.trim();
+        Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
     }
 }
 
@@ -26,10 +24,8 @@ impl FromStr for ScanCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let st = s.trim();
-        Self::from_code_name(st)
-            .or_else(|_| Self::from_name(st))
-            .copied()
+        let ts = s.trim();
+        Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
     }
 }
 

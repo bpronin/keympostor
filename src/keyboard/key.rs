@@ -11,24 +11,25 @@ pub(crate) struct VirtualKey {
 }
 
 impl VirtualKey {
-    pub(crate) fn from_code(code: u8) -> Result<&'static VirtualKey, String> {
+    pub(crate) fn from_code(code: u8) -> Result<VirtualKey, String> {
         VIRTUAL_KEYS
             .get(code as usize)
             .ok_or(format!("Illegal virtual key code `{}`.", code))
+            .copied()
     }
 
-    pub(crate) fn from_name(name: &str) -> Result<&'static VirtualKey, String> {
+    pub(crate) fn from_name(name: &str) -> Result<VirtualKey, String> {
         let vk_name = append_prefix!(name, "VK_");
         let position = VIRTUAL_KEYS.iter().position(|probe| probe.name == vk_name);
 
         if let Some(ix) = position {
-            Ok(&VIRTUAL_KEYS[ix])
+            Ok(VIRTUAL_KEYS[ix])
         } else {
             Err(format!("Illegal virtual key name `{}`.", name))
         }
     }
 
-    pub(crate) fn from_code_name(s: &str) -> Result<&'static VirtualKey, String> {
+    pub(crate) fn from_code_name(s: &str) -> Result<VirtualKey, String> {
         let src = s.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix.")?;
         let code = u8::from_str_radix(src, 16)
             .map_err(|_| format!("Error parsing virtual key code `{}`.", s))?;
@@ -67,30 +68,32 @@ pub(crate) struct ScanCode {
 }
 
 impl ScanCode {
-    pub(crate) fn from_code(code: u8, extended: bool) -> Result<&'static ScanCode, String> {
+    pub(crate) fn from_code(code: u8, extended: bool) -> Result<ScanCode, String> {
         SCAN_CODES
             .get(code as usize)
             .ok_or(format!("Illegal scan code `{}`.", code))?
             .get(extended as usize)
             .ok_or(format!("Illegal extended scan code `{}`.", code))
+            .copied()
     }
 
-    pub(crate) fn from_name(name: &str) -> Result<&'static ScanCode, String> {
+    pub(crate) fn from_name(name: &str) -> Result<ScanCode, String> {
         let sc_name = append_prefix!(name, "SC_");
         SCAN_CODES
             .iter()
             .flatten()
             .find(|sc| sc.name == sc_name)
             .ok_or(format!("Illegal scan code name `{}`.", name))
+            .copied()
     }
 
-    pub(crate) fn from_code_name(s: &str) -> Result<&'static ScanCode, String> {
+    pub(crate) fn from_code_name(s: &str) -> Result<ScanCode, String> {
         let code = u16::from_str_radix(s.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix.")?, 16)
             .map_err(|_| format!("Error parsing scan code `{}`.", s))?;
         Self::from_ext_code(code)
     }
 
-    pub(crate) fn from_ext_code(ext_code: u16) -> Result<&'static ScanCode, String> {
+    pub(crate) fn from_ext_code(ext_code: u16) -> Result<ScanCode, String> {
         Self::from_code(ext_code as u8, ext_code & 0xE000 == 0xE000)
     }
 
@@ -144,11 +147,11 @@ impl Key {
         KEY_MAP.with(|k| k.name_of(self))
     }
 
-    pub(crate) fn virtual_key(&self) -> &'static VirtualKey {
+    pub(crate) fn virtual_key(&self) -> VirtualKey {
         VirtualKey::from_code(self.vk_code).unwrap()
     }
 
-    pub(crate) fn scan_code(&self) -> &'static ScanCode {
+    pub(crate) fn scan_code(&self) -> ScanCode {
         ScanCode::from_code(self.scan_code, self.is_ext_scan_code).unwrap()
     }
 
@@ -208,7 +211,10 @@ mod tests {
 
     #[test]
     fn test_vk_from_code_name() {
-        assert_eq!("VK_RETURN", VirtualKey::from_str("VK_0x0D").unwrap().name);
+        assert_eq!(
+            "VK_RETURN",
+            VirtualKey::from_code_name("VK_0x0D").unwrap().name
+        );
     }
 
     #[test]
