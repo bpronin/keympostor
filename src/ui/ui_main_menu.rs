@@ -1,4 +1,4 @@
-use crate::res::RES;
+use crate::res::RESOURCES;
 use crate::rs;
 
 use crate::ui::App;

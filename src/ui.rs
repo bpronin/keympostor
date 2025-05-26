@@ -1,7 +1,7 @@
 use crate::keyboard::key_hook::KeyboardHandler;
 use crate::keyboard::transform_rules::KeyTransformProfile;
 use crate::res::res_ids::{IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
-use crate::res::RES;
+use crate::res::RESOURCES;
 use crate::rs;
 use crate::settings::AppSettings;
 use crate::ui::ui_log_view::LogView;

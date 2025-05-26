@@ -1,4 +1,4 @@
-use crate::res::RES;
+use crate::res::RESOURCES;
 use crate::rs;
 use native_windows_gui as nwg;
 use crate::res::res_ids::IDS_APP_TITLE;

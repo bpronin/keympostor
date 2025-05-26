@@ -1,6 +1,6 @@
 use crate::keyboard::key_event::KeyEvent;
 use crate::res::res_ids::{IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_};
-use crate::res::RES;
+use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::ui_util::mono_font;
 

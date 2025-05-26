@@ -1,5 +1,5 @@
 use crate::append_prefix;
-use crate::keyboard::key_const::{KEYS, SCAN_CODES, VIRTUAL_KEYS};
+use crate::keyboard::key_const::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
@@ -141,7 +141,7 @@ impl Key {
     }
 
     pub(crate) fn name(&self) -> &'static str {
-        KEYS.with(|k| k.name_of(self))
+        KEY_MAP.with(|k| k.name_of(self))
     }
 
     pub(crate) fn virtual_key(&self) -> &'static VirtualKey {

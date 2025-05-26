@@ -1,21 +1,20 @@
 use crate::keyboard::key::{Key, ScanCode, VirtualKey};
 use std::collections::HashMap;
-use std::rc::Rc;
 
 thread_local! {
-    pub(crate) static KEYS: Rc<Keys> = Rc::new(Keys::new());
+    pub(crate) static KEY_MAP: KeyMap = KeyMap::new();
 }
 
-pub(crate) struct Keys {
+pub(crate) struct KeyMap {
     key_to_name_map: HashMap<Key, &'static str>,
     name_to_key_map: HashMap<&'static str, Key>,
 }
 
-impl Keys {
+impl KeyMap {
     fn new() -> Self {
         let mut name_to_key_map = HashMap::new();
         let mut key_to_name_map = HashMap::new();
-        for (name, key) in KEY_NAMES {
+        for (name, key) in KEYS {
             if name_to_key_map.insert(name, key).is_some() {
                 panic!("Duplicate name: {}", name)
             };
@@ -35,8 +34,11 @@ impl Keys {
             .expect(&format!("Unsupported key: {}", key.code_name()))
     }
 
-    pub(crate) fn by_name(&self, name: &str) -> Option<&Key> {
-        self.name_to_key_map.get(name)
+    pub(crate) fn by_name(&self, name: &str) -> Result<Key, String> {
+        self.name_to_key_map
+            .get(name)
+            .ok_or(format!("Illegal key name: `{}`.", name))
+            .copied()
     }
 }
 
@@ -55,7 +57,7 @@ macro_rules! new_key {
 
 const MAX_KEYS: usize = 203;
 
-static KEY_NAMES: [(&'static str, Key); MAX_KEYS] = [
+static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key!("	", 0x00, 0x0F, true),
     new_key!("", 0x00, 0x01, true),
     new_key!("0", 0x30, 0x0B, false),
@@ -691,38 +693,34 @@ pub(crate) static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key_const::{KEYS, KEY_NAMES};
+    use crate::keyboard::key_const::{KEYS, KEY_MAP};
 
     #[test]
     fn test_key_by_name() {
         assert!(
-            KEY_NAMES
-                .iter()
-                .all(|(name, key)| { 
-                    KEYS.with(|k| *k.by_name(name).unwrap()) == *key 
-                })
+            KEYS.iter()
+                .all(|(name, key)| KEY_MAP.with(|k| k.by_name(name).unwrap()) == *key)
         )
     }
 
     #[test]
     fn test_key_name() {
         assert!(
-            KEY_NAMES
-                .iter()
-                .all(|(name, key)| { KEYS.with(|k| k.name_of(key)) == *name })
+            KEYS.iter()
+                .all(|(name, key)| KEY_MAP.with(|k| k.name_of(key)) == *name)
         )
     }
 
     #[test]
     fn test_key_vk() {
-        KEY_NAMES.iter().for_each(|(_name, key)| {
+        KEYS.iter().for_each(|(_name, key)| {
             key.virtual_key(); /* should not panic */
         })
     }
 
     #[test]
     fn test_key_sc() {
-        KEY_NAMES.iter().for_each(|(_name, key)| {
+        KEYS.iter().for_each(|(_name, key)| {
             key.scan_code(); /* should not panic */
         })
     }
