@@ -37,7 +37,7 @@ impl FromStr for Key {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        KEYS.with_borrow(|keys| {
+        KEYS.with(|keys| {
             let key = keys
                 .by_name(s.trim())
                 .ok_or(format!("Illegal key name: `{}`.", s))?;

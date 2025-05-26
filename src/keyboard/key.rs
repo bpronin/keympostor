@@ -141,7 +141,7 @@ impl Key {
     }
 
     pub(crate) fn name(&self) -> &'static str {
-        KEYS.with_borrow(|k| k.name_of(self))
+        KEYS.with(|k| k.name_of(self))
     }
 
     pub(crate) fn virtual_key(&self) -> &'static VirtualKey {

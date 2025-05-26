@@ -1,9 +1,9 @@
 use crate::keyboard::key::{Key, ScanCode, VirtualKey};
-use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 thread_local! {
-    pub(crate) static KEYS: RefCell<Keys> = RefCell::new(Keys::new());
+    pub(crate) static KEYS: Rc<Keys> = Rc::new(Keys::new());
 }
 
 pub(crate) struct Keys {
@@ -698,7 +698,9 @@ mod tests {
         assert!(
             KEY_NAMES
                 .iter()
-                .all(|(name, key)| { KEYS.with_borrow(|k| *k.by_name(name).unwrap()) == *key })
+                .all(|(name, key)| { 
+                    KEYS.with(|k| *k.by_name(name).unwrap()) == *key 
+                })
         )
     }
 
@@ -707,7 +709,7 @@ mod tests {
         assert!(
             KEY_NAMES
                 .iter()
-                .all(|(name, key)| { KEYS.with_borrow(|k| k.name_of(key)) == *name })
+                .all(|(name, key)| { KEYS.with(|k| k.name_of(key)) == *name })
         )
     }
 
