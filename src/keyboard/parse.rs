@@ -9,15 +9,14 @@ use crate::keyboard::key_modifiers::{
 };
 use crate::keyboard::key_trigger::KeyTrigger;
 use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
-use std::iter::Map;
-use std::str::{FromStr, Lines, Split};
+use std::str::{FromStr, Lines};
 
 impl FromStr for VirtualKey {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
+        let s = s.trim();
+        Self::from_code_name(s).or_else(|_| Self::from_name(s))
     }
 }
 
@@ -25,8 +24,8 @@ impl FromStr for ScanCode {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
+        let s = s.trim();
+        Self::from_code_name(s).or_else(|_| Self::from_name(s))
     }
 }
 
@@ -58,10 +57,10 @@ impl FromStr for KeyTransition {
 
 impl KeyAction {
     fn from_str_expand(s: &str) -> Result<Vec<Self>, String> {
-        let ts = s.trim();
+        let s = s.trim();
         let mut list = vec![];
 
-        if let Some(k) = ts.strip_suffix("*^") {
+        if let Some(k) = s.strip_suffix("*^") {
             let key = Key::from_str(k)?;
             list.push(KeyAction {
                 key: key.clone(),
@@ -71,7 +70,7 @@ impl KeyAction {
                 key,
                 transition: Up,
             });
-        } else if let Some(k) = ts.strip_suffix("↓↑") {
+        } else if let Some(k) = s.strip_suffix("↓↑") {
             let key = Key::from_str(k)?;
             list.push(KeyAction {
                 key: key.clone(),
@@ -81,28 +80,28 @@ impl KeyAction {
                 key,
                 transition: Up,
             });
-        } else if let Some(k) = ts.strip_suffix("*") {
+        } else if let Some(k) = s.strip_suffix("*") {
             list.push(KeyAction {
                 key: Key::from_str(k)?,
                 transition: Down,
             });
-        } else if let Some(k) = ts.strip_suffix("↓") {
+        } else if let Some(k) = s.strip_suffix("↓") {
             list.push(KeyAction {
                 key: Key::from_str(k)?,
                 transition: Down,
             });
-        } else if let Some(k) = ts.strip_suffix("^") {
+        } else if let Some(k) = s.strip_suffix("^") {
             list.push(KeyAction {
                 key: Key::from_str(k)?,
                 transition: Up,
             });
-        } else if let Some(k) = ts.strip_suffix("↑") {
+        } else if let Some(k) = s.strip_suffix("↑") {
             list.push(KeyAction {
                 key: Key::from_str(k)?,
                 transition: Up,
             });
         } else {
-            let key = Key::from_str(ts)?;
+            let key = Key::from_str(s)?;
             list.push(KeyAction {
                 key: key.clone(),
                 transition: Down,
@@ -124,16 +123,6 @@ impl FromStr for KeyAction {
         Ok(Self::from_str_expand(s)?[0])
     }
 }
-
-/*todo!
-impl KeyActionSequence {
-    fn from_str_group(s: &str) -> Result<Vec<Self>, String> {
-        let mut list = vec![];
-
-        Ok(list)
-    }
-}
- */
 
 impl FromStr for KeyActionSequence {
     type Err = String;
@@ -178,11 +167,11 @@ impl FromStr for KeyModifiersState {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        if ts.is_empty() {
+        let s = s.trim();
+        if s.is_empty() {
             Ok(KM_NONE)
         } else {
-            let this = ts.split('+').fold(KM_NONE, |acc, part| match part.trim() {
+            let this = s.split('+').fold(KM_NONE, |acc, part| match part.trim() {
                 "LEFT_SHIFT" => acc | KM_LSHIFT,
                 "RIGHT_SHIFT" => acc | KM_RSHIFT,
                 // "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
@@ -209,14 +198,32 @@ impl FromStr for KeyModifiersState {
 
 impl KeyTrigger {
     fn from_str_list(s: &str) -> Result<Vec<Self>, String> {
-        s.split(',')
-            .flat_map(|s| Self::from_str_expand(s))
-            .collect::<Result<Vec<_>, String>>()
+        let mut list = Vec::new();
+        for part in s.split(',') {
+            list.extend(Self::from_str_expand(part)?);
+        }
+        Ok(list)
     }
 
-    fn from_str_expand(s: &str) -> Map<Split<'_, char>, fn(&str) -> Result<KeyTrigger, String>> {
-        // let transitions = KeyTransition::from_str_group(s)?;
-        s.split(',').map(|s| KeyTrigger::from_str(s))
+    fn from_str_expand(s: &str) -> Result<Vec<KeyTrigger>, String> {
+        let s = s.trim();
+        let mut list = Vec::new();
+        if let Some(s) = s.strip_prefix('[') {
+            let mut parts = s.split(']');
+            let modifiers = KeyModifiers::from_str(parts.next().unwrap())?;
+            for action in KeyAction::from_str_expand(parts.next().unwrap())? {
+                list.push(Self { action, modifiers });
+            }
+        } else {
+            for action in KeyAction::from_str_expand(s)? {
+                list.push(Self {
+                    action,
+                    modifiers: Any,
+                });
+            }
+        }
+
+        Ok(list)
     }
 }
 
@@ -224,8 +231,8 @@ impl FromStr for KeyTrigger {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        if let Some(s) = ts.strip_prefix('[') {
+        let s = s.trim();
+        if let Some(s) = s.strip_prefix('[') {
             let mut parts = s.split(']');
             Ok(Self {
                 modifiers: KeyModifiers::from_str(parts.next().expect("Missing modifiers part"))?, /* Modifiers go first! */
@@ -233,7 +240,7 @@ impl FromStr for KeyTrigger {
             })
         } else {
             Ok(Self {
-                action: KeyAction::from_str(ts)?,
+                action: KeyAction::from_str(s)?,
                 modifiers: Any,
             })
         }
@@ -498,7 +505,7 @@ mod tests {
             ],
             KeyAction::from_str_expand("A*^").unwrap()
         );
-        
+
         assert_eq!(
             vec![
                 KeyAction {
@@ -512,7 +519,7 @@ mod tests {
             ],
             KeyAction::from_str_expand("A↓↑").unwrap()
         );
-        
+
         assert_eq!(
             vec![
                 KeyAction {
@@ -600,13 +607,56 @@ mod tests {
         ];
         let actual = KeyTrigger::from_str_list("A*, [LEFT_CTRL]B^, C*").unwrap();
         assert_eq!(expected, actual);
+
+        let expected = vec![key_trigger!("A*")];
+        let actual = KeyTrigger::from_str_list("A*").unwrap();
+        assert_eq!(expected, actual);
     }
 
     #[test]
-    fn test_key_trigger_from_str_no_transition() {
-        let expected = vec![key_trigger!("[LEFT_CTRL]A↓"), key_trigger!("[LEFT_CTRL]A↑")];
-        let actual = KeyTrigger::from_str_list("[LEFT_CTRL]A").unwrap();
-        assert_eq!(expected, actual);
+    fn test_key_trigger_from_str_expand() {
+        assert_eq!(
+            vec![key_trigger!("A↓"), key_trigger!("A↑")],
+            KeyTrigger::from_str_list("A↓↑").unwrap()
+        );
+
+        assert_eq!(
+            vec![key_trigger!("A↓"), key_trigger!("A↑")],
+            KeyTrigger::from_str_list("A").unwrap()
+        );
+
+        assert_eq!(
+            vec![key_trigger!("[LEFT_CTRL]A↓"), key_trigger!("[LEFT_CTRL]A↑")],
+            KeyTrigger::from_str_list("[LEFT_CTRL]A↓↑").unwrap()
+        );
+        
+        assert_eq!(
+            vec![key_trigger!("[LEFT_CTRL]A↓"), key_trigger!("[LEFT_CTRL]A↑")],
+            KeyTrigger::from_str_list("[LEFT_CTRL]A").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_trigger_from_str_list_expand() {
+        assert_eq!(
+            vec![
+                key_trigger!("A↓"),
+                key_trigger!("A↑"),
+                key_trigger!("B↓"),
+                key_trigger!("B↑"),
+            ],
+            KeyTrigger::from_str_list("A,B").unwrap()
+        );
+        
+        assert_eq!(
+            vec![
+                key_trigger!("[LEFT_SHIFT]A↓"),
+                key_trigger!("[LEFT_SHIFT]A↑"),
+                key_trigger!("[LEFT_CTRL + LEFT_ALT]B↓"),
+                key_trigger!("[LEFT_CTRL + LEFT_ALT]B↑"),
+            ],
+            KeyTrigger::from_str_list("[LEFT_SHIFT] A, [LEFT_CTRL + LEFT_ALT] B").unwrap()
+        );
     }
 
     // Transform rule

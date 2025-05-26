@@ -84,12 +84,10 @@ mod tests {
     use crate::keyboard::key_action::KeyAction;
     use crate::keyboard::key_action::KeyActionSequence;
     use crate::keyboard::key_action::KeyTransition::{Down, Up};
-    use crate::keyboard::key_modifiers::KeyModifiersState;
     use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
+    use crate::keyboard::key_modifiers::KeyModifiersState;
     use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::keyboard::transform_rules::{
-        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
-    };
+    use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
     use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
     use serde::{Deserialize, Serialize};
 
