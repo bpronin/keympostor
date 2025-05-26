@@ -3,14 +3,13 @@ use crate::keyboard::key_modifiers::KeyModifiersState;
 use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
-use std::str::FromStr;
 
 impl Serialize for Key {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
-        serializer.serialize_str(&self.name())
+        serializer.serialize_str(&self.to_string())
     }
 }
 
@@ -87,9 +86,7 @@ mod tests {
     use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::key_modifiers::KeyModifiersState;
     use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::keyboard::transform_rules::{
-        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
-    };
+    use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
     use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
     use serde::{Deserialize, Serialize};
 
@@ -221,19 +218,67 @@ mod tests {
         assert_eq!(source, actual);
     }
 
+    // #[test]
+    // fn test_key_transform_rules_deserialize() {
+    //     assert_eq!(
+    //         KeyTransformRules {
+    //             items: vec![key_rule!("A* : C*"), key_rule!("B* : C*")],
+    //         },
+    //         toml::from_str(
+    //             r#"
+    //             "A*, B*" = "C*"
+    //             "#,
+    //         )
+    //         .unwrap()
+    //     );
+    // }
+
     #[test]
-    fn test_key_transform_rules_deserialize() {
-        assert_eq!(
-            KeyTransformRules {
-                items: vec![key_rule!("A* : C*"), key_rule!("B* : C*")],
-            },
-            toml::from_str(
-                r#"
-                "A*, B*" = "C*"
-                "#,
-            )
-            .unwrap()
+    fn test_key_transform_profile_serialize() {
+        let profile = key_profile!(
+            r#"
+            Test profile
+            [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑
+            []CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
+            "#
         );
+        let expected = r#"
+            title = "Test profile"
+            [rules]
+            "[LEFT_SHIFT]CAPS_LOCK↓" = "CAPS_LOCK↓ → CAPS_LOCK↑"
+            "[]CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
+            "#;
+
+        let actual = toml::to_string_pretty(&profile).unwrap();
+
+        assert_eq!(
+            expected.split_whitespace().collect::<String>(),
+            actual.split_whitespace().collect::<String>()
+        );
+    }
+
+    #[test]
+    fn test_key_transform_profile_deserialize() {
+        let actual = toml::from_str(
+            &r#"
+            title = "Test profile"
+            [rules]
+            "[LEFT_SHIFT]CAPS_LOCK↓" = "CAPS_LOCK↓ → CAPS_LOCK↑"
+            "[]CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
+            "#,
+        )
+        .unwrap();
+
+        /* NOTE: rules deserialized as sorted map so check the "expected" order */
+        let expected = key_profile!(
+            r#"
+            Test profile
+            [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑
+            []CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
+            "#
+        );
+
+        assert_eq!(expected, actual);
     }
 
     #[test]

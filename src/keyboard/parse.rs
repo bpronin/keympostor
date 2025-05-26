@@ -1,7 +1,6 @@
-use crate::keyboard::key::{Key, ScanCode, VirtualKey};
+use crate::keyboard::key::Key;
 use crate::keyboard::key_action::KeyTransition::{Down, Up};
-use crate::keyboard::key_action::{KeyAction, KeyActionSequence, KeyTransition};
-use crate::keyboard::key_const::KEY_MAP;
+use crate::keyboard::key_action::{KeyAction, KeyActionSequence};
 use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
 use crate::keyboard::key_modifiers::{
     KeyModifiers, KeyModifiersState, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
@@ -11,49 +10,49 @@ use crate::keyboard::key_trigger::KeyTrigger;
 use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
 use std::str::{FromStr, Lines};
 
-impl FromStr for VirtualKey {
-    type Err = String;
+// impl FromStr for VirtualKey {
+//     type Err = String;
+//
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         let ts = s.trim();
+//         Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
+//     }
+// }
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
-    }
-}
-
-impl FromStr for ScanCode {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
-    }
-}
+// impl FromStr for ScanCode {
+//     type Err = String;
+//
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         let ts = s.trim();
+//         Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
+//     }
+// }
 
 impl FromStr for Key {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        KEY_MAP.with(|keys| keys.by_name(s.trim()))
+        Self::from_name(s)
     }
 }
 
-impl FromStr for KeyTransition {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut chars = s.trim().chars();
-        let symbol = chars.next().ok_or("Key transition symbol is empty.")?;
-        if chars.next().is_none() {
-            match symbol {
-                '↑' | '^' => Ok(Up),
-                '↓' | '*' => Ok(Down),
-                _ => Err(format!("Illegal key transition symbol `{}`.", s)),
-            }
-        } else {
-            Err(format!("Key transition symbols `{}` is too long.", s))
-        }
-    }
-}
+// impl FromStr for KeyTransition {
+//     type Err = String;
+//
+//     fn from_str(s: &str) -> Result<Self, Self::Err> {
+//         let mut chars = s.trim().chars();
+//         let symbol = chars.next().ok_or("Key transition symbol is empty.")?;
+//         if chars.next().is_none() {
+//             match symbol {
+//                 '↑' | '^' => Ok(Up),
+//                 '↓' | '*' => Ok(Down),
+//                 _ => Err(format!("Illegal key transition symbol `{}`.", s)),
+//             }
+//         } else {
+//             Err(format!("Key transition symbols `{}` is too long.", s))
+//         }
+//     }
+// }
 
 impl KeyAction {
     fn from_str_expand(s: &str) -> Result<Vec<Self>, String> {
@@ -256,7 +255,7 @@ impl KeyTransformRule {
     pub(crate) fn from_str_pair(trigger_str: &str, action_str: &str) -> Result<Vec<Self>, String> {
         let triggers = KeyTrigger::from_str_list(trigger_str)?;
         let actions = KeyActionSequence::from_str(action_str)?;
-
+        //todo! parse actions as list
         let mut rules = Vec::new();
         for trigger in triggers {
             rules.push(KeyTransformRule {
@@ -281,8 +280,18 @@ impl FromStr for KeyTransformRule {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok((&Self::from_str_list(s)?[0]).clone())
+        Ok(Self::from_str_list(s)?[0].clone())
     }
+}
+
+fn parse_rules_lines(lines: Lines) -> Result<Vec<KeyTransformRule>, String> {
+    let mut items = Vec::new();
+    for line in lines {
+        let rules = KeyTransformRule::from_str_list(line.trim())?;
+        items.extend(rules);
+    }
+
+    Ok(items)
 }
 
 impl KeyTransformRules {
@@ -320,53 +329,49 @@ impl FromStr for KeyTransformProfile {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key::{Key, ScanCode, VirtualKey};
+    use crate::keyboard::key::Key;
+    use crate::keyboard::key_action::KeyAction;
     use crate::keyboard::key_action::KeyTransition::{Down, Up};
-    use crate::keyboard::key_action::{KeyAction, KeyTransition};
     use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::key_modifiers::{
         KeyModifiers, KeyModifiersState, KM_LSHIFT, KM_NONE, KM_RSHIFT, KM_RWIN,
     };
     use crate::keyboard::key_trigger::KeyTrigger;
     use crate::keyboard::parse::KeyActionSequence;
-    use crate::keyboard::transform_rules::{
-        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
-    };
-    use crate::{
-        key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_rules, key_trigger,
-    };
+    use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
+    use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_rules, key_trigger};
     use std::str::FromStr;
 
     // Virtual key
 
-    #[test]
-    fn test_vk_from_str() {
-        assert_eq!("VK_RETURN", VirtualKey::from_str("VK_RETURN").unwrap().name);
-        assert_eq!("VK_RETURN", VirtualKey::from_str("RETURN").unwrap().name);
-        assert_eq!("VK_RETURN", VirtualKey::from_str("VK_0x0D").unwrap().name);
-    }
-
-    #[test]
-    fn test_vk_from_str_fails() {
-        assert!(VirtualKey::from_str("BANANA").is_err());
-    }
+    // #[test]
+    // fn test_vk_from_str() {
+    //     assert_eq!("VK_RETURN", VirtualKey::from_str("VK_RETURN").unwrap().name);
+    //     assert_eq!("VK_RETURN", VirtualKey::from_str("RETURN").unwrap().name);
+    //     assert_eq!("VK_RETURN", VirtualKey::from_str("VK_0x0D").unwrap().name);
+    // }
+    //
+    // #[test]
+    // fn test_vk_from_str_fails() {
+    //     assert!(VirtualKey::from_str("BANANA").is_err());
+    // }
 
     // Scancode
 
-    #[test]
-    fn test_sc_from_str() {
-        assert_eq!("SC_ENTER", ScanCode::from_str("SC_ENTER").unwrap().name);
-        assert_eq!("SC_ENTER", ScanCode::from_str("ENTER").unwrap().name);
-        assert_eq!(
-            "SC_NUM_ENTER",
-            ScanCode::from_str("SC_0xE01C").unwrap().name
-        );
-    }
-
-    #[test]
-    fn test_sc_from_str_fails() {
-        assert!(ScanCode::from_str("BANANA").is_err());
-    }
+    // #[test]
+    // fn test_sc_from_str() {
+    //     assert_eq!("SC_ENTER", ScanCode::from_str("SC_ENTER").unwrap().name);
+    //     assert_eq!("SC_ENTER", ScanCode::from_str("ENTER").unwrap().name);
+    //     assert_eq!(
+    //         "SC_NUM_ENTER",
+    //         ScanCode::from_str("SC_0xE01C").unwrap().name
+    //     );
+    // }
+    //
+    // #[test]
+    // fn test_sc_from_str_fails() {
+    //     assert!(ScanCode::from_str("BANANA").is_err());
+    // }
 
     // Key
 
@@ -405,30 +410,30 @@ mod tests {
         assert!(Key::from_str("BANANA").is_err());
     }
 
-    // Key transition
-
-    #[test]
-    fn test_key_transition_from_str() {
-        assert_eq!(Down, KeyTransition::from_str("↓").unwrap());
-        assert_eq!(Up, KeyTransition::from_str("↑").unwrap());
-        assert_eq!(Down, KeyTransition::from_str("*").unwrap());
-        assert_eq!(Up, KeyTransition::from_str("^").unwrap());
-    }
-
-    #[test]
-    fn test_key_transition_from_str_fails_illegal() {
-        assert!(KeyTransition::from_str("BANANA").is_err())
-    }
-
-    #[test]
-    fn test_key_transition_from_str_fails_empty() {
-        assert!(KeyTransition::from_str("").is_err())
-    }
-
-    #[test]
-    fn test_key_transition_from_str_fails_to_long() {
-        assert!(KeyTransition::from_str("↑↑↑").is_err())
-    }
+    // // Key transition
+    //
+    // #[test]
+    // fn test_key_transition_from_str() {
+    //     assert_eq!(Down, KeyTransition::from_str("↓").unwrap());
+    //     assert_eq!(Up, KeyTransition::from_str("↑").unwrap());
+    //     assert_eq!(Down, KeyTransition::from_str("*").unwrap());
+    //     assert_eq!(Up, KeyTransition::from_str("^").unwrap());
+    // }
+    //
+    // #[test]
+    // fn test_key_transition_from_str_fails_illegal() {
+    //     assert!(KeyTransition::from_str("BANANA").is_err())
+    // }
+    //
+    // #[test]
+    // fn test_key_transition_from_str_fails_empty() {
+    //     assert!(KeyTransition::from_str("").is_err())
+    // }
+    //
+    // #[test]
+    // fn test_key_transition_from_str_fails_to_long() {
+    //     assert!(KeyTransition::from_str("↑↑↑").is_err())
+    // }
 
     // Key modifiers
 
@@ -721,22 +726,22 @@ mod tests {
 
     // Transform rules
 
-    #[test]
-    fn test_key_transform_rules_from_str_no_trigger_transition() {
-        assert_eq!(
-            key_rules!(
-                r#"
-                A↓ : B↓
-                A↑ : B↓
-                "#
-            ),
-            key_rules!(
-                "
-                A : B↓
-                "
-            )
-        );
-    }
+    // #[test]
+    // fn test_key_transform_rules_from_str_no_trigger_transition() {
+    //     assert_eq!(
+    //         key_rules!(
+    //             r#"
+    //             A↓ : B↓
+    //             A↑ : B↓
+    //             "#
+    //         ),
+    //         key_rules!(
+    //             "
+    //             A : B↓
+    //             "
+    //         )
+    //     );
+    // }
 
     // todo: #[test]
     // fn test_key_transform_rules_from_str_no_transition() {

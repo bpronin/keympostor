@@ -1,5 +1,6 @@
 use crate::append_prefix;
 use crate::keyboard::key_const::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
+use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
@@ -143,6 +144,10 @@ impl Key {
         }
     }
 
+    pub(crate) fn from_name(s: &str) -> Result<Self, String> {
+        KEY_MAP.with(|keys| keys.by_name(s.trim()))
+    }
+
     pub(crate) fn name(&self) -> &'static str {
         KEY_MAP.with(|k| k.name_of(self))
     }
@@ -173,26 +178,25 @@ impl Display for Key {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
-    use std::str::FromStr;
 
     #[macro_export]
     macro_rules! vk_key {
         ($text:literal) => {
-            &$text.parse::<VirtualKey>().unwrap()
+            VirtualKey::from_name($text).unwrap()
         };
     }
 
     #[macro_export]
     macro_rules! sc_key {
         ($text:literal) => {
-            &$text.parse::<ScanCode>().unwrap()
+            ScanCode::from_name($text).unwrap()
         };
     }
 
     #[macro_export]
     macro_rules! key {
         ($text:literal) => {
-            $text.parse::<Key>().unwrap()
+            Key::from_name($text).unwrap()
         };
     }
 
@@ -221,7 +225,7 @@ mod tests {
     fn test_vk_display() {
         assert_eq!(
             "VK_RETURN",
-            format!("{}", VirtualKey::from_str("VK_RETURN").unwrap())
+            format!("{}", VirtualKey::from_name("VK_RETURN").unwrap())
         );
     }
 

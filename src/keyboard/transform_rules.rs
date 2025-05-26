@@ -91,7 +91,7 @@ mod tests {
 
     #[macro_export]
     macro_rules! key_profile {
-        ($text:literal) => {
+        ($text:expr) => {
             $text.parse::<KeyTransformProfile>().unwrap()
         };
     }
