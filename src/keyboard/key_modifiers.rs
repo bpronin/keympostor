@@ -83,7 +83,7 @@ impl KeyModifiersState {
 
 impl Display for KeyModifiersState {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let mut names: Vec<&str> = vec![];
+        let mut names: Vec<&str> = Vec::new();
 
         if self.contains(KM_LSHIFT) {
             names.push("LEFT_SHIFT");
