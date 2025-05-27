@@ -163,7 +163,6 @@ mod tests {
     #[test]
     fn test_key_transition_basics() {
         assert_eq!(Up, KeyTransition::default());
-        assert_eq!(Up, if true { Up } else { Down });
         assert!(Up.is_up());
         assert_not!(Down.is_up());
     }
