@@ -201,10 +201,10 @@ impl FromStr for KeyModifiersState {
 }
 
 impl KeyTrigger {
-    fn from_str_list(s: &str) -> Result<Vec<Self>, String> {
+    fn from_str_list(s: &str) -> Result<Vec<Vec<Self>>, String> {
         let mut list = Vec::new();
         for part in s.split(',') {
-            list.extend(Self::from_str_expand(part)?);
+            list.push(Self::from_str_expand(part)?);
         }
         Ok(list)
     }
@@ -212,6 +212,7 @@ impl KeyTrigger {
     fn from_str_expand(s: &str) -> Result<Vec<KeyTrigger>, String> {
         let ts = s.trim();
         let mut list = Vec::new();
+
         if let Some(s) = ts.strip_prefix('[') {
             let mut parts = s.split(']');
             let modifiers = KeyModifiers::from_str(parts.next().unwrap())?;
@@ -252,16 +253,35 @@ impl FromStr for KeyTrigger {
 }
 
 impl KeyTransformRule {
-    pub(crate) fn from_str_pair(trigger_str: &str, action_str: &str) -> Result<Vec<Self>, String> {
-        let triggers = KeyTrigger::from_str_list(trigger_str)?;
-        let actions = KeyActionSequence::from_str(action_str)?;
-        //todo! parse actions as list
+    pub(crate) fn from_str_pair(
+        triggers_str: &str,
+        actions_str: &str,
+    ) -> Result<Vec<Self>, String> {
+        let triggers_list = KeyTrigger::from_str_list(triggers_str)?;
+        let sequences = KeyActionSequence::from_str_list(actions_str)?;
         let mut rules = Vec::new();
-        for trigger in triggers {
-            rules.push(KeyTransformRule {
-                trigger,
-                actions: actions.clone(),
-            })
+
+        for triggers in triggers_list {
+            let len_t = triggers.len();
+            let len_s = sequences.len();
+            for i in 0..len_t.max(len_s) {
+                let rule = KeyTransformRule {
+                    trigger: if i < len_t {
+                        &triggers[i]
+                    } else {
+                        &triggers[len_t - 1]
+                    }
+                    .clone(),
+                    actions: if i < len_s {
+                        &sequences[i]
+                    } else {
+                        &sequences[len_s - 1]
+                    }
+                    .clone(),
+                };
+                
+                rules.push(rule);
+            }
         }
 
         Ok(rules)
@@ -282,16 +302,6 @@ impl FromStr for KeyTransformRule {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self::from_str_list(s)?[0].clone())
     }
-}
-
-fn parse_rules_lines(lines: Lines) -> Result<Vec<KeyTransformRule>, String> {
-    let mut items = Vec::new();
-    for line in lines {
-        let rules = KeyTransformRule::from_str_list(line.trim())?;
-        items.extend(rules);
-    }
-
-    Ok(items)
 }
 
 impl KeyTransformRules {
@@ -338,8 +348,12 @@ mod tests {
     };
     use crate::keyboard::key_trigger::KeyTrigger;
     use crate::keyboard::parse::KeyActionSequence;
-    use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
-    use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_rules, key_trigger};
+    use crate::keyboard::transform_rules::{
+        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
+    };
+    use crate::{
+        key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_rules, key_trigger,
+    };
     use std::str::FromStr;
 
     // Virtual key
@@ -634,15 +648,15 @@ mod tests {
     fn test_key_trigger_from_str_list() {
         assert_eq!(
             vec![
-                key_trigger!("A*"),
-                key_trigger!("[LEFT_CTRL]B^"),
-                key_trigger!("C*"),
+                vec![key_trigger!("A*")],
+                vec![key_trigger!("[LEFT_CTRL]B^")],
+                vec![key_trigger!("C*")],
             ],
             KeyTrigger::from_str_list("A*, [LEFT_CTRL]B^, C*").unwrap()
         );
 
         assert_eq!(
-            vec![key_trigger!("A*")],
+            vec![vec![key_trigger!("A*")]],
             KeyTrigger::from_str_list("A*").unwrap()
         );
     }
@@ -650,22 +664,28 @@ mod tests {
     #[test]
     fn test_key_trigger_from_str_expand() {
         assert_eq!(
-            vec![key_trigger!("A↓"), key_trigger!("A↑")],
+            vec![vec![key_trigger!("A↓"), key_trigger!("A↑")]],
             KeyTrigger::from_str_list("A↓↑").unwrap()
         );
 
         assert_eq!(
-            vec![key_trigger!("A↓"), key_trigger!("A↑")],
+            vec![vec![key_trigger!("A↓"), key_trigger!("A↑")]],
             KeyTrigger::from_str_list("A").unwrap()
         );
 
         assert_eq!(
-            vec![key_trigger!("[LEFT_CTRL]A↓"), key_trigger!("[LEFT_CTRL]A↑")],
+            vec![vec![
+                key_trigger!("[LEFT_CTRL]A↓"),
+                key_trigger!("[LEFT_CTRL]A↑")
+            ]],
             KeyTrigger::from_str_list("[LEFT_CTRL]A↓↑").unwrap()
         );
 
         assert_eq!(
-            vec![key_trigger!("[LEFT_CTRL]A↓"), key_trigger!("[LEFT_CTRL]A↑")],
+            vec![vec![
+                key_trigger!("[LEFT_CTRL]A↓"),
+                key_trigger!("[LEFT_CTRL]A↑")
+            ]],
             KeyTrigger::from_str_list("[LEFT_CTRL]A").unwrap()
         );
     }
@@ -674,20 +694,22 @@ mod tests {
     fn test_key_trigger_from_str_list_expand() {
         assert_eq!(
             vec![
-                key_trigger!("A↓"),
-                key_trigger!("A↑"),
-                key_trigger!("B↓"),
-                key_trigger!("B↑"),
+                vec![key_trigger!("A↓"), key_trigger!("A↑")],
+                vec![key_trigger!("B↓"), key_trigger!("B↑")],
             ],
             KeyTrigger::from_str_list("A,B").unwrap()
         );
 
         assert_eq!(
             vec![
-                key_trigger!("[LEFT_SHIFT]A↓"),
-                key_trigger!("[LEFT_SHIFT]A↑"),
-                key_trigger!("[LEFT_CTRL + LEFT_ALT]B↓"),
-                key_trigger!("[LEFT_CTRL + LEFT_ALT]B↑"),
+                vec![
+                    key_trigger!("[LEFT_SHIFT]A↓"),
+                    key_trigger!("[LEFT_SHIFT]A↑")
+                ],
+                vec![
+                    key_trigger!("[LEFT_CTRL + LEFT_ALT]B↓"),
+                    key_trigger!("[LEFT_CTRL + LEFT_ALT]B↑")
+                ],
             ],
             KeyTrigger::from_str_list("[LEFT_SHIFT] A, [LEFT_CTRL + LEFT_ALT] B").unwrap()
         );
@@ -708,57 +730,137 @@ mod tests {
 
     #[test]
     fn test_key_transform_rule_from_str_list() {
-        let expected = vec![
-            key_rule!("NUM_DOT↓ : LEFT_ALT↓"),
-            key_rule!("NUM_DELETE↓ : LEFT_ALT↓"),
-        ];
-        let actual = KeyTransformRule::from_str_list("NUM_DOT↓, NUM_DELETE↓ : LEFT_ALT↓").unwrap();
-        assert_eq!(expected, actual);
+        assert_eq!(
+            vec![
+                key_rule!("NUM_DOT↓ : LEFT_ALT↓"),
+                key_rule!("NUM_DELETE↓ : LEFT_ALT↓"),
+            ],
+            KeyTransformRule::from_str_list("NUM_DOT↓, NUM_DELETE↓ : LEFT_ALT↓").unwrap()
+        );
 
-        let expected = vec![
-            key_rule!("A* : ENTER*"),
-            key_rule!("[LEFT_CTRL]B* : ENTER*"),
-            key_rule!("C^ : ENTER*"),
-        ];
-        let actual = KeyTransformRule::from_str_list("A*, [LEFT_CTRL]B*, C^ : ENTER*").unwrap();
-        assert_eq!(expected, actual);
+        assert_eq!(
+            vec![
+                key_rule!("A* : ENTER*"),
+                key_rule!("[LEFT_CTRL]B* : ENTER*"),
+                key_rule!("C^ : ENTER*"),
+            ],
+            KeyTransformRule::from_str_list("A*, [LEFT_CTRL]B*, C^ : ENTER*").unwrap()
+        );
     }
 
     // Transform rules
 
-    // #[test]
-    // fn test_key_transform_rules_from_str_no_trigger_transition() {
-    //     assert_eq!(
-    //         key_rules!(
-    //             r#"
-    //             A↓ : B↓
-    //             A↑ : B↓
-    //             "#
-    //         ),
-    //         key_rules!(
-    //             "
-    //             A : B↓
-    //             "
-    //         )
-    //     );
-    // }
+    #[test]
+    fn test_key_transform_rules_from_str_expand_no_trigger_transition() {
+        assert_eq!(
+            key_rules!(
+                r#"
+                A↓ : B↓
+                A↑ : B↓
+                "#
+            ),
+            key_rules!(
+                r#"
+                A : B↓
+                "#
+            )
+        );
+    }
 
-    // todo: #[test]
-    // fn test_key_transform_rules_from_str_no_transition() {
-    //     assert_eq!(
-    //         key_rules!(
-    //             r#"
-    //             A↓ : B↓
-    //             A↑ : B↑
-    //             "#
-    //         ),
-    //         key_rules!(
-    //             "
-    //             A : B
-    //             "
-    //         )
-    //     );
-    // }
+    #[test]
+    fn test_key_transform_rules_from_str_expand_no_action_transition() {
+        assert_eq!(
+            key_rules!(
+                r#"
+                A↓ : B↓
+                A↓ : B↑
+                "#
+            ),
+            key_rules!(
+                r#"
+                A↓ : B
+                "#
+            )
+        );
+    }
+
+    #[test]
+    fn test_key_transform_rules_from_str_expand_no_any_transition() {
+        assert_eq!(
+            key_rules!(
+                r#"
+                A↓ : B↓
+                A↑ : B↑
+                "#
+            ),
+            key_rules!(
+                "
+                A : B
+                "
+            )
+        );
+    }
+
+    #[test]
+    fn test_key_transform_rules_from_str_expand_list_no_any_transition() {
+        let rules = key_rules!(
+            r#"
+                A,B : C
+                "#
+        );
+        println!("{}", rules);
+        assert_eq!(
+            key_rules!(
+                r#"
+                A↓ : C↓
+                A↑ : C↑
+                B↓ : C↓
+                B↑ : C↑
+                "#
+            ),
+            rules
+        );
+    }
+
+    #[test]
+    fn test_key_transform_rules_from_str_expand_multiple_actions() {
+        assert_eq!(
+            key_rules!(
+                r#"
+                A↓ : B↓ → C↑
+                A↑ : B↑ → C↑
+                "#
+            ),
+            key_rules!(
+                "
+                A : B → C↑
+                "
+            )
+        );
+    }
+
+    #[test]
+    fn test_key_transform_rules_from_str_expand() {
+        assert_eq!(
+            key_rules!(
+                r#"
+                A↓ : B↓
+                A↑ : B↓
+                C↓ : D↓
+                C↓ : D↑
+                E↓ : F↓
+                E↑ : F↑
+                "#
+            ),
+            key_rules!(
+                r#"
+                A : B↓
+                C↓ : D
+                E : F
+                "#
+            )
+        );
+    }
 
     #[test]
     fn test_key_transform_rules_from_str_list() {

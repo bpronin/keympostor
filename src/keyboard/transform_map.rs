@@ -67,6 +67,11 @@ mod tests {
     };
 
     #[test]
+    fn test_put_duplicates() {
+        todo!()  
+    }
+    
+    #[test]
     fn test_get_normal() {
         let mut map = KeyTransformMap::default();
         map.put(key_rule!("[LEFT_SHIFT] A↓ : B↓"));
