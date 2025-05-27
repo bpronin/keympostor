@@ -55,6 +55,9 @@ impl App {
         if let Some(size) = settings.main_window_size {
             self.window.set_size(size.0, size.1);
         }
+        if let Some(page) = settings.main_window_selected_page {
+            self.tab_container.set_selected_tab(page);
+        }
     }
 
     fn write_settings(&self) {
@@ -64,6 +67,7 @@ impl App {
         settings.silent_key_processing = self.keyboard_handler.is_silent();
         settings.main_window_position = Some(self.window.position());
         settings.main_window_size = Some(self.window.size());
+        settings.main_window_selected_page = Some(self.tab_container.selected_tab());
 
         settings.save().unwrap_or_else(|e| {
             ui_warn!("{}", e);
