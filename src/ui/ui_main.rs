@@ -17,16 +17,10 @@ pub(crate) struct AppUi {
 
 impl AppUi {
     fn build(mut app: App) -> Result<Self, nwg::NwgError> {
-        #[cfg(not(feature = "dev"))]
-        let window_flags = nwg::WindowFlags::MAIN_WINDOW;
-
-        #[cfg(feature = "dev")]
-        let window_flags = nwg::WindowFlags::MAIN_WINDOW | nwg::WindowFlags::VISIBLE;
-
         nwg::Window::builder()
             .size((700, 300))
             .icon(Some(r_icon!(IDI_ICON_APP)))
-            .flags(window_flags)
+            .flags(nwg::WindowFlags::MAIN_WINDOW)
             .title(rs!(IDS_APP_TITLE))
             .build(&mut app.window)?;
 

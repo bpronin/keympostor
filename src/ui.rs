@@ -8,8 +8,8 @@ use crate::ui::ui_log_view::LogView;
 use crate::ui::ui_main_menu::MainMenu;
 use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
+use crate::ui_warn;
 use crate::util::default_profile_path;
-use crate::{ui_warn};
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 
@@ -48,6 +48,13 @@ impl App {
             .set_enabled(settings.key_processing_enabled);
         self.keyboard_handler
             .set_silent(settings.silent_key_processing);
+
+        if let Some(position) = settings.main_window_position {
+            self.window.set_position(position.0, position.1);
+        }
+        if let Some(size) = settings.main_window_size {
+            self.window.set_size(size.0, size.1);
+        }
     }
 
     fn write_settings(&self) {
@@ -55,6 +62,8 @@ impl App {
 
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
+        settings.main_window_position = Some(self.window.position());
+        settings.main_window_size = Some(self.window.size());
 
         settings.save().unwrap_or_else(|e| {
             ui_warn!("{}", e);
@@ -85,9 +94,13 @@ impl App {
         self.read_profile(&default_profile_path());
 
         self.update_controls();
+
         self.log_view.init();
         self.log_view
             .update_log_enabled(!self.keyboard_handler.is_silent());
+
+        #[cfg(feature = "dev")]
+        self.window.set_visible(true);
 
         nwg::dispatch_thread_events();
     }
@@ -116,6 +129,7 @@ impl App {
     }
 
     pub(crate) fn on_app_exit(&self) {
+        self.write_settings();
         nwg::stop_thread_dispatch();
     }
 
