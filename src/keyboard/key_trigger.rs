@@ -11,18 +11,18 @@ pub(crate) struct KeyTrigger {
 
 impl Display for KeyTrigger {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.modifiers, self.action)
+        Display::fmt(&format!("{}{}", self.modifiers, self.action), f)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::key_action;
     use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::key_modifiers::KM_LSHIFT;
     use crate::keyboard::key_modifiers::KM_NONE;
     use crate::keyboard::key_trigger::KeyAction;
     use crate::keyboard::key_trigger::KeyTrigger;
+    use crate::key_action;
 
     #[macro_export]
     macro_rules! key_trigger {
@@ -33,31 +33,28 @@ mod tests {
 
     #[test]
     fn test_key_trigger_display() {
-        assert_eq!(
-            "[LEFT_SHIFT]A↓",
-            KeyTrigger {
-                action: key_action!("A↓"),
-                modifiers: All(KM_LSHIFT),
-            }
-            .to_string()
-        );
+        let actual = KeyTrigger {
+            action: key_action!("A↓"),
+            modifiers: All(KM_LSHIFT),
+        };
+        assert_eq!("[LEFT_SHIFT]A↓", format!("{}", actual));
 
-        assert_eq!(
-            "[]A↓",
-            KeyTrigger {
-                action: key_action!("A↓"),
-                modifiers: All(KM_NONE),
-            }
-            .to_string()
-        );
+        let actual = KeyTrigger {
+            action: key_action!("A↓"),
+            modifiers: All(KM_NONE),
+        };
+        assert_eq!("[]A↓", format!("{}", actual));
 
-        assert_eq!(
-            "A↓",
-            KeyTrigger {
-                action: key_action!("A↓"),
-                modifiers: Any,
-            }
-            .to_string()
-        );
+        let actual = KeyTrigger {
+            action: key_action!("A↓"),
+            modifiers: Any,
+        };
+        assert_eq!("A↓", format!("{}", actual));
+
+        let actual = KeyTrigger {
+            action: key_action!("A↓"),
+            modifiers: All(KM_LSHIFT),
+        };
+        assert_eq!("|      [LEFT_SHIFT]A↓|", format!("|{:>20}|", actual));
     }
 }

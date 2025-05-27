@@ -13,7 +13,7 @@ pub(crate) struct KeyTransformRule {
 
 impl Display for KeyTransformRule {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} : {}", self.trigger, self.actions)
+        Display::fmt(&format!("{} : {}", self.trigger, self.actions), f)
     }
 }
 
@@ -98,17 +98,22 @@ mod tests {
 
     #[test]
     fn test_key_transform_rule_display() {
-        let source = KeyTransformRule {
+        let actual = KeyTransformRule {
             trigger: key_trigger!("[LEFT_SHIFT] ENTER ↓"),
             actions: key_action_seq!("ENTER↓"),
         };
 
-        assert_eq!("[LEFT_SHIFT]ENTER↓ : ENTER↓", format!("{}", source));
+        assert_eq!(
+            "|        [LEFT_SHIFT]ENTER↓ : ENTER↓|",
+            format!("|{:>35}|", actual)
+        );
     }
 
     #[test]
-    fn test_key_transform_rule_source() {
-        let rule = key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓");
-        assert_eq!(key_trigger!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓"), rule.trigger);
+    fn test_key_transform_rule_trigger() {
+        assert_eq!(
+            key_trigger!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓"),
+            key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓").trigger
+        );
     }
 }

@@ -90,7 +90,7 @@ impl KeyAction {
 
 impl Display for KeyAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.key, self.transition)
+        Display::fmt(&format!("{}{}", self.key, self.transition), f)
     }
 }
 
@@ -181,6 +181,12 @@ mod tests {
             transition: Up,
         };
         assert_eq!("NUM_ENTER↑", format!("{}", actual));
+
+        let actual = KeyAction {
+            key: key!("ENTER"),
+            transition: Down,
+        };
+        assert_eq!("[    ENTER↓]", format!("[{:>10}]", actual));
     }
 
     #[test]
