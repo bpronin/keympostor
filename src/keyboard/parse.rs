@@ -10,24 +10,6 @@ use crate::keyboard::key_trigger::KeyTrigger;
 use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
 use std::str::{FromStr, Lines};
 
-// impl FromStr for VirtualKey {
-//     type Err = String;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         let ts = s.trim();
-//         Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
-//     }
-// }
-
-// impl FromStr for ScanCode {
-//     type Err = String;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         let ts = s.trim();
-//         Self::from_code_name(ts).or_else(|_| Self::from_name(ts))
-//     }
-// }
-
 impl FromStr for Key {
     type Err = String;
 
@@ -36,28 +18,10 @@ impl FromStr for Key {
     }
 }
 
-// impl FromStr for KeyTransition {
-//     type Err = String;
-//
-//     fn from_str(s: &str) -> Result<Self, Self::Err> {
-//         let mut chars = s.trim().chars();
-//         let symbol = chars.next().ok_or("Key transition symbol is empty.")?;
-//         if chars.next().is_none() {
-//             match symbol {
-//                 '↑' | '^' => Ok(Up),
-//                 '↓' | '*' => Ok(Down),
-//                 _ => Err(format!("Illegal key transition symbol `{}`.", s)),
-//             }
-//         } else {
-//             Err(format!("Key transition symbols `{}` is too long.", s))
-//         }
-//     }
-// }
-
 impl KeyAction {
     fn from_str_expand(s: &str) -> Result<Vec<Self>, String> {
         let ts = s.trim();
-        let mut list = Vec::new();
+        let mut list = Vec::with_capacity(2);
 
         if let Some(k) = ts.strip_suffix("*^") {
             let key = Key::from_str(k)?;
@@ -175,24 +139,26 @@ impl FromStr for KeyModifiersState {
         if ts.is_empty() {
             Ok(KM_NONE)
         } else {
-            let this = ts.split('+').fold(KM_NONE, |acc, part| match part.trim() {
-                "LEFT_SHIFT" => acc | KM_LSHIFT,
-                "RIGHT_SHIFT" => acc | KM_RSHIFT,
-                "SHIFT" => acc | KM_LSHIFT | KM_RSHIFT,
-                "LEFT_CTRL" => acc | KM_LCTRL,
-                "RIGHT_CTRL" => acc | KM_RCTRL,
-                "CTRL" => acc | KM_LCTRL | KM_RCTRL,
-                "LEFT_ALT" => acc | KM_LALT,
-                "RIGHT_ALT" => acc | KM_RALT,
-                "ALT" => acc | KM_LALT | KM_RALT,
-                "LEFT_WIN" => acc | KM_LWIN,
-                "RIGHT_WIN" => acc | KM_RWIN,
-                "WIN" => acc | KM_LWIN | KM_RWIN,
-                &_ => KM_NONE,
+            let result = ts.split('+').fold(KM_NONE, |acc, part| {
+                acc | match part.trim() {
+                    "LEFT_SHIFT" => KM_LSHIFT,
+                    "RIGHT_SHIFT" => KM_RSHIFT,
+                    "SHIFT" => KM_LSHIFT | KM_RSHIFT,
+                    "LEFT_CTRL" => KM_LCTRL,
+                    "RIGHT_CTRL" => KM_RCTRL,
+                    "CTRL" => KM_LCTRL | KM_RCTRL,
+                    "LEFT_ALT" => KM_LALT,
+                    "RIGHT_ALT" => KM_RALT,
+                    "ALT" => KM_LALT | KM_RALT,
+                    "LEFT_WIN" => KM_LWIN,
+                    "RIGHT_WIN" => KM_RWIN,
+                    "WIN" => KM_LWIN | KM_RWIN,
+                    &_ => KM_NONE,
+                }
             });
 
-            if this != KM_NONE {
-                Ok(this)
+            if result != KM_NONE {
+                Ok(result)
             } else {
                 Err(format!("Error parsing key modifiers: `{ts}`"))
             }
@@ -206,21 +172,24 @@ impl KeyTrigger {
         for part in s.split(',') {
             list.push(Self::from_str_expand(part)?);
         }
+        
         Ok(list)
     }
 
     fn from_str_expand(s: &str) -> Result<Vec<KeyTrigger>, String> {
         let ts = s.trim();
-        let mut list = Vec::new();
+        let mut list = Vec::with_capacity(2);
 
         if let Some(s) = ts.strip_prefix('[') {
             let mut parts = s.split(']');
-            let modifiers = KeyModifiers::from_str(parts.next().unwrap())?;
-            for action in KeyAction::from_str_expand(parts.next().unwrap())? {
+            let modifiers = KeyModifiers::from_str(parts.next().expect("Missing modifiers part"))?;
+            let actions = KeyAction::from_str_expand(parts.next().expect("Missing actions part"))?;
+            for action in actions {
                 list.push(Self { action, modifiers });
             }
         } else {
-            for action in KeyAction::from_str_expand(ts)? {
+            let actions = KeyAction::from_str_expand(ts)?;
+            for action in actions {
                 list.push(Self {
                     action,
                     modifiers: Any,
@@ -239,8 +208,8 @@ impl FromStr for KeyTrigger {
         let ts = s.trim();
         if let Some(s) = ts.strip_prefix('[') {
             let mut parts = s.split(']');
-            Ok(Self {
-                modifiers: KeyModifiers::from_str(parts.next().expect("Missing modifiers part"))?, /* Modifiers go first! */
+            Ok(Self { /* Modifiers go first! */
+                modifiers: KeyModifiers::from_str(parts.next().expect("Missing modifiers part"))?, 
                 action: KeyAction::from_str(parts.next().expect("Missing action part."))?,
             })
         } else {
@@ -279,7 +248,7 @@ impl KeyTransformRule {
                     }
                     .clone(),
                 };
-                
+
                 rules.push(rule);
             }
         }
@@ -305,11 +274,10 @@ impl FromStr for KeyTransformRule {
 }
 
 impl KeyTransformRules {
-    fn from_lines(lines: Lines) -> Result<Self, String> {
+    fn from_str_lines(lines: Lines) -> Result<Self, String> {
         let mut items = Vec::new();
         for line in lines {
-            let rules = KeyTransformRule::from_str_list(line.trim())?;
-            items.extend(rules);
+            items.extend(KeyTransformRule::from_str_list(line.trim())?);
         }
 
         Ok(Self { items })
@@ -320,7 +288,7 @@ impl FromStr for KeyTransformRules {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_lines(s.trim().lines())
+        Self::from_str_lines(s.trim().lines())
     }
 }
 
@@ -332,7 +300,7 @@ impl FromStr for KeyTransformProfile {
 
         Ok(Self {
             title: lines.next().ok_or("Error parsing title.")?.trim().into(),
-            rules: KeyTransformRules::from_lines(lines)?,
+            rules: KeyTransformRules::from_str_lines(lines)?,
         })
     }
 }
@@ -355,37 +323,6 @@ mod tests {
         key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_rules, key_trigger,
     };
     use std::str::FromStr;
-
-    // Virtual key
-
-    // #[test]
-    // fn test_vk_from_str() {
-    //     assert_eq!("VK_RETURN", VirtualKey::from_str("VK_RETURN").unwrap().name);
-    //     assert_eq!("VK_RETURN", VirtualKey::from_str("RETURN").unwrap().name);
-    //     assert_eq!("VK_RETURN", VirtualKey::from_str("VK_0x0D").unwrap().name);
-    // }
-    //
-    // #[test]
-    // fn test_vk_from_str_fails() {
-    //     assert!(VirtualKey::from_str("BANANA").is_err());
-    // }
-
-    // Scancode
-
-    // #[test]
-    // fn test_sc_from_str() {
-    //     assert_eq!("SC_ENTER", ScanCode::from_str("SC_ENTER").unwrap().name);
-    //     assert_eq!("SC_ENTER", ScanCode::from_str("ENTER").unwrap().name);
-    //     assert_eq!(
-    //         "SC_NUM_ENTER",
-    //         ScanCode::from_str("SC_0xE01C").unwrap().name
-    //     );
-    // }
-    //
-    // #[test]
-    // fn test_sc_from_str_fails() {
-    //     assert!(ScanCode::from_str("BANANA").is_err());
-    // }
 
     // Key
 
@@ -423,31 +360,6 @@ mod tests {
     fn test_key_from_str_fails() {
         assert!(Key::from_str("BANANA").is_err());
     }
-
-    // // Key transition
-    //
-    // #[test]
-    // fn test_key_transition_from_str() {
-    //     assert_eq!(Down, KeyTransition::from_str("↓").unwrap());
-    //     assert_eq!(Up, KeyTransition::from_str("↑").unwrap());
-    //     assert_eq!(Down, KeyTransition::from_str("*").unwrap());
-    //     assert_eq!(Up, KeyTransition::from_str("^").unwrap());
-    // }
-    //
-    // #[test]
-    // fn test_key_transition_from_str_fails_illegal() {
-    //     assert!(KeyTransition::from_str("BANANA").is_err())
-    // }
-    //
-    // #[test]
-    // fn test_key_transition_from_str_fails_empty() {
-    //     assert!(KeyTransition::from_str("").is_err())
-    // }
-    //
-    // #[test]
-    // fn test_key_transition_from_str_fails_to_long() {
-    //     assert!(KeyTransition::from_str("↑↑↑").is_err())
-    // }
 
     // Key modifiers
 
@@ -803,12 +715,6 @@ mod tests {
 
     #[test]
     fn test_key_transform_rules_from_str_expand_list_no_any_transition() {
-        let rules = key_rules!(
-            r#"
-                A,B : C
-                "#
-        );
-        println!("{}", rules);
         assert_eq!(
             key_rules!(
                 r#"
@@ -818,7 +724,11 @@ mod tests {
                 B↑ : C↑
                 "#
             ),
-            rules
+            key_rules!(
+                r#"
+                    A,B : C
+                    "#
+            )
         );
     }
 

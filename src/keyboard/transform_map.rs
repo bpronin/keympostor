@@ -37,10 +37,11 @@ impl KeyTransformMap {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key_modifiers::KeyModifiersState;
+    use crate::keyboard::transform_map::KeyAction;
     use crate::keyboard::transform_map::KeyEvent;
     use crate::keyboard::transform_map::KeyTransformMap;
     use crate::keyboard::transform_rules::KeyTransformRule;
-    use crate::{assert_none, key_event, key_rule};
+    use crate::{assert_none, key_action, key_event, key_rule};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LMENU, VK_LSHIFT};
 
     static KS_ALL_UP: [u8; 256] = [0u8; 256];
@@ -67,12 +68,7 @@ mod tests {
     };
 
     #[test]
-    fn test_put_duplicates() {
-        todo!()  
-    }
-    
-    #[test]
-    fn test_get_normal() {
+    fn test_put_get_normal() {
         let mut map = KeyTransformMap::default();
         map.put(key_rule!("[LEFT_SHIFT] A↓ : B↓"));
         map.put(key_rule!("[LEFT_ALT + LEFT_CTRL] A↓ : C↓"));
@@ -120,5 +116,20 @@ mod tests {
         assert_eq!(expected, map.get(&key_event!("A↓", KS_LCTRL)).unwrap());
         assert_eq!(expected, map.get(&key_event!("A↓", KS_LALT)).unwrap());
         assert_eq!(expected, map.get(&key_event!("A↓", KS_LCTRL_LALT)).unwrap());
+    }
+
+    #[test]
+    fn test_put_duplicates() {
+        let mut map = KeyTransformMap::default();
+        map.put(key_rule!("[LEFT_SHIFT] A↓ : B↓"));
+        map.put(key_rule!("[LEFT_SHIFT] A↓ : B↓"));
+        map.put(key_rule!("[LEFT_SHIFT] A↓ : B↓"));
+
+        assert_eq!(1, map.map.len());
+        assert_eq!(1, map.map.get(&key_action!("A↓")).unwrap().len());
+        assert_eq!(
+            &key_rule!("[LEFT_SHIFT] A↓ : B↓"),
+            map.get(&key_event!("A↓", KS_LSHIFT)).unwrap()
+        );
     }
 }

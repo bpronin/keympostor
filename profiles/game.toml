@@ -1,94 +1,29 @@
-title = "Game"
+title = "Game profile"
 
 [rules]
-"INSERT↓" = "ESC↓"
-"INSERT↑" = "ESC↑"
+"INSERT" = "ESC"
+"LAUNCH_APP2" = "F3"
+"BROWSER_SEARCH" = "F4"
+"[]BACKSPACE" = "F5"
 
-"LAUNCH_APP2↓" = "F3↓"
-"LAUNCH_APP2↑" = "F3↑"
+"NUM_LOCK" = "1"
+"NUM_DIV" = "2"
+"NUM_MUL" = "3"
+"NUM_MINUS" = "4"
 
-"BROWSER_SEARCH↓" = "F4↓"
-"BROWSER_SEARCH↑" = "F4↑"
+"NUM_7, NUM_HOME" = "Q"
+"NUM_8, NUM_UP" = "W"
+"NUM_9, NUM_PAGE_UP" = "E"
+"NUM_PLUS" = "TAB"
 
-"[]BACKSPACE↓" = "F5↓"
-"[]BACKSPACE↑" = "F5↑"
+"NUM_4, NUM_LEFT" = "A"
+"NUM_5, NUM_CLEAR" = "S"
+"NUM_6, NUM_RIGHT" = "D"
 
-#####################
+"NUM_1, NUM_END" = "F"
+"NUM_2, NUM_DOWN" = "T"
+"NUM_3, NUM_PAGE_DOWN" = "R"
+"NUM_ENTER" = "SPACE"
 
-"NUM_LOCK↓" = "1↓"
-"NUM_LOCK↑" = "1↑"
-
-"NUM_DIV↓" = "2↓"
-"NUM_DIV↑" = "2↑"
-
-"NUM_MUL↓" = "3↓"
-"NUM_MUL↑" = "3↑"
-
-"NUM_MINUS↓" = "4↓"
-"NUM_MINUS↑" = "4↑"
-
-#####################
-
-"NUM_7↓" = "Q↓"
-"NUM_7↑" = "Q↑"
-"NUM_HOME↓" = "Q↓"
-"NUM_HOME↑" = "Q↑"
-
-"NUM_8↓" = "W↓"
-"NUM_8↑" = "W↑"
-"NUM_UP↓" = "W↓"
-"NUM_UP↑" = "W↑"
-
-"NUM_9↓" = "E↓"
-"NUM_9↑" = "E↑"
-"NUM_PAGE_UP↓" = "E↓"
-"NUM_PAGE_UP↑" = "E↑"
-
-"NUM_PLUS↓" = "TAB↓"
-"NUM_PLUS↑" = "TAB↑"
-
-#####################
-
-"NUM_4↓" = "A↓"
-"NUM_4↑" = "A↑"
-"NUM_LEFT↓" = "A↓"
-"NUM_LEFT↑" = "A↑"
-
-"NUM_5↓" = "S↓"
-"NUM_5↑" = "S↑"
-"NUM_CLEAR↓" = "S↓"
-"NUM_CLEAR↑" = "S↑"
-
-"NUM_6↓" = "D↓"
-"NUM_6↑" = "D↑"
-"NUM_RIGHT↓" = "D↓"
-"NUM_RIGHT↑" = "D↑"
-
-#####################
-
-"NUM_1↓" = "F↓"
-"NUM_1↑" = "F↑"
-"NUM_END↓" = "F↓"
-"NUM_END↑" = "F↑"
-
-"NUM_2↓" = "T↓"
-"NUM_2↑" = "T↑"
-"NUM_DOWN↓" = "T↓"
-"NUM_DOWN↑" = "T↑"
-
-"NUM_3↓" = "R↓"
-"NUM_3↑" = "R↑"
-"NUM_PAGE_DOWN↓" = "R↓"
-"NUM_PAGE_DOWN↑" = "R↑"
-
-"NUM_ENTER↓" = "SPACE↓"
-"NUM_ENTER↑" = "SPACE↑"
-
-#####################
-
-"NUM_0↓" = "M↓"
-"NUM_0↑" = "M↑"
-"NUM_INSERT↓" = "M↓"
-"NUM_INSERT↑" = "M↑"
-
-"NUM_DOT,NUM_DELETE" = "LEFT_ALT"
+"NUM_0, NUM_INSERT" = "M"
+"NUM_DOT, NUM_DELETE" = "LEFT_ALT"
