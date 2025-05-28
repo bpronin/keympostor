@@ -26,4 +26,4 @@ title = "Game profile"
 "NUM_ENTER" = "SPACE"
 
 "NUM_0, NUM_INSERT" = "M"
-"NUM_DOT, NUM_DELETE" = "LEFT_ALT"
+"NUM_DOT" = "LEFT_ALT"

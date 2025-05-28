@@ -55,7 +55,7 @@ macro_rules! new_key {
     };
 }
 
-pub const MAX_KEYS: usize = 203;
+pub const MAX_KEYS: usize = 204;
 
 pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key!("	", 0x00, 0x0F, true),
@@ -233,6 +233,7 @@ pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key!("RIGHT_BUTTON", 0x02, 0x00, false),
     new_key!("RIGHT_CTRL", 0xA3, 0x1D, true),
     new_key!("RIGHT_SHIFT", 0xA1, 0x36, true),
+    new_key!("RIGHT_SHIFT_2", 0x00, 0x36, true),
     new_key!("RIGHT_WIN", 0x5C, 0x5C, true),
     new_key!("S", 0x53, 0x1F, false),
     new_key!("SCROLL_LOCK", 0x91, 0x46, false),

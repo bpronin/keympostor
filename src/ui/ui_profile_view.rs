@@ -1,6 +1,6 @@
 use keympostor::keyboard::transform_rules::KeyTransformProfile;
 use crate::ui::ui_util::mono_font;
-use native_windows_gui::{NwgError, Tab, TextBox};
+use native_windows_gui::{ControlHandle, NwgError, Tab, TextBox};
 
 #[derive(Default)]
 pub(crate) struct ProfileView {
@@ -26,7 +26,7 @@ impl ProfileView {
             .build(&mut self.view)
     }
 
-    pub(crate) fn view(&self) -> &TextBox {
+    pub(crate) fn view(&self) -> impl Into<ControlHandle> {
         &self.view
     }
 }
