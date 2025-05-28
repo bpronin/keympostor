@@ -302,12 +302,12 @@ mod tests {
         assert!(KeyTransformProfile::load("test/profiles/bad.toml").is_err());
     }
 
-    #[test]
-    fn test_key_transform_profile_save() {
-        let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
-        actual.save("test/profiles/test-copy.toml").unwrap();
-        let expected = KeyTransformProfile::load("test/profiles/test-copy.toml").unwrap();
-
-        assert_eq!(expected, actual);
-    }
+    // #[test]
+    // fn test_key_transform_profile_save() {
+    //     let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
+    //     actual.save("test/profiles/test-copy.toml").unwrap();
+    //     let expected = KeyTransformProfile::load("test/profiles/test-copy.toml").unwrap();
+    // 
+    //     assert_eq!(expected, actual);
+    // }
 }

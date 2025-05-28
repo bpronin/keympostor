@@ -1,22 +1,21 @@
 use criterion::measurement::WallTime;
 use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
+use fxhash::FxHashMap;
 use keympostor::keyboard::key::Key;
 use keympostor::keyboard::key_action::KeyTransition::{Down, Up};
 use keympostor::keyboard::key_action::{KeyAction, KeyActionSequence, KeyTransition};
-use keympostor::keyboard::key_const::{MAX_SCAN_CODE, MAX_VK_CODE};
+use keympostor::keyboard::key_const::{KEYS, MAX_SCAN_CODE, MAX_VK_CODE};
 use keympostor::keyboard::key_event::KeyEvent;
 use keympostor::keyboard::key_modifiers::KeyModifiers;
 use keympostor::keyboard::key_modifiers::KeyModifiers::{All, Any};
 use keympostor::keyboard::key_trigger::KeyTrigger;
 use keympostor::keyboard::transform_rules::KeyTransformRule;
-use std::collections::HashMap;
-use fxhash::FxBuildHasher;
 use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardState;
 
-type Group = HashMap<KeyModifiers, KeyTransformRule>;
+type Group = FxHashMap<KeyModifiers, KeyTransformRule>;
 
 //type TheMap = HashMap<KeyAction, Group>;
-type TheMap = HashMap<KeyAction, Group, FxBuildHasher>;
+type TheMap = FxHashMap<KeyAction, Group>;
 // type TheMap = HashMap<KeyAction, Group, ahash::RandomState>;
 
 trait KeyTransformMap {
@@ -93,7 +92,7 @@ impl KeyTransformMap for KeyTransformMatrix {
         if let Some(map) = self.get_group_mut(&action) {
             map.insert(trigger.modifiers, rule);
         } else {
-            let mut map = Group::new();
+            let mut map = Group::default();
             map.insert(trigger.modifiers, rule);
             self.put_group(&action, map);
         }
@@ -136,15 +135,20 @@ pub fn for_all<F>(mut f: F)
 where
     F: FnMut(u8, u8, bool, KeyTransition) -> (),
 {
-    for vk in 0..MAX_VK_CODE {
-        for sc in 0..MAX_SCAN_CODE {
-            for ext in [false, true] {
-                for trans in [Up, Down] {
-                    f(vk as u8, sc as u8, ext, trans);
-                }
-            }
-        }
+    for (_name, key) in KEYS {
+        f(key.vk_code, key.scan_code, key.is_ext_scan_code, Down);
+        f(key.vk_code, key.scan_code, key.is_ext_scan_code, Up);
     }
+
+    // for vk in 0..MAX_VK_CODE {
+    //     for sc in 0..MAX_SCAN_CODE {
+    //         for ext in [false, true] {
+    //             for trans in [Up, Down] {
+    //                 f(vk as u8, sc as u8, ext, trans);
+    //             }
+    //         }
+    //     }
+    // }
 }
 
 fn bench_map<M: KeyTransformMap>(group: &mut BenchmarkGroup<WallTime>, id: &str, mut map: M) {

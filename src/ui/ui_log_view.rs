@@ -1,11 +1,10 @@
-use keympostor::keyboard::key_event::KeyEvent;
 use crate::res::res_ids::{IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_};
 use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::ui_util::mono_font;
-
-use native_windows_gui as nwg;
+use keympostor::keyboard::key_event::KeyEvent;
 use keympostor::util::default_profile_path;
+use native_windows_gui as nwg;
 
 const MAX_LOG_LINES: usize = 256;
 

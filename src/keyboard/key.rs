@@ -1,8 +1,8 @@
-use crate::append_prefix;
 use crate::keyboard::key_const::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
+use crate::append_prefix;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {

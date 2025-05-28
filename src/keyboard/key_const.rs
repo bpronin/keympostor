@@ -1,19 +1,19 @@
 use crate::keyboard::key::{Key, ScanCode, VirtualKey};
-use std::collections::HashMap;
+use fxhash::FxHashMap;
 
 thread_local! {
     pub(crate) static KEY_MAP: KeyMap = KeyMap::new();
 }
 
 pub(crate) struct KeyMap {
-    key_to_name_map: HashMap<Key, &'static str>,
-    name_to_key_map: HashMap<&'static str, Key>,
+    key_to_name_map: FxHashMap<Key, &'static str>,
+    name_to_key_map: FxHashMap<&'static str, Key>,
 }
 
 impl KeyMap {
     fn new() -> Self {
-        let mut name_to_key_map = HashMap::new();
-        let mut key_to_name_map = HashMap::new();
+        let mut name_to_key_map = FxHashMap::default();
+        let mut key_to_name_map = FxHashMap::default();
         for (name, key) in KEYS {
             if name_to_key_map.insert(name, key).is_some() {
                 panic!("Duplicate name: {}", name)
@@ -57,7 +57,7 @@ macro_rules! new_key {
 
 pub const MAX_KEYS: usize = 203;
 
-static KEYS: [(&'static str, Key); MAX_KEYS] = [
+pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key!("	", 0x00, 0x0F, true),
     new_key!("", 0x00, 0x01, true),
     new_key!("0", 0x30, 0x0B, false),

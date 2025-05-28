@@ -43,6 +43,7 @@ impl KeyTransformProfile {
         .map_err(|e| format!("Unable to parse {}. {}", path, e))
     }
 
+    /*
     pub(crate) fn save(&self, path: &str) -> Result<(), String> {
         fs::write(
             path,
@@ -51,6 +52,7 @@ impl KeyTransformProfile {
         )
         .map_err(|e| format!("Unable to write {} file. {}", path, e))
     }
+    */
 }
 
 impl Default for KeyTransformProfile {
