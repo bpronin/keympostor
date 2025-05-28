@@ -1,4 +1,5 @@
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::measurement::WallTime;
+use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
 use keympostor::keyboard::key::Key;
 use keympostor::keyboard::key_action::KeyTransition::{Down, Up};
 use keympostor::keyboard::key_action::{KeyAction, KeyActionSequence, KeyTransition};
@@ -7,31 +8,35 @@ use keympostor::keyboard::key_event::KeyEvent;
 use keympostor::keyboard::key_modifiers::KeyModifiers;
 use keympostor::keyboard::key_modifiers::KeyModifiers::{All, Any};
 use keympostor::keyboard::key_trigger::KeyTrigger;
-use keympostor::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
+use keympostor::keyboard::transform_rules::KeyTransformRule;
 use std::collections::HashMap;
+use fxhash::FxBuildHasher;
 use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardState;
 
-#[derive(Debug, Default)]
-pub struct KeyTransformMap {
-    map: HashMap<KeyAction, HashMap<KeyModifiers, KeyTransformRule>>,
+type Group = HashMap<KeyModifiers, KeyTransformRule>;
+
+//type TheMap = HashMap<KeyAction, Group>;
+type TheMap = HashMap<KeyAction, Group, FxBuildHasher>;
+// type TheMap = HashMap<KeyAction, Group, ahash::RandomState>;
+
+trait KeyTransformMap {
+    fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule>;
+    fn put(&mut self, rule: KeyTransformRule);
 }
 
-impl KeyTransformMap {
-    pub(crate) fn from_profile(profile: KeyTransformProfile) -> KeyTransformMap {
-        let mut this = Self::default();
-        for rule in profile.rules.items {
-            this.put(rule)
-        }
-        this
-    }
+#[derive(Debug, Default)]
+pub struct KeyTransformHashMap {
+    map: TheMap,
+}
 
-    pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
+impl KeyTransformMap for KeyTransformHashMap {
+    fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         let map = self.map.get(&event.action)?;
         map.get(&All(event.modifiers_state))
             .or_else(|| map.get(&Any))
     }
 
-    pub fn put(&mut self, rule: KeyTransformRule) {
+    fn put(&mut self, rule: KeyTransformRule) {
         let trigger = rule.trigger;
         self.map
             .entry(trigger.action)
@@ -39,7 +44,6 @@ impl KeyTransformMap {
             .insert(trigger.modifiers, rule);
     }
 }
-type Group = HashMap<KeyModifiers, KeyTransformRule>;
 
 #[derive(Debug)]
 pub struct KeyTransformMatrix {
@@ -56,15 +60,24 @@ impl Default for KeyTransformMatrix {
 }
 
 impl KeyTransformMatrix {
-    pub(crate) fn from_profile(profile: KeyTransformProfile) -> KeyTransformMatrix {
-        let mut this = Self::default();
-        for rule in profile.rules.items {
-            this.put(rule)
-        }
-        this
+    fn get_group_mut(&mut self, action: &KeyAction) -> &mut Option<Group> {
+        &mut self.matrix[action.transition as usize][action.key.is_ext_scan_code as usize]
+            [action.key.scan_code as usize][action.key.vk_code as usize]
     }
 
-    pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
+    fn get_group(&self, action: &KeyAction) -> &Option<Group> {
+        &self.matrix[action.transition as usize][action.key.is_ext_scan_code as usize]
+            [action.key.scan_code as usize][action.key.vk_code as usize]
+    }
+
+    fn put_group(&mut self, action: &KeyAction, group: Group) {
+        self.matrix[action.transition as usize][action.key.is_ext_scan_code as usize]
+            [action.key.scan_code as usize][action.key.vk_code as usize] = Some(group);
+    }
+}
+
+impl KeyTransformMap for KeyTransformMatrix {
+    fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         if let Some(map) = self.get_group(&event.action) {
             map.get(&All(event.modifiers_state))
                 .or_else(|| map.get(&Any))
@@ -80,25 +93,10 @@ impl KeyTransformMatrix {
         if let Some(map) = self.get_group_mut(&action) {
             map.insert(trigger.modifiers, rule);
         } else {
-            let mut map = HashMap::new();
+            let mut map = Group::new();
             map.insert(trigger.modifiers, rule);
             self.put_group(&action, map);
         }
-    }
-
-    fn get_group_mut(&mut self, action: &KeyAction) -> &mut Option<Group> {
-        &mut self.matrix[action.transition as usize][action.key.is_ext_scan_code as usize]
-            [action.key.scan_code as usize][action.key.vk_code as usize]
-    }
-
-    fn get_group(&self, action: &KeyAction) -> &Option<Group> {
-        &self.matrix[action.transition as usize][action.key.is_ext_scan_code as usize]
-            [action.key.scan_code as usize][action.key.vk_code as usize]
-    }
-
-    fn put_group(&mut self, action: &KeyAction, group: Group) {
-        self.matrix[action.transition as usize][action.key.is_ext_scan_code as usize]
-            [action.key.scan_code as usize][action.key.vk_code as usize] = Some(group);
     }
 }
 
@@ -149,7 +147,20 @@ where
     }
 }
 
-pub(crate) fn get_keyboard_state(c: &mut Criterion) {
+fn bench_map<M: KeyTransformMap>(group: &mut BenchmarkGroup<WallTime>, id: &str, mut map: M) {
+    for_all(|vk, sc, ext, trans| {
+        map.put(crete_rule(vk, sc, ext, trans));
+    });
+    group.bench_function(id, move |b| {
+        b.iter(|| {
+            for_all(|vk, sc, ext, trans| {
+                let _ = map.get(&create_event(vk, sc, ext, trans));
+            })
+        })
+    });
+}
+
+pub(crate) fn bench_get_keyboard_state(c: &mut Criterion) {
     c.bench_function("GetKeyboardState", |b| {
         b.iter(|| {
             let mut keyboard_state: [u8; 256] = [0u8; 256];
@@ -158,38 +169,15 @@ pub(crate) fn get_keyboard_state(c: &mut Criterion) {
     });
 }
 
-pub(crate) fn transform_container(c: &mut Criterion) {
+pub(crate) fn bench_transform_container(c: &mut Criterion) {
     let mut group = c.benchmark_group("transform_container_benchmark");
 
-    let mut map = KeyTransformMap::default();
-    for_all(|vk, sc, ext, trans| {
-        map.put(crete_rule(vk, sc, ext, trans));
-    });
-
-    group.bench_function("Map", move |b| {
-        b.iter(|| {
-            for_all(|vk, sc, ext, trans| {
-                let _ = map.get(&create_event(vk, sc, ext, trans));
-            })
-        })
-    });
-
-    let mut map = KeyTransformMatrix::default();
-    for_all(|vk, sc, ext, trans| {
-        map.put(crete_rule(vk, sc, ext, trans));
-    });
-
-    group.bench_function("Matrix", move |b| {
-        b.iter(|| {
-            for_all(|vk, sc, ext, trans| {
-                let _ = map.get(&create_event(vk, sc, ext, trans));
-            })
-        })
-    });
+    bench_map(&mut group, "Map", KeyTransformHashMap::default());
+    bench_map(&mut group, "Matrix", KeyTransformMatrix::default());
 
     group.finish();
 }
 
-criterion_group!(benches, transform_container);
+criterion_group!(benches, bench_transform_container);
 // criterion_group!(benches, get_keyboard_state);
 criterion_main!(benches);

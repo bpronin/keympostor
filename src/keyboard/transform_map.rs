@@ -3,11 +3,12 @@ use crate::keyboard::key_event::KeyEvent;
 use crate::keyboard::key_modifiers::KeyModifiers;
 use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
 use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
+use fxhash::FxBuildHasher;
 use std::collections::HashMap;
 
 #[derive(Debug, Default)]
 pub(crate) struct KeyTransformMap {
-    map: HashMap<KeyAction, HashMap<KeyModifiers, KeyTransformRule>>,
+    map: HashMap<KeyAction, HashMap<KeyModifiers, KeyTransformRule, FxBuildHasher>, FxBuildHasher>,
 }
 
 impl KeyTransformMap {

@@ -7,18 +7,19 @@ edition = "2024"
 dev = []
 
 [dependencies]
-windows = { version = "0.61.1", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_Media", "Win32_Media_Audio"] }
-native-windows-gui = { version = "1.0.13" }
-serde = { version = "1.0.219", features = ["derive"] }
-log = { version = "0.4.27"}
-simple_logger ={version = "5.0.0"}
-toml = "0.8.22"
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_Media", "Win32_Media_Audio"] }
+native-windows-gui = "1"
+log = "0.4"
+simple_logger = "5"
+serde = { version = "1", features = ["derive"] }
+toml = "0.8"
+fxhash = "0.2"
 
 [build-dependencies]
-embed-resource = "3.0.2"
+embed-resource = "3"
 
 [dev-dependencies]
-criterion = "0.6.0"
+criterion = "0.6"
 
 [[bench]]
 name = "benchmarks"
