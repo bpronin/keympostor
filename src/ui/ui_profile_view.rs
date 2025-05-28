@@ -1,4 +1,4 @@
-use crate::keyboard::transform_rules::KeyTransformProfile;
+use keympostor::keyboard::transform_rules::KeyTransformProfile;
 use crate::ui::ui_util::mono_font;
 use native_windows_gui::{NwgError, Tab, TextBox};
 

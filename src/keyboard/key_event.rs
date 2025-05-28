@@ -10,13 +10,13 @@ use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_INJECTED};
 pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 
 #[derive(Debug, PartialEq)]
-pub(crate) struct KeyEvent<'a> {
-    pub(crate) action: KeyAction,
-    pub(crate) modifiers_state: KeyModifiersState,
-    pub(crate) rule: Option<&'a KeyTransformRule>,
-    pub(crate) time: u32,
-    pub(crate) is_injected: bool,
-    pub(crate) is_private: bool,
+pub struct KeyEvent<'a> {
+    pub action: KeyAction,
+    pub modifiers_state: KeyModifiersState,
+    pub rule: Option<&'a KeyTransformRule>,
+    pub time: u32,
+    pub is_injected: bool,
+    pub is_private: bool,
 }
 
 impl KeyEvent<'_> {

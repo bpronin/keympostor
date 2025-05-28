@@ -117,22 +117,22 @@ impl Drop for KeyboardHook {
 }
 
 #[derive(Debug, Default)]
-pub(crate) struct KeyboardHandler {}
+pub struct KeyboardHandler {}
 
 impl KeyboardHandler {
-    pub(crate) fn set_profile(&self, profile: KeyTransformProfile) {
+    pub fn set_profile(&self, profile: KeyTransformProfile) {
         HOOK.with_borrow_mut(|hook| hook.load_profile(profile));
     }
 
-    pub(crate) fn set_listener(&self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
+    pub fn set_listener(&self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
         HOOK.with_borrow_mut(|hook| hook.set_listener(listener));
     }
 
-    pub(crate) fn is_enabled(&self) -> bool {
+    pub fn is_enabled(&self) -> bool {
         HOOK.with_borrow(|hook| hook.handle.is_some())
     }
 
-    pub(crate) fn set_enabled(&self, enabled: bool) {
+    pub fn set_enabled(&self, enabled: bool) {
         HOOK.with_borrow_mut(|hook| {
             if enabled {
                 hook.install()
@@ -142,11 +142,11 @@ impl KeyboardHandler {
         })
     }
 
-    pub(crate) fn is_silent(&self) -> bool {
+    pub fn is_silent(&self) -> bool {
         HOOK.with_borrow(|hook| hook.is_silent)
     }
 
-    pub(crate) fn set_silent(&self, silent: bool) {
+    pub fn set_silent(&self, silent: bool) {
         HOOK.with_borrow_mut(|inner| inner.set_silent(silent));
     }
 }

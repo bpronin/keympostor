@@ -6,9 +6,9 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub(crate) struct KeyTransformRule {
-    pub(crate) trigger: KeyTrigger,
-    pub(crate) actions: KeyActionSequence,
+pub struct KeyTransformRule {
+    pub trigger: KeyTrigger,
+    pub actions: KeyActionSequence,
 }
 
 impl Display for KeyTransformRule {
@@ -18,8 +18,8 @@ impl Display for KeyTransformRule {
 }
 
 #[derive(Debug, Eq, PartialEq, Default)]
-pub(crate) struct KeyTransformRules {
-    pub(crate) items: Vec<KeyTransformRule>,
+pub struct KeyTransformRules {
+    pub items: Vec<KeyTransformRule>,
 }
 
 impl Display for KeyTransformRules {
@@ -29,13 +29,13 @@ impl Display for KeyTransformRules {
 }
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub(crate) struct KeyTransformProfile {
+pub struct KeyTransformProfile {
     pub(crate) title: String,
-    pub(crate) rules: KeyTransformRules,
+    pub rules: KeyTransformRules,
 }
 
 impl KeyTransformProfile {
-    pub(crate) fn load(path: &str) -> Result<Self, String> {
+    pub fn load(path: &str) -> Result<Self, String> {
         toml::from_str(
             &fs::read_to_string(&path)
                 .map_err(|e| format!("Unable to read {} file. {}", path, e))?,

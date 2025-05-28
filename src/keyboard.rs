@@ -1,14 +1,14 @@
-mod key;
-mod key_action;
-mod key_const;
-pub(crate) mod key_event;
-pub(crate) mod key_hook;
-mod key_modifiers;
-mod key_trigger;
+pub mod key;
+pub mod key_action;
+pub mod key_const;
+pub mod key_event;
+pub mod key_hook;
+pub mod key_modifiers;
+pub mod key_trigger;
 mod parse;
 mod serialize;
 mod transform_map;
-pub(crate) mod transform_rules;
+pub mod transform_rules;
 
 /*
 #[cfg(test)]

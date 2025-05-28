@@ -55,7 +55,7 @@ macro_rules! new_key {
     };
 }
 
-const MAX_KEYS: usize = 203;
+pub const MAX_KEYS: usize = 203;
 
 static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key!("	", 0x00, 0x0F, true),
@@ -272,7 +272,7 @@ macro_rules! new_vk {
     };
 }
 
-pub(crate) const MAX_VK_CODE: usize = 256;
+pub const MAX_VK_CODE: usize = 256;
 
 pub(crate) static VIRTUAL_KEYS: [VirtualKey; MAX_VK_CODE] = [
     new_vk!(0x00, "UNASSIGNED"),
@@ -550,7 +550,7 @@ macro_rules! new_sc {
     };
 }
 
-pub(crate) const MAX_SCAN_CODE: usize = 136;
+pub const MAX_SCAN_CODE: usize = 136;
 
 pub(crate) static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
     new_sc!(0x00, "UNASSIGNED", "UNASSIGNED"),

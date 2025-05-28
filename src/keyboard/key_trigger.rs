@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub(crate) struct KeyTrigger {
-    pub(crate) action: KeyAction,
-    pub(crate) modifiers: KeyModifiers,
+pub struct KeyTrigger {
+    pub action: KeyAction,
+    pub modifiers: KeyModifiers,
 }
 
 impl Display for KeyTrigger {

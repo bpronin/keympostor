@@ -9,18 +9,18 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN,
 };
 
-pub(crate) const KM_NONE: KeyModifiersState = KeyModifiersState(0);
-pub(crate) const KM_LSHIFT: KeyModifiersState = KeyModifiersState(1);
-pub(crate) const KM_RSHIFT: KeyModifiersState = KeyModifiersState(1 << 1);
-pub(crate) const KM_LCTRL: KeyModifiersState = KeyModifiersState(1 << 2);
-pub(crate) const KM_RCTRL: KeyModifiersState = KeyModifiersState(1 << 3);
-pub(crate) const KM_LALT: KeyModifiersState = KeyModifiersState(1 << 4);
-pub(crate) const KM_RALT: KeyModifiersState = KeyModifiersState(1 << 5);
-pub(crate) const KM_LWIN: KeyModifiersState = KeyModifiersState(1 << 6);
-pub(crate) const KM_RWIN: KeyModifiersState = KeyModifiersState(1 << 7);
+pub const KM_NONE: KeyModifiersState = KeyModifiersState(0);
+pub const KM_LSHIFT: KeyModifiersState = KeyModifiersState(1);
+pub const KM_RSHIFT: KeyModifiersState = KeyModifiersState(1 << 1);
+pub const KM_LCTRL: KeyModifiersState = KeyModifiersState(1 << 2);
+pub const KM_RCTRL: KeyModifiersState = KeyModifiersState(1 << 3);
+pub const KM_LALT: KeyModifiersState = KeyModifiersState(1 << 4);
+pub const KM_RALT: KeyModifiersState = KeyModifiersState(1 << 5);
+pub const KM_LWIN: KeyModifiersState = KeyModifiersState(1 << 6);
+pub const KM_RWIN: KeyModifiersState = KeyModifiersState(1 << 7);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
-pub(crate) struct KeyModifiersState(u8);
+pub struct KeyModifiersState(u8);
 
 impl KeyModifiersState {
     pub(crate) fn from_keyboard_state(keys: [u8; 256]) -> Self {
@@ -49,7 +49,7 @@ impl KeyModifiersState {
         self.0 & other.0 == other.0
     }
 
-    pub(crate) fn to_string_short(&self) -> String {
+    pub fn to_string_short(&self) -> String {
         let mut text: [char; 8] = ['.'; 8];
 
         if self.contains(KM_LSHIFT) {
@@ -126,7 +126,7 @@ impl BitOr for KeyModifiersState {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub(crate) enum KeyModifiers {
+pub enum KeyModifiers {
     Any,
     All(KeyModifiersState),
 }

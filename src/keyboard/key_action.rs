@@ -11,7 +11,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub(crate) enum KeyTransition {
+pub enum KeyTransition {
     #[serde(alias = "UP", alias = "up")]
     Up,
     #[serde(alias = "DOWN", alias = "down")]
@@ -48,9 +48,9 @@ impl Display for KeyTransition {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub(crate) struct KeyAction {
-    pub(crate) key: Key,
-    pub(crate) transition: KeyTransition,
+pub struct KeyAction {
+    pub key: Key,
+    pub transition: KeyTransition,
 }
 
 impl KeyAction {
@@ -95,14 +95,14 @@ impl Display for KeyAction {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub(crate) struct KeyActionSequence {
+pub struct KeyActionSequence {
     pub(crate) actions: Vec<KeyAction>,
     #[serde(skip_serializing, skip_deserializing)]
     pub(crate) input: Vec<INPUT>,
 }
 
 impl KeyActionSequence {
-    pub(crate) fn new(actions: Vec<KeyAction>) -> Self {
+    pub fn new(actions: Vec<KeyAction>) -> Self {
         let input = actions.iter().map(|a| a.create_input()).collect();
         Self { actions, input }
     }

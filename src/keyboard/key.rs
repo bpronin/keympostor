@@ -5,7 +5,7 @@ use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) struct VirtualKey {
+pub struct VirtualKey {
     pub(crate) value: u8,
     pub(crate) name: &'static str,
 }
@@ -61,7 +61,7 @@ impl Display for VirtualKey {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) struct ScanCode {
+pub struct ScanCode {
     pub(crate) value: u8,
     pub(crate) is_extended: bool,
     pub(crate) name: &'static str,
@@ -128,10 +128,10 @@ impl Display for ScanCode {
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub(crate) struct Key {
-    pub(crate) vk_code: u8,
-    pub(crate) scan_code: u8,
-    pub(crate) is_ext_scan_code: bool,
+pub struct Key {
+    pub vk_code: u8,
+    pub scan_code: u8,
+    pub is_ext_scan_code: bool,
 }
 
 impl Key {
@@ -151,11 +151,11 @@ impl Key {
         KEY_MAP.with(|k| k.name_of(self))
     }
 
-    pub(crate) fn virtual_key(&self) -> VirtualKey {
+    pub fn virtual_key(&self) -> VirtualKey {
         VirtualKey::from_code(self.vk_code).unwrap()
     }
 
-    pub(crate) fn scan_code(&self) -> ScanCode {
+    pub fn scan_code(&self) -> ScanCode {
         ScanCode::from_code(self.scan_code, self.is_ext_scan_code).unwrap()
     }
 

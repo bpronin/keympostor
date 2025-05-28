@@ -1,5 +1,3 @@
-use crate::keyboard::key_hook::KeyboardHandler;
-use crate::keyboard::transform_rules::KeyTransformProfile;
 use crate::res::res_ids::{IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
 use crate::res::RESOURCES;
 use crate::rs;
@@ -9,7 +7,9 @@ use crate::ui::ui_main_menu::MainMenu;
 use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
 use crate::ui_warn;
-use crate::util::default_profile_path;
+use keympostor::keyboard::key_hook::KeyboardHandler;
+use keympostor::keyboard::transform_rules::KeyTransformProfile;
+use keympostor::util::default_profile_path;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 

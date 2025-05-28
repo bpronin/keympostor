@@ -1,6 +1,6 @@
 use std::env;
 
-pub(crate) fn default_profile_path() -> String {
+pub fn default_profile_path() -> String {
     let mut args = env::args();
     args.next(); /* executable name */
     args.next().unwrap_or("profiles/default.toml".to_string())
