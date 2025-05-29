@@ -3,7 +3,6 @@ use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::ui_util::mono_font;
 use keympostor::keyboard::key_event::KeyEvent;
-use keympostor::util::profile_path_from_args;
 use native_windows_gui as nwg;
 use native_windows_gui::ControlHandle;
 
@@ -29,9 +28,7 @@ impl LogView {
 
     pub(crate) fn init(&self) {
         #[cfg(feature = "dev")]
-        {
-            self.append_text("--- Debug UI ---");
-        }
+        self.append_text("--- Debug UI ---");
     }
 
     pub(crate) fn update_ui(&self, event: &KeyEvent) {

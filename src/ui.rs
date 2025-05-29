@@ -10,11 +10,9 @@ use crate::{r_icon, rs};
 use keympostor::keyboard::key_hook::KeyboardHandler;
 use keympostor::keyboard::transform_rules::KeyTransformProfile;
 use keympostor::util::profile_path_from_args;
-use log::debug;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 use std::cell::RefCell;
-use std::path::Path;
 
 mod ui_log_view;
 mod ui_main;
@@ -84,7 +82,7 @@ impl App {
                 Ok(profile) => {
                     self.profile_path.replace(Some(path));
                     profile
-                },
+                }
                 Err(error) => {
                     ui_warn!("{}", error);
                     return;
@@ -97,10 +95,10 @@ impl App {
         self.write_settings();
 
         let path_ref = self.profile_path.borrow();
-        let path = path_ref.as_deref().unwrap();
-        let filename = Path::new(path).file_name().unwrap().to_str().unwrap();
-        self.log_view.append_text(&format!("Read profile: {}", filename));
-        
+        let path = path_ref.as_deref().unwrap_or("Default");
+        self.log_view
+            .append_text(&format!("Read profile: {}", path));
+
         self.profile_view.update_ui(&profile);
         self.keyboard_handler.apply_profile(profile);
     }

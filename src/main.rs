@@ -1,4 +1,4 @@
-#![cfg_attr(not(feature = "dev"), windows_subsystem = "windows")]
+#![cfg_attr(not(feature = "console"), windows_subsystem = "windows")]
 
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
