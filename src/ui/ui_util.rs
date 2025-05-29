@@ -45,10 +45,3 @@ macro_rules! ui_warn {
         crate::ui::ui_util::warn(&format!($($arg)*));
     }
 }
-
-// #[macro_export]
-// macro_rules! ui_panic {
-//     ($($arg:tt)*) => {
-//         nwg::fatal_message(rs!(IDS_APP_TITLE), &format!($($arg)*));
-//     }
-// }

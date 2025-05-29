@@ -1,4 +1,7 @@
-use crate::res::res_ids::{IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON, IDS_ENABLED, IDS_EXIT, IDS_OPEN, IDS_TRAY_TIP};
+use crate::res::res_ids::{
+    IDI_ICON_APP, IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON, IDS_ENABLED, IDS_EXIT, IDS_OPEN,
+    IDS_TRAY_TIP,
+};
 use crate::res::RESOURCES;
 use crate::ui::App;
 use crate::{r_icon, rs};
@@ -18,7 +21,7 @@ impl Tray {
     pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::TrayNotification::builder()
             .parent(parent)
-            .icon(Some(r_icon!(IDI_ICON_GAME_LOCK_OFF)))
+            .icon(Some(r_icon!(IDI_ICON_APP)))
             .tip(Some(rs!(IDS_TRAY_TIP)))
             .build(&mut self.notification)?;
 

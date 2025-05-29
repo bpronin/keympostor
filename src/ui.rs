@@ -1,6 +1,6 @@
-use crate::res::res_ids::{IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
+use crate::res::res_ids::{IDI_ICON_APP, IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
 use crate::res::RESOURCES;
-use crate::rs;
+use crate::{r_icon, rs};
 use crate::settings::AppSettings;
 use crate::ui::ui_log_view::LogView;
 use crate::ui::ui_main_menu::MainMenu;
@@ -39,10 +39,7 @@ pub(crate) struct App {
 
 impl App {
     fn read_settings(&self) {
-        let settings = AppSettings::load().unwrap_or_else(|e| {
-            ui_warn!("{}", e);
-            Default::default()
-        });
+        let settings = AppSettings::load();
 
         self.keyboard_handler
             .set_enabled(settings.key_processing_enabled);
@@ -61,7 +58,7 @@ impl App {
     }
 
     fn write_settings(&self) {
-        let mut settings = AppSettings::load().unwrap_or_default();
+        let mut settings = AppSettings::load();
 
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
@@ -105,6 +102,7 @@ impl App {
 
         #[cfg(feature = "dev")]
         self.window.set_visible(true);
+        self.window.set_icon(Some(r_icon!(IDI_ICON_APP))); /* bug workaround */
 
         nwg::dispatch_thread_events();
     }
