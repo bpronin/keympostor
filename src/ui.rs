@@ -1,17 +1,20 @@
 use crate::res::res_ids::{IDI_ICON_APP, IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
 use crate::res::RESOURCES;
-use crate::{r_icon, rs};
 use crate::settings::AppSettings;
 use crate::ui::ui_log_view::LogView;
 use crate::ui::ui_main_menu::MainMenu;
 use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
 use crate::ui_warn;
+use crate::{r_icon, rs};
 use keympostor::keyboard::key_hook::KeyboardHandler;
 use keympostor::keyboard::transform_rules::KeyTransformProfile;
-use keympostor::util::default_profile_path;
+use keympostor::util::profile_path_from_args;
+use log::debug;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
+use std::cell::RefCell;
+use std::path::Path;
 
 mod ui_log_view;
 mod ui_main;
@@ -22,6 +25,7 @@ mod ui_util;
 
 #[derive(Default)]
 pub(crate) struct App {
+    profile_path: RefCell<Option<String>>,
     keyboard_handler: KeyboardHandler,
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
@@ -40,6 +44,8 @@ pub(crate) struct App {
 impl App {
     fn read_settings(&self) {
         let settings = AppSettings::load();
+
+        self.read_profile(profile_path_from_args().or(settings.transform_profile));
 
         self.keyboard_handler
             .set_enabled(settings.key_processing_enabled);
@@ -60,6 +66,7 @@ impl App {
     fn write_settings(&self) {
         let mut settings = AppSettings::load();
 
+        settings.transform_profile = self.profile_path.borrow().to_owned();
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
         settings.main_window_position = Some(self.window.position());
@@ -71,14 +78,31 @@ impl App {
         });
     }
 
-    fn read_profile(&self, path: &str) {
-        let profile = KeyTransformProfile::load(path).unwrap_or_else(|e| {
-            ui_warn!("{}", e);
+    fn read_profile(&self, profile_path: Option<String>) {
+        let profile = if let Some(path) = profile_path {
+            match KeyTransformProfile::load(&path) {
+                Ok(profile) => {
+                    self.profile_path.replace(Some(path));
+                    profile
+                },
+                Err(error) => {
+                    ui_warn!("{}", error);
+                    return;
+                }
+            }
+        } else {
+            self.profile_path.replace(None);
             Default::default()
-        });
+        };
+        self.write_settings();
 
+        let path_ref = self.profile_path.borrow();
+        let path = path_ref.as_deref().unwrap();
+        let filename = Path::new(path).file_name().unwrap().to_str().unwrap();
+        self.log_view.append_text(&format!("Read profile: {}", filename));
+        
         self.profile_view.update_ui(&profile);
-        self.keyboard_handler.set_profile(profile);
+        self.keyboard_handler.apply_profile(profile);
     }
 
     fn update_controls(&self) {
@@ -92,8 +116,6 @@ impl App {
 
     pub(crate) fn run(&self) {
         self.read_settings();
-        self.read_profile(&default_profile_path());
-
         self.update_controls();
 
         self.log_view.init();
@@ -155,8 +177,8 @@ impl App {
             .unwrap();
 
         if dialog.run(Some(self.window.handle)) {
-            let path = dialog.get_selected_item().unwrap();
-            self.read_profile(path.to_str().unwrap());
+            let path = dialog.get_selected_item().unwrap().into_string().ok();
+            self.read_profile(path);
         }
     }
 

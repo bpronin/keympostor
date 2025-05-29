@@ -1,9 +1,9 @@
 use std::env;
 
-pub fn default_profile_path() -> String {
+pub fn profile_path_from_args() -> Option<String> {
     let mut args = env::args();
     args.next(); /* executable name */
-    args.next().unwrap_or("profiles/default.toml".to_string())
+    args.next()
 }
 
 // pub(crate) fn play_sound(filename: &str) {

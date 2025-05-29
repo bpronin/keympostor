@@ -2,7 +2,6 @@ use crate::keyboard::key_const::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
-use crate::append_prefix;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {
@@ -18,40 +17,9 @@ impl VirtualKey {
             .copied()
     }
 
-    pub(crate) fn from_name(name: &str) -> Result<VirtualKey, String> {
-        let vk_name = append_prefix!(name, "VK_");
-        let position = VIRTUAL_KEYS.iter().position(|probe| probe.name == vk_name);
-
-        if let Some(ix) = position {
-            Ok(VIRTUAL_KEYS[ix])
-        } else {
-            Err(format!("Illegal virtual key name `{}`.", name))
-        }
-    }
-
-    pub(crate) fn from_code_name(s: &str) -> Result<VirtualKey, String> {
-        let src = s.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix.")?;
-        let code = u8::from_str_radix(src, 16)
-            .map_err(|_| format!("Error parsing virtual key code `{}`.", s))?;
-        Self::from_code(code)
-    }
-
     pub(crate) fn code_name(&self) -> String {
         format!("VC_0x{:02X}", self.value)
     }
-
-    /*
-    pub(crate) fn to_scan_code(&self) -> Result<&'static ScanCode, String> {
-        let ext_code = unsafe { MapVirtualKeyW(self.value as u32, MAPVK_VK_TO_VSC_EX) };
-        if ext_code > 0 {
-            let code = ext_code as u8;
-            let is_extended = ext_code & 0xE000 != 0;
-            ScanCode::from_code(code, is_extended)
-        } else {
-            Err(format!("Unable to convert virtual key {self} to scancode."))
-        }
-    }
-    */
 }
 
 impl Display for VirtualKey {
@@ -77,26 +45,6 @@ impl ScanCode {
             .copied()
     }
 
-    pub(crate) fn from_name(name: &str) -> Result<ScanCode, String> {
-        let sc_name = append_prefix!(name, "SC_");
-        SCAN_CODES
-            .iter()
-            .flatten()
-            .find(|sc| sc.name == sc_name)
-            .ok_or(format!("Illegal scan code name `{}`.", name))
-            .copied()
-    }
-
-    pub(crate) fn from_code_name(s: &str) -> Result<ScanCode, String> {
-        let code = u16::from_str_radix(s.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix.")?, 16)
-            .map_err(|_| format!("Error parsing scan code `{}`.", s))?;
-        Self::from_ext_code(code)
-    }
-
-    pub(crate) fn from_ext_code(ext_code: u16) -> Result<ScanCode, String> {
-        Self::from_code(ext_code as u8, ext_code & 0xE000 == 0xE000)
-    }
-
     pub(crate) fn ext_value(&self) -> u16 {
         if self.is_extended {
             self.value as u16 | 0xE0 << 8
@@ -108,17 +56,6 @@ impl ScanCode {
     pub(crate) fn code_name(&self) -> String {
         format!("SC_0x{:04X}", self.ext_value())
     }
-
-    /*
-    pub(crate) fn to_virtual_key(&self) -> Result<&'static VirtualKey, String> {
-        let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
-        if vk_code > 0 {
-            VirtualKey::from_code(vk_code as u8)
-        } else {
-            Err(format!("Unable to convert scancode {self} to virtual key."))
-        }
-    }
-    */
 }
 
 impl Display for ScanCode {
@@ -176,7 +113,75 @@ impl Display for Key {
 
 #[cfg(test)]
 mod tests {
+    use crate::append_prefix;
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
+    use crate::keyboard::key_const::{SCAN_CODES, VIRTUAL_KEYS};
+    use windows::Win32::UI::Input::KeyboardAndMouse::{
+        MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
+    };
+
+    impl VirtualKey {
+        pub(crate) fn from_name(name: &str) -> Result<VirtualKey, String> {
+            let vk_name = append_prefix!(name, "VK_");
+            let position = VIRTUAL_KEYS.iter().position(|probe| probe.name == vk_name);
+
+            if let Some(ix) = position {
+                Ok(VIRTUAL_KEYS[ix])
+            } else {
+                Err(format!("Illegal virtual key name `{}`.", name))
+            }
+        }
+
+        pub(crate) fn from_code_name(s: &str) -> Result<VirtualKey, String> {
+            let src = s.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix.")?;
+            let code = u8::from_str_radix(src, 16)
+                .map_err(|_| format!("Error parsing virtual key code `{}`.", s))?;
+            Self::from_code(code)
+        }
+
+        pub(crate) fn to_scan_code(&self) -> Result<ScanCode, String> {
+            let ext_code = unsafe { MapVirtualKeyW(self.value as u32, MAPVK_VK_TO_VSC_EX) };
+            if ext_code > 0 {
+                let code = ext_code as u8;
+                let is_extended = ext_code & 0xE000 != 0;
+                ScanCode::from_code(code, is_extended)
+            } else {
+                Err(format!("Unable to convert virtual key {self} to scancode."))
+            }
+        }
+    }
+
+    impl ScanCode {
+        pub(crate) fn from_name(name: &str) -> Result<ScanCode, String> {
+            let sc_name = append_prefix!(name, "SC_");
+            SCAN_CODES
+                .iter()
+                .flatten()
+                .find(|sc| sc.name == sc_name)
+                .ok_or(format!("Illegal scan code name `{}`.", name))
+                .copied()
+        }
+
+        pub(crate) fn from_code_name(s: &str) -> Result<ScanCode, String> {
+            let code =
+                u16::from_str_radix(s.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix.")?, 16)
+                    .map_err(|_| format!("Error parsing scan code `{}`.", s))?;
+            Self::from_ext_code(code)
+        }
+
+        pub(crate) fn from_ext_code(ext_code: u16) -> Result<ScanCode, String> {
+            Self::from_code(ext_code as u8, ext_code & 0xE000 == 0xE000)
+        }
+
+        pub(crate) fn to_virtual_key(&self) -> Result<VirtualKey, String> {
+            let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
+            if vk_code > 0 {
+                VirtualKey::from_code(vk_code as u8)
+            } else {
+                Err(format!("Unable to convert scancode {self} to virtual key."))
+            }
+        }
+    }
 
     #[macro_export]
     macro_rules! vk_key {
@@ -228,7 +233,6 @@ mod tests {
         );
     }
 
-    /*
     #[test]
     fn test_vk_to_scan_code() {
         assert_eq!(
@@ -247,7 +251,6 @@ mod tests {
     fn test_vk_to_scan_code_fails() {
         vk_key!("VK_LBUTTON").to_scan_code().unwrap();
     }
-    */
 
     #[test]
     fn test_sc_from_code() {
@@ -298,7 +301,6 @@ mod tests {
         assert_eq!(0xE021, ScanCode::from_ext_code(0xE021).unwrap().ext_value());
     }
 
-    /*
     #[test]
     fn test_sc_to_virtual_key() {
         assert_eq!(
@@ -317,7 +319,6 @@ mod tests {
     fn test_sc_to_virtual_key_fails() {
         sc_key!("SC_F24").to_virtual_key().unwrap();
     }
-    */
 
     #[test]
     fn test_sc_display() {

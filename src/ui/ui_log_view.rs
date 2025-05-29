@@ -3,7 +3,7 @@ use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::ui_util::mono_font;
 use keympostor::keyboard::key_event::KeyEvent;
-use keympostor::util::default_profile_path;
+use keympostor::util::profile_path_from_args;
 use native_windows_gui as nwg;
 use native_windows_gui::ControlHandle;
 
@@ -30,8 +30,7 @@ impl LogView {
     pub(crate) fn init(&self) {
         #[cfg(feature = "dev")]
         {
-            self.append_line("--- Debug UI");
-            self.append_line(&format!("--- {}", default_profile_path()));
+            self.append_text("--- Debug UI ---");
         }
     }
 
@@ -49,14 +48,14 @@ impl LogView {
             event.time,
         );
 
-        self.append_line(&line);
+        self.append_text(&line);
     }
 
     pub(crate) fn update_log_enabled(&self, is_log_enabled: bool) {
         if is_log_enabled {
-            self.append_line(rs!(IDS__LOGGING_ENABLED_));
+            self.append_text(rs!(IDS__LOGGING_ENABLED_));
         } else {
-            self.append_line(rs!(IDS__LOGGING_DISABLED_));
+            self.append_text(rs!(IDS__LOGGING_DISABLED_));
         }
     }
 
@@ -64,7 +63,7 @@ impl LogView {
         self.view.clear();
     }
 
-    fn append_line(&self, s: &str) {
+    pub(crate) fn append_text(&self, s: &str) {
         let text = self.view.text();
 
         let skip_count = text.lines().count().saturating_sub(MAX_LOG_LINES);

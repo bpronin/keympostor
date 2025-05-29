@@ -120,7 +120,7 @@ impl Drop for KeyboardHook {
 pub struct KeyboardHandler {}
 
 impl KeyboardHandler {
-    pub fn set_profile(&self, profile: KeyTransformProfile) {
+    pub fn apply_profile(&self, profile: KeyTransformProfile) {
         HOOK.with_borrow_mut(|hook| hook.load_profile(profile));
     }
 
