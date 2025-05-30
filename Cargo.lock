@@ -307,6 +307,7 @@ dependencies = [
  "fxhash",
  "log",
  "native-windows-gui",
+ "regex",
  "serde",
  "simple_logger",
  "toml",

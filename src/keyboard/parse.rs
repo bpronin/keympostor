@@ -7,7 +7,7 @@ use crate::keyboard::key_modifiers::{
     KM_RSHIFT, KM_RWIN,
 };
 use crate::keyboard::key_trigger::KeyTrigger;
-use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule, KeyTransformRules};
+use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
 use std::str::{FromStr, Lines};
 
 impl FromStr for Key {
@@ -172,7 +172,7 @@ impl KeyTrigger {
         for part in s.split(',') {
             list.push(Self::from_str_expand(part)?);
         }
-        
+
         Ok(list)
     }
 
@@ -208,8 +208,9 @@ impl FromStr for KeyTrigger {
         let ts = s.trim();
         if let Some(s) = ts.strip_prefix('[') {
             let mut parts = s.split(']');
-            Ok(Self { /* Modifiers go first! */
-                modifiers: KeyModifiers::from_str(parts.next().expect("Missing modifiers part"))?, 
+            Ok(Self {
+                /* Modifiers go first! */
+                modifiers: KeyModifiers::from_str(parts.next().expect("Missing modifiers part"))?,
                 action: KeyAction::from_str(parts.next().expect("Missing action part."))?,
             })
         } else {
@@ -274,7 +275,7 @@ impl FromStr for KeyTransformRule {
 }
 
 impl KeyTransformRules {
-    fn from_str_lines(lines: Lines) -> Result<Self, String> {
+    pub fn from_str_lines(lines: Lines) -> Result<Self, String> {
         let mut items = Vec::new();
         for line in lines {
             items.extend(KeyTransformRule::from_str_list(line.trim())?);
@@ -292,19 +293,6 @@ impl FromStr for KeyTransformRules {
     }
 }
 
-impl FromStr for KeyTransformProfile {
-    type Err = String;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut lines = s.trim().lines();
-
-        Ok(Self {
-            title: lines.next().ok_or("Error parsing title.")?.trim().into(),
-            rules: KeyTransformRules::from_str_lines(lines)?,
-        })
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key::Key;
@@ -316,12 +304,8 @@ mod tests {
     };
     use crate::keyboard::key_trigger::KeyTrigger;
     use crate::keyboard::parse::KeyActionSequence;
-    use crate::keyboard::transform_rules::{
-        KeyTransformProfile, KeyTransformRule, KeyTransformRules,
-    };
-    use crate::{
-        key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_rules, key_trigger,
-    };
+    use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
+    use crate::{key, key_action, key_action_seq, key_mod, key_rule, key_rules, key_trigger};
     use std::str::FromStr;
 
     // Key
@@ -782,30 +766,6 @@ mod tests {
                 "#
             ),
             key_rules!("A↓, B↓ : C↓")
-        );
-    }
-
-    // Transform profile
-
-    #[test]
-    fn test_key_transform_profile_from_str() {
-        assert_eq!(
-            KeyTransformProfile {
-                title: "Test profile".to_string(),
-                rules: KeyTransformRules {
-                    items: vec![
-                        key_rule!("A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
-                        key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓: ENTER↓ → ENTER↑"),
-                    ],
-                },
-            },
-            key_profile!(
-                r#"
-                Test profile
-                A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
-                [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
-                "#
-            )
         );
     }
 }

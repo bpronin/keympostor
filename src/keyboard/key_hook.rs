@@ -1,6 +1,6 @@
 use crate::keyboard::key_event::KeyEvent;
 use crate::keyboard::transform_map::KeyTransformMap;
-use crate::keyboard::transform_rules::KeyTransformProfile;
+use crate::keyboard::transform_rules::KeyTransformRules;
 use log::debug;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
@@ -9,10 +9,6 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 
 thread_local! {
     static HOOK: RefCell<KeyboardHook> = RefCell::new(KeyboardHook::default());
-}
-
-extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-    HOOK.with_borrow(|hook| hook.handle(code, w_param, l_param))
 }
 
 #[derive(Default)]
@@ -25,6 +21,10 @@ struct KeyboardHook {
 
 impl KeyboardHook {
     fn install(&mut self) {
+        extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+            HOOK.with_borrow(|hook| hook.handle(code, w_param, l_param))
+        }
+
         self.handle = Some(
             unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), None, 0) }
                 .expect("Failed to install keyboard hook."),
@@ -105,8 +105,8 @@ impl KeyboardHook {
         }
     }
 
-    fn load_profile(&mut self, profile: KeyTransformProfile) {
-        self.transform_map = KeyTransformMap::from_profile(profile);
+    fn apply_rules(&mut self, profile: &KeyTransformRules) {
+        self.transform_map = KeyTransformMap::new(&profile);
     }
 }
 
@@ -120,8 +120,8 @@ impl Drop for KeyboardHook {
 pub struct KeyboardHandler {}
 
 impl KeyboardHandler {
-    pub fn apply_profile(&self, profile: KeyTransformProfile) {
-        HOOK.with_borrow_mut(|hook| hook.load_profile(profile));
+    pub fn apply_rules(&self, profile: &KeyTransformRules) {
+        HOOK.with_borrow_mut(|hook| hook.apply_rules(&profile));
     }
 
     pub fn set_listener(&self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {

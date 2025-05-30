@@ -1,5 +1,8 @@
 title = "Test profile"
 
+[auto_activation]
+window_title = "Notepad++|FxSound"
+
 [rules]
 "[]CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
 "[LEFT_SHIFT] CAPS_LOCK↓" = "CAPS_LOCK↓ → CAPS_LOCK↑"

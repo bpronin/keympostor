@@ -17,12 +17,12 @@ impl Display for KeyTrigger {
 
 #[cfg(test)]
 mod tests {
+    use crate::key_action;
     use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::key_modifiers::KM_LSHIFT;
     use crate::keyboard::key_modifiers::KM_NONE;
     use crate::keyboard::key_trigger::KeyAction;
     use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::key_action;
 
     #[macro_export]
     macro_rules! key_trigger {

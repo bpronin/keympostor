@@ -2,7 +2,7 @@ use crate::keyboard::key_action::KeyAction;
 use crate::keyboard::key_event::KeyEvent;
 use crate::keyboard::key_modifiers::KeyModifiers;
 use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
-use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
+use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
 use fxhash::FxHashMap;
 
 #[derive(Debug, Default)]
@@ -11,10 +11,10 @@ pub(crate) struct KeyTransformMap {
 }
 
 impl KeyTransformMap {
-    pub(crate) fn from_profile(profile: KeyTransformProfile) -> KeyTransformMap {
+    pub(crate) fn new(rules: &KeyTransformRules) -> Self {
         let mut this = Self::default();
-        for rule in profile.rules.items {
-            this.put(rule)
+        for rule in &rules.items {
+            this.put(rule.clone())
         }
         this
     }

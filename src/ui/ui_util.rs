@@ -1,7 +1,7 @@
+use crate::res::res_ids::IDS_APP_TITLE;
 use crate::res::RESOURCES;
 use crate::rs;
 use native_windows_gui as nwg;
-use crate::res::res_ids::IDS_APP_TITLE;
 
 // pub(crate) fn dos_line_endings(unix_text: &str) -> String {
 //     unix_text

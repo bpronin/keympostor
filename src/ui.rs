@@ -5,10 +5,11 @@ use crate::ui::ui_log_view::LogView;
 use crate::ui::ui_main_menu::MainMenu;
 use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
+use crate::ui::win_watcher::WindowWatcher;
 use crate::ui_warn;
 use crate::{r_icon, rs};
 use keympostor::keyboard::key_hook::KeyboardHandler;
-use keympostor::keyboard::transform_rules::KeyTransformProfile;
+use keympostor::profile::KeyTransformProfile;
 use keympostor::util::profile_path_from_args;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
@@ -20,11 +21,13 @@ mod ui_main_menu;
 mod ui_profile_view;
 mod ui_tray;
 mod ui_util;
+mod win_watcher;
 
 #[derive(Default)]
 pub(crate) struct App {
     profile_path: RefCell<Option<String>>,
     keyboard_handler: KeyboardHandler,
+    window_watcher: WindowWatcher,
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
     tab_log_layout: nwg::FlexboxLayout,
@@ -100,7 +103,8 @@ impl App {
             .append_text(&format!("Read profile: {}", path));
 
         self.profile_view.update_ui(&profile);
-        self.keyboard_handler.apply_profile(profile);
+        self.keyboard_handler.apply_rules(&profile.rules);
+        self.window_watcher.apply_profile(&profile.auto_activation);
     }
 
     fn update_controls(&self) {

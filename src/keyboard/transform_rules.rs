@@ -2,8 +2,8 @@ use crate::keyboard::key_action::KeyActionSequence;
 use crate::keyboard::key_trigger::KeyTrigger;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::fmt::{Display, Formatter};
-use std::fs;
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct KeyTransformRule {
@@ -12,7 +12,7 @@ pub struct KeyTransformRule {
 }
 
 impl Display for KeyTransformRule {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&format!("{} : {}", self.trigger, self.actions), f)
     }
 }
@@ -23,55 +23,13 @@ pub struct KeyTransformRules {
 }
 
 impl Display for KeyTransformRules {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write_joined!(f, &self.items, "\n")
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeyTransformProfile {
-    pub(crate) title: String,
-    pub rules: KeyTransformRules,
-}
-
-impl KeyTransformProfile {
-    pub fn load(path: &str) -> Result<Self, String> {
-        toml::from_str(
-            &fs::read_to_string(&path)
-                .map_err(|e| format!("Unable to read {} file. {}", path, e))?,
-        )
-        .map_err(|e| format!("Unable to parse {}. {}", path, e))
-    }
-
-    /*
-    pub(crate) fn save(&self, path: &str) -> Result<(), String> {
-        fs::write(
-            path,
-            toml::to_string_pretty(self)
-                .map_err(|e| format!("Unable to serialize {}. {}", path, e))?,
-        )
-        .map_err(|e| format!("Unable to write {} file. {}", path, e))
-    }
-    */
-}
-
-impl Default for KeyTransformProfile {
-    fn default() -> Self {
-        Self {
-            title: "No profile".to_string(),
-            rules: Default::default(),
-        }
-    }
-}
-
-impl Display for KeyTransformProfile {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\n{}", self.title, self.rules)
-    }
-}
-
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use crate::keyboard::key_action::KeyActionSequence;
     use crate::keyboard::key_trigger::KeyTrigger;
     use crate::keyboard::transform_rules::KeyTransformRule;
@@ -88,13 +46,6 @@ mod tests {
     macro_rules! key_rules {
         ($text:literal) => {
             $text.parse::<KeyTransformRules>().unwrap()
-        };
-    }
-
-    #[macro_export]
-    macro_rules! key_profile {
-        ($text:expr) => {
-            $text.parse::<KeyTransformProfile>().unwrap()
         };
     }
 

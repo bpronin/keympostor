@@ -86,8 +86,8 @@ mod tests {
     use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::key_modifiers::KeyModifiersState;
     use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::keyboard::transform_rules::{KeyTransformProfile, KeyTransformRule};
-    use crate::{key, key_action, key_action_seq, key_mod, key_profile, key_rule, key_trigger};
+    use crate::keyboard::transform_rules::KeyTransformRule;
+    use crate::{key, key_action, key_action_seq, key_mod, key_rule, key_trigger};
     use serde::{Deserialize, Serialize};
 
     /* TOML requires root node to be annotated as #[derive(Serialize, Deserialize)] */
@@ -231,83 +231,5 @@ mod tests {
     //         )
     //         .unwrap()
     //     );
-    // }
-
-    #[test]
-    fn test_key_transform_profile_serialize() {
-        let profile = key_profile!(
-            r#"
-            Test profile
-            [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑
-            []CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
-            "#
-        );
-        let expected = r#"
-            title = "Test profile"
-            [rules]
-            "[LEFT_SHIFT]CAPS_LOCK↓" = "CAPS_LOCK↓ → CAPS_LOCK↑"
-            "[]CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
-            "#;
-
-        let actual = toml::to_string_pretty(&profile).unwrap();
-
-        assert_eq!(
-            expected.split_whitespace().collect::<String>(),
-            actual.split_whitespace().collect::<String>()
-        );
-    }
-
-    #[test]
-    fn test_key_transform_profile_deserialize() {
-        let actual = toml::from_str(
-            &r#"
-            title = "Test profile"
-            [rules]
-            "[LEFT_SHIFT]CAPS_LOCK↓" = "CAPS_LOCK↓ → CAPS_LOCK↑"
-            "[]CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
-            "#,
-        )
-        .unwrap();
-
-        /* NOTE: rules deserialized as sorted map so check the "expected" order */
-        let expected = key_profile!(
-            r#"
-            Test profile
-            [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑
-            []CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
-            "#
-        );
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_key_transform_profile_load() {
-        let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
-
-        /* NOTE: rules deserialized as sorted map so check the "expected" order */
-        let expected = key_profile!(
-            "
-            Test profile
-            [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑
-            []CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
-            "
-        );
-
-        assert_eq!(expected, actual);
-    }
-
-    #[test]
-    fn test_key_transform_profile_load_fails() {
-        assert!(KeyTransformProfile::load("test/profiles/bad.toml").is_err());
-    }
-
-    // #[test]
-    // fn test_key_transform_profile_save() {
-    //     let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
-    //     actual.save("test/profiles/test-copy.toml").unwrap();
-    //     let expected = KeyTransformProfile::load("test/profiles/test-copy.toml").unwrap();
-    // 
-    //     assert_eq!(expected, actual);
     // }
 }

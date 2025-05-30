@@ -1,5 +1,5 @@
-use keympostor::keyboard::transform_rules::KeyTransformProfile;
 use crate::ui::ui_util::mono_font;
+use keympostor::profile::KeyTransformProfile;
 use native_windows_gui::{ControlHandle, NwgError, Tab, TextBox};
 
 #[derive(Default)]
@@ -10,9 +10,13 @@ pub(crate) struct ProfileView {
 impl ProfileView {
     pub(crate) fn update_ui(&self, profile: &KeyTransformProfile) {
         let mut text = String::new();
+        text.push_str(&format!("{}\r\n", profile.title));
+        text.push_str(&"-".repeat(profile.title.len()));
+        text.push_str("\r\n");
         for rule in &profile.rules.items {
             text.push_str(&format!("{:22} : {}\r\n", rule.trigger, rule.actions));
         }
+
         self.view.set_text(&text);
     }
 }

@@ -8,13 +8,15 @@ dev = []
 console = []
 
 [dependencies]
-windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_Media", "Win32_Media_Audio"] }
+windows = { version = "0.61", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", 
+    "Win32_UI_WindowsAndMessaging", "Win32_Media", "Win32_Media_Audio"] }
 native-windows-gui = "1"
 log = "0.4"
 simple_logger = "5"
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 fxhash = "0.2"
+regex = "1"
 
 [build-dependencies]
 embed-resource = "3"

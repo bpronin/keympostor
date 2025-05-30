@@ -1,9 +1,11 @@
 use crate::res::RESOURCES;
 use crate::rs;
 
+use crate::res::res_ids::{
+    IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOAD_PROFILE, IDS_LOGGING_ENABLED,
+};
 use crate::ui::App;
 use native_windows_gui as nwg;
-use crate::res::res_ids::{IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOAD_PROFILE, IDS_LOGGING_ENABLED};
 
 #[derive(Default)]
 pub(crate) struct MainMenu {
