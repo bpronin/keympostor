@@ -28,7 +28,7 @@ impl LogView {
 
     pub(crate) fn init(&self) {
         #[cfg(feature = "dev")]
-        self.append_text("--- Debug UI ---");
+        self.appendln("--- Debug UI ---");
     }
 
     pub(crate) fn update_ui(&self, event: &KeyEvent) {
@@ -45,14 +45,14 @@ impl LogView {
             event.time,
         );
 
-        self.append_text(&line);
+        self.appendln(&line);
     }
 
     pub(crate) fn update_log_enabled(&self, is_log_enabled: bool) {
         if is_log_enabled {
-            self.append_text(rs!(IDS__LOGGING_ENABLED_));
+            self.appendln(rs!(IDS__LOGGING_ENABLED_));
         } else {
-            self.append_text(rs!(IDS__LOGGING_DISABLED_));
+            self.appendln(rs!(IDS__LOGGING_DISABLED_));
         }
     }
 
@@ -60,7 +60,7 @@ impl LogView {
         self.view.clear();
     }
 
-    pub(crate) fn append_text(&self, s: &str) {
+    pub(crate) fn appendln(&self, s: &str) {
         let text = self.view.text();
 
         let skip_count = text.lines().count().saturating_sub(MAX_LOG_LINES);

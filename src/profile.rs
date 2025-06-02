@@ -4,6 +4,7 @@ use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
+use anyhow::{Context, Result};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
@@ -13,12 +14,9 @@ pub struct Profile {
 }
 
 impl Profile {
-    pub fn load(path: &str) -> Result<Self, String> {
-        toml::from_str(
-            &fs::read_to_string(&path)
-                .map_err(|e| format!("Unable to read {} file. {}", path, e))?,
-        )
-        .map_err(|e| format!("Unable to parse {}. {}", path, e))
+    pub fn load(path: &str) -> Result<Self> {
+        toml::from_str(&fs::read_to_string(&path).context(format!("Unable to read {} file", path))?)
+            .context(format!("Unable to parse {}", path))
     }
 }
 
@@ -52,36 +50,26 @@ impl FromStr for Profile {
     }
 }
 
-#[derive(Default, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct ProfileInfo {
-    pub path: String,
-    pub title: String,
-}
-
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ActivationRules {
     pub window_title: String,
 }
 
-pub fn list_profiles() -> Result<Vec<ProfileInfo>, String> {
-    let dir_entries = fs::read_dir(Path::new("./profiles")).map_err(|e| e.to_string())?;
-    let mut infos = vec![];
+pub fn list_profiles() -> Result<Vec<(String, String)>> {
+    let dir_entries = fs::read_dir(Path::new("./profiles")).context("Unable to read dir")?;
+    let mut result = vec![];
     for entry in dir_entries {
         if let Ok(entry) = entry {
             let path = entry.path();
             if path.is_file() {
                 let file_path = path.to_str().unwrap();
-                let profile = Profile::load(file_path).map_err(|e| e.to_string())?;
-                let info = ProfileInfo {
-                    path: file_path.to_string(),
-                    title: profile.title,
-                };
-                infos.push(info);
+                let profile = Profile::load(file_path).context("Unable to read profile")?;
+                result.push((file_path.to_string(), profile.title));
             }
         }
     }
 
-    Ok(infos)
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -91,6 +79,7 @@ pub mod tests {
     use crate::keyboard::transform_rules::KeyTransformRules;
     use crate::profile::Profile;
     use std::fs;
+    use anyhow::Context;
 
     #[macro_export]
     macro_rules! key_profile {
@@ -100,13 +89,13 @@ pub mod tests {
     }
 
     impl Profile {
-        pub(crate) fn save(&self, path: &str) -> Result<(), String> {
+        pub(crate) fn save(&self, path: &str) -> Result<()> {
             fs::write(
                 path,
                 toml::to_string_pretty(self)
-                    .map_err(|e| format!("Unable to serialize {}. {}", path, e))?,
+                    .context(format!("Unable to serialize {}", path))?,
             )
-            .map_err(|e| format!("Unable to write {} file. {}", path, e))
+            .context(format!("Unable to write {} file", path))
         }
     }
 

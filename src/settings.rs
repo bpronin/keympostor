@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 
@@ -34,9 +35,9 @@ impl AppSettings {
             .unwrap_or_default()
     }
 
-    pub(crate) fn save(&self) -> Result<(), String> {
+    pub(crate) fn save(&self) -> Result<()> {
         let text = toml::to_string(self) /* dont want `to_string_pretty` */
-            .map_err(|e| format!("Error serializing `{}`. {}", FILE_PATH, e))?;
-        fs::write(FILE_PATH, text).map_err(|e| format!("Error writing `{}`. {}", FILE_PATH, e))
+            .context(format!("Error serializing `{}`", FILE_PATH))?;
+        fs::write(FILE_PATH, text).context(format!("Error writing `{}`", FILE_PATH))
     }
 }

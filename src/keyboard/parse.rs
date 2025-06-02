@@ -8,6 +8,7 @@ use crate::keyboard::key_modifiers::{
 };
 use crate::keyboard::key_trigger::KeyTrigger;
 use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
+use anyhow::{Context, Result};
 use std::str::{FromStr, Lines};
 
 impl FromStr for Key {

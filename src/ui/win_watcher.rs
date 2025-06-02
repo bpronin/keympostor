@@ -12,6 +12,7 @@ use windows::{
     Win32::Foundation::HWND,
     Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW},
 };
+use anyhow::{Context, Result};
 
 const CHECK_INTERVAL: Duration = Duration::from_millis(100);
 
@@ -22,9 +23,9 @@ pub struct WindowWatcher {
 }
 
 impl WindowWatcher {
-    pub(crate) fn apply_profile(&self, settings: Option<ActivationRules>) -> Result<(), String> {
+    pub(crate) fn apply_profile(&self, settings: Option<ActivationRules>) -> Result<()> {
         if let Some(settings) = &settings {
-            let re = Regex::new(&settings.window_title).map_err(|e| format!("{e}"))?;
+            let re = Regex::new(&settings.window_title).context("Invalid regex")?;
             self.start(re, |hwnd, active| {
                 debug!(
                     "Auto-activating window `{}` is {}",

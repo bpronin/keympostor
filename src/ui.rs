@@ -5,12 +5,11 @@ use crate::ui::ui_log_view::LogView;
 use crate::ui::ui_main_menu::MainMenu;
 use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
-use crate::ui::ui_util::warn;
 use crate::ui::win_watcher::WindowWatcher;
 use crate::ui_warn;
 use crate::{r_icon, rs};
 use keympostor::keyboard::key_hook::KeyboardHandler;
-use keympostor::profile::{Profile, ProfileInfo};
+use keympostor::profile::{Profile};
 use keympostor::util::profile_path_from_args;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
@@ -27,7 +26,7 @@ mod win_watcher;
 
 #[derive(Default)]
 pub(crate) struct App {
-    current_profile: RefCell<Option<ProfileInfo>>,
+    current_profile_path: RefCell<Option<String>>,
     keyboard_handler: KeyboardHandler,
     window_watcher: WindowWatcher,
     window: nwg::Window,
@@ -69,11 +68,7 @@ impl App {
     fn write_settings(&self) {
         let mut settings = AppSettings::load();
         
-        settings.transform_profile = if let Some(p) = &*self.current_profile.borrow() {
-            Some(p.path.clone())
-        } else {
-            None
-        };
+        settings.transform_profile = self.current_profile_path.borrow().to_owned();
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
         settings.main_window_position = Some(self.window.position());
@@ -86,7 +81,7 @@ impl App {
     }
 
     fn read_profile(&self, profile_path: Option<String>) {
-        let profile = if let Some(path) = profile_path {
+        let profile = if let Some(ref path) = profile_path {
             match Profile::load(&path) {
                 Ok(profile) => profile,
                 Err(error) => {
@@ -98,21 +93,23 @@ impl App {
             Default::default()
         };
 
+        self.current_profile_path.replace(profile_path);
         self.write_settings();
 
         self.log_view
-            .append_text(&format!("Read profile: {}", profile.title));
-
+            .appendln(&format!("--- Loaded profile: `{}` ---", profile.title));
         self.profile_view.update_ui(&profile);
         self.keyboard_handler.apply_rules(&profile.rules);
         // self.window_watcher.apply_profile(&profile.auto_activation);
+      
+        self.update_controls();
     }
 
     fn update_controls(&self) {
         self.main_menu.update_ui(
             self.keyboard_handler.is_enabled(),
             self.keyboard_handler.is_silent(),
-            &self.current_profile.borrow(),
+            &self.current_profile_path.borrow(),
         );
 
         self.tray.update_ui(self.keyboard_handler.is_enabled());
@@ -170,28 +167,8 @@ impl App {
         self.window.set_visible(!self.window.visible());
     }
 
-    pub(crate) fn on_select_profile(&self, profile_info: &Option<ProfileInfo>) {
-        if let Some(info) = profile_info {
-            warn(&info.path);
-        } else {
-            warn("No profile");
-        }
-    }
-
-    pub(crate) fn on_load_profile(&self) {
-        let mut dialog = nwg::FileDialog::default();
-
-        nwg::FileDialog::builder()
-            .title(rs!(IDS_LOAD_PROFILE))
-            .filters(rs!(IDS_LOAD_PROFILE_FILE_FILTER))
-            .action(nwg::FileDialogAction::Open)
-            .build(&mut dialog)
-            .unwrap();
-
-        if dialog.run(Some(self.window.handle)) {
-            let path = dialog.get_selected_item().unwrap().into_string().ok();
-            self.read_profile(path);
-        }
+    pub(crate) fn on_select_profile(&self, profile_path: Option<String>) {
+        self.read_profile(profile_path);
     }
 
     pub(crate) fn on_log_view_clear(&self) {
