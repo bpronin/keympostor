@@ -10,10 +10,10 @@ use crate::ui_warn;
 use crate::{r_icon, rs};
 use keympostor::keyboard::key_hook::KeyboardHandler;
 use keympostor::profile::Profile;
-use keympostor::util::profile_path_from_args;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 use std::cell::RefCell;
+use keympostor::util::{get_window_size, profile_path_from_args, set_window_size};
 
 mod ui_log_view;
 mod ui_main;
@@ -58,7 +58,7 @@ impl App {
             self.window.set_position(position.0, position.1);
         }
         if let Some(size) = settings.main_window_size {
-            self.window.set_size(size.0, size.1);
+            set_window_size(self.window.handle, size);
         }
         if let Some(page) = settings.main_window_selected_page {
             self.tab_container.set_selected_tab(page);
@@ -72,7 +72,7 @@ impl App {
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
         settings.main_window_position = Some(self.window.position());
-        settings.main_window_size = Some(self.window.size());
+        settings.main_window_size = Some(get_window_size(self.window.handle));
         settings.main_window_selected_page = Some(self.tab_container.selected_tab());
 
         settings.save().unwrap_or_else(|e| {
