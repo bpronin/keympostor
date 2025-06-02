@@ -1,4 +1,5 @@
 use crate::keyboard::key::{Key, ScanCode, VirtualKey};
+use crate::keyboard::KeyError;
 use fxhash::FxHashMap;
 
 thread_local! {
@@ -34,10 +35,10 @@ impl KeyMap {
             .expect(&format!("Unsupported key: {}", key.code_name()))
     }
 
-    pub(crate) fn by_name(&self, name: &str) -> Result<Key, String> {
+    pub(crate) fn by_name(&self, name: &str) -> Result<Key, KeyError> {
         self.name_to_key_map
             .get(name)
-            .ok_or(format!("Illegal key name: `{}`.", name))
+            .ok_or(KeyError::new(&format!("Illegal key name: `{}`.", name)))
             .copied()
     }
 }

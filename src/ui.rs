@@ -1,4 +1,4 @@
-use crate::res::res_ids::{IDI_ICON_APP, IDS_LOAD_PROFILE, IDS_LOAD_PROFILE_FILE_FILTER};
+use crate::res::res_ids::IDI_ICON_APP;
 use crate::res::RESOURCES;
 use crate::settings::AppSettings;
 use crate::ui::ui_log_view::LogView;
@@ -9,7 +9,7 @@ use crate::ui::win_watcher::WindowWatcher;
 use crate::ui_warn;
 use crate::{r_icon, rs};
 use keympostor::keyboard::key_hook::KeyboardHandler;
-use keympostor::profile::{Profile};
+use keympostor::profile::Profile;
 use keympostor::util::profile_path_from_args;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
@@ -67,7 +67,7 @@ impl App {
 
     fn write_settings(&self) {
         let mut settings = AppSettings::load();
-        
+
         settings.transform_profile = self.current_profile_path.borrow().to_owned();
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
@@ -101,7 +101,7 @@ impl App {
         self.profile_view.update_ui(&profile);
         self.keyboard_handler.apply_rules(&profile.rules);
         // self.window_watcher.apply_profile(&profile.auto_activation);
-      
+
         self.update_controls();
     }
 

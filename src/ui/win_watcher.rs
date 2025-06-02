@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use keympostor::profile::ActivationRules;
 use log::debug;
 use regex::Regex;
@@ -12,7 +13,6 @@ use windows::{
     Win32::Foundation::HWND,
     Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW},
 };
-use anyhow::{Context, Result};
 
 const CHECK_INTERVAL: Duration = Duration::from_millis(100);
 
@@ -49,7 +49,7 @@ impl WindowWatcher {
         F: Fn(HWND, bool) + Send + 'static,
     {
         if self.running.load(Ordering::SeqCst) {
-            return; 
+            return;
         }
         self.running.store(true, Ordering::SeqCst);
         let running = self.running.clone();

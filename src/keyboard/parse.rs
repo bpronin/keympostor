@@ -8,11 +8,11 @@ use crate::keyboard::key_modifiers::{
 };
 use crate::keyboard::key_trigger::KeyTrigger;
 use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
-use anyhow::{Context, Result};
+use crate::keyboard::KeyError;
 use std::str::{FromStr, Lines};
 
 impl FromStr for Key {
-    type Err = String;
+    type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_name(s)
@@ -20,7 +20,7 @@ impl FromStr for Key {
 }
 
 impl KeyAction {
-    fn from_str_expand(s: &str) -> Result<Vec<Self>, String> {
+    fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
         let ts = s.trim();
         let mut list = Vec::with_capacity(2);
 
@@ -81,7 +81,7 @@ impl KeyAction {
 }
 
 impl FromStr for KeyAction {
-    type Err = String;
+    type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self::from_str_expand(s)?[0])
@@ -89,7 +89,7 @@ impl FromStr for KeyAction {
 }
 
 impl KeyActionSequence {
-    fn from_str_list(s: &str) -> Result<Vec<Self>, String> {
+    fn from_str_list(s: &str) -> Result<Vec<Self>, KeyError> {
         let mut down_actions = Vec::new();
         let mut up_actions = Vec::new();
 
@@ -116,7 +116,7 @@ impl KeyActionSequence {
 }
 
 impl FromStr for KeyActionSequence {
-    type Err = String;
+    type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self::from_str_list(s)?[0].clone())
@@ -124,7 +124,7 @@ impl FromStr for KeyActionSequence {
 }
 
 impl FromStr for KeyModifiers {
-    type Err = String;
+    type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         /* `Any` is parsed outside from `None` */
@@ -133,7 +133,7 @@ impl FromStr for KeyModifiers {
 }
 
 impl FromStr for KeyModifiersState {
-    type Err = String;
+    type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let ts = s.trim();
@@ -161,14 +161,16 @@ impl FromStr for KeyModifiersState {
             if result != KM_NONE {
                 Ok(result)
             } else {
-                Err(format!("Error parsing key modifiers: `{ts}`"))
+                Err(KeyError::new(&format!(
+                    "Error parsing key modifiers: `{ts}`"
+                )))
             }
         }
     }
 }
 
 impl KeyTrigger {
-    fn from_str_list(s: &str) -> Result<Vec<Vec<Self>>, String> {
+    fn from_str_list(s: &str) -> Result<Vec<Vec<Self>>, KeyError> {
         let mut list = Vec::new();
         for part in s.split(',') {
             list.push(Self::from_str_expand(part)?);
@@ -177,7 +179,7 @@ impl KeyTrigger {
         Ok(list)
     }
 
-    fn from_str_expand(s: &str) -> Result<Vec<KeyTrigger>, String> {
+    fn from_str_expand(s: &str) -> Result<Vec<KeyTrigger>, KeyError> {
         let ts = s.trim();
         let mut list = Vec::with_capacity(2);
 
@@ -203,7 +205,7 @@ impl KeyTrigger {
 }
 
 impl FromStr for KeyTrigger {
-    type Err = String;
+    type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let ts = s.trim();
@@ -227,7 +229,7 @@ impl KeyTransformRule {
     pub(crate) fn from_str_pair(
         triggers_str: &str,
         actions_str: &str,
-    ) -> Result<Vec<Self>, String> {
+    ) -> Result<Vec<Self>, KeyError> {
         let triggers_list = KeyTrigger::from_str_list(triggers_str)?;
         let sequences = KeyActionSequence::from_str_list(actions_str)?;
         let mut rules = Vec::new();
@@ -258,17 +260,17 @@ impl KeyTransformRule {
         Ok(rules)
     }
 
-    fn from_str_list(s: &str) -> Result<Vec<Self>, String> {
+    fn from_str_list(s: &str) -> Result<Vec<Self>, KeyError> {
         let mut parts = s.trim().split(":");
         Self::from_str_pair(
-            parts.next().ok_or("Missing source part.")?,
-            parts.next().ok_or("Missing target part.")?,
+            parts.next().ok_or(KeyError::new("Missing source part."))?,
+            parts.next().ok_or(KeyError::new("Missing target part."))?,
         )
     }
 }
 
 impl FromStr for KeyTransformRule {
-    type Err = String;
+    type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(Self::from_str_list(s)?[0].clone())
@@ -276,7 +278,7 @@ impl FromStr for KeyTransformRule {
 }
 
 impl KeyTransformRules {
-    pub fn from_str_lines(lines: Lines) -> Result<Self, String> {
+    pub fn from_str_lines(lines: Lines) -> Result<Self, KeyError> {
         let mut items = Vec::new();
         for line in lines {
             items.extend(KeyTransformRule::from_str_list(line.trim())?);
@@ -287,7 +289,7 @@ impl KeyTransformRules {
 }
 
 impl FromStr for KeyTransformRules {
-    type Err = String;
+    type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::from_str_lines(s.trim().lines())

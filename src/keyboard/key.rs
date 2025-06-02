@@ -1,4 +1,5 @@
 use crate::keyboard::key_const::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
+use crate::keyboard::KeyError;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
@@ -10,10 +11,13 @@ pub struct VirtualKey {
 }
 
 impl VirtualKey {
-    pub(crate) fn from_code(code: u8) -> Result<VirtualKey, String> {
+    pub(crate) fn from_code(code: u8) -> Result<VirtualKey, KeyError> {
         VIRTUAL_KEYS
             .get(code as usize)
-            .ok_or(format!("Illegal virtual key code `{}`.", code))
+            .ok_or(KeyError::new(&format!(
+                "Illegal virtual key code `{}`.",
+                code
+            )))
             .copied()
     }
 
@@ -36,12 +40,15 @@ pub struct ScanCode {
 }
 
 impl ScanCode {
-    pub(crate) fn from_code(code: u8, extended: bool) -> Result<ScanCode, String> {
+    pub(crate) fn from_code(code: u8, extended: bool) -> Result<ScanCode, KeyError> {
         SCAN_CODES
             .get(code as usize)
-            .ok_or(format!("Illegal scan code `{}`.", code))?
+            .ok_or(KeyError::new(&format!("Illegal scan code `{}`.", code)))?
             .get(extended as usize)
-            .ok_or(format!("Illegal extended scan code `{}`.", code))
+            .ok_or(KeyError::new(&format!(
+                "Illegal extended scan code `{}`.",
+                code
+            )))
             .copied()
     }
 
@@ -80,7 +87,7 @@ impl Key {
         }
     }
 
-    pub(crate) fn from_name(s: &str) -> Result<Self, String> {
+    pub(crate) fn from_name(s: &str) -> Result<Self, KeyError> {
         KEY_MAP.with(|keys| keys.by_name(s.trim()))
     }
 
@@ -116,69 +123,86 @@ mod tests {
     use crate::append_prefix;
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
     use crate::keyboard::key_const::{SCAN_CODES, VIRTUAL_KEYS};
+    use crate::keyboard::KeyError;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
     };
 
     impl VirtualKey {
-        pub(crate) fn from_name(name: &str) -> Result<VirtualKey, String> {
+        pub(crate) fn from_name(name: &str) -> Result<VirtualKey, KeyError> {
             let vk_name = append_prefix!(name, "VK_");
             let position = VIRTUAL_KEYS.iter().position(|probe| probe.name == vk_name);
 
             if let Some(ix) = position {
                 Ok(VIRTUAL_KEYS[ix])
             } else {
-                Err(format!("Illegal virtual key name `{}`.", name))
+                Err(KeyError::new(&format!(
+                    "Illegal virtual key name `{}`.",
+                    name
+                )))
             }
         }
 
-        pub(crate) fn from_code_name(s: &str) -> Result<VirtualKey, String> {
-            let src = s.strip_prefix("VK_0x").ok_or("No `VK_0x` prefix.")?;
-            let code = u8::from_str_radix(src, 16)
-                .map_err(|_| format!("Error parsing virtual key code `{}`.", s))?;
+        pub(crate) fn from_code_name(s: &str) -> Result<VirtualKey, KeyError> {
+            let src = s
+                .strip_prefix("VK_0x")
+                .ok_or(KeyError::new(&"No `VK_0x` prefix."))?;
+            let code = u8::from_str_radix(src, 16).map_err(|e| {
+                KeyError::new(&format!("Error parsing virtual key code `{}`. {}", s, e))
+            })?;
             Self::from_code(code)
         }
 
-        pub(crate) fn to_scan_code(&self) -> Result<ScanCode, String> {
+        pub(crate) fn to_scan_code(&self) -> Result<ScanCode, KeyError> {
             let ext_code = unsafe { MapVirtualKeyW(self.value as u32, MAPVK_VK_TO_VSC_EX) };
             if ext_code > 0 {
                 let code = ext_code as u8;
                 let is_extended = ext_code & 0xE000 != 0;
                 ScanCode::from_code(code, is_extended)
             } else {
-                Err(format!("Unable to convert virtual key {self} to scancode."))
+                Err(KeyError::new(&format!(
+                    "Unable to convert virtual key {self} to scancode."
+                )))
             }
         }
     }
 
     impl ScanCode {
-        pub(crate) fn from_name(name: &str) -> Result<ScanCode, String> {
+        pub(crate) fn from_name(name: &str) -> Result<ScanCode, KeyError> {
             let sc_name = append_prefix!(name, "SC_");
             SCAN_CODES
                 .iter()
                 .flatten()
                 .find(|sc| sc.name == sc_name)
-                .ok_or(format!("Illegal scan code name `{}`.", name))
+                .ok_or(KeyError::new(&format!(
+                    "Illegal scan code name `{}`.",
+                    name
+                )))
                 .copied()
         }
 
-        pub(crate) fn from_code_name(s: &str) -> Result<ScanCode, String> {
-            let code =
-                u16::from_str_radix(s.strip_prefix("SC_0x").ok_or("No `SC_0x` prefix.")?, 16)
-                    .map_err(|_| format!("Error parsing scan code `{}`.", s))?;
+        pub(crate) fn from_code_name(s: &str) -> Result<ScanCode, KeyError> {
+            let code = u16::from_str_radix(
+                s.strip_prefix("SC_0x")
+                    .ok_or(KeyError::new("No `SC_0x` prefix."))?,
+                16,
+            )
+            .map_err(|e| KeyError::new(&format!("Error parsing scan code `{}`. {}", s, e)))?;
             Self::from_ext_code(code)
         }
 
-        pub(crate) fn from_ext_code(ext_code: u16) -> Result<ScanCode, String> {
+        pub(crate) fn from_ext_code(ext_code: u16) -> Result<ScanCode, KeyError> {
             Self::from_code(ext_code as u8, ext_code & 0xE000 == 0xE000)
         }
 
-        pub(crate) fn to_virtual_key(&self) -> Result<VirtualKey, String> {
+        pub(crate) fn to_virtual_key(&self) -> Result<VirtualKey, KeyError> {
             let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
             if vk_code > 0 {
                 VirtualKey::from_code(vk_code as u8)
             } else {
-                Err(format!("Unable to convert scancode {self} to virtual key."))
+                Err(KeyError::new(&format!(
+                    "Unable to convert scancode {self} to virtual key."
+                )))
             }
         }
     }

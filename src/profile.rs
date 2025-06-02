@@ -1,10 +1,11 @@
 use crate::keyboard::transform_rules::KeyTransformRules;
+use crate::keyboard::KeyError;
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
-use anyhow::{Context, Result};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
@@ -37,13 +38,17 @@ impl Display for Profile {
 }
 
 impl FromStr for Profile {
-    type Err = String;
+    type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut lines = s.trim().lines();
 
         Ok(Self {
-            title: lines.next().ok_or("Error parsing title.")?.trim().into(),
+            title: lines
+                .next()
+                .ok_or(KeyError::new("Error parsing title."))?
+                .trim()
+                .into(),
             rules: KeyTransformRules::from_str_lines(lines)?,
             auto_activation: None,
         })
@@ -78,8 +83,8 @@ pub mod tests {
     use crate::keyboard::transform_rules::KeyTransformRule;
     use crate::keyboard::transform_rules::KeyTransformRules;
     use crate::profile::Profile;
+    use anyhow::{Context, Error};
     use std::fs;
-    use anyhow::Context;
 
     #[macro_export]
     macro_rules! key_profile {
@@ -89,11 +94,10 @@ pub mod tests {
     }
 
     impl Profile {
-        pub(crate) fn save(&self, path: &str) -> Result<()> {
+        pub(crate) fn save(&self, path: &str) -> Result<(), Error> {
             fs::write(
                 path,
-                toml::to_string_pretty(self)
-                    .context(format!("Unable to serialize {}", path))?,
+                toml::to_string_pretty(self).context(format!("Unable to serialize {}", path))?,
             )
             .context(format!("Unable to write {} file", path))
         }
