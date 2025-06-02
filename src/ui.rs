@@ -5,11 +5,12 @@ use crate::ui::ui_log_view::LogView;
 use crate::ui::ui_main_menu::MainMenu;
 use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
+use crate::ui::ui_util::warn;
 use crate::ui::win_watcher::WindowWatcher;
 use crate::ui_warn;
 use crate::{r_icon, rs};
 use keympostor::keyboard::key_hook::KeyboardHandler;
-use keympostor::profile::KeyTransformProfile;
+use keympostor::profile::{Profile, ProfileInfo};
 use keympostor::util::profile_path_from_args;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
@@ -19,13 +20,14 @@ mod ui_log_view;
 mod ui_main;
 mod ui_main_menu;
 mod ui_profile_view;
+mod ui_profiles_menu;
 mod ui_tray;
 mod ui_util;
 mod win_watcher;
 
 #[derive(Default)]
 pub(crate) struct App {
-    profile_path: RefCell<Option<String>>,
+    current_profile: RefCell<Option<ProfileInfo>>,
     keyboard_handler: KeyboardHandler,
     window_watcher: WindowWatcher,
     window: nwg::Window,
@@ -66,8 +68,12 @@ impl App {
 
     fn write_settings(&self) {
         let mut settings = AppSettings::load();
-
-        settings.transform_profile = self.profile_path.borrow().to_owned();
+        
+        settings.transform_profile = if let Some(p) = &*self.current_profile.borrow() {
+            Some(p.path.clone())
+        } else {
+            None
+        };
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
         settings.main_window_position = Some(self.window.position());
@@ -81,36 +87,32 @@ impl App {
 
     fn read_profile(&self, profile_path: Option<String>) {
         let profile = if let Some(path) = profile_path {
-            match KeyTransformProfile::load(&path) {
-                Ok(profile) => {
-                    self.profile_path.replace(Some(path));
-                    profile
-                }
+            match Profile::load(&path) {
+                Ok(profile) => profile,
                 Err(error) => {
                     ui_warn!("{}", error);
                     return;
                 }
             }
         } else {
-            self.profile_path.replace(None);
             Default::default()
         };
+
         self.write_settings();
 
-        let path_ref = self.profile_path.borrow();
-        let path = path_ref.as_deref().unwrap_or("Default");
         self.log_view
-            .append_text(&format!("Read profile: {}", path));
+            .append_text(&format!("Read profile: {}", profile.title));
 
         self.profile_view.update_ui(&profile);
         self.keyboard_handler.apply_rules(&profile.rules);
-        self.window_watcher.apply_profile(&profile.auto_activation);
+        // self.window_watcher.apply_profile(&profile.auto_activation);
     }
 
     fn update_controls(&self) {
         self.main_menu.update_ui(
             self.keyboard_handler.is_enabled(),
             self.keyboard_handler.is_silent(),
+            &self.current_profile.borrow(),
         );
 
         self.tray.update_ui(self.keyboard_handler.is_enabled());
@@ -166,6 +168,14 @@ impl App {
 
     pub(crate) fn on_toggle_window_visibility(&self) {
         self.window.set_visible(!self.window.visible());
+    }
+
+    pub(crate) fn on_select_profile(&self, profile_info: &Option<ProfileInfo>) {
+        if let Some(info) = profile_info {
+            warn(&info.path);
+        } else {
+            warn("No profile");
+        }
     }
 
     pub(crate) fn on_load_profile(&self) {

@@ -22,7 +22,7 @@ pub struct WindowWatcher {
 }
 
 impl WindowWatcher {
-    pub(crate) fn apply_profile(&self, settings: &Option<ActivationRules>) -> Result<(), String> {
+    pub(crate) fn apply_profile(&self, settings: Option<ActivationRules>) -> Result<(), String> {
         if let Some(settings) = &settings {
             let re = Regex::new(&settings.window_title).map_err(|e| format!("{e}"))?;
             self.start(re, |hwnd, active| {

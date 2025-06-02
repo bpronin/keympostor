@@ -4,12 +4,15 @@ use crate::rs;
 use crate::res::res_ids::{
     IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOAD_PROFILE, IDS_LOGGING_ENABLED,
 };
+use crate::ui::ui_profiles_menu::ProfilesMenu;
 use crate::ui::App;
+use keympostor::profile::ProfileInfo;
 use native_windows_gui as nwg;
 
 #[derive(Default)]
 pub(crate) struct MainMenu {
     menu: nwg::Menu,
+    profile_menu: ProfilesMenu,
     toggle_processing_enabled_item: nwg::MenuItem,
     toggle_logging_enabled_item: nwg::MenuItem,
     clear_log_item: nwg::MenuItem,
@@ -24,6 +27,8 @@ impl MainMenu {
             .parent(parent)
             .text(rs!(IDS_FILE))
             .build(&mut self.menu)?;
+
+        self.profile_menu.build_ui(parent)?;
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
@@ -59,11 +64,17 @@ impl MainMenu {
             .build(&mut self.exit_app_item)
     }
 
-    pub(crate) fn update_ui(&self, is_processing_enabled: bool, is_silent: bool) {
+    pub(crate) fn update_ui(
+        &self,
+        is_processing_enabled: bool,
+        is_silent: bool,
+        current_profile: &Option<ProfileInfo>,
+    ) {
         self.toggle_processing_enabled_item
             .set_checked(is_processing_enabled);
 
         self.toggle_logging_enabled_item.set_checked(!is_silent);
+        self.profile_menu.update_ui(current_profile);
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: nwg::ControlHandle) {
@@ -83,5 +94,7 @@ impl MainMenu {
             }
             _ => {}
         };
+
+        self.profile_menu.handle_event(app, evt, handle);
     }
 }

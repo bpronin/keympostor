@@ -2,16 +2,17 @@ use crate::keyboard::transform_rules::KeyTransformRules;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::fs;
+use std::path::Path;
 use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct KeyTransformProfile {
+pub struct Profile {
     pub title: String,
     pub auto_activation: Option<ActivationRules>,
     pub rules: KeyTransformRules,
 }
 
-impl KeyTransformProfile {
+impl Profile {
     pub fn load(path: &str) -> Result<Self, String> {
         toml::from_str(
             &fs::read_to_string(&path)
@@ -21,7 +22,7 @@ impl KeyTransformProfile {
     }
 }
 
-impl Default for KeyTransformProfile {
+impl Default for Profile {
     fn default() -> Self {
         Self {
             title: "No profile".to_string(),
@@ -31,13 +32,13 @@ impl Default for KeyTransformProfile {
     }
 }
 
-impl Display for KeyTransformProfile {
+impl Display for Profile {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}\n{}", self.title, self.rules)
     }
 }
 
-impl FromStr for KeyTransformProfile {
+impl FromStr for Profile {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -51,9 +52,36 @@ impl FromStr for KeyTransformProfile {
     }
 }
 
+#[derive(Default, Clone, Debug, Eq, PartialEq, Hash)]
+pub struct ProfileInfo {
+    pub path: String,
+    pub title: String,
+}
+
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ActivationRules {
     pub window_title: String,
+}
+
+pub fn list_profiles() -> Result<Vec<ProfileInfo>, String> {
+    let dir_entries = fs::read_dir(Path::new("./profiles")).map_err(|e| e.to_string())?;
+    let mut infos = vec![];
+    for entry in dir_entries {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if path.is_file() {
+                let file_path = path.to_str().unwrap();
+                let profile = Profile::load(file_path).map_err(|e| e.to_string())?;
+                let info = ProfileInfo {
+                    path: file_path.to_string(),
+                    title: profile.title,
+                };
+                infos.push(info);
+            }
+        }
+    }
+
+    Ok(infos)
 }
 
 #[cfg(test)]
@@ -61,17 +89,17 @@ pub mod tests {
     use crate::key_rule;
     use crate::keyboard::transform_rules::KeyTransformRule;
     use crate::keyboard::transform_rules::KeyTransformRules;
-    use crate::profile::KeyTransformProfile;
+    use crate::profile::Profile;
     use std::fs;
 
     #[macro_export]
     macro_rules! key_profile {
         ($text:expr) => {
-            $text.parse::<KeyTransformProfile>().unwrap()
+            $text.parse::<Profile>().unwrap()
         };
     }
 
-    impl KeyTransformProfile {
+    impl Profile {
         pub(crate) fn save(&self, path: &str) -> Result<(), String> {
             fs::write(
                 path,
@@ -90,7 +118,7 @@ pub mod tests {
     #[test]
     fn test_profile_from_str() {
         assert_eq!(
-            KeyTransformProfile {
+            Profile {
                 title: "Test profile".to_string(),
                 rules: KeyTransformRules {
                     items: vec![
@@ -160,7 +188,7 @@ pub mod tests {
 
     #[test]
     fn test_key_transform_profile_load() {
-        let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
+        let actual = Profile::load("test/profiles/test.toml").unwrap();
 
         /* NOTE: rules deserialized as sorted map so check the "expected" order */
         let expected = key_profile!(
@@ -176,14 +204,14 @@ pub mod tests {
 
     #[test]
     fn test_key_transform_profile_load_fails() {
-        assert!(KeyTransformProfile::load("test/profiles/bad.toml").is_err());
+        assert!(Profile::load("test/profiles/bad.toml").is_err());
     }
 
     #[test]
     fn test_key_transform_profile_save() {
-        let actual = KeyTransformProfile::load("test/profiles/test.toml").unwrap();
+        let actual = Profile::load("test/profiles/test.toml").unwrap();
         actual.save("test/profiles/test-copy.toml").unwrap();
-        let expected = KeyTransformProfile::load("test/profiles/test-copy.toml").unwrap();
+        let expected = Profile::load("test/profiles/test-copy.toml").unwrap();
 
         assert_eq!(expected, actual);
     }

@@ -32,6 +32,7 @@ IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
 #define IDS__LOGGING_DISABLED_ 1013
 #define IDS__LOGGING_ENABLED_ 1014
 #define IDS_LOAD_PROFILE_FILE_FILTER 1015
+#define IDS_NO_PROFILE 1016
 
 STRINGTABLE
 BEGIN
@@ -49,4 +50,5 @@ BEGIN
     IDS__LOGGING_DISABLED_ "--- Logging disabled ---"
     IDS__LOGGING_ENABLED_ "--- Logging enabled ---"
     IDS_LOAD_PROFILE_FILE_FILTER "Profile files(*.toml)|Any(*.*)"
+    IDS_NO_PROFILE "None"
 END
