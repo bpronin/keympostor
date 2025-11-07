@@ -1,7 +1,7 @@
 title = "Test profile"
 
 [auto_activation]
-window_title = "Notepad++|FxSound"
+window_title = "Notepad|Ghrome"
 
 [rules]
 "[]CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"

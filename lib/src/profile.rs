@@ -61,7 +61,7 @@ pub struct ActivationRules {
 }
 
 pub fn list_profiles() -> Result<Vec<(String, String)>> {
-    let dir_entries = fs::read_dir(Path::new("./profiles")).context("Unable to read dir")?;
+    let dir_entries = fs::read_dir(Path::new("../../run/profiles")).context("Unable to read dir")?;
     let mut result = vec![];
     for entry in dir_entries {
         if let Ok(entry) = entry {
@@ -101,11 +101,6 @@ pub mod tests {
             )
             .context(format!("Unable to write {} file", path))
         }
-    }
-
-    #[test]
-    fn test_profile_display() {
-        todo!()
     }
 
     #[test]
@@ -181,7 +176,7 @@ pub mod tests {
 
     #[test]
     fn test_key_transform_profile_load() {
-        let actual = Profile::load("test/profiles/test.toml").unwrap();
+        let actual = Profile::load("etc/test_data/profiles/test.toml").unwrap();
 
         /* NOTE: rules deserialized as sorted map so check the "expected" order */
         let expected = key_profile!(
@@ -202,9 +197,9 @@ pub mod tests {
 
     #[test]
     fn test_key_transform_profile_save() {
-        let actual = Profile::load("test/profiles/test.toml").unwrap();
-        actual.save("test/profiles/test-copy.toml").unwrap();
-        let expected = Profile::load("test/profiles/test-copy.toml").unwrap();
+        let actual = Profile::load("etc/test_data/profiles/test.toml").unwrap();
+        actual.save("etc/test_data/profiles/test-copy.toml").unwrap();
+        let expected = Profile::load("etc/test_data/profiles/test-copy.toml").unwrap();
 
         assert_eq!(expected, actual);
     }

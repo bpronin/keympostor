@@ -6,6 +6,7 @@ use simple_logger::SimpleLogger;
 mod res;
 mod settings;
 mod ui;
+mod util;
 
 fn main() {
     SimpleLogger::new()

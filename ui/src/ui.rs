@@ -5,15 +5,14 @@ use crate::ui::ui_log_view::LogView;
 use crate::ui::ui_main_menu::MainMenu;
 use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
-use crate::ui::win_watcher::WindowWatcher;
 use crate::ui_warn;
-use crate::{r_icon, rs};
+use crate::util::{get_window_size, profile_path_from_args, set_window_size};
+use crate::{r_icon};
 use keympostor::keyboard::key_hook::KeyboardHandler;
 use keympostor::profile::Profile;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 use std::cell::RefCell;
-use keympostor::util::{get_window_size, profile_path_from_args, set_window_size};
 
 mod ui_log_view;
 mod ui_main;
@@ -22,13 +21,11 @@ mod ui_profile_view;
 mod ui_profiles_menu;
 mod ui_tray;
 mod ui_util;
-mod win_watcher;
 
 #[derive(Default)]
 pub(crate) struct App {
     current_profile_path: RefCell<Option<String>>,
     keyboard_handler: KeyboardHandler,
-    window_watcher: WindowWatcher,
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
     tab_log_layout: nwg::FlexboxLayout,

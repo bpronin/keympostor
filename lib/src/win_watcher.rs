@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use keympostor::profile::ActivationRules;
+use crate::profile::ActivationRules;
 use log::debug;
 use regex::Regex;
 use std::cell::RefCell;
@@ -23,7 +23,7 @@ pub struct WindowWatcher {
 }
 
 impl WindowWatcher {
-    pub(crate) fn apply_profile(&self, settings: Option<ActivationRules>) -> Result<()> {
+    pub fn apply_profile(&self, settings: Option<ActivationRules>) -> Result<()> {
         if let Some(settings) = &settings {
             let re = Regex::new(&settings.window_title).context("Invalid regex")?;
             self.start(re, |hwnd, active| {
