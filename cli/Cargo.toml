@@ -1,0 +1,16 @@
+[package]
+name = "cli"
+version = "0.1.0"
+edition = "2024"
+resolver = "3"
+
+[[bin]]
+name = "keympostor"
+path = "src/main.rs"
+
+[dependencies]
+lib = { path = "../lib" }
+ctrlc = "3.5"
+regex = "1.12.2"
+log = "0.4"
+simple_logger = "5"
