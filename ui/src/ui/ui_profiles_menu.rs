@@ -1,7 +1,9 @@
 use crate::res::RESOURCES;
 use crate::rs;
-use keympostor::profile::list_profiles;
+use keympostor::profile::{Profile};
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, NwgError, Window};
+use std::fs;
+use std::path::Path;
 
 use crate::res::res_ids::{IDS_NO_PROFILE, IDS_PROFILE};
 use crate::ui::App;
@@ -66,4 +68,21 @@ impl ProfilesMenu {
             _ => {}
         };
     }
+}
+
+fn list_profiles() -> anyhow::Result<Vec<(String, String)>> {
+    let dir_entries = fs::read_dir(Path::new("profiles"))?;
+    let mut result = vec![];
+    for entry in dir_entries {
+        if let Ok(entry) = entry {
+            let path = entry.path();
+            if path.is_file() {
+                let file_path = path.to_str().unwrap();
+                let profile = Profile::load(file_path)?;
+                result.push((file_path.to_string(), profile.title));
+            }
+        }
+    }
+
+    Ok(result)
 }

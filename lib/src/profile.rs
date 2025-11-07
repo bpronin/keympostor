@@ -60,23 +60,6 @@ pub struct ActivationRules {
     pub window_title: String,
 }
 
-pub fn list_profiles() -> Result<Vec<(String, String)>> {
-    let dir_entries = fs::read_dir(Path::new("../../run/profiles")).context("Unable to read dir")?;
-    let mut result = vec![];
-    for entry in dir_entries {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if path.is_file() {
-                let file_path = path.to_str().unwrap();
-                let profile = Profile::load(file_path).context("Unable to read profile")?;
-                result.push((file_path.to_string(), profile.title));
-            }
-        }
-    }
-
-    Ok(result)
-}
-
 #[cfg(test)]
 pub mod tests {
     use crate::key_rule;

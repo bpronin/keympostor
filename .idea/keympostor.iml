@@ -5,6 +5,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/keyboard/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test_helpers/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/cli/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/lib/benches" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/lib/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/ui/src" isTestSource="false" />
