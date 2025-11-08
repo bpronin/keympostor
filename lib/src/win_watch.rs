@@ -1,15 +1,9 @@
 use error::Error;
-use crate::profile::ActivationRules;
-use log::debug;
 use regex::Regex;
-use std::error;
-use std::path::Path;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-};
-use std::thread::{self};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
+use std::{error, thread};
 use windows::core::PWSTR;
 use windows::{
     Win32::Foundation::{CloseHandle, HWND, MAX_PATH},
@@ -22,82 +16,28 @@ use windows::{
     },
 };
 
-const CHECK_INTERVAL: Duration = Duration::from_millis(100);
+const CHECK_INTERVAL: Duration = Duration::from_millis(1000);
 
-pub struct WindowWatcher {
-    running: Arc<AtomicBool>,
-}
-
-impl WindowWatcher {
-    pub fn new() -> Self {
-        Self {
-            running: Arc::new(AtomicBool::new(false)),
-        }
-    }
-
-    // pub fn apply_profile(&self, settings: Option<ActivationRules>) -> Result<()> {
-    //     if let Some(settings) = &settings {
-    //         let re = Regex::new(&settings.window_title).context("Invalid regex")?;
-    //         self.start(re, |hwnd, active| {
-    //             debug!(
-    //                 "Auto-activating window `{}` is {}",
-    //                 &get_window_title(hwnd).unwrap(),
-    //                 if active { "active" } else { "inactive" }
-    //             );
-    //         });
-    //
-    //         debug!("Window watcher enabled");
-    //     } else {
-    //         self.stop();
-    //
-    //         debug!("Window watcher disabled");
-    //     }
-    //
-    //     Ok(())
-    // }
-
-    pub fn start<F>(&self, regex: Regex, callback: F)
-    where
-        F: Fn(HWND, bool) + Send + 'static,
-    {
-        if self.running.load(Ordering::SeqCst) {
-            return;
-        }
-        self.running.store(true, Ordering::SeqCst);
-
-        debug!("Window watcher is running");
-
-        let mut last_hwnd = None;
-        let running = self.running.clone();
-        while running.load(Ordering::SeqCst) {
-            if let Some(hwnd) = get_active_window(&regex) {
-                if last_hwnd.map_or(true, |prev| prev != hwnd) {
-                    debug!("Watch window activated");
-
-                    callback(hwnd, true);
-                }
-                last_hwnd = Some(hwnd);
-            } else if let Some(hwnd) = last_hwnd {
-                debug!("Watch window deactivated");
-
-                callback(hwnd, false);
-                last_hwnd = None;
+pub fn detect_window_activation<F>(
+    rules: Vec<Regex>,
+    on_window_active: Box<F>,
+    run_handle: Arc<AtomicBool>,
+) where
+    F: Fn(Option<&Regex>) + Send + 'static,
+{
+    let mut last_hwnd = None;
+    while run_handle.load(Ordering::SeqCst) {
+        if let Some((hwnd, rule)) = detect_active_window(rules.as_ref()) {
+            if last_hwnd.map_or(true, |it| it != hwnd) {
+                on_window_active(Some(rule));
             }
-
-            thread::sleep(CHECK_INTERVAL);
+            last_hwnd = Some(hwnd);
+        } else if last_hwnd.is_some() {
+            on_window_active(None);
+            last_hwnd = None;
         }
 
-        debug!("Window watcher stopped");
-    }
-
-    pub fn stop(&self) {
-        self.running.store(false, Ordering::SeqCst);
-    }
-}
-
-impl Drop for WindowWatcher {
-    fn drop(&mut self) {
-        self.stop()
+        thread::sleep(CHECK_INTERVAL);
     }
 }
 
@@ -147,22 +87,28 @@ fn get_window_title(hwnd: HWND) -> Result<String, Box<dyn Error>> {
     }
 }
 
-fn get_active_window(regex: &Regex) -> Option<HWND> {
+fn get_active_window(rule: &Regex) -> Option<HWND> {
     let hwnd = unsafe { GetForegroundWindow() };
     if !hwnd.is_invalid() {
         if let Ok(window_title) = get_window_title(hwnd) {
-            if regex.is_match(&window_title) {
+            if rule.is_match(&window_title) {
                 return Some(hwnd);
             }
         }
 
         if let Ok(process_name) = get_process_name(hwnd) {
-            if regex.is_match(&process_name) {
+            if rule.is_match(&process_name) {
                 return Some(hwnd);
             }
         }
     }
     None
+}
+
+fn detect_active_window(rules: &[Regex]) -> Option<(HWND, &Regex)> {
+    rules
+        .iter()
+        .find_map(|rule| get_active_window(rule).map(|hwnd| (hwnd, rule)))
 }
 
 #[cfg(test)]
@@ -186,5 +132,4 @@ mod tests {
         assert!(result.is_ok());
         println!("{:?}", result);
     }
-
 }

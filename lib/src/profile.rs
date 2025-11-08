@@ -4,7 +4,6 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::path::Path;
 use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]

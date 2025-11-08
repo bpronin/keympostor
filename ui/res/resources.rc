@@ -23,7 +23,6 @@ IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
 #define IDS_ENABLED 1003
 #define IDS_EXIT 1004
 #define IDS_FILE 1005
-#define IDS_LOAD_PROFILE 1006
 #define IDS_LOG 1007
 #define IDS_LOGGING_ENABLED 1008
 #define IDS_OPEN 1009
@@ -31,7 +30,6 @@ IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
 #define IDS_TRAY_TIP 1012
 #define IDS__LOGGING_DISABLED_ 1013
 #define IDS__LOGGING_ENABLED_ 1014
-#define IDS_LOAD_PROFILE_FILE_FILTER 1015
 #define IDS_NO_PROFILE 1016
 
 STRINGTABLE
@@ -41,7 +39,6 @@ BEGIN
     IDS_ENABLED "Enabled"
     IDS_EXIT "Exit"
     IDS_FILE "File"
-    IDS_LOAD_PROFILE "Load profile"
     IDS_LOG "Log"
     IDS_LOGGING_ENABLED "Logging enabled"
     IDS_OPEN "Open"
@@ -49,6 +46,5 @@ BEGIN
     IDS_TRAY_TIP "Keympostor"
     IDS__LOGGING_DISABLED_ "--- Logging disabled ---"
     IDS__LOGGING_ENABLED_ "--- Logging enabled ---"
-    IDS_LOAD_PROFILE_FILE_FILTER "Profile files(*.toml)|Any(*.*)"
     IDS_NO_PROFILE "None"
 END

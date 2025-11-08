@@ -1,3 +1,4 @@
+use crate::r_icon;
 use crate::res::res_ids::IDI_ICON_APP;
 use crate::res::RESOURCES;
 use crate::settings::AppSettings;
@@ -7,7 +8,6 @@ use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
 use crate::ui_warn;
 use crate::util::{get_window_size, profile_path_from_args, set_window_size};
-use crate::{r_icon};
 use keympostor::keyboard::key_hook::KeyboardHandler;
 use keympostor::profile::Profile;
 use native_windows_gui as nwg;
@@ -94,7 +94,7 @@ impl App {
         self.write_settings();
 
         self.log_view
-            .appendln(&format!("--- Loaded profile: `{}` ---", profile.title));
+            .append_line(&format!("--- Loaded profile: `{}` ---", profile.title));
         self.profile_view.update_ui(&profile);
         self.keyboard_handler.apply_rules(&profile.rules);
         // self.window_watcher.apply_profile(&profile.auto_activation);

@@ -139,16 +139,6 @@ where
         f(key.vk_code, key.scan_code, key.is_ext_scan_code, Down);
         f(key.vk_code, key.scan_code, key.is_ext_scan_code, Up);
     }
-
-    // for vk in 0..MAX_VK_CODE {
-    //     for sc in 0..MAX_SCAN_CODE {
-    //         for ext in [false, true] {
-    //             for trans in [Up, Down] {
-    //                 f(vk as u8, sc as u8, ext, trans);
-    //             }
-    //         }
-    //     }
-    // }
 }
 
 fn bench_map<M: KeyTransformMap>(group: &mut BenchmarkGroup<WallTime>, id: &str, mut map: M) {

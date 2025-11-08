@@ -1,5 +1,5 @@
-key_processing_enabled = true
+key_processing_enabled = false
 silent_key_processing = false
-main_window_position = [418, 134]
-main_window_size = [716, 666]
+main_window_position = [300, 300]
+main_window_size = [716, 339]
 main_window_selected_page = 0
