@@ -6,7 +6,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT, VK_RWIN,
+    VIRTUAL_KEY, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT,
+    VK_RWIN,
 };
 
 pub const KM_NONE: KeyModifiersState = KeyModifiersState(0);
@@ -22,22 +23,22 @@ pub const KM_RWIN: KeyModifiersState = KeyModifiersState(1 << 7);
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
 pub struct KeyModifiersState(u8);
 
+static FLAG_KEYS: [VIRTUAL_KEY; 8] = [
+    VK_LSHIFT,
+    VK_RSHIFT,
+    VK_LCONTROL,
+    VK_RCONTROL,
+    VK_LMENU,
+    VK_RMENU,
+    VK_LWIN,
+    VK_RWIN,
+];
+
 impl KeyModifiersState {
     pub(crate) fn from_keyboard_state(keys: [u8; 256]) -> Self {
-        let flag_keys = [
-            VK_LSHIFT,
-            VK_RSHIFT,
-            VK_LCONTROL,
-            VK_RCONTROL,
-            VK_LMENU,
-            VK_RMENU,
-            VK_LWIN,
-            VK_RWIN,
-        ];
-
-        let value = (0..flag_keys.len())
+        let value = (0..FLAG_KEYS.len())
             .filter(|flag_index| {
-                let vk_code = flag_keys[*flag_index].0;
+                let vk_code = FLAG_KEYS[*flag_index].0;
                 keys[vk_code as usize] & 0x80 != 0
             })
             .fold(0, |acc, flag_index| acc | (1 << flag_index));
