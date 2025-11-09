@@ -21,29 +21,25 @@ pub(crate) struct KeyboardHook {
 
 impl KeyboardHook {
     pub(crate) fn install(&mut self) {
-        extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-            KEY_HOOK.with_borrow(|hook| {
-                if code == HC_ACTION as i32 && hook.handle_key_action(l_param) {
-                    return LRESULT(1);
-                }
-                unsafe { CallNextHookEx(hook.handle, code, w_param, l_param) }
-            })
+        match unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), None, 0) } {
+            Ok(h) => {
+                self.handle = Some(h);
+                debug!("Keyboard hook installed");
+            }
+            Err(e) => {
+                self.handle = None;
+                warn!("Failed to install keyboard hook: {}", e);
+            }
         }
-
-        self.handle = Some(
-            unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), None, 0) }
-                .expect("Failed to install keyboard hook."),
-        );
-
-        debug!("Keyboard hook installed");
     }
 
     pub(crate) fn uninstall(&mut self) {
         if let Some(handle) = self.handle {
-            unsafe { UnhookWindowsHookEx(handle) }.expect("Failed to uninstall keyboard hook");
+            match unsafe { UnhookWindowsHookEx(handle) } {
+                Ok(_) => debug!("Keyboard hook uninstalled"),
+                Err(e) => warn!("Failed to uninstall keyboard hook: {}", e),
+            }
             self.handle = None;
-
-            debug!("Keyboard hook uninstalled");
         }
     }
 
@@ -79,50 +75,50 @@ impl KeyboardHook {
     }
 
     fn handle_key_action(&self, l_param: LPARAM) -> bool {
-        if let Ok(event) = self.create_event(l_param) {
-            self.notify_processing(&event);
-            return self.transform_key(&event);
+        let Ok(mut event) = self.build_event(l_param) else {
+            return false;
+        };
+
+        if !(event.is_injected && event.is_private) {
+            event.rule = self.transform_map.get(&event);
         }
-        false
+
+        debug!("EVENT: {}", event);
+
+        self.notify_listener(&event);
+        self.apply_transform(&event)
     }
 
-    fn create_event(&self, l_param: LPARAM) -> Result<KeyEvent, ()> {
-        let mut event = unsafe {
+    fn build_event(&self, l_param: LPARAM) -> Result<KeyEvent, ()> {
+        unsafe {
             let input = *(l_param.0 as *const KBDLLHOOKSTRUCT);
 
             let mut keyboard_state = [0u8; 256];
             GetKeyboardState(&mut keyboard_state)
                 .map_err(|e| warn!("Error getting keyboard state: {}", e))?;
 
-            KeyEvent::new(&input, keyboard_state)
-        };
-
-        if !(event.is_injected && event.is_private) {
-            event.rule = self.transform_map.get(&event)
-        };
-
-        debug!("EVENT: {}", event);
-
-        Ok(event)
+            Ok(KeyEvent::new(&input, keyboard_state))
+        }
     }
 
-    fn notify_processing(&self, event: &KeyEvent) {
+    fn notify_listener(&self, event: &KeyEvent) {
+        if self.is_silent {
+            return;
+        }
         if let Some(listener) = &self.listener {
-            if !&self.is_silent {
-                listener(&event);
-            }
+            listener(event);
         }
     }
 
-    fn transform_key(&self, event: &KeyEvent) -> bool {
-        if let Some(rule) = event.rule {
-            debug!("RULE: {}", rule);
+    fn apply_transform(&self, event: &KeyEvent) -> bool {
+        let Some(rule) = event.rule else {
+            return false;
+        };
 
-            unsafe { SendInput(&rule.actions.input, size_of::<INPUT>() as i32) };
-            true
-        } else {
-            false
-        }
+        debug!("RULE: {}", rule);
+
+        unsafe { SendInput(&rule.actions.input, size_of::<INPUT>() as i32) };
+        true
     }
 }
 
@@ -130,4 +126,13 @@ impl Drop for KeyboardHook {
     fn drop(&mut self) {
         self.uninstall();
     }
+}
+
+extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+    KEY_HOOK.with_borrow(|hook| {
+        if code == HC_ACTION as i32 && hook.handle_key_action(l_param) {
+            return LRESULT(1);
+        }
+        unsafe { CallNextHookEx(hook.handle, code, w_param, l_param) }
+    })
 }
