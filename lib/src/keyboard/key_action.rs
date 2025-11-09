@@ -27,10 +27,6 @@ impl KeyTransition {
             Down
         }
     }
-
-    pub(crate) fn is_up(&self) -> bool {
-        matches!(*self, Up)
-    }
 }
 
 impl Default for KeyTransition {
@@ -70,7 +66,7 @@ impl KeyAction {
         if scan_code.is_extended {
             flags |= KEYEVENTF_EXTENDEDKEY
         }
-        if self.transition.is_up() {
+        if self.transition == Up {
             flags |= KEYEVENTF_KEYUP;
         }
 
@@ -164,8 +160,6 @@ mod tests {
     #[test]
     fn test_key_transition_basics() {
         assert_eq!(Up, KeyTransition::default());
-        assert!(Up.is_up());
-        assert_not!(Down.is_up());
     }
 
     #[test]

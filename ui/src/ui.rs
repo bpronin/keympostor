@@ -8,7 +8,7 @@ use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
 use crate::ui_warn;
 use crate::util::{get_window_size, profile_path_from_args, set_window_size};
-use keympostor::keyboard::key_hook::KeyboardHandler;
+use keympostor::keyboard::key_handler::KeyboardHandler;
 use keympostor::profile::Profile;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;

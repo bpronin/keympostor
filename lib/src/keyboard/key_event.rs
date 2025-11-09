@@ -4,12 +4,12 @@ use crate::keyboard::transform_rules::KeyTransformRule;
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_INJECTED};
 
-/// A marker to detect self generated keyboard events.
+/// A marker to detect self-generated keyboard events.
 /// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
 /// Content does not matter.
 pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct KeyEvent<'a> {
     pub action: KeyAction,
     pub modifiers_state: KeyModifiersState,

@@ -1,9 +1,6 @@
 use error::Error;
 use regex::Regex;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
-use std::{error, thread};
+use std::error;
 use windows::core::PWSTR;
 use windows::{
     Win32::Foundation::{CloseHandle, HWND, MAX_PATH},
@@ -16,28 +13,46 @@ use windows::{
     },
 };
 
-const CHECK_INTERVAL: Duration = Duration::from_millis(1000);
+// const CHECK_INTERVAL: Duration = Duration::from_millis(1000);
+
+// pub fn detect_window_activation<F>(
+//     rules: Vec<Regex>,
+//     on_window_active: Box<F>,
+//     run_handle: Arc<AtomicBool>,
+// ) where
+//     F: Fn(Option<&Regex>) + Send + 'static,
+// {
+//     let mut last_hwnd = None;
+//     while run_handle.load(Ordering::SeqCst) {
+//         if let Some((hwnd, rule)) = detect_active_window(rules.as_ref()) {
+//             if last_hwnd.map_or(true, |it| it != hwnd) {
+//                 on_window_active(Some(rule));
+//             }
+//             last_hwnd = Some(hwnd);
+//         } else if last_hwnd.is_some() {
+//             on_window_active(None);
+//             last_hwnd = None;
+//         }
+//
+//         thread::sleep(CHECK_INTERVAL);
+//     }
+// }
 
 pub fn detect_window_activation<F>(
-    rules: Vec<Regex>,
-    on_window_active: Box<F>,
-    run_handle: Arc<AtomicBool>,
+    rules: &Vec<Regex>,
+    on_detect: &Box<F>,
+    last_hwnd: &mut Option<HWND>,
 ) where
     F: Fn(Option<&Regex>) + Send + 'static,
 {
-    let mut last_hwnd = None;
-    while run_handle.load(Ordering::SeqCst) {
-        if let Some((hwnd, rule)) = detect_active_window(rules.as_ref()) {
-            if last_hwnd.map_or(true, |it| it != hwnd) {
-                on_window_active(Some(rule));
-            }
-            last_hwnd = Some(hwnd);
-        } else if last_hwnd.is_some() {
-            on_window_active(None);
-            last_hwnd = None;
+    if let Some((hwnd, rule)) = detect_active_window(rules.as_ref()) {
+        if last_hwnd.map_or(true, |it| it != hwnd) {
+            on_detect(Some(rule));
         }
-
-        thread::sleep(CHECK_INTERVAL);
+        *last_hwnd = Some(hwnd);
+    } else if last_hwnd.is_some() {
+        on_detect(None);
+        *last_hwnd = None;
     }
 }
 

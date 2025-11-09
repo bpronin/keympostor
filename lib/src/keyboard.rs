@@ -12,6 +12,7 @@ pub mod key_hook;
 pub mod key_modifiers;
 pub mod key_trigger;
 pub mod transform_rules;
+pub mod key_handler;
 
 #[derive(Debug)]
 pub struct KeyError {

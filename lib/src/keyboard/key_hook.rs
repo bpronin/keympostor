@@ -1,18 +1,18 @@
 use crate::keyboard::key_event::KeyEvent;
 use crate::keyboard::transform_map::KeyTransformMap;
 use crate::keyboard::transform_rules::KeyTransformRules;
-use log::debug;
+use log::{debug, warn};
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardState, SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 thread_local! {
-    static HOOK: RefCell<KeyboardHook> = RefCell::new(KeyboardHook::default());
+    pub(crate) static KEY_HOOK: RefCell<KeyboardHook> = RefCell::new(KeyboardHook::default());
 }
 
 #[derive(Default)]
-struct KeyboardHook {
+pub(crate) struct KeyboardHook {
     transform_map: KeyTransformMap,
     handle: Option<HHOOK>,
     listener: Option<Box<dyn Fn(&KeyEvent)>>,
@@ -20,9 +20,14 @@ struct KeyboardHook {
 }
 
 impl KeyboardHook {
-    fn install(&mut self) {
+    pub(crate) fn install(&mut self) {
         extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-            HOOK.with_borrow(|hook| hook.handle(code, w_param, l_param))
+            KEY_HOOK.with_borrow(|hook| {
+                if code == HC_ACTION as i32 && hook.handle_key_action(l_param) {
+                    return LRESULT(1);
+                }
+                unsafe { CallNextHookEx(hook.handle, code, w_param, l_param) }
+            })
         }
 
         self.handle = Some(
@@ -33,33 +38,63 @@ impl KeyboardHook {
         debug!("Keyboard hook installed");
     }
 
-    fn uninstall(&mut self) {
+    pub(crate) fn uninstall(&mut self) {
         if let Some(handle) = self.handle {
-            unsafe { UnhookWindowsHookEx(handle) }.expect("Failed to uninstall keyboard hook.");
+            unsafe { UnhookWindowsHookEx(handle) }.expect("Failed to uninstall keyboard hook");
             self.handle = None;
 
             debug!("Keyboard hook uninstalled");
         }
     }
 
-    fn handle(&self, code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-        if code == HC_ACTION as i32 {
-            let event = self.create_event(l_param);
-            self.notify_processing(&event);
-            if self.process_event(event) {
-                return LRESULT(1);
+    pub(crate) fn set_listener(&mut self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
+        self.listener = listener;
+
+        debug!(
+            "Listener {}",
+            if self.listener.is_some() {
+                "set"
+            } else {
+                "removed"
             }
-        }
-        unsafe { CallNextHookEx(self.handle, code, w_param, l_param) }
+        );
     }
 
-    fn create_event(&self, l_param: LPARAM) -> KeyEvent {
-        let mut event = unsafe {
-            let mut state = [0u8; 256];
-            GetKeyboardState(&mut state).unwrap();
+    pub(crate) fn set_silent(&mut self, silent: bool) {
+        self.is_silent = silent;
 
+        debug!("Silent processing: {silent}");
+    }
+
+    pub(crate) fn apply_rules(&mut self, profile: &KeyTransformRules) {
+        self.transform_map = KeyTransformMap::new(&profile);
+    }
+
+    pub(crate) fn is_enabled(&self) -> bool {
+        self.handle.is_some()
+    }
+
+    pub(crate) fn is_silent(&self) -> bool {
+        self.is_silent
+    }
+
+    fn handle_key_action(&self, l_param: LPARAM) -> bool {
+        if let Ok(event) = self.create_event(l_param) {
+            self.notify_processing(&event);
+            return self.transform_key(&event);
+        }
+        false
+    }
+
+    fn create_event(&self, l_param: LPARAM) -> Result<KeyEvent, ()> {
+        let mut event = unsafe {
             let input = *(l_param.0 as *const KBDLLHOOKSTRUCT);
-            KeyEvent::new(&input, state)
+
+            let mut keyboard_state = [0u8; 256];
+            GetKeyboardState(&mut keyboard_state)
+                .map_err(|e| warn!("Error getting keyboard state: {}", e))?;
+
+            KeyEvent::new(&input, keyboard_state)
         };
 
         if !(event.is_injected && event.is_private) {
@@ -68,33 +103,7 @@ impl KeyboardHook {
 
         debug!("EVENT: {}", event);
 
-        event
-    }
-
-    fn process_event(&self, event: KeyEvent) -> bool {
-        if let Some(rule) = event.rule {
-            debug!("RULE: {}", rule);
-
-            unsafe { SendInput(&rule.actions.input, size_of::<INPUT>() as i32) };
-            true
-        } else {
-            false
-        }
-    }
-
-    fn set_silent(&mut self, silent: bool) {
-        self.is_silent = silent;
-
-        debug!("Silent processing: {silent}");
-    }
-
-    fn set_listener(&mut self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
-        self.listener = listener;
-        if self.listener.is_some() {
-            debug!("Listener set");
-        } else {
-            debug!("Listener removed");
-        }
+        Ok(event)
     }
 
     fn notify_processing(&self, event: &KeyEvent) {
@@ -105,48 +114,20 @@ impl KeyboardHook {
         }
     }
 
-    fn apply_rules(&mut self, profile: &KeyTransformRules) {
-        self.transform_map = KeyTransformMap::new(&profile);
+    fn transform_key(&self, event: &KeyEvent) -> bool {
+        if let Some(rule) = event.rule {
+            debug!("RULE: {}", rule);
+
+            unsafe { SendInput(&rule.actions.input, size_of::<INPUT>() as i32) };
+            true
+        } else {
+            false
+        }
     }
 }
 
 impl Drop for KeyboardHook {
     fn drop(&mut self) {
         self.uninstall();
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct KeyboardHandler {}
-
-impl KeyboardHandler {
-    pub fn apply_rules(&self, profile: &KeyTransformRules) {
-        HOOK.with_borrow_mut(|hook| hook.apply_rules(&profile));
-    }
-
-    pub fn set_listener(&self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
-        HOOK.with_borrow_mut(|hook| hook.set_listener(listener));
-    }
-
-    pub fn is_enabled(&self) -> bool {
-        HOOK.with_borrow(|hook| hook.handle.is_some())
-    }
-
-    pub fn set_enabled(&self, enabled: bool) {
-        HOOK.with_borrow_mut(|hook| {
-            if enabled {
-                hook.install()
-            } else {
-                hook.uninstall()
-            }
-        })
-    }
-
-    pub fn is_silent(&self) -> bool {
-        HOOK.with_borrow(|hook| hook.is_silent)
-    }
-
-    pub fn set_silent(&self, silent: bool) {
-        HOOK.with_borrow_mut(|inner| inner.set_silent(silent));
     }
 }

@@ -1,6 +1,12 @@
+[[profile]]
+name = "default"
+title = "Default profile"
+
+[[profile]]
+name = "game"
 title = "Game profile"
 
-[rules]
+[[profile.rules]]
 "INSERT" = "ESC"
 "LAUNCH_APP2, FN_LAUNCH_APP2" = "F3"
 "BROWSER_SEARCH" = "F4"
