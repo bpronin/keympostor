@@ -1,5 +1,5 @@
-use crate::keyboard::key_action::KeyActionSequence;
-use crate::keyboard::key_trigger::KeyTrigger;
+use crate::keyboard::action::KeyActionSequence;
+use crate::keyboard::trigger::KeyTrigger;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -30,9 +30,9 @@ impl Display for KeyTransformRules {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::keyboard::key_action::KeyActionSequence;
-    use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::keyboard::transform_rules::KeyTransformRule;
+    use crate::keyboard::action::KeyActionSequence;
+    use crate::keyboard::trigger::KeyTrigger;
+    use crate::keyboard::rules::KeyTransformRule;
     use crate::{key_action_seq, key_trigger};
 
     #[macro_export]

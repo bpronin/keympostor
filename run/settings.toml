@@ -3,3 +3,4 @@ silent_key_processing = false
 main_window_position = [300, 300]
 main_window_size = [716, 339]
 main_window_selected_page = 0
+transform_profile = 'profiles\game.toml'

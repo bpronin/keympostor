@@ -1,5 +1,5 @@
-use crate::keyboard::key_const::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
-use crate::keyboard::KeyError;
+use crate::keyboard::consts::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
+use crate::keyboard::error::KeyError;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
@@ -122,8 +122,8 @@ impl Display for Key {
 mod tests {
     use crate::append_prefix;
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
-    use crate::keyboard::key_const::{SCAN_CODES, VIRTUAL_KEYS};
-    use crate::keyboard::KeyError;
+    use crate::keyboard::consts::{SCAN_CODES, VIRTUAL_KEYS};
+    use crate::keyboard::error::KeyError;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
     };

@@ -1,6 +1,6 @@
 use crate::keyboard::key::Key;
-use crate::keyboard::key_action::KeyTransition::{Down, Up};
-use crate::keyboard::key_event::SELF_EVENT_MARKER;
+use crate::keyboard::action::KeyTransition::{Down, Up};
+use crate::keyboard::event::SELF_EVENT_MARKER;
 use crate::write_joined;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
@@ -128,11 +128,11 @@ impl Display for KeyActionSequence {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key::ScanCode;
-    use crate::keyboard::key_action::Key;
-    use crate::keyboard::key_action::KeyTransition::{Down, Up};
-    use crate::keyboard::key_action::{KeyAction, KeyActionSequence, KeyTransition};
-    use crate::keyboard::key_event::SELF_EVENT_MARKER;
-    use crate::{assert_not, key, sc_key};
+    use crate::keyboard::action::Key;
+    use crate::keyboard::action::KeyTransition::{Down, Up};
+    use crate::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
+    use crate::keyboard::event::SELF_EVENT_MARKER;
+    use crate::{key, sc_key};
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VK_RETURN,
     };

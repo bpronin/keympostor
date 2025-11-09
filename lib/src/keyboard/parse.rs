@@ -1,14 +1,14 @@
 use crate::keyboard::key::Key;
-use crate::keyboard::key_action::KeyTransition::{Down, Up};
-use crate::keyboard::key_action::{KeyAction, KeyActionSequence};
-use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
-use crate::keyboard::key_modifiers::{
+use crate::keyboard::action::KeyTransition::{Down, Up};
+use crate::keyboard::action::{KeyAction, KeyActionSequence};
+use crate::keyboard::modifiers::KeyModifiers::{All, Any};
+use crate::keyboard::modifiers::{
     KeyModifiers, KeyModifiersState, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
     KM_RSHIFT, KM_RWIN,
 };
-use crate::keyboard::key_trigger::KeyTrigger;
-use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
-use crate::keyboard::KeyError;
+use crate::keyboard::trigger::KeyTrigger;
+use crate::keyboard::rules::{KeyTransformRule, KeyTransformRules};
+use crate::keyboard::error::KeyError;
 use std::str::{FromStr, Lines};
 
 impl FromStr for Key {
@@ -299,15 +299,15 @@ impl FromStr for KeyTransformRules {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key::Key;
-    use crate::keyboard::key_action::KeyAction;
-    use crate::keyboard::key_action::KeyTransition::{Down, Up};
-    use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
-    use crate::keyboard::key_modifiers::{
+    use crate::keyboard::action::KeyAction;
+    use crate::keyboard::action::KeyTransition::{Down, Up};
+    use crate::keyboard::modifiers::KeyModifiers::{All, Any};
+    use crate::keyboard::modifiers::{
         KeyModifiers, KeyModifiersState, KM_LSHIFT, KM_NONE, KM_RSHIFT, KM_RWIN,
     };
-    use crate::keyboard::key_trigger::KeyTrigger;
+    use crate::keyboard::trigger::KeyTrigger;
     use crate::keyboard::parse::KeyActionSequence;
-    use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
+    use crate::keyboard::rules::{KeyTransformRule, KeyTransformRules};
     use crate::{key, key_action, key_action_seq, key_mod, key_rule, key_rules, key_trigger};
     use std::str::FromStr;
 

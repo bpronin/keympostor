@@ -3,7 +3,7 @@ use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LOG, IDS_PROFILE};
 use crate::res::RESOURCES;
 use crate::ui::ui_util::default_font;
 use crate::{r_icon, rs};
-use keympostor::keyboard::key_event::KeyEvent;
+use keympostor::keyboard::event::KeyEvent;
 use native_windows_gui as nwg;
 use nwg::NativeUi;
 use std::cell::RefCell;

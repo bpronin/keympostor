@@ -1,5 +1,5 @@
-use crate::keyboard::key_action::KeyAction;
-use crate::keyboard::key_modifiers::KeyModifiers;
+use crate::keyboard::action::KeyAction;
+use crate::keyboard::modifiers::KeyModifiers;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
@@ -18,11 +18,11 @@ impl Display for KeyTrigger {
 #[cfg(test)]
 mod tests {
     use crate::key_action;
-    use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
-    use crate::keyboard::key_modifiers::KM_LSHIFT;
-    use crate::keyboard::key_modifiers::KM_NONE;
-    use crate::keyboard::key_trigger::KeyAction;
-    use crate::keyboard::key_trigger::KeyTrigger;
+    use crate::keyboard::modifiers::KeyModifiers::{All, Any};
+    use crate::keyboard::modifiers::KM_LSHIFT;
+    use crate::keyboard::modifiers::KM_NONE;
+    use crate::keyboard::trigger::KeyAction;
+    use crate::keyboard::trigger::KeyTrigger;
 
     #[macro_export]
     macro_rules! key_trigger {

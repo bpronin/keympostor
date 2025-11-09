@@ -2,7 +2,7 @@ use crate::res::res_ids::{IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_};
 use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::ui_util::mono_font;
-use keympostor::keyboard::key_event::KeyEvent;
+use keympostor::keyboard::event::KeyEvent;
 use native_windows_gui as nwg;
 use native_windows_gui::ControlHandle;
 

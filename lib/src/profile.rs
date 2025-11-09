@@ -1,5 +1,5 @@
-use crate::keyboard::transform_rules::KeyTransformRules;
-use crate::keyboard::KeyError;
+use crate::keyboard::rules::KeyTransformRules;
+use crate::keyboard::error::KeyError;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
@@ -62,8 +62,8 @@ pub struct ActivationRules {
 #[cfg(test)]
 pub mod tests {
     use crate::key_rule;
-    use crate::keyboard::transform_rules::KeyTransformRule;
-    use crate::keyboard::transform_rules::KeyTransformRules;
+    use crate::keyboard::rules::KeyTransformRule;
+    use crate::keyboard::rules::KeyTransformRules;
     use crate::profile::Profile;
     use anyhow::{Context, Error};
     use std::fs;

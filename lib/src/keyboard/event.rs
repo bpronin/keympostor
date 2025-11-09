@@ -1,6 +1,6 @@
-use crate::keyboard::key_action::KeyAction;
-use crate::keyboard::key_modifiers::KeyModifiersState;
-use crate::keyboard::transform_rules::KeyTransformRule;
+use crate::keyboard::action::KeyAction;
+use crate::keyboard::modifiers::KeyModifiersState;
+use crate::keyboard::rules::KeyTransformRule;
 use std::fmt::{Display, Formatter};
 
 /// A marker to detect self-generated keyboard events.
@@ -37,8 +37,11 @@ impl Display for KeyEvent<'_> {
 
 #[cfg(test)]
 mod tests {
+    use windows::Win32::UI::Input::KeyboardAndMouse::VK_LSHIFT;
+    use crate::keyboard::modifiers::KeyModifiersState;
+use crate::keyboard::event::KeyEvent;
 
-    #[macro_export]
+#[macro_export]
     macro_rules! key_event {
         ($action:literal, $state:expr) => {
             KeyEvent {
@@ -50,5 +53,17 @@ mod tests {
                 rule: None,
             }
         };
+    }
+
+    #[test]
+    fn test_key_event_display() {
+        let mut keyboard_state = [false; 256];
+        keyboard_state[VK_LSHIFT.0 as usize] = true;
+
+        let event = key_event!("A↓", &keyboard_state);
+        assert_eq!(
+            format!("{}", event),
+            "[LEFT_SHIFT] A                    | VK_A                   | SC_A             | ↓ |     |     | T:        0 |"
+        );
     }
 }

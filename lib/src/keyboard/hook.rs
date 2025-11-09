@@ -1,9 +1,9 @@
-use crate::keyboard::key_action::KeyAction;
-use crate::keyboard::key_action::KeyTransition::Down;
-use crate::keyboard::key_event::{KeyEvent, SELF_EVENT_MARKER};
-use crate::keyboard::key_modifiers::{KeyModifiersState};
-use crate::keyboard::transform_map::KeyTransformMap;
-use crate::keyboard::transform_rules::KeyTransformRules;
+use crate::keyboard::action::KeyAction;
+use crate::keyboard::action::KeyTransition::Down;
+use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
+use crate::keyboard::modifiers::{KeyModifiersState};
+use crate::keyboard::transform::KeyTransformMap;
+use crate::keyboard::rules::KeyTransformRules;
 use log::{debug, warn};
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;

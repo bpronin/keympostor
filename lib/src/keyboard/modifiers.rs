@@ -1,4 +1,4 @@
-use crate::keyboard::key_modifiers::KeyModifiers::All;
+use crate::keyboard::modifiers::KeyModifiers::All;
 use crate::write_joined;
 use core::ops;
 use ops::BitOr;
@@ -146,7 +146,7 @@ impl Display for KeyModifiers {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key_modifiers::{
+    use crate::keyboard::modifiers::{
         KeyModifiers, KeyModifiersState, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
         KM_RSHIFT, KM_RWIN,
     };

@@ -1,6 +1,6 @@
 use crate::keyboard::key::Key;
-use crate::keyboard::key_modifiers::KeyModifiersState;
-use crate::keyboard::transform_rules::{KeyTransformRule, KeyTransformRules};
+use crate::keyboard::modifiers::KeyModifiersState;
+use crate::keyboard::rules::{KeyTransformRule, KeyTransformRules};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
 
@@ -80,13 +80,13 @@ impl<'de> Deserialize<'de> for KeyTransformRules {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::key::Key;
-    use crate::keyboard::key_action::KeyAction;
-    use crate::keyboard::key_action::KeyActionSequence;
-    use crate::keyboard::key_action::KeyTransition::{Down, Up};
-    use crate::keyboard::key_modifiers::KeyModifiers::{All, Any};
-    use crate::keyboard::key_modifiers::KeyModifiersState;
-    use crate::keyboard::key_trigger::KeyTrigger;
-    use crate::keyboard::transform_rules::KeyTransformRule;
+    use crate::keyboard::action::KeyAction;
+    use crate::keyboard::action::KeyActionSequence;
+    use crate::keyboard::action::KeyTransition::{Down, Up};
+    use crate::keyboard::modifiers::KeyModifiers::{All, Any};
+    use crate::keyboard::modifiers::KeyModifiersState;
+    use crate::keyboard::trigger::KeyTrigger;
+    use crate::keyboard::rules::KeyTransformRule;
     use crate::{key, key_action, key_action_seq, key_mod, key_rule, key_trigger};
     use serde::{Deserialize, Serialize};
 
