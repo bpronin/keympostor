@@ -7,6 +7,7 @@ use crate::res::res_ids::{
 use crate::ui::ui_profiles_menu::ProfilesMenu;
 use crate::ui::App;
 use native_windows_gui as nwg;
+use keympostor::profile::Profiles;
 
 #[derive(Default)]
 pub(crate) struct MainMenu {
@@ -20,13 +21,13 @@ pub(crate) struct MainMenu {
 }
 
 impl MainMenu {
-    pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build_ui(&mut self, parent: &nwg::Window, profiles: &Profiles) -> Result<(), nwg::NwgError> {
         nwg::Menu::builder()
             .parent(parent)
             .text(rs!(IDS_FILE))
             .build(&mut self.menu)?;
 
-        self.profile_menu.build_ui(parent)?;
+        self.profile_menu.build_ui(parent, profiles)?;
 
         nwg::MenuItem::builder()
             .parent(&self.menu)

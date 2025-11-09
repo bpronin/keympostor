@@ -1,9 +1,7 @@
 use crate::res::RESOURCES;
 use crate::rs;
-use keympostor::profile::{Profile};
+use keympostor::profile::Profiles;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, NwgError, Window};
-use std::fs;
-use std::path::Path;
 
 use crate::res::res_ids::{IDS_NO_PROFILE, IDS_PROFILE};
 use crate::ui::App;
@@ -15,18 +13,22 @@ pub(crate) struct ProfilesMenu {
 }
 
 impl ProfilesMenu {
-    pub(crate) fn build_ui(&mut self, parent: &Window) -> Result<(), NwgError> {
+    pub(crate) fn build_ui(
+        &mut self,
+        parent: &Window,
+        profiles: &Profiles,
+    ) -> Result<(), NwgError> {
         Menu::builder()
             .parent(parent)
             .text(rs!(IDS_PROFILE))
             .build(&mut self.menu)?;
 
-        self.build_items()?;
+        self.build_items(profiles)?;
 
         Ok(())
     }
 
-    fn build_items(&mut self) -> Result<(), NwgError> {
+    fn build_items(&mut self, profiles: &Profiles) -> Result<(), NwgError> {
         self.items = vec![];
 
         let mut item: MenuItem = Default::default();
@@ -36,31 +38,31 @@ impl ProfilesMenu {
             .build(&mut item)?;
         self.items.push((item, None));
 
-        for (path, title) in list_profiles().unwrap() {
+        for (name, profile) in &profiles.items {
             let mut item: MenuItem = Default::default();
             MenuItem::builder()
                 .parent(&self.menu)
-                .text(&title)
+                .text(&profile.title)
                 .build(&mut item)?;
 
-            self.items.push((item, Some(path)));
+            self.items.push((item, Some(name.clone())));
         }
 
         Ok(())
     }
 
     pub(crate) fn update_ui(&self, current_profile: &Option<String>) {
-        for (item, profile) in &self.items {
-            item.set_checked(profile == current_profile);
+        for (item, profile_name) in &self.items {
+            item.set_checked(profile_name == current_profile);
         }
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
         match evt {
             Event::OnMenuItemSelected => {
-                for (item, path) in &self.items {
+                for (item, profile_name) in &self.items {
                     if item.handle == handle {
-                        app.on_select_profile(path.clone());
+                        app.on_select_profile(profile_name);
                         break;
                     }
                 }
@@ -68,21 +70,4 @@ impl ProfilesMenu {
             _ => {}
         };
     }
-}
-
-fn list_profiles() -> anyhow::Result<Vec<(String, String)>> {
-    let dir_entries = fs::read_dir(Path::new("profiles"))?;
-    let mut result = vec![];
-    for entry in dir_entries {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if path.is_file() {
-                let file_path = path.to_str().unwrap();
-                let profile = Profile::load(file_path)?;
-                result.push((file_path.to_string(), profile.title));
-            }
-        }
-    }
-
-    Ok(result)
 }

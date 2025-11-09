@@ -1,15 +1,17 @@
-use crate::keyboard::rules::KeyTransformRules;
+use std::collections::HashMap;
 use crate::keyboard::error::KeyError;
+use crate::keyboard::rules::KeyTransformRules;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::fs;
+use std::path::Path;
 use std::str::FromStr;
+use log::{warn};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
     pub title: String,
-    pub auto_activation: Option<ActivationRules>,
     pub rules: KeyTransformRules,
 }
 
@@ -24,7 +26,6 @@ impl Default for Profile {
     fn default() -> Self {
         Self {
             title: "No profile".to_string(),
-            auto_activation: Default::default(),
             rules: Default::default(),
         }
     }
@@ -49,14 +50,36 @@ impl FromStr for Profile {
                 .trim()
                 .into(),
             rules: KeyTransformRules::from_str_lines(lines)?,
-            auto_activation: None,
         })
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-pub struct ActivationRules {
-    pub window_title: String,
+pub struct Profiles {
+    pub items: HashMap<String, Profile>,
+}
+
+impl Profiles {
+    pub fn load(path: &str) -> Result<Self> {
+        let mut items = HashMap::new();
+        for entry in fs::read_dir(Path::new(path))? {
+            let path = entry?.path();
+            if path.is_file() {
+                let filename = path.to_str().unwrap();
+                if let Ok(profile) = Profile::load(filename) {
+                    items.insert(filename.to_string(), profile);
+                }else {
+                    warn!("Ignored corrupted profile: {}", filename);
+                }
+            }
+        }
+        Ok(Self { items })
+    }
+}
+
+impl Default for Profiles {
+    fn default() -> Self {
+        Self::load("profiles").unwrap()
+    }
 }
 
 #[cfg(test)]
@@ -64,7 +87,7 @@ pub mod tests {
     use crate::key_rule;
     use crate::keyboard::rules::KeyTransformRule;
     use crate::keyboard::rules::KeyTransformRules;
-    use crate::profile::Profile;
+    use crate::profile::{Profile, Profiles};
     use anyhow::{Context, Error};
     use std::fs;
 
@@ -180,9 +203,17 @@ pub mod tests {
     #[test]
     fn test_key_transform_profile_save() {
         let actual = Profile::load("etc/test_data/profiles/test.toml").unwrap();
-        actual.save("etc/test_data/profiles/test-copy.toml").unwrap();
+        actual
+            .save("etc/test_data/profiles/test-copy.toml")
+            .unwrap();
         let expected = Profile::load("etc/test_data/profiles/test-copy.toml").unwrap();
 
         assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn test_key_profiles_load() {
+        let result = Profiles::load("etc/test_data/profiles/");
+        assert!(result.is_ok());
     }
 }

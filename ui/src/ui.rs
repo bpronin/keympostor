@@ -9,7 +9,8 @@ use crate::ui::ui_tray::Tray;
 use crate::ui_warn;
 use crate::util::{get_window_size, profile_path_from_args, set_window_size};
 use keympostor::keyboard::handler::KeyboardHandler;
-use keympostor::profile::Profile;
+use keympostor::profile::{Profile, Profiles};
+use log::debug;
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 use std::cell::RefCell;
@@ -24,8 +25,9 @@ mod ui_util;
 
 #[derive(Default)]
 pub(crate) struct App {
-    current_profile_path: RefCell<Option<String>>,
+    current_profile_name: RefCell<Option<String>>,
     keyboard_handler: KeyboardHandler,
+    profiles: Profiles,
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
     tab_log_layout: nwg::FlexboxLayout,
@@ -44,7 +46,7 @@ impl App {
     fn read_settings(&self) {
         let settings = AppSettings::load();
 
-        self.read_profile(profile_path_from_args().or(settings.transform_profile));
+        self.select_profile(&profile_path_from_args().or(settings.profile));
 
         self.keyboard_handler
             .set_enabled(settings.key_processing_enabled);
@@ -65,7 +67,7 @@ impl App {
     fn write_settings(&self) {
         let mut settings = AppSettings::load();
 
-        settings.transform_profile = self.current_profile_path.borrow().to_owned();
+        settings.profile = self.current_profile_name.borrow().to_owned();
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
         settings.main_window_position = Some(self.window.position());
@@ -77,27 +79,21 @@ impl App {
         });
     }
 
-    fn read_profile(&self, profile_path: Option<String>) {
-        let profile = if let Some(ref path) = profile_path {
-            match Profile::load(&path) {
-                Ok(profile) => profile,
-                Err(error) => {
-                    ui_warn!("{}", error);
-                    return;
-                }
-            }
-        } else {
-            Default::default()
+    fn select_profile(&self, profile_name: &Option<String>) {
+        debug!("Selected profile: {:?}", profile_name);
+
+        let profile = match &profile_name {
+            Some(n) => self.profiles.items.get(n).unwrap(),
+            None => &Default::default(),
         };
 
-        self.current_profile_path.replace(profile_path);
+        self.current_profile_name.replace(profile_name.clone());
         self.write_settings();
 
         self.log_view
             .append_line(&format!("--- Loaded profile: `{}` ---", profile.title));
-        self.profile_view.update_ui(&profile);
+        self.profile_view.update_ui(profile);
         self.keyboard_handler.apply_rules(&profile.rules);
-        // self.window_watcher.apply_profile(&profile.auto_activation);
 
         self.update_controls();
     }
@@ -106,7 +102,7 @@ impl App {
         self.main_menu.update_ui(
             self.keyboard_handler.is_enabled(),
             self.keyboard_handler.is_silent(),
-            &self.current_profile_path.borrow(),
+            &self.current_profile_name.borrow(),
         );
 
         self.tray.update_ui(self.keyboard_handler.is_enabled());
@@ -164,8 +160,8 @@ impl App {
         self.window.set_visible(!self.window.visible());
     }
 
-    pub(crate) fn on_select_profile(&self, profile_path: Option<String>) {
-        self.read_profile(profile_path);
+    pub(crate) fn on_select_profile(&self, profile_name: &Option<String>) {
+        self.select_profile(profile_name);
     }
 
     pub(crate) fn on_log_view_clear(&self) {

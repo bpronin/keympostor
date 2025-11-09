@@ -11,7 +11,7 @@ pub(crate) struct AppSettings {
     pub(crate) main_window_position: Option<(i32, i32)>,
     pub(crate) main_window_size: Option<(u32, u32)>,
     pub(crate) main_window_selected_page: Option<usize>,
-    pub(crate) transform_profile: Option<String>,
+    pub(crate) profile: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -22,7 +22,7 @@ impl Default for AppSettings {
             main_window_position: None,
             main_window_size: None,
             main_window_selected_page: None,
-            transform_profile: None,
+            profile: None,
         }
     }
 }
