@@ -10,7 +10,6 @@ use keympostor::keyboard::key_modifiers::KeyModifiers;
 use keympostor::keyboard::key_modifiers::KeyModifiers::{All, Any};
 use keympostor::keyboard::key_trigger::KeyTrigger;
 use keympostor::keyboard::transform_rules::KeyTransformRule;
-use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardState;
 
 type Group = FxHashMap<KeyModifiers, KeyTransformRule>;
 
@@ -31,7 +30,7 @@ pub struct KeyTransformHashMap {
 impl KeyTransformMap for KeyTransformHashMap {
     fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         let map = self.map.get(&event.action)?;
-        map.get(&All(event.modifiers_state))
+        map.get(&All(event.modifiers))
             .or_else(|| map.get(&Any))
     }
 
@@ -78,7 +77,7 @@ impl KeyTransformMatrix {
 impl KeyTransformMap for KeyTransformMatrix {
     fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         if let Some(map) = self.get_group(&event.action) {
-            map.get(&All(event.modifiers_state))
+            map.get(&All(event.modifiers))
                 .or_else(|| map.get(&Any))
         } else {
             None
@@ -123,7 +122,7 @@ fn crete_rule(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyTransformRu
 fn create_event(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyEvent<'static> {
     KeyEvent {
         action: create_action(vk, sc, ext, trans),
-        modifiers_state: Default::default(),
+        modifiers: Default::default(),
         rule: None,
         time: 0,
         is_injected: false,
@@ -150,15 +149,6 @@ fn bench_map<M: KeyTransformMap>(group: &mut BenchmarkGroup<WallTime>, id: &str,
             for_all(|vk, sc, ext, trans| {
                 let _ = map.get(&create_event(vk, sc, ext, trans));
             })
-        })
-    });
-}
-
-pub(crate) fn bench_get_keyboard_state(c: &mut Criterion) {
-    c.bench_function("GetKeyboardState", |b| {
-        b.iter(|| {
-            let mut keyboard_state: [u8; 256] = [0u8; 256];
-            unsafe { GetKeyboardState(&mut keyboard_state) }.unwrap();
         })
     });
 }

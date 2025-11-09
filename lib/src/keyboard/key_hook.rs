@@ -1,15 +1,20 @@
-use crate::keyboard::key_event::KeyEvent;
+use crate::keyboard::key_action::KeyAction;
+use crate::keyboard::key_action::KeyTransition::Down;
+use crate::keyboard::key_event::{KeyEvent, SELF_EVENT_MARKER};
+use crate::keyboard::key_modifiers::{KeyModifiersState};
 use crate::keyboard::transform_map::KeyTransformMap;
 use crate::keyboard::transform_rules::KeyTransformRules;
 use log::{debug, warn};
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardState, SendInput, INPUT};
+use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 thread_local! {
     pub(crate) static KEY_HOOK: RefCell<KeyboardHook> = RefCell::new(KeyboardHook::default());
 }
+
+static mut KEYBOARD_STATE: [bool; 256] = [false; 256];
 
 #[derive(Default)]
 pub(crate) struct KeyboardHook {
@@ -90,15 +95,23 @@ impl KeyboardHook {
     }
 
     fn build_event(&self, l_param: LPARAM) -> Result<KeyEvent, ()> {
+        let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
+
+        let action = KeyAction::from_keyboard_input(&input);
         unsafe {
-            let input = *(l_param.0 as *const KBDLLHOOKSTRUCT);
-
-            let mut keyboard_state = [0u8; 256];
-            GetKeyboardState(&mut keyboard_state)
-                .map_err(|e| warn!("Error getting keyboard state: {}", e))?;
-
-            Ok(KeyEvent::new(&input, keyboard_state))
+            KEYBOARD_STATE[action.key.vk_code as usize] = action.transition == Down;
         }
+
+        let event = KeyEvent {
+            action,
+            modifiers: KeyModifiersState::from(&unsafe { KEYBOARD_STATE }),
+            rule: None,
+            time: input.time,
+            is_injected: input.flags.contains(LLKHF_INJECTED),
+            is_private: input.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr(),
+        };
+
+        Ok(event)
     }
 
     fn notify_listener(&self, event: &KeyEvent) {
@@ -136,3 +149,14 @@ extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) ->
         unsafe { CallNextHookEx(hook.handle, code, w_param, l_param) }
     })
 }
+
+// unsafe fn format_keyboard_state() -> String {
+//     let mut s = String::new();
+//     for i in 0..256 {
+//         if KEYBOARD_STATE[i] {
+//             let result = VirtualKey::from_code(i as u8).unwrap();
+//             s = s + format!(" {}", result).as_str();
+//         }
+//     }
+//     s
+// }

@@ -23,29 +23,7 @@ pub const KM_RWIN: KeyModifiersState = KeyModifiersState(1 << 7);
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
 pub struct KeyModifiersState(u8);
 
-static FLAG_KEYS: [VIRTUAL_KEY; 8] = [
-    VK_LSHIFT,
-    VK_RSHIFT,
-    VK_LCONTROL,
-    VK_RCONTROL,
-    VK_LMENU,
-    VK_RMENU,
-    VK_LWIN,
-    VK_RWIN,
-];
-
 impl KeyModifiersState {
-    pub(crate) fn from_keyboard_state(keys: [u8; 256]) -> Self {
-        let value = (0..FLAG_KEYS.len())
-            .filter(|flag_index| {
-                let vk_code = FLAG_KEYS[*flag_index].0;
-                keys[vk_code as usize] & 0x80 != 0
-            })
-            .fold(0, |acc, flag_index| acc | (1 << flag_index));
-
-        Self(value as u8)
-    }
-
     pub(crate) const fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
     }
@@ -79,6 +57,30 @@ impl KeyModifiersState {
         }
 
         text.iter().collect()
+    }
+}
+
+static MODIFIER_KEYS: [VIRTUAL_KEY; 8] = [
+    VK_LSHIFT,
+    VK_RSHIFT,
+    VK_LCONTROL,
+    VK_RCONTROL,
+    VK_LMENU,
+    VK_RMENU,
+    VK_LWIN,
+    VK_RWIN,
+];
+
+impl From<&[bool; 256]> for KeyModifiersState {
+    fn from(keyboard_state: &[bool; 256]) -> Self {
+        let value = (0..MODIFIER_KEYS.len())
+            .filter(|modifier_index| {
+                let vk_code = MODIFIER_KEYS[*modifier_index].0;
+                keyboard_state[vk_code as usize]
+            })
+            .fold(0, |acc, flag_index| acc | (1 << flag_index));
+
+        Self(value as u8)
     }
 }
 
@@ -186,17 +188,17 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_capture() {
-        let mut keys = [0u8; 256];
-        assert_eq!(KM_NONE, KeyModifiersState::from_keyboard_state(keys));
+        let mut keys = [false; 256];
+        assert_eq!(KM_NONE, KeyModifiersState::from(&keys));
 
-        keys[VK_LSHIFT.0 as usize] = 0x80;
-        keys[VK_RSHIFT.0 as usize] = 0x80;
-        keys[VK_LCONTROL.0 as usize] = 0x80;
-        keys[VK_RWIN.0 as usize] = 0x80;
+        keys[VK_LSHIFT.0 as usize] = true;
+        keys[VK_RSHIFT.0 as usize] = true;
+        keys[VK_LCONTROL.0 as usize] = true;
+        keys[VK_RWIN.0 as usize] = true;
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_LCTRL | KM_RWIN,
-            KeyModifiersState::from_keyboard_state(keys)
+            KeyModifiersState::from(&keys)
         );
     }
 
