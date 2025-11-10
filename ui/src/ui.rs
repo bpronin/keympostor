@@ -1,3 +1,4 @@
+use crate::key_handler::KeyboardHandler;
 use crate::r_icon;
 use crate::res::res_ids::IDI_ICON_APP;
 use crate::res::RESOURCES;
@@ -8,7 +9,7 @@ use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
 use crate::ui_warn;
 use crate::util::{get_window_size, profile_path_from_args, set_window_size};
-use keympostor::keyboard::handler::KeyboardHandler;
+use crate::win_watch::WinWatcher;
 use keympostor::profile::{Profile, Profiles};
 use log::debug;
 use native_windows_gui as nwg;
@@ -27,6 +28,7 @@ mod ui_util;
 pub(crate) struct App {
     current_profile_name: RefCell<Option<String>>,
     keyboard_handler: KeyboardHandler,
+    win_watcher: WinWatcher,
     profiles: Profiles,
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
@@ -53,6 +55,11 @@ impl App {
         self.log_view
             .on_processing_enabled(self.keyboard_handler.is_enabled());
 
+        self.win_watcher
+            .set_enabled(settings.auto_switch_profile_enabled);
+        self.log_view
+            .on_auto_switch_profile_enabled(self.win_watcher.is_enabled());
+
         self.keyboard_handler
             .set_silent(settings.silent_key_processing);
 
@@ -72,6 +79,7 @@ impl App {
 
         settings.profile = self.current_profile_name.borrow().to_owned();
         settings.key_processing_enabled = self.keyboard_handler.is_enabled();
+        settings.auto_switch_profile_enabled = self.win_watcher.is_enabled();
         settings.silent_key_processing = self.keyboard_handler.is_silent();
         settings.main_window_position = Some(self.window.position());
         settings.main_window_size = Some(get_window_size(self.window.handle));
@@ -114,6 +122,7 @@ impl App {
     fn update_controls(&self) {
         self.main_menu.update_ui(
             self.keyboard_handler.is_enabled(),
+            self.win_watcher.is_enabled(),
             self.keyboard_handler.is_silent(),
             &self.current_profile_name.borrow(),
         );
@@ -122,6 +131,8 @@ impl App {
     }
 
     pub(crate) fn run(&self) {
+        self.win_watcher.init(self.window.handle);
+
         self.read_settings();
         self.update_controls();
 
@@ -157,6 +168,14 @@ impl App {
 
         self.log_view
             .on_log_enabled(!self.keyboard_handler.is_silent());
+        self.update_controls();
+        self.write_settings();
+    }
+
+    pub(crate) fn on_toggle_auto_switch_profile(&self) {
+        self.win_watcher.set_enabled(!self.win_watcher.is_enabled());
+        self.log_view
+            .on_auto_switch_profile_enabled(self.win_watcher.is_enabled());
         self.update_controls();
         self.write_settings();
     }

@@ -1,6 +1,6 @@
-use crate::keyboard::event::KeyEvent;
-use crate::keyboard::hook::KEY_HOOK;
-use crate::keyboard::rules::KeyTransformRules;
+use keympostor::keyboard::event::KeyEvent;
+use keympostor::keyboard::hook::KEY_HOOK;
+use keympostor::keyboard::rules::KeyTransformRules;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHandler {}

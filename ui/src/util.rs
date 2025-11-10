@@ -20,15 +20,16 @@ pub fn str_fmt(template: String, args: &[String]) -> String {
     s
 }
 
-fn hwnd(handle: ControlHandle) -> HWND {
-    HWND(handle.hwnd().unwrap() as _)
+pub fn hwnd(handle: ControlHandle) -> Option<HWND> {
+    handle.hwnd().map(|h| HWND(h as _))
 }
 
 /// workaround for nwg bug
 pub fn get_window_size(handle: ControlHandle) -> (u32, u32) {
     unsafe {
+        let hwnd = hwnd(handle).unwrap();
         let mut r: RECT = mem::zeroed();
-        GetWindowRect(hwnd(handle), &mut r).unwrap();
+        GetWindowRect(hwnd, &mut r).unwrap();
         ((r.right - r.left) as u32, (r.bottom - r.top) as u32)
     }
 }
@@ -37,7 +38,7 @@ pub fn get_window_size(handle: ControlHandle) -> (u32, u32) {
 pub fn set_window_size(handle: ControlHandle, size: (u32, u32)) {
     unsafe {
         SetWindowPos(
-            hwnd(handle),
+            hwnd(handle).unwrap(),
             None,
             0,
             0,

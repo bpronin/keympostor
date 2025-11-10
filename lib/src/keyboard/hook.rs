@@ -11,13 +11,13 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 thread_local! {
-    pub(crate) static KEY_HOOK: RefCell<KeyboardHook> = RefCell::new(KeyboardHook::default());
+    pub static KEY_HOOK: RefCell<KeyboardHook> = RefCell::new(KeyboardHook::default());
 }
 
 static mut KEYBOARD_STATE: [bool; 256] = [false; 256];
 
 #[derive(Default)]
-pub(crate) struct KeyboardHook {
+pub struct KeyboardHook {
     transform_map: KeyTransformMap,
     handle: Option<HHOOK>,
     listener: Option<Box<dyn Fn(&KeyEvent)>>,
@@ -25,7 +25,7 @@ pub(crate) struct KeyboardHook {
 }
 
 impl KeyboardHook {
-    pub(crate) fn install(&mut self) {
+    pub fn install(&mut self) {
         match unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), None, 0) } {
             Ok(h) => {
                 self.handle = Some(h);
@@ -38,7 +38,7 @@ impl KeyboardHook {
         }
     }
 
-    pub(crate) fn uninstall(&mut self) {
+    pub fn uninstall(&mut self) {
         if let Some(handle) = self.handle {
             match unsafe { UnhookWindowsHookEx(handle) } {
                 Ok(_) => debug!("Keyboard hook uninstalled"),
@@ -48,7 +48,7 @@ impl KeyboardHook {
         }
     }
 
-    pub(crate) fn set_listener(&mut self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
+    pub fn set_listener(&mut self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
         self.listener = listener;
 
         debug!(
@@ -61,21 +61,21 @@ impl KeyboardHook {
         );
     }
 
-    pub(crate) fn set_silent(&mut self, silent: bool) {
+    pub fn set_silent(&mut self, silent: bool) {
         self.is_silent = silent;
 
         debug!("Silent processing: {silent}");
     }
 
-    pub(crate) fn apply_rules(&mut self, rules: &KeyTransformRules) {
+    pub fn apply_rules(&mut self, rules: &KeyTransformRules) {
         self.transform_map = KeyTransformMap::new(&rules);
     }
 
-    pub(crate) fn is_enabled(&self) -> bool {
+    pub fn is_enabled(&self) -> bool {
         self.handle.is_some()
     }
 
-    pub(crate) fn is_silent(&self) -> bool {
+    pub fn is_silent(&self) -> bool {
         self.is_silent
     }
 

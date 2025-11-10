@@ -60,6 +60,16 @@ impl LogView {
             self.append_line(rs!(IDS__PROCESSING_DISABLED_));
         }
     }
+    
+    pub(crate) fn on_auto_switch_profile_enabled(&self, is_enabled: bool) {
+        if is_enabled {
+            // self.append_line(rs!(IDS__PROCESSING_ENABLED_));
+            self.append_line("AUTO-SWITCH ON");
+        } else {
+            // self.append_line(rs!(IDS__PROCESSING_DISABLED_));
+            self.append_line("AUTO-SWITCH OFF");
+        }
+    }
 
     pub(crate) fn on_log_enabled(&self, is_enabled: bool) {
         if is_enabled {

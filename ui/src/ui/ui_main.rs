@@ -78,6 +78,7 @@ impl AppUi {
             if let Some(app) = app_rc.upgrade() {
                 app.tray.handle_event(&app, evt, handle);
                 app.main_menu.handle_event(&app, evt, handle);
+                app.win_watcher.handle_event(&app, evt, handle);
 
                 match evt {
                     nwg::Event::OnWindowClose => {

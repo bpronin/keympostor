@@ -8,6 +8,7 @@ const FILE_PATH: &str = "settings.toml";
 pub(crate) struct AppSettings {
     pub(crate) key_processing_enabled: bool,
     pub(crate) silent_key_processing: bool,
+    pub(crate) auto_switch_profile_enabled: bool,
     pub(crate) main_window_position: Option<(i32, i32)>,
     pub(crate) main_window_size: Option<(u32, u32)>,
     pub(crate) main_window_selected_page: Option<usize>,
@@ -18,6 +19,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             key_processing_enabled: true,
+            auto_switch_profile_enabled: false,
             silent_key_processing: false,
             main_window_position: None,
             main_window_size: None,

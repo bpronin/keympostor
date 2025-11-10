@@ -1,6 +1,7 @@
-key_processing_enabled = true
-silent_key_processing = true
+key_processing_enabled = false
+silent_key_processing = false
+auto_switch_profile_enabled = false
 main_window_position = [300, 300]
 main_window_size = [716, 339]
 main_window_selected_page = 0
-profile = "game"
+profile = "default"
