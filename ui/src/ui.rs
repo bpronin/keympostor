@@ -5,9 +5,10 @@ use crate::ui::ui_log_view::LogView;
 use crate::ui::ui_main_menu::MainMenu;
 use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
-use crate::ui_warn;
+use crate::util::str_fmt;
 use crate::util::{get_window_size, profile_path_from_args, set_window_size};
 use crate::{r_icon, rs};
+use crate::{rsf, ui_warn};
 use keympostor::keyboard::handler::KeyboardHandler;
 use keympostor::keyboard::rules::KeyTransformRules;
 use keympostor::profile::{Profile, Profiles};
@@ -51,6 +52,9 @@ impl App {
 
         self.keyboard_handler
             .set_enabled(settings.key_processing_enabled);
+        self.log_view
+            .append_processing_enabled(self.keyboard_handler.is_enabled());
+
         self.keyboard_handler
             .set_silent(settings.silent_key_processing);
 
@@ -101,16 +105,12 @@ impl App {
 
         self.current_profile_name
             .replace(Some(profile.name.clone()));
-        self.write_settings();
-
-        // let x = rs!(IDS_PROFILE_LOADED);
-        // self.log_view.append_ln(&format!(x, profile.title));
-        self.log_view
-            .append_ln(&format!("* Profile: {}", profile.title));
+        self.log_view.append_profile_loaded(profile);
         self.profile_view.update_ui(profile);
         self.keyboard_handler.apply_rules(&profile.rules);
-
         self.update_controls();
+
+        self.write_settings();
     }
 
     fn update_controls(&self) {
@@ -129,7 +129,7 @@ impl App {
 
         self.log_view.init();
         self.log_view
-            .update_log_enabled(!self.keyboard_handler.is_silent());
+            .append_log_enabled(!self.keyboard_handler.is_silent());
 
         #[cfg(feature = "dev")]
         self.window.set_visible(true);
@@ -147,6 +147,8 @@ impl App {
     pub(crate) fn on_toggle_processing_enabled(&self) {
         self.keyboard_handler
             .set_enabled(!self.keyboard_handler.is_enabled());
+        self.log_view
+            .append_processing_enabled(self.keyboard_handler.is_enabled());
         self.update_controls();
         self.write_settings();
     }
@@ -156,7 +158,7 @@ impl App {
             .set_silent(!self.keyboard_handler.is_silent());
 
         self.log_view
-            .update_log_enabled(!self.keyboard_handler.is_silent());
+            .append_log_enabled(!self.keyboard_handler.is_silent());
         self.update_controls();
         self.write_settings();
     }
@@ -168,7 +170,6 @@ impl App {
 
     pub(crate) fn on_open_window(&self) {
         self.window.set_visible(true);
-        // self.keyboard_handler.set_silent(false);
     }
 
     pub(crate) fn on_toggle_window_visibility(&self) {

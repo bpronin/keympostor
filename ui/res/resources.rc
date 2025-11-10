@@ -31,7 +31,9 @@ IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
 #define IDS_TRAY_TIP 1012
 #define IDS__LOGGING_DISABLED_ 1013
 #define IDS__LOGGING_ENABLED_ 1014
-#define IDS_NO_PROFILE 1016
+#define IDS__PROCESSING_DISABLED_ 1015
+#define IDS__PROCESSING_ENABLED_ 1016
+#define IDS_NO_PROFILE 1017
 
 STRINGTABLE
 BEGIN
@@ -48,5 +50,7 @@ BEGIN
     IDS_PROFILE_LOADED "* Loaded profile: `{}`"
     IDS__LOGGING_DISABLED_ "* Logging disabled"
     IDS__LOGGING_ENABLED_ "* Logging enabled"
+    IDS__PROCESSING_DISABLED_ "* Processing disabled"
+    IDS__PROCESSING_ENABLED_ "* Processing enabled"
     IDS_NO_PROFILE "None"
 END

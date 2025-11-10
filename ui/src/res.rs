@@ -10,6 +10,15 @@ macro_rules! rs {
 }
 
 #[macro_export]
+macro_rules! rsf {
+    ($res_id:ident, $($arg:expr),* ) => {
+        &RESOURCES.with(|r|{
+            str_fmt(r.string($res_id), &[$($arg.to_string()),*])
+        })
+    };
+}
+
+#[macro_export]
 macro_rules! r_icon {
     ($res_id:ident) => {
         &RESOURCES.with(|r| r.icon($res_id))
@@ -50,6 +59,12 @@ impl Resources {
             .string(res_id as u32)
             .expect("Unable to read resource string")
     }
+
+    pub(crate) fn stringf(&self, res_id: usize, arg: String) -> String {
+        self.embed
+            .string(res_id as u32)
+            .expect("Unable to read resource string")
+    }
 }
 
 #[cfg(test)]
@@ -60,16 +75,29 @@ mod test {
     //     play_sound(SOUND_GAME_LOCK_OFF);
     // }
 
-    use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE};
+    use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_PROFILE_LOADED};
     use crate::res::RESOURCES;
+    use crate::util::str_fmt;
+    use std::fmt::Debug;
 
     #[test]
-    fn test_string() {
+    fn test_rs() {
         assert_eq!("Keympostor", rs!(IDS_APP_TITLE));
     }
 
     #[test]
-    fn test_icon() {
+    fn test_rsf() {
+        // let s = str_fmt(rs!(IDS_PROFILE_LOADED), &["Banana"]);
+        let s = rsf!(IDS_PROFILE_LOADED, "Banana");
+        println!("{}", s);
+
+        // let s = fmt::format("{}", "Banana");
+        // let s = rsf!(IDS_PROFILE_LOADED, "Banana");
+        // assert_eq!("* Loaded profile: `Banana`", s);
+    }
+
+    #[test]
+    fn test_r_icon() {
         assert_ne!(std::ptr::null_mut(), r_icon!(IDI_ICON_APP).handle);
     }
 }

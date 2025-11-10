@@ -12,6 +12,14 @@ pub fn profile_path_from_args() -> Option<String> {
     args.next()
 }
 
+pub fn str_fmt(template: String, args: &[String]) -> String {
+    let mut s = template.to_string();
+    for arg in args {
+        s = s.replacen("{}", arg, 1)
+    }
+    s
+}
+
 fn hwnd(handle: ControlHandle) -> HWND {
     HWND(handle.hwnd().unwrap() as _)
 }
