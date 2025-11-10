@@ -1,7 +1,0 @@
-[[auto_activaton]]
-rule = "chrome"
-profile = "game"
-
-[[auto_activaton]]
-rule = "TOTALCMD64.EXE"
-profile = "default"

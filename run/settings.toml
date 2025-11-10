@@ -1,7 +1,17 @@
-key_processing_enabled = false
-silent_key_processing = false
-auto_switch_profile_enabled = false
-main_window_position = [300, 300]
-main_window_size = [716, 339]
-main_window_selected_page = 0
+processing_enabled = false
+logging_enabled = true
+window_profile_enabled = true
 profile = "default"
+
+[main_window]
+position = [1055, 81]
+size = [716, 339]
+selected_page = 1
+
+[[window_profile]]
+rule = "Chrome"
+profile = "game"
+
+[[window_profile]]
+rule = "TOTALCMD64.EXE"
+profile = "game"

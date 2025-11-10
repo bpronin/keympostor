@@ -46,46 +46,48 @@ pub(crate) struct App {
 
 impl App {
     fn read_settings(&self) {
-        let settings = AppSettings::load();
+        let settings = AppSettings::load_default();
 
         self.select_profile(&profile_path_from_args().or(settings.profile));
 
         self.keyboard_handler
-            .set_enabled(settings.key_processing_enabled);
+            .set_enabled(settings.processing_enabled);
         self.log_view
             .on_processing_enabled(self.keyboard_handler.is_enabled());
 
         self.win_watcher
-            .set_enabled(settings.auto_switch_profile_enabled);
+            .set_rules(settings.window_profile);
+        self.win_watcher
+            .set_enabled(settings.window_profile_enabled);
+
         self.log_view
             .on_auto_switch_profile_enabled(self.win_watcher.is_enabled());
-
         self.keyboard_handler
-            .set_silent(settings.silent_key_processing);
+            .set_silent(!settings.logging_enabled);
 
-        if let Some(position) = settings.main_window_position {
+        if let Some(position) = settings.main_window.position {
             self.window.set_position(position.0, position.1);
         }
-        if let Some(size) = settings.main_window_size {
+        if let Some(size) = settings.main_window.size {
             set_window_size(self.window.handle, size);
         }
-        if let Some(page) = settings.main_window_selected_page {
+        if let Some(page) = settings.main_window.selected_page {
             self.tab_container.set_selected_tab(page);
         }
     }
 
     fn write_settings(&self) {
-        let mut settings = AppSettings::load();
+        let mut settings = AppSettings::load_default();
 
         settings.profile = self.current_profile_name.borrow().to_owned();
-        settings.key_processing_enabled = self.keyboard_handler.is_enabled();
-        settings.auto_switch_profile_enabled = self.win_watcher.is_enabled();
-        settings.silent_key_processing = self.keyboard_handler.is_silent();
-        settings.main_window_position = Some(self.window.position());
-        settings.main_window_size = Some(get_window_size(self.window.handle));
-        settings.main_window_selected_page = Some(self.tab_container.selected_tab());
+        settings.processing_enabled = self.keyboard_handler.is_enabled();
+        settings.window_profile_enabled = self.win_watcher.is_enabled();
+        settings.logging_enabled = !self.keyboard_handler.is_silent();
+        settings.main_window.position = Some(self.window.position());
+        settings.main_window.size = Some(get_window_size(self.window.handle));
+        settings.main_window.selected_page = Some(self.tab_container.selected_tab());
 
-        settings.save().unwrap_or_else(|e| {
+        settings.save_default().unwrap_or_else(|e| {
             ui_warn!("{}", e);
         });
     }

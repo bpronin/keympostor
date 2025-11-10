@@ -1,9 +1,10 @@
+use crate::ifd;
 use crate::keyboard::action::KeyAction;
 use crate::keyboard::action::KeyTransition::Down;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
-use crate::keyboard::modifiers::{KeyModifiersState};
-use crate::keyboard::transform::KeyTransformMap;
+use crate::keyboard::modifiers::KeyModifiersState;
 use crate::keyboard::rules::KeyTransformRules;
+use crate::keyboard::transform::KeyTransformMap;
 use log::{debug, warn};
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
@@ -53,11 +54,7 @@ impl KeyboardHook {
 
         debug!(
             "Listener {}",
-            if self.listener.is_some() {
-                "set"
-            } else {
-                "removed"
-            }
+            ifd!(self.listener.is_some(), "set", "removed")
         );
     }
 

@@ -18,12 +18,14 @@ use windows::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
 };
+use crate::settings::WindowProfile;
 
 const WIN_WATCH_TIMER: u32 = 19717;
 const WIN_WATCH_INTERVAL: u32 = 500;
 
 #[derive(Default)]
 pub(crate) struct WinWatcher {
+    rules: RefCell<Option<Vec<WindowProfile>>>,
     handle: RefCell<ControlHandle>,
     is_enabled: RefCell<bool>,
     detector: RefCell<WindowActivationDetector>,
@@ -32,6 +34,10 @@ pub(crate) struct WinWatcher {
 impl WinWatcher {
     pub(crate) fn init(&self, handle: ControlHandle) {
         self.handle.replace(handle);
+    }
+
+    pub(crate) fn set_rules(&self, rules: Option<Vec<WindowProfile>>) {
+        self.rules.replace(rules);
     }
 
     pub(crate) fn is_enabled(&self) -> bool {

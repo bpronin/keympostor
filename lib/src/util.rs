@@ -10,6 +10,26 @@
 // }
 
 #[macro_export]
+macro_rules! ifd {
+    ($condition:expr, $a:expr, $b:expr) => {
+        if $condition {
+            $a
+        } else {
+            $b
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! map {
+    ( $( $key:expr => $val:expr ),* $(,)? ) => {{
+        let mut map = ::std::collections::HashMap::new();
+        $(map.insert($key, $val);)*
+        map
+    }};
+}
+
+#[macro_export]
 macro_rules! append_prefix {
     ($s:expr, $pref:literal) => {
         if $s.starts_with($pref) {
