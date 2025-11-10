@@ -64,7 +64,7 @@ impl AppUi {
         let app_rc = Rc::downgrade(&self.app);
         let kbd_handler_callback = move |event: &KeyEvent| {
             if let Some(app) = app_rc.upgrade() {
-                app.log_view.update_ui(event);
+                app.log_view.on_key_event(event);
             }
         };
         self.app

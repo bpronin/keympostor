@@ -15,7 +15,7 @@ pub fn profile_path_from_args() -> Option<String> {
 pub fn str_fmt(template: String, args: &[String]) -> String {
     let mut s = template.to_string();
     for arg in args {
-        s = s.replacen("{}", arg, 1)
+        s = s.replacen("{}", arg.as_str(), 1)
     }
     s
 }

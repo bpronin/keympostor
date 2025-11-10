@@ -1,12 +1,15 @@
-use crate::util::str_fmt;
-use crate::res::res_ids::{IDS_ENABLED, IDS_PROFILE_LOADED, IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_, IDS__PROCESSING_DISABLED_, IDS__PROCESSING_ENABLED_};
+use crate::res::res_ids::{
+    IDS_PROFILE_LOADED, IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_,
+    IDS__PROCESSING_DISABLED_, IDS__PROCESSING_ENABLED_,
+};
 use crate::res::RESOURCES;
-use crate::{rs, rsf};
 use crate::ui::ui_util::mono_font;
+use crate::util::str_fmt;
+use crate::{rs, rsf};
 use keympostor::keyboard::event::KeyEvent;
+use keympostor::profile::Profile;
 use native_windows_gui as nwg;
 use native_windows_gui::ControlHandle;
-use keympostor::profile::Profile;
 
 const MAX_LOG_LINES: usize = 256;
 
@@ -33,7 +36,7 @@ impl LogView {
         self.appendln("* Debug UI");
     }
 
-    pub(crate) fn update_ui(&self, event: &KeyEvent) {
+    pub(crate) fn on_key_event(&self, event: &KeyEvent) {
         let line = format!(
             "{:1}{:1}{:1} | [{:8}] {:20}| {:22}| {:18} | {:1} | T: {:9} ",
             if event.rule.is_some() { "!" } else { "" },
@@ -50,7 +53,7 @@ impl LogView {
         self.append_line(&line);
     }
 
-    pub(crate) fn append_processing_enabled(&self, is_enabled: bool) {
+    pub(crate) fn on_processing_enabled(&self, is_enabled: bool) {
         if is_enabled {
             self.append_line(rs!(IDS__PROCESSING_ENABLED_));
         } else {
@@ -58,7 +61,7 @@ impl LogView {
         }
     }
 
-    pub(crate) fn append_log_enabled(&self, is_enabled: bool) {
+    pub(crate) fn on_log_enabled(&self, is_enabled: bool) {
         if is_enabled {
             self.append_line(rs!(IDS__LOGGING_ENABLED_));
         } else {
@@ -66,7 +69,7 @@ impl LogView {
         }
     }
 
-    pub(crate) fn append_profile_loaded(&self, profile: &Profile) {
+    pub(crate) fn on_profile_loaded(&self, profile: &Profile) {
         self.append_line(rsf!(IDS_PROFILE_LOADED, profile.title))
     }
 

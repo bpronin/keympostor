@@ -60,11 +60,6 @@ impl Resources {
             .expect("Unable to read resource string")
     }
 
-    pub(crate) fn stringf(&self, res_id: usize, arg: String) -> String {
-        self.embed
-            .string(res_id as u32)
-            .expect("Unable to read resource string")
-    }
 }
 
 #[cfg(test)]
@@ -78,7 +73,6 @@ mod test {
     use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_PROFILE_LOADED};
     use crate::res::RESOURCES;
     use crate::util::str_fmt;
-    use std::fmt::Debug;
 
     #[test]
     fn test_rs() {
@@ -87,7 +81,6 @@ mod test {
 
     #[test]
     fn test_rsf() {
-        // let s = str_fmt(rs!(IDS_PROFILE_LOADED), &["Banana"]);
         let s = rsf!(IDS_PROFILE_LOADED, "Banana");
         println!("{}", s);
 
