@@ -11,6 +11,7 @@ use log::{warn};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
+    pub name: String,
     pub title: String,
     pub rules: KeyTransformRules,
 }
@@ -19,15 +20,6 @@ impl Profile {
     pub fn load(path: &str) -> Result<Self> {
         toml::from_str(&fs::read_to_string(&path).context(format!("Unable to read {} file", path))?)
             .context(format!("Unable to parse {}", path))
-    }
-}
-
-impl Default for Profile {
-    fn default() -> Self {
-        Self {
-            title: "No profile".to_string(),
-            rules: Default::default(),
-        }
     }
 }
 
@@ -44,6 +36,11 @@ impl FromStr for Profile {
         let mut lines = s.trim().lines();
 
         Ok(Self {
+            name: lines
+                .next()
+                .ok_or(KeyError::new("Error parsing name."))?
+                .trim()
+                .into(),
             title: lines
                 .next()
                 .ok_or(KeyError::new("Error parsing title."))?
@@ -66,7 +63,7 @@ impl Profiles {
             if path.is_file() {
                 let filename = path.to_str().unwrap();
                 if let Ok(profile) = Profile::load(filename) {
-                    items.insert(filename.to_string(), profile);
+                    items.insert(profile.name.clone(), profile);
                 }else {
                     warn!("Ignored corrupted profile: {}", filename);
                 }
@@ -112,17 +109,18 @@ pub mod tests {
     fn test_profile_from_str() {
         assert_eq!(
             Profile {
+                name: "test".to_string(),
                 title: "Test profile".to_string(),
                 rules: KeyTransformRules {
                     items: vec![
                         key_rule!("A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
                         key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓: ENTER↓ → ENTER↑"),
                     ],
-                },
-                ..Default::default()
+                }
             },
             key_profile!(
                 r#"
+                test
                 Test profile
                 A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
                 [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
@@ -135,12 +133,14 @@ pub mod tests {
     fn test_key_transform_profile_serialize() {
         let profile = key_profile!(
             r#"
+            test
             Test profile
             [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑
             []CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
             "#
         );
         let expected = r#"
+            name = "test"
             title = "Test profile"
             [rules]
             "[LEFT_SHIFT]CAPS_LOCK↓" = "CAPS_LOCK↓ → CAPS_LOCK↑"
@@ -159,6 +159,7 @@ pub mod tests {
     fn test_key_transform_profile_deserialize() {
         let actual = toml::from_str(
             &r#"
+            name = "test"
             title = "Test profile"
             [rules]
             "[LEFT_SHIFT]CAPS_LOCK↓" = "CAPS_LOCK↓ → CAPS_LOCK↑"
@@ -170,6 +171,7 @@ pub mod tests {
         /* NOTE: rules deserialized as sorted map so check the "expected" order */
         let expected = key_profile!(
             r#"
+            test
             Test profile
             [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑
             []CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
@@ -186,6 +188,7 @@ pub mod tests {
         /* NOTE: rules deserialized as sorted map so check the "expected" order */
         let expected = key_profile!(
             "
+            test
             Test profile
             [LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑
             []CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑

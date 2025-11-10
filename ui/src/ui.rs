@@ -1,5 +1,4 @@
-use crate::r_icon;
-use crate::res::res_ids::IDI_ICON_APP;
+use crate::res::res_ids::{IDI_ICON_APP, IDS_PROFILE_LOADED};
 use crate::res::RESOURCES;
 use crate::settings::AppSettings;
 use crate::ui::ui_log_view::LogView;
@@ -8,9 +7,11 @@ use crate::ui::ui_profile_view::ProfileView;
 use crate::ui::ui_tray::Tray;
 use crate::ui_warn;
 use crate::util::{get_window_size, profile_path_from_args, set_window_size};
+use crate::{r_icon, rs};
 use keympostor::keyboard::handler::KeyboardHandler;
+use keympostor::keyboard::rules::KeyTransformRules;
 use keympostor::profile::{Profile, Profiles};
-use log::debug;
+use log::{debug, warn};
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 use std::cell::RefCell;
@@ -79,19 +80,33 @@ impl App {
         });
     }
 
-    fn select_profile(&self, profile_name: &Option<String>) {
-        debug!("Selected profile: {:?}", profile_name);
-
-        let profile = match &profile_name {
-            Some(n) => self.profiles.items.get(n).unwrap(),
-            None => &Default::default(),
+    fn find_profile(&self, profile_name: &Option<String>) -> &Profile {
+        if let Some(name) = profile_name {
+            if let Some(profile) = self.profiles.items.get(name) {
+                return profile;
+            }
         };
 
-        self.current_profile_name.replace(profile_name.clone());
+        self.profiles
+            .items
+            .values()
+            .next()
+            .expect("No default profile found.")
+    }
+
+    fn select_profile(&self, profile_name: &Option<String>) {
+        let profile = self.find_profile(profile_name);
+
+        debug!("Selected profile: {:?}", profile.name);
+
+        self.current_profile_name
+            .replace(Some(profile.name.clone()));
         self.write_settings();
 
+        // let x = rs!(IDS_PROFILE_LOADED);
+        // self.log_view.append_ln(&format!(x, profile.title));
         self.log_view
-            .append_line(&format!("--- Loaded profile: `{}` ---", profile.title));
+            .append_ln(&format!("* Profile: {}", profile.title));
         self.profile_view.update_ui(profile);
         self.keyboard_handler.apply_rules(&profile.rules);
 

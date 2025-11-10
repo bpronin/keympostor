@@ -23,6 +23,7 @@ IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
 #define IDS_ENABLED 1003
 #define IDS_EXIT 1004
 #define IDS_FILE 1005
+#define IDS_PROFILE_LOADED 1006
 #define IDS_LOG 1007
 #define IDS_LOGGING_ENABLED 1008
 #define IDS_OPEN 1009
@@ -44,7 +45,8 @@ BEGIN
     IDS_OPEN "Open"
     IDS_PROFILE "Profile"
     IDS_TRAY_TIP "Keympostor"
-    IDS__LOGGING_DISABLED_ "--- Logging disabled ---"
-    IDS__LOGGING_ENABLED_ "--- Logging enabled ---"
+    IDS_PROFILE_LOADED "* Loaded profile: `{}`"
+    IDS__LOGGING_DISABLED_ "* Logging disabled"
+    IDS__LOGGING_ENABLED_ "* Logging enabled"
     IDS_NO_PROFILE "None"
 END

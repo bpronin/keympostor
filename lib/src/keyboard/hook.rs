@@ -67,8 +67,8 @@ impl KeyboardHook {
         debug!("Silent processing: {silent}");
     }
 
-    pub(crate) fn apply_rules(&mut self, profile: &KeyTransformRules) {
-        self.transform_map = KeyTransformMap::new(&profile);
+    pub(crate) fn apply_rules(&mut self, rules: &KeyTransformRules) {
+        self.transform_map = KeyTransformMap::new(&rules);
     }
 
     pub(crate) fn is_enabled(&self) -> bool {
