@@ -1,3 +1,4 @@
+use crate::settings::WindowProfile;
 use crate::ui::App;
 use crate::util::hwnd;
 use error::Error;
@@ -18,14 +19,12 @@ use windows::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
 };
-use crate::settings::WindowProfile;
 
-const WIN_WATCH_TIMER: u32 = 19717;
+const DETECTOR_TIMER: u32 = 19717;
 const WIN_WATCH_INTERVAL: u32 = 500;
 
 #[derive(Default)]
 pub(crate) struct WinWatcher {
-    rules: RefCell<Option<Vec<WindowProfile>>>,
     handle: RefCell<ControlHandle>,
     is_enabled: RefCell<bool>,
     detector: RefCell<WindowActivationDetector>,
@@ -36,8 +35,8 @@ impl WinWatcher {
         self.handle.replace(handle);
     }
 
-    pub(crate) fn set_rules(&self, rules: Option<Vec<WindowProfile>>) {
-        self.rules.replace(rules);
+    pub(crate) fn set_rules(&self, window_profiles: Option<Vec<WindowProfile>>) {
+        self.detector.borrow_mut().rules = window_profiles;
     }
 
     pub(crate) fn is_enabled(&self) -> bool {
@@ -49,16 +48,14 @@ impl WinWatcher {
             return;
         }
 
-        self.init_detector();
-
         let hwnd = hwnd(self.handle.borrow().to_owned());
         if is_enabled {
             unsafe {
-                SetTimer(hwnd, WIN_WATCH_TIMER as usize, WIN_WATCH_INTERVAL, None);
+                SetTimer(hwnd, DETECTOR_TIMER as usize, WIN_WATCH_INTERVAL, None);
             }
         } else {
             unsafe {
-                KillTimer(hwnd, WIN_WATCH_TIMER as usize).unwrap_or_else(|e| {
+                KillTimer(hwnd, DETECTOR_TIMER as usize).unwrap_or_else(|e| {
                     warn!("Failed to kill timer: {}", e);
                 });
             }
@@ -70,39 +67,20 @@ impl WinWatcher {
     pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
         match evt {
             Event::OnTimerTick => {
-                let (_, timer_id) = handle.timer().unwrap();
-                if timer_id == WIN_WATCH_TIMER {
-                    self.invoke_detector(app);
+                if let Some((_, timer_id)) = handle.timer() {
+                    if timer_id == DETECTOR_TIMER {
+                        self.invoke_detector(app);
+                    }
                 }
             }
             _ => {}
         };
     }
 
-    fn init_detector(&self) {
-        let mut detector = self.detector.borrow_mut();
-        detector.last_hwnd = None;
-        detector.rules = vec![Regex::new("Chrome").unwrap()];
-    }
-
     fn invoke_detector(&self, app: &App) {
         if let Some(result) = self.detector.borrow_mut().detect() {
-            self.on_window_detected(app, result);
+            app.on_select_profile(&result);
         }
-    }
-
-    fn on_window_detected(&self, app: &App, rule: Option<&Regex>) {
-        let profile_name = match rule {
-            Some(r) => {
-                debug!("Window detected for: {}", r);
-                Some("".to_string())
-            },
-            None => {
-                debug!("No active detectable windows");
-                None
-            },
-        };
-        app.on_select_profile(&profile_name);
     }
 }
 
@@ -114,30 +92,35 @@ impl Drop for WinWatcher {
 
 #[derive(Default)]
 struct WindowActivationDetector {
-    rules: Vec<Regex>,
+    rules: Option<Vec<WindowProfile>>,
     last_hwnd: Option<HWND>,
 }
 
 impl WindowActivationDetector {
-    fn detect(&mut self) -> Option<Option<&Regex>> {
-        if let Some((hwnd, rule)) = detect_active_window(self.rules.as_ref()) {
-            let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
-            self.last_hwnd = Some(hwnd);
-            if activated {
-                return Some(Some(rule));
+    fn detect(&mut self) -> Option<Option<String>> {
+        if let Some(rules) = &self.rules {
+            if let Some((hwnd, profile)) = detect_active_window(rules) {
+                let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
+                self.last_hwnd = Some(hwnd);
+                if activated {
+                    debug!("Window detected for: {:?}", profile);
+                    return Some(profile);
+                }
+            } else if self.last_hwnd.is_some() {
+                self.last_hwnd = None;
+                debug!("No active detectable windows");
+                return Some(None);
             }
-        } else if self.last_hwnd.is_some() {
-            self.last_hwnd = None;
-            return Some(None);
         }
         None
     }
 }
 
-fn detect_active_window(rules: &[Regex]) -> Option<(HWND, &Regex)> {
-    rules
-        .iter()
-        .find_map(|rule| get_active_window(rule).map(|hwnd| (hwnd, rule)))
+fn detect_active_window(rules: &Vec<WindowProfile>) -> Option<(HWND, Option<String>)> {
+    rules.iter().find_map(|rule| {
+        let regex = rule.regex();
+        get_active_window(&regex).map(|hwnd| (hwnd, rule.profile.clone()))
+    })
 }
 
 fn get_process_name(hwnd: HWND) -> Result<String, Box<dyn Error>> {

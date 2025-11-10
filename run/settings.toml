@@ -4,9 +4,9 @@ window_profile_enabled = true
 profile = "default"
 
 [main_window]
-position = [1055, 81]
+position = [1268, 71]
 size = [716, 339]
-selected_page = 1
+selected_page = 0
 
 [[window_profile]]
 rule = "Chrome"

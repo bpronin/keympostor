@@ -55,15 +55,13 @@ impl App {
         self.log_view
             .on_processing_enabled(self.keyboard_handler.is_enabled());
 
-        self.win_watcher
-            .set_rules(settings.window_profile);
+        self.win_watcher.set_rules(settings.window_profile);
         self.win_watcher
             .set_enabled(settings.window_profile_enabled);
 
         self.log_view
             .on_auto_switch_profile_enabled(self.win_watcher.is_enabled());
-        self.keyboard_handler
-            .set_silent(!settings.logging_enabled);
+        self.keyboard_handler.set_silent(!settings.logging_enabled);
 
         if let Some(position) = settings.main_window.position {
             self.window.set_position(position.0, position.1);
@@ -101,8 +99,7 @@ impl App {
 
         self.profiles
             .items
-            .values()
-            .next()
+            .get("default")
             .expect("No default profile found.")
     }
 

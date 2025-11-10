@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
 
@@ -63,6 +64,12 @@ pub(crate) struct WindowProfile {
     pub(crate) profile: Option<String>,
 }
 
+impl WindowProfile {
+    pub(crate) fn regex(&self) -> Regex {
+        Regex::new(self.rule.as_str()).unwrap()
+    }
+}
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -80,14 +87,14 @@ pub mod tests {
                 selected_page: Some(0),
             },
             window_profile: Some(vec![
-                WindowProfile{
+                WindowProfile {
                     rule: "Chrome".to_string(),
                     profile: Some("game".to_string()),
                 },
-                WindowProfile{
+                WindowProfile {
                     rule: "TOTALCMD64.EXE".to_string(),
                     profile: Some("game".to_string()),
-                }
+                },
             ]),
         };
 
