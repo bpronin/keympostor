@@ -79,7 +79,10 @@ impl WinWatcher {
 
     fn invoke_detector(&self, app: &App) {
         if let Some(result) = self.detector.borrow_mut().detect() {
-            app.on_select_layout(&result);
+            match result {
+                Some(profile) => app.on_select_layout(&profile.layout),
+                None => app.on_select_layout(&None)
+            }
         }
     }
 }
@@ -97,18 +100,20 @@ struct WindowActivationDetector {
 }
 
 impl WindowActivationDetector {
-    fn detect(&mut self) -> Option<Option<String>> {
+    fn detect(&mut self) -> Option<Option<&Profile>> {
         if let Some(profile) = &self.profiles {
             if let Some((hwnd, profile)) = detect_active_window(profile) {
                 let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
                 self.last_hwnd = Some(hwnd);
                 if activated {
-                    debug!("Window detected for: {:?}", profile);
-                    return Some(profile);
+                    debug!("Window detected for profile: {:?}", profile);
+
+                    return Some(Some(profile));
                 }
             } else if self.last_hwnd.is_some() {
+                debug!("No active profile windows");
+
                 self.last_hwnd = None;
-                debug!("No active detectable windows");
                 return Some(None);
             }
         }
@@ -116,10 +121,9 @@ impl WindowActivationDetector {
     }
 }
 
-fn detect_active_window(profiles: &Vec<Profile>) -> Option<(HWND, Option<String>)> {
+fn detect_active_window(profiles: &Vec<Profile>) -> Option<(HWND, &Profile)> {
     profiles.iter().find_map(|profile| {
-        let regex = profile.regex();
-        get_active_window(&regex).map(|hwnd| (hwnd, profile.layout.clone()))
+        get_active_window(&profile.regex()).map(|hwnd| (hwnd, profile))
     })
 }
 
