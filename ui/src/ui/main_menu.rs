@@ -1,66 +1,67 @@
+use crate::res::res_ids::{
+    IDS_AUTO_SWITCH_PROFILE, IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED,
+};
 use crate::res::RESOURCES;
 use crate::rs;
-
-use crate::res::res_ids::{IDS_AUTO_SWITCH_PROFILE, IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
+use crate::ui::profiles_menu::ProfilesMenu;
 use crate::ui::App;
-use crate::ui::ui_profiles_menu::ProfilesMenu;
 use keympostor::profile::Profiles;
-use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};
+use native_windows_gui as nwg;
 
 #[derive(Default)]
 pub(crate) struct MainMenu {
-    menu: Menu,
+    menu: nwg::Menu,
     profile_menu: ProfilesMenu,
-    toggle_processing_enabled_item: MenuItem,
-    toggle_logging_enabled_item: MenuItem,
-    clear_log_item: MenuItem,
-    separator: MenuSeparator,
-    exit_app_item: MenuItem,
-    toggle_auto_switch_profile_item: MenuItem,
+    toggle_processing_enabled_item: nwg::MenuItem,
+    toggle_logging_enabled_item: nwg::MenuItem,
+    clear_log_item: nwg::MenuItem,
+    separator: nwg::MenuSeparator,
+    exit_app_item: nwg::MenuItem,
+    toggle_auto_switch_profile_item: nwg::MenuItem,
 }
 
 impl MainMenu {
     pub(crate) fn build_ui(
         &mut self,
-        parent: &Window,
+        parent: &nwg::Window,
         profiles: &Profiles,
-    ) -> Result<(), NwgError> {
-        Menu::builder()
+    ) -> Result<(), nwg::NwgError> {
+        nwg::Menu::builder()
             .parent(parent)
             .text(rs!(IDS_FILE))
             .build(&mut self.menu)?;
 
         self.profile_menu.build_ui(parent, profiles)?;
 
-        MenuItem::builder()
+        nwg::MenuItem::builder()
             .parent(&self.menu)
             .text(rs!(IDS_ENABLED))
             .build(&mut self.toggle_processing_enabled_item)?;
 
-        MenuItem::builder()
+        nwg::MenuItem::builder()
             .parent(&self.menu)
             .text(rs!(IDS_AUTO_SWITCH_PROFILE))
             .build(&mut self.toggle_auto_switch_profile_item)?;
 
-        MenuSeparator::builder()
+        nwg::MenuSeparator::builder()
             .parent(&self.menu)
             .build(&mut self.separator)?;
 
-        MenuItem::builder()
+        nwg::MenuItem::builder()
             .parent(&self.menu)
             .text(rs!(IDS_LOGGING_ENABLED))
             .build(&mut self.toggle_logging_enabled_item)?;
 
-        MenuItem::builder()
+        nwg::MenuItem::builder()
             .parent(&self.menu)
             .text(rs!(IDS_CLEAR_LOG))
             .build(&mut self.clear_log_item)?;
 
-        MenuSeparator::builder()
+        nwg::MenuSeparator::builder()
             .parent(&self.menu)
             .build(&mut self.separator)?;
 
-        MenuItem::builder()
+        nwg::MenuItem::builder()
             .parent(&self.menu)
             .text(rs!(IDS_EXIT))
             .build(&mut self.exit_app_item)
@@ -81,9 +82,9 @@ impl MainMenu {
         self.profile_menu.update_ui(current_profile_name);
     }
 
-    pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
+    pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: nwg::ControlHandle) {
         match evt {
-            Event::OnMenuItemSelected => {
+            nwg::Event::OnMenuItemSelected => {
                 if &handle == &self.clear_log_item {
                     app.on_log_view_clear();
                 } else if &handle == &self.exit_app_item {

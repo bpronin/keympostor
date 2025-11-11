@@ -1,12 +1,9 @@
-use crate::res::res_ids::{IDS_PROFILE_LOADED, IDS__AUTO_SWITCH_DISABLED_, IDS__AUTO_SWITCH_ENABLED_, IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_, IDS__PROCESSING_DISABLED_, IDS__PROCESSING_ENABLED_};
 use crate::res::RESOURCES;
-use crate::ui::ui_util::mono_font;
-use crate::util::str_fmt;
-use crate::{rs, rsf};
+use crate::ui::utils::mono_font;
+use crate::rs;
 use keympostor::keyboard::event::KeyEvent;
-use keympostor::profile::Profile;
 use native_windows_gui as nwg;
-use native_windows_gui::ControlHandle;
+use crate::res::res_ids::{IDS__AUTO_SWITCH_DISABLED_, IDS__AUTO_SWITCH_ENABLED_, IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_, IDS__PROCESSING_DISABLED_, IDS__PROCESSING_ENABLED_};
 
 const MAX_LOG_LINES: usize = 256;
 
@@ -24,13 +21,8 @@ impl LogView {
             .build(&mut self.view)
     }
 
-    pub(crate) fn view(&self) -> impl Into<ControlHandle> {
+    pub(crate) fn view(&self) -> impl Into<nwg::ControlHandle> {
         &self.view
-    }
-
-    pub(crate) fn init(&self) {
-        #[cfg(feature = "dev")]
-        self.appendln("* Debug UI");
     }
 
     pub(crate) fn on_key_event(&self, event: &KeyEvent) {
@@ -57,7 +49,7 @@ impl LogView {
             self.append_line(rs!(IDS__PROCESSING_DISABLED_));
         }
     }
-    
+
     pub(crate) fn on_auto_switch_profile_enabled(&self, is_enabled: bool) {
         if is_enabled {
             self.append_line(rs!(IDS__AUTO_SWITCH_ENABLED_));
@@ -72,10 +64,6 @@ impl LogView {
         } else {
             self.append_line(rs!(IDS__LOGGING_DISABLED_));
         }
-    }
-
-    pub(crate) fn on_profile_loaded(&self, profile: &Profile) {
-        self.append_line(rsf!(IDS_PROFILE_LOADED, profile.title))
     }
 
     pub(crate) fn clear(&self) {

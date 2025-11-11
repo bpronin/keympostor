@@ -1,6 +1,6 @@
 use crate::settings::WindowProfile;
 use crate::ui::App;
-use crate::util::hwnd;
+use crate::utils::hwnd;
 use error::Error;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};

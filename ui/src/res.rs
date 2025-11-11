@@ -9,14 +9,14 @@ macro_rules! rs {
     };
 }
 
-#[macro_export]
-macro_rules! rsf {
-    ($res_id:ident, $($arg:expr),* ) => {
-        &RESOURCES.with(|r|{
-            str_fmt(r.string($res_id), &[$($arg.to_string()),*])
-        })
-    };
-}
+// #[macro_export]
+// macro_rules! rsf {
+//     ($res_id:ident, $($arg:expr),* ) => {
+//         &RESOURCES.with(|r|{
+//             str_fmt(r.string($res_id), &[$($arg.to_string()),*])
+//         })
+//     };
+// }
 
 #[macro_export]
 macro_rules! r_icon {
@@ -70,23 +70,12 @@ mod test {
     //     play_sound(SOUND_GAME_LOCK_OFF);
     // }
 
-    use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_PROFILE_LOADED};
+    use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE};
     use crate::res::RESOURCES;
-    use crate::util::str_fmt;
 
     #[test]
     fn test_rs() {
         assert_eq!("Keympostor", rs!(IDS_APP_TITLE));
-    }
-
-    #[test]
-    fn test_rsf() {
-        let s = rsf!(IDS_PROFILE_LOADED, "Banana");
-        println!("{}", s);
-
-        // let s = fmt::format("{}", "Banana");
-        // let s = rsf!(IDS_PROFILE_LOADED, "Banana");
-        // assert_eq!("* Loaded profile: `Banana`", s);
     }
 
     #[test]

@@ -1,24 +1,24 @@
 use crate::res::RESOURCES;
 use crate::rs;
 use keympostor::profile::Profiles;
-use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, NwgError, Window};
+use native_windows_gui as nwg;
 
 use crate::res::res_ids::IDS_PROFILE;
 use crate::ui::App;
 
 #[derive(Default)]
 pub(crate) struct ProfilesMenu {
-    menu: Menu,
-    items: Vec<(MenuItem, String)>,
+    menu: nwg::Menu,
+    items: Vec<(nwg::MenuItem, String)>,
 }
 
 impl ProfilesMenu {
     pub(crate) fn build_ui(
         &mut self,
-        parent: &Window,
+        parent: &nwg::Window,
         profiles: &Profiles,
-    ) -> Result<(), NwgError> {
-        Menu::builder()
+    ) -> Result<(), nwg::NwgError> {
+        nwg::Menu::builder()
             .parent(parent)
             .text(rs!(IDS_PROFILE))
             .build(&mut self.menu)?;
@@ -28,12 +28,12 @@ impl ProfilesMenu {
         Ok(())
     }
 
-    fn build_items(&mut self, profiles: &Profiles) -> Result<(), NwgError> {
+    fn build_items(&mut self, profiles: &Profiles) -> Result<(), nwg::NwgError> {
         self.items = vec![];
 
         for (name, profile) in &profiles.items {
-            let mut item: MenuItem = MenuItem::default();
-            MenuItem::builder()
+            let mut item: nwg::MenuItem = nwg::MenuItem::default();
+            nwg::MenuItem::builder()
                 .parent(&self.menu)
                 .text(&profile.title)
                 .build(&mut item)?;
@@ -53,9 +53,9 @@ impl ProfilesMenu {
         }
     }
 
-    pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
+    pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: nwg::ControlHandle) {
         match evt {
-            Event::OnMenuItemSelected => {
+            nwg::Event::OnMenuItemSelected => {
                 for (item, profile_name) in &self.items {
                     if item.handle == handle {
                         app.on_select_profile(&Some(profile_name.to_string()));

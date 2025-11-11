@@ -1,10 +1,10 @@
-use crate::ui::ui_util::mono_font;
+use crate::ui::utils::mono_font;
 use keympostor::profile::Profile;
-use native_windows_gui::{ControlHandle, NwgError, Tab, TextBox};
+use native_windows_gui as nwg;
 
 #[derive(Default)]
 pub(crate) struct ProfileView {
-    view: TextBox,
+    view: nwg::TextBox,
 }
 
 impl ProfileView {
@@ -22,15 +22,15 @@ impl ProfileView {
 }
 
 impl ProfileView {
-    pub(crate) fn build_ui(&mut self, parent: &Tab) -> Result<(), NwgError> {
-        TextBox::builder()
+    pub(crate) fn build_ui(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
+        nwg::TextBox::builder()
             .parent(parent)
             .readonly(true)
             .font(Some(&mono_font(15)))
             .build(&mut self.view)
     }
 
-    pub(crate) fn view(&self) -> impl Into<ControlHandle> {
+    pub(crate) fn view(&self) -> impl Into<nwg::ControlHandle> {
         &self.view
     }
 }

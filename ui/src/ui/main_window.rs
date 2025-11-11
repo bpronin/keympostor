@@ -1,21 +1,20 @@
 use super::*;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LOG, IDS_PROFILE};
 use crate::res::RESOURCES;
-use crate::ui::ui_util::default_font;
+use crate::ui::utils::default_font;
 use crate::{r_icon, rs};
 use keympostor::keyboard::event::KeyEvent;
 use native_windows_gui as nwg;
-use nwg::NativeUi;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
 
-pub(crate) struct AppUi {
+pub(crate) struct MainWindow {
     app: Rc<App>,
     event_handler: RefCell<Option<nwg::EventHandler>>,
 }
 
-impl AppUi {
+impl MainWindow {
     fn build(mut app: App) -> Result<Self, nwg::NwgError> {
         nwg::Window::builder()
             .size((700, 300))
@@ -59,7 +58,7 @@ impl AppUi {
     }
 
     fn setup_event_handlers(&self) {
-        /* Components callbacks */
+        /* Components' callbacks */
 
         let app_rc = Rc::downgrade(&self.app);
         let kbd_handler_callback = move |event: &KeyEvent| {
@@ -68,7 +67,7 @@ impl AppUi {
             }
         };
         self.app
-            .keyboard_handler
+            .key_hook
             .set_listener(Some(Box::new(kbd_handler_callback)));
 
         /* Windows events */
@@ -80,14 +79,12 @@ impl AppUi {
                 app.main_menu.handle_event(&app, evt, handle);
                 app.win_watcher.handle_event(&app, evt, handle);
 
-                match evt {
-                    nwg::Event::OnWindowClose => {
-                        if &handle == &app.window {
-                            app.on_window_close();
-                        }
+                #[cfg(feature = "debug")]
+                if let nwg::Event::OnWindowClose = evt {
+                    if &handle == &app.window {
+                        app.on_app_exit()
                     }
-                    _ => {}
-                };
+                }
             }
         };
 
@@ -172,19 +169,19 @@ impl AppUi {
     }
 }
 
-impl NativeUi<AppUi> for App {
-    fn build_ui(app: App) -> Result<AppUi, nwg::NwgError> {
+impl nwg::NativeUi<MainWindow> for App {
+    fn build_ui(app: App) -> Result<MainWindow, nwg::NwgError> {
         nwg::Font::set_global_default(default_font(17).into());
 
-        let ui = AppUi::build(app)?;
-        ui.setup_event_handlers();
-        ui.layout()?;
+        let window = MainWindow::build(app)?;
+        window.setup_event_handlers();
+        window.layout()?;
 
-        Ok(ui)
+        Ok(window)
     }
 }
 
-impl Drop for AppUi {
+impl Drop for MainWindow {
     fn drop(&mut self) {
         let handler = self.event_handler.borrow();
         if handler.is_some() {
@@ -193,7 +190,7 @@ impl Drop for AppUi {
     }
 }
 
-impl Deref for AppUi {
+impl Deref for MainWindow {
     type Target = App;
 
     fn deref(&self) -> &App {

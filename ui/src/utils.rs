@@ -12,13 +12,13 @@ pub fn profile_path_from_args() -> Option<String> {
     args.next()
 }
 
-pub fn str_fmt(template: String, args: &[String]) -> String {
-    let mut s = template.to_string();
-    for arg in args {
-        s = s.replacen("{}", arg.as_str(), 1)
-    }
-    s
-}
+// pub fn str_fmt(template: String, args: &[String]) -> String {
+//     let mut s = template.to_string();
+//     for arg in args {
+//         s = s.replacen("{}", arg.as_str(), 1)
+//     }
+//     s
+// }
 
 pub fn hwnd(handle: ControlHandle) -> Option<HWND> {
     handle.hwnd().map(|h| HWND(h as _))

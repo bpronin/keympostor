@@ -42,6 +42,6 @@ pub(crate) fn warn(text: &str) {
 #[macro_export]
 macro_rules! ui_warn {
     ($($arg:tt)*) => {
-        crate::ui::ui_util::warn(&format!($($arg)*));
+        crate::ui::utils::warn(&format!($($arg)*));
     }
 }

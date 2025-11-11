@@ -8,7 +8,6 @@ pub const IDS_CLEAR_LOG: usize = 1002;
 pub const IDS_ENABLED: usize = 1003;
 pub const IDS_EXIT: usize = 1004;
 pub const IDS_FILE: usize = 1005;
-pub const IDS_PROFILE_LOADED: usize = 1006;
 pub const IDS_LOG: usize = 1007;
 pub const IDS_LOGGING_ENABLED: usize = 1008;
 pub const IDS_OPEN: usize = 1009;
