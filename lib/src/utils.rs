@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[macro_export]
 macro_rules! ifd {
     ($condition:expr, $a:expr, $b:expr) => {
@@ -90,7 +92,22 @@ macro_rules! deserialize_from_string {
 // }
 
 #[cfg(test)]
-mod test {
+pub(crate) mod test {
+    use serde::{Deserialize, Serialize};
+
+    /// To test serialization. TOML requires root node to be annotated
+    /// as #[derive(Serialize, Deserialize)]
+    #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+    pub(crate) struct SerdeWrapper<T> {
+        value: T,
+    }
+
+    impl<T> SerdeWrapper<T> {
+        pub(crate) fn new(value: T) -> Self {
+            Self { value }
+        }
+    }
+
     #[macro_export]
     macro_rules! assert_not {
         ($a:expr) => {

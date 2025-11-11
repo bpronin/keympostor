@@ -1,10 +1,10 @@
-use serde::Deserializer;
-use serde::Serializer;
 use crate::keyboard::action::KeyTransition::{Down, Up};
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::SELF_EVENT_MARKER;
 use crate::keyboard::key::Key;
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
+use serde::Deserializer;
+use serde::Serializer;
 use serde::{de, Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
@@ -256,11 +256,11 @@ mod tests {
     use crate::keyboard::event::SELF_EVENT_MARKER;
     use crate::keyboard::key::ScanCode;
     use crate::{key, sc_key};
-    use serde::{Deserialize, Serialize};
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VK_RETURN,
     };
+    use crate::utils::test::SerdeWrapper;
 
     #[macro_export]
     macro_rules! key_action {
@@ -274,12 +274,6 @@ mod tests {
         ($text:literal) => {
             $text.parse::<KeyActionSequence>().unwrap()
         };
-    }
-
-    /* TOML requires root node to be annotated as #[derive(Serialize, Deserialize)] */
-    #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-    struct Wrapper<T> {
-        value: T,
     }
 
     // Key transition
@@ -297,13 +291,13 @@ mod tests {
 
     #[test]
     fn test_key_transition_serialize() {
-        let source = Wrapper { value: Down };
+        let source = SerdeWrapper::new(Down);
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
 
-        let source = Wrapper { value: Up };
+        let source = SerdeWrapper::new(Up);
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
@@ -448,15 +442,15 @@ mod tests {
 
     #[test]
     fn test_key_action_serialize() {
-        let source = key_action!("A*");
+        let source = SerdeWrapper::new(key_action!("A*"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<KeyAction>(&text).unwrap();
+        let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
 
-        let source = key_action!("B^");
+        let source = SerdeWrapper::new(key_action!("B^"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<KeyAction>(&text).unwrap();
+        let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
     }
@@ -523,7 +517,7 @@ mod tests {
 
     #[test]
     fn test_key_action_sequence_serialize() {
-        let source = key_action_seq!("ENTER↓ → SHIFT↓");
+        let source = SerdeWrapper::new(key_action_seq!("ENTER↓ → SHIFT↓"));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 

@@ -1,11 +1,11 @@
 use crate::keyboard::consts::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
 use crate::keyboard::error::KeyError;
+use crate::serialize_to_string;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
-use crate::{deserialize_from_string, serialize_to_string};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {
@@ -134,20 +134,27 @@ impl Serialize for Key {
 }
 
 impl<'de> Deserialize<'de> for Key {
-    deserialize_from_string!();
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(de::Error::custom)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-    use serde::{Deserialize, Serialize};
     use crate::append_prefix;
-    use crate::keyboard::key::{Key, ScanCode, VirtualKey};
     use crate::keyboard::consts::{SCAN_CODES, VIRTUAL_KEYS};
     use crate::keyboard::error::KeyError;
+    use crate::keyboard::key::{Key, ScanCode, VirtualKey};
+    use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
     };
+    use crate::utils::test::SerdeWrapper;
 
     impl VirtualKey {
         pub(crate) fn from_name(name: &str) -> Result<VirtualKey, KeyError> {
@@ -432,29 +439,18 @@ mod tests {
         assert!(Key::from_str("BANANA").is_err());
     }
 
-    /* TOML requires root node to be annotated as #[derive(Serialize, Deserialize)] */
-    #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-    struct Wrapper<T> {
-        value: T,
-    }
-
     #[test]
     fn test_key_serialize() {
-        let source = Wrapper {
-            value: key!("ENTER"),
-        };
+        let source = SerdeWrapper::new(key!("ENTER"));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
 
-        let source = Wrapper {
-            value: key!("NUM_ENTER"),
-        };
+        let source = SerdeWrapper::new(key!("NUM_ENTER"));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
     }
-
 }

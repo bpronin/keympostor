@@ -1,12 +1,12 @@
-use serde::{Deserializer, Serializer};
 use crate::keyboard::action::KeyAction;
+use crate::keyboard::error::KeyError;
 use crate::keyboard::modifiers::KeyModifiers;
 use crate::keyboard::modifiers::KeyModifiers::Any;
+use crate::{deserialize_from_string, serialize_to_string};
+use serde::{de, Deserialize, Serialize};
+use serde::{Deserializer, Serializer};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use serde::{de, Deserialize, Serialize};
-use crate::keyboard::error::KeyError;
-use crate::{deserialize_from_string, serialize_to_string};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct KeyTrigger {
@@ -86,12 +86,13 @@ impl<'de> Deserialize<'de> for KeyTrigger {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::modifiers::ModifierKeys;
     use crate::keyboard::modifiers::KeyModifiers::{All, Any};
+    use crate::keyboard::modifiers::ModifierKeys;
     use crate::keyboard::modifiers::KM_LSHIFT;
     use crate::keyboard::modifiers::KM_NONE;
     use crate::keyboard::trigger::KeyAction;
     use crate::keyboard::trigger::KeyTrigger;
+    use crate::utils::test::SerdeWrapper;
     use crate::{key_action, key_mod};
     use std::str::FromStr;
 
@@ -243,29 +244,28 @@ mod tests {
 
     #[test]
     fn test_key_trigger_serialize() {
-        let source = key_trigger!("[LEFT_SHIFT] A*");
+        let source = SerdeWrapper::new(key_trigger!("[LEFT_SHIFT] A*"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<KeyTrigger>(&text).unwrap();
+        let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
 
-        let source = key_trigger!("[] B*");
+        let source = SerdeWrapper::new(key_trigger!("[] B*"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<KeyTrigger>(&text).unwrap();
+        let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
 
-        let source = key_trigger!("C^");
+        let source = SerdeWrapper::new(key_trigger!("C^"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<KeyTrigger>(&text).unwrap();
+        let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
 
-        let source = key_trigger!("D^");
+        let source = SerdeWrapper::new(key_trigger!("D^"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str::<KeyTrigger>(&text).unwrap();
+        let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
     }
-
 }

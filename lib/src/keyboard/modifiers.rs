@@ -200,28 +200,30 @@ impl FromStr for KeyModifiers {
     }
 }
 
+// impl Serialize for KeyModifiers {
+//     serialize_to_string!();
+// }
+//
+// impl<'de> Deserialize<'de> for KeyModifiers {
+//     deserialize_from_string!();
+// }
+
 #[cfg(test)]
 mod tests {
     use crate::keyboard::modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::modifiers::{
-        ModifierKeys, KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
+        KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
         KM_RSHIFT, KM_RWIN,
     };
     use std::str::FromStr;
-    use serde::{Deserialize, Serialize};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
+    use crate::utils::test::SerdeWrapper;
 
     #[macro_export]
     macro_rules! key_mod {
         ($text:literal) => {
             $text.parse::<ModifierKeys>().unwrap()
         };
-    }
-
-    /* TOML requires root node to be annotated as #[derive(Serialize, Deserialize)] */
-    #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
-    struct Wrapper<T> {
-        value: T,
     }
 
     #[test]
@@ -294,9 +296,7 @@ mod tests {
 
     #[test]
     fn test_key_modifier_keys_serialize() {
-        let source = Wrapper {
-            value: key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN"),
-        };
+        let source = SerdeWrapper::new(key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN"));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
@@ -305,19 +305,16 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_serialize() {
-        let source = Wrapper {
-            value: All(key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN")),
-        };
+        let source = SerdeWrapper::new(All(key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN")));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
 
-        let source = Wrapper { value: Any };
+        let source = SerdeWrapper::new(Any);
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
     }
-
 }

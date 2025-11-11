@@ -119,8 +119,8 @@ impl Serialize for KeyTransformRules {
         let mut map = serializer.serialize_map(Some(self.0.len()))?;
         for rule in &self.0 {
             map.serialize_entry(&rule.trigger, &rule.actions)
-                .unwrap_or_else(|_| {
-                    panic!("Failed to serialize rule: {}", rule);
+                .unwrap_or_else(|e| {
+                    panic!("Failed to serialize rule: {} {}", rule, e);
                 });
         }
         map.end()
