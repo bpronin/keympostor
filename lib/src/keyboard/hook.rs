@@ -2,7 +2,7 @@ use crate::ifd;
 use crate::keyboard::action::KeyAction;
 use crate::keyboard::action::KeyTransition::Down;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
-use crate::keyboard::modifiers::KeyModifiersState;
+use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::rules::KeyTransformRules;
 use crate::keyboard::transform::KeyTransformMap;
 use log::{debug, warn};
@@ -135,7 +135,7 @@ fn build_key_event<'a>(l_param: LPARAM) -> Result<KeyEvent<'a>, ()> {
 
     Ok(KeyEvent {
         action,
-        modifiers: KeyModifiersState::from(&unsafe { KEYBOARD_STATE }),
+        modifiers: ModifierKeys::from(&unsafe { KEYBOARD_STATE }),
         is_injected: input.flags.contains(LLKHF_INJECTED),
         is_private: input.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr(),
         time: input.time,

@@ -1,8 +1,8 @@
 use anyhow::{Context, Result};
+use keympostor::profile::Profiles;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use keympostor::profile::Profiles;
 
 const FILE_PATH: &str = "settings.toml";
 
@@ -75,7 +75,9 @@ impl WindowProfile {
 
 #[cfg(test)]
 pub mod tests {
+    use std::str::FromStr;
     use super::*;
+    use keympostor::profile::Profile;
 
     #[test]
     fn test_save_load_settings() {
@@ -99,13 +101,30 @@ pub mod tests {
                     profile: Some("game".to_string()),
                 },
             ]),
-            profiles: Some(Profiles{
-                items: vec![]
-            }),
+            profiles: Some(Profiles (
+                vec![
+                    Profile::from_str(
+                        r#"
+                        one
+                        First profile
+                        A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
+                        [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
+                        "#
+                    ).unwrap(),
+                    Profile::from_str(
+                        r#"
+                        game
+                        Game profile
+                        [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
+                        "#
+                    ).unwrap(),
+                ],
+            )),
         };
 
         assert!(settings.save("test_settings.toml").is_ok());
-        assert_eq!(settings, AppSettings::load("test_settings.toml"));
+        let loaded = AppSettings::load("test_settings.toml");
+        assert_eq!(settings, loaded);
         assert_eq!(AppSettings::default(), AppSettings::load(""));
     }
 }

@@ -1,5 +1,5 @@
 use crate::keyboard::action::KeyAction;
-use crate::keyboard::modifiers::KeyModifiersState;
+use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::rules::KeyTransformRule;
 use std::fmt::{Display, Formatter};
 
@@ -11,7 +11,7 @@ pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 #[derive(Clone, Debug, PartialEq)]
 pub struct KeyEvent<'a> {
     pub action: KeyAction,
-    pub modifiers: KeyModifiersState,
+    pub modifiers: ModifierKeys,
     pub rule: Option<&'a KeyTransformRule>,
     pub time: u32,
     pub is_injected: bool,
@@ -38,7 +38,7 @@ impl Display for KeyEvent<'_> {
 #[cfg(test)]
 mod tests {
     use windows::Win32::UI::Input::KeyboardAndMouse::VK_LSHIFT;
-    use crate::keyboard::modifiers::KeyModifiersState;
+    use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::event::KeyEvent;
 
 #[macro_export]
@@ -46,7 +46,7 @@ use crate::keyboard::event::KeyEvent;
         ($action:literal, $state:expr) => {
             KeyEvent {
                 action: $action.parse().unwrap(),
-                modifiers: KeyModifiersState::from($state),
+                modifiers: ModifierKeys::from($state),
                 time: 0,
                 is_injected: false,
                 is_private: false,

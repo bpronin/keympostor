@@ -1,11 +1,7 @@
 #[macro_export]
 macro_rules! ifd {
     ($condition:expr, $a:expr, $b:expr) => {
-        if $condition {
-            $a
-        } else {
-            $b
-        }
+        if $condition { $a } else { $b }
     };
 }
 
@@ -43,6 +39,32 @@ macro_rules! write_joined {
 
         Ok(())
     }};
+}
+
+#[macro_export]
+macro_rules! serialize_to_string {
+    () => {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+        where
+            S: Serializer,
+        {
+            serializer.serialize_str(&self.to_string())
+        }
+    };
+}
+
+#[macro_export]
+macro_rules! deserialize_from_string {
+    () => {
+        fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+        where
+            D: Deserializer<'de>,
+        {
+            String::deserialize(deserializer)?
+                .parse()
+                .map_err(de::Error::custom)
+        }
+    };
 }
 
 // pub(crate) fn play_sound(filename: &str) {

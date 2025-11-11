@@ -5,8 +5,6 @@ pub mod event;
 pub mod hook;
 pub mod key;
 pub mod modifiers;
-mod parse;
 pub mod rules;
-mod serialize;
 mod transform;
 pub mod trigger;

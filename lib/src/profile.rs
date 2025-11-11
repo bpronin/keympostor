@@ -51,10 +51,7 @@ impl FromStr for Profile {
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Profiles {
-    // pub items: HashMap<String, Profile>,
-    pub items: Vec<Profile>,
-}
+pub struct Profiles(pub Vec<Profile>);
 
 impl Profiles {
     // pub fn load(path: &str) -> Result<Self> {
@@ -86,11 +83,11 @@ impl Profiles {
                 }
             }
         }
-        Ok(Self { items })
+        Ok(Self(items))
     }
 
     pub fn get(&self, profile_name: &str) -> Option<&Profile> {
-        self.items.iter().filter(|p| p.name == profile_name).next()
+        self.0.iter().filter(|p| p.name == profile_name).next()
     }
 }
 
@@ -126,12 +123,10 @@ pub mod tests {
             Profile {
                 name: "test".to_string(),
                 title: "Test profile".to_string(),
-                rules: KeyTransformRules {
-                    items: vec![
-                        key_rule!("A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
-                        key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓: ENTER↓ → ENTER↑"),
-                    ],
-                }
+                rules: KeyTransformRules::from(vec![
+                    key_rule!("A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
+                    key_rule!("[LEFT_CTRL + LEFT_SHIFT] ENTER↓: ENTER↓ → ENTER↑"),
+                ],)
             },
             key_profile!(
                 r#"
@@ -183,7 +178,7 @@ pub mod tests {
         )
         .unwrap();
 
-        /* NOTE: rules deserialized as sorted map so check the "expected" order */
+        /* NOTE: rules deserialized as a sorted map so check the "expected" order */
         let expected = key_profile!(
             r#"
             test
@@ -200,7 +195,7 @@ pub mod tests {
     fn test_key_transform_profile_load() {
         let actual = Profile::load("etc/test_data/profiles/test.toml").unwrap();
 
-        /* NOTE: rules deserialized as sorted map so check the "expected" order */
+        /* NOTE: rules deserialized as a sorted map so check the "expected" order */
         let expected = key_profile!(
             "
             test
@@ -221,9 +216,11 @@ pub mod tests {
     #[test]
     fn test_key_transform_profile_save() {
         let actual = Profile::load("etc/test_data/profiles/test.toml").unwrap();
+
         actual
             .save("etc/test_data/profiles/test-copy.toml")
             .unwrap();
+
         let expected = Profile::load("etc/test_data/profiles/test-copy.toml").unwrap();
 
         assert_eq!(expected, actual);

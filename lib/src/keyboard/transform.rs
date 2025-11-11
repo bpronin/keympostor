@@ -13,7 +13,7 @@ pub(crate) struct KeyTransformMap {
 impl KeyTransformMap {
     pub(crate) fn new(rules: &KeyTransformRules) -> Self {
         let mut this = Self::default();
-        for rule in &rules.items {
+        for rule in rules.iter() {
             this.put(rule.clone())
         }
         this
@@ -36,7 +36,7 @@ impl KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::modifiers::KeyModifiersState;
+    use crate::keyboard::modifiers::ModifierKeys;
     use crate::keyboard::transform::KeyAction;
     use crate::keyboard::transform::KeyEvent;
     use crate::keyboard::transform::KeyTransformMap;

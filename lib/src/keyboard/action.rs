@@ -1,10 +1,14 @@
-use crate::keyboard::key::Key;
+use serde::Deserializer;
+use serde::Serializer;
 use crate::keyboard::action::KeyTransition::{Down, Up};
+use crate::keyboard::error::KeyError;
 use crate::keyboard::event::SELF_EVENT_MARKER;
-use crate::write_joined;
-use serde::{Deserialize, Serialize};
+use crate::keyboard::key::Key;
+use crate::{deserialize_from_string, serialize_to_string, write_joined};
+use serde::{de, Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
+use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
     KEYEVENTF_SCANCODE, VIRTUAL_KEY,
@@ -44,7 +48,7 @@ impl Display for KeyTransition {
     }
 }
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct KeyAction {
     pub key: Key,
     pub transition: KeyTransition,
@@ -91,10 +95,86 @@ impl Display for KeyAction {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+impl KeyAction {
+    pub(crate) fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
+        let ts = s.trim();
+        let mut list = Vec::with_capacity(2);
+
+        if let Some(k) = ts.strip_suffix("*^") {
+            let key = Key::from_str(k)?;
+            list.push(KeyAction {
+                key: key.clone(),
+                transition: Down,
+            });
+            list.push(KeyAction {
+                key,
+                transition: Up,
+            });
+        } else if let Some(k) = ts.strip_suffix("↓↑") {
+            let key = Key::from_str(k)?;
+            list.push(KeyAction {
+                key: key.clone(),
+                transition: Down,
+            });
+            list.push(KeyAction {
+                key,
+                transition: Up,
+            });
+        } else if let Some(k) = ts.strip_suffix('*') {
+            list.push(KeyAction {
+                key: Key::from_str(k)?,
+                transition: Down,
+            });
+        } else if let Some(k) = ts.strip_suffix('↓') {
+            list.push(KeyAction {
+                key: Key::from_str(k)?,
+                transition: Down,
+            });
+        } else if let Some(k) = ts.strip_suffix('^') {
+            list.push(KeyAction {
+                key: Key::from_str(k)?,
+                transition: Up,
+            });
+        } else if let Some(k) = ts.strip_suffix('↑') {
+            list.push(KeyAction {
+                key: Key::from_str(k)?,
+                transition: Up,
+            });
+        } else {
+            let key = Key::from_str(ts)?;
+            list.push(KeyAction {
+                key: key.clone(),
+                transition: Down,
+            });
+            list.push(KeyAction {
+                key,
+                transition: Up,
+            });
+        }
+
+        Ok(list)
+    }
+}
+
+impl FromStr for KeyAction {
+    type Err = KeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::from_str_expand(s)?[0])
+    }
+}
+
+impl Serialize for KeyAction {
+    serialize_to_string!();
+}
+
+impl<'de> Deserialize<'de> for KeyAction {
+    deserialize_from_string!();
+}
+
+#[derive(Clone)]
 pub struct KeyActionSequence {
     pub(crate) actions: Vec<KeyAction>,
-    #[serde(skip_serializing, skip_deserializing)]
     pub(crate) input: Vec<INPUT>,
 }
 
@@ -102,6 +182,33 @@ impl KeyActionSequence {
     pub fn new(actions: Vec<KeyAction>) -> Self {
         let input = actions.iter().map(|a| a.create_input()).collect();
         Self { actions, input }
+    }
+}
+
+impl KeyActionSequence {
+    pub(crate) fn from_str_list(s: &str) -> Result<Vec<Self>, KeyError> {
+        let mut down_actions = Vec::new();
+        let mut up_actions = Vec::new();
+
+        let mut is_expanded = false;
+        for part in s.split(|c| ['→', '>'].contains(&c)) {
+            let actions = KeyAction::from_str_expand(part)?;
+            down_actions.push(actions[0]);
+            if actions.len() == 1 {
+                up_actions.push(actions[0]);
+            } else {
+                up_actions.push(actions[1]);
+                is_expanded = true;
+            }
+        }
+
+        let mut list = Vec::new();
+        list.push(KeyActionSequence::new(down_actions));
+        if is_expanded {
+            list.push(KeyActionSequence::new(up_actions))
+        }
+
+        Ok(list)
     }
 }
 
@@ -125,14 +232,32 @@ impl Display for KeyActionSequence {
     }
 }
 
+impl FromStr for KeyActionSequence {
+    type Err = KeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self::from_str_list(s)?[0].clone())
+    }
+}
+
+impl Serialize for KeyActionSequence {
+    serialize_to_string!();
+}
+
+impl<'de> Deserialize<'de> for KeyActionSequence {
+    deserialize_from_string!();
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key::ScanCode;
     use crate::keyboard::action::Key;
     use crate::keyboard::action::KeyTransition::{Down, Up};
     use crate::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::keyboard::event::SELF_EVENT_MARKER;
+    use crate::keyboard::key::ScanCode;
     use crate::{key, sc_key};
+    use serde::{Deserialize, Serialize};
+    use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VK_RETURN,
     };
@@ -151,6 +276,14 @@ mod tests {
         };
     }
 
+    /* TOML requires root node to be annotated as #[derive(Serialize, Deserialize)] */
+    #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+    struct Wrapper<T> {
+        value: T,
+    }
+
+    // Key transition
+
     #[test]
     fn test_key_transition_display() {
         assert_eq!("↓", format!("{}", Down));
@@ -161,6 +294,23 @@ mod tests {
     fn test_key_transition_basics() {
         assert_eq!(Up, KeyTransition::default());
     }
+
+    #[test]
+    fn test_key_transition_serialize() {
+        let source = Wrapper { value: Down };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = Wrapper { value: Up };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+    }
+
+    // Key action
 
     #[test]
     fn test_key_action_display() {
@@ -217,9 +367,166 @@ mod tests {
     }
 
     #[test]
+    fn test_key_action_from_str() {
+        assert_eq!(
+            KeyAction {
+                key: key!("ENTER"),
+                transition: Down,
+            },
+            KeyAction::from_str("ENTER↓").unwrap()
+        );
+
+        assert_eq!(
+            KeyAction {
+                key: key!("F3"),
+                transition: Down,
+            },
+            KeyAction::from_str("    F3\n*").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_action_from_str_expand() {
+        assert_eq!(
+            vec![KeyAction {
+                key: key!("A"),
+                transition: Down,
+            }],
+            KeyAction::from_str_expand("A↓").unwrap()
+        );
+
+        assert_eq!(
+            vec![KeyAction {
+                key: key!("B"),
+                transition: Up,
+            }],
+            KeyAction::from_str_expand("B^").unwrap()
+        );
+
+        assert_eq!(
+            vec![
+                KeyAction {
+                    key: key!("A"),
+                    transition: Down,
+                },
+                KeyAction {
+                    key: key!("A"),
+                    transition: Up,
+                }
+            ],
+            KeyAction::from_str_expand("A*^").unwrap()
+        );
+
+        assert_eq!(
+            vec![
+                KeyAction {
+                    key: key!("A"),
+                    transition: Down,
+                },
+                KeyAction {
+                    key: key!("A"),
+                    transition: Up,
+                }
+            ],
+            KeyAction::from_str_expand("A↓↑").unwrap()
+        );
+
+        assert_eq!(
+            vec![
+                KeyAction {
+                    key: key!("A"),
+                    transition: Down,
+                },
+                KeyAction {
+                    key: key!("A"),
+                    transition: Up,
+                }
+            ],
+            KeyAction::from_str_expand("A").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_action_serialize() {
+        let source = key_action!("A*");
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<KeyAction>(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = key_action!("B^");
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str::<KeyAction>(&text).unwrap();
+
+        assert_eq!(source, actual);
+    }
+
+    // Key action sequence
+
+    #[test]
     fn test_key_action_sequence_display() {
         let actual = key_action_seq!("ENTER↓ → SHIFT↑");
 
         assert_eq!("ENTER↓ → SHIFT↑", format!("{}", actual));
+    }
+
+    #[test]
+    fn test_key_action_sequence_from_str_list() {
+        assert_eq!(
+            vec![KeyActionSequence::new(vec![key_action!("A↓")]),],
+            KeyActionSequence::from_str_list("A↓").unwrap()
+        );
+
+        assert_eq!(
+            vec![KeyActionSequence::new(vec![
+                key_action!("A↓"),
+                key_action!("B↑"),
+                key_action!("C↓")
+            ]),],
+            KeyActionSequence::from_str_list("A↓ → B↑ → C↓").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_action_sequence_from_str_list_expand() {
+        assert_eq!(
+            vec![key_action_seq!("A↓"), key_action_seq!("A↑")],
+            KeyActionSequence::from_str_list("A").unwrap()
+        );
+
+        assert_eq!(
+            vec![key_action_seq!("A↓"), key_action_seq!("A↑")],
+            KeyActionSequence::from_str_list("A↓↑").unwrap()
+        );
+
+        assert_eq!(
+            vec![key_action_seq!("A↓ → B↓"), key_action_seq!("A↑ → B↑")],
+            KeyActionSequence::from_str_list("A → B").unwrap()
+        );
+
+        assert_eq!(
+            vec![
+                key_action_seq!("A↓ → B↓ → C↓"),
+                key_action_seq!("A↑ → B↑ → C↓")
+            ],
+            KeyActionSequence::from_str_list("A → B → C↓").unwrap()
+        );
+
+        assert_eq!(
+            vec![
+                key_action_seq!("C↓ → A↓ → B↓"),
+                key_action_seq!("C↓ → A↑ → B↑")
+            ],
+            KeyActionSequence::from_str_list("C↓ → A → B").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_action_sequence_serialize() {
+        let source = key_action_seq!("ENTER↓ → SHIFT↓");
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
     }
 }

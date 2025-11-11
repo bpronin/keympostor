@@ -1,29 +1,31 @@
+use crate::keyboard::error::KeyError;
 use crate::keyboard::modifiers::KeyModifiers::All;
-use crate::write_joined;
+use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use core::ops;
 use ops::BitOr;
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     VIRTUAL_KEY, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT,
     VK_RWIN,
 };
 
-pub const KM_NONE: KeyModifiersState = KeyModifiersState(0);
-pub const KM_LSHIFT: KeyModifiersState = KeyModifiersState(1);
-pub const KM_RSHIFT: KeyModifiersState = KeyModifiersState(1 << 1);
-pub const KM_LCTRL: KeyModifiersState = KeyModifiersState(1 << 2);
-pub const KM_RCTRL: KeyModifiersState = KeyModifiersState(1 << 3);
-pub const KM_LALT: KeyModifiersState = KeyModifiersState(1 << 4);
-pub const KM_RALT: KeyModifiersState = KeyModifiersState(1 << 5);
-pub const KM_LWIN: KeyModifiersState = KeyModifiersState(1 << 6);
-pub const KM_RWIN: KeyModifiersState = KeyModifiersState(1 << 7);
+pub const KM_NONE: ModifierKeys = ModifierKeys(0);
+pub const KM_LSHIFT: ModifierKeys = ModifierKeys(1);
+pub const KM_RSHIFT: ModifierKeys = ModifierKeys(1 << 1);
+pub const KM_LCTRL: ModifierKeys = ModifierKeys(1 << 2);
+pub const KM_RCTRL: ModifierKeys = ModifierKeys(1 << 3);
+pub const KM_LALT: ModifierKeys = ModifierKeys(1 << 4);
+pub const KM_RALT: ModifierKeys = ModifierKeys(1 << 5);
+pub const KM_LWIN: ModifierKeys = ModifierKeys(1 << 6);
+pub const KM_RWIN: ModifierKeys = ModifierKeys(1 << 7);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
-pub struct KeyModifiersState(u8);
+pub struct ModifierKeys(u8);
 
-impl KeyModifiersState {
+impl ModifierKeys {
     pub(crate) const fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
     }
@@ -71,20 +73,14 @@ static MODIFIER_KEYS: [VIRTUAL_KEY; 8] = [
     VK_RWIN,
 ];
 
-impl From<&[bool; 256]> for KeyModifiersState {
-    fn from(keyboard_state: &[bool; 256]) -> Self {
-        let value = (0..MODIFIER_KEYS.len())
-            .filter(|modifier_index| {
-                let vk_code = MODIFIER_KEYS[*modifier_index].0;
-                keyboard_state[vk_code as usize]
-            })
-            .fold(0, |acc, flag_index| acc | (1 << flag_index));
-
-        Self(value as u8)
+impl BitOr for ModifierKeys {
+    type Output = Self;
+    fn bitor(self, other: Self) -> Self {
+        Self(self.0 | other.0)
     }
 }
 
-impl Display for KeyModifiersState {
+impl Display for ModifierKeys {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let mut names: Vec<&str> = Vec::new();
 
@@ -121,17 +117,68 @@ impl Display for KeyModifiersState {
     }
 }
 
-impl BitOr for KeyModifiersState {
-    type Output = Self;
-    fn bitor(self, other: Self) -> Self {
-        Self(self.0 | other.0)
+impl From<&[bool; 256]> for ModifierKeys {
+    fn from(keyboard_state: &[bool; 256]) -> Self {
+        let value = (0..MODIFIER_KEYS.len())
+            .filter(|modifier_index| {
+                let vk_code = MODIFIER_KEYS[*modifier_index].0;
+                keyboard_state[vk_code as usize]
+            })
+            .fold(0, |acc, flag_index| acc | (1 << flag_index));
+
+        Self(value as u8)
     }
+}
+
+impl FromStr for ModifierKeys {
+    type Err = KeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let ts = s.trim();
+        if ts.is_empty() {
+            Ok(KM_NONE)
+        } else {
+            let result = ts.split('+').fold(KM_NONE, |acc, part| {
+                acc | match part.trim() {
+                    "LEFT_SHIFT" => KM_LSHIFT,
+                    "RIGHT_SHIFT" => KM_RSHIFT,
+                    "SHIFT" => KM_LSHIFT | KM_RSHIFT,
+                    "LEFT_CTRL" => KM_LCTRL,
+                    "RIGHT_CTRL" => KM_RCTRL,
+                    "CTRL" => KM_LCTRL | KM_RCTRL,
+                    "LEFT_ALT" => KM_LALT,
+                    "RIGHT_ALT" => KM_RALT,
+                    "ALT" => KM_LALT | KM_RALT,
+                    "LEFT_WIN" => KM_LWIN,
+                    "RIGHT_WIN" => KM_RWIN,
+                    "WIN" => KM_LWIN | KM_RWIN,
+                    &_ => KM_NONE,
+                }
+            });
+
+            if result != KM_NONE {
+                Ok(result)
+            } else {
+                Err(KeyError::new(&format!(
+                    "Error parsing key modifiers: `{ts}`"
+                )))
+            }
+        }
+    }
+}
+
+impl Serialize for ModifierKeys {
+    serialize_to_string!();
+}
+
+impl<'de> Deserialize<'de> for ModifierKeys {
+    deserialize_from_string!();
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum KeyModifiers {
     Any,
-    All(KeyModifiersState),
+    All(ModifierKeys),
 }
 
 impl Display for KeyModifiers {
@@ -144,19 +191,37 @@ impl Display for KeyModifiers {
     }
 }
 
+impl FromStr for KeyModifiers {
+    type Err = KeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        /* `Any` is parsed outside from `None` */
+        Ok(All(ModifierKeys::from_str(s.trim())?))
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use crate::keyboard::modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::modifiers::{
-        KeyModifiers, KeyModifiersState, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
+        ModifierKeys, KeyModifiers, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
         KM_RSHIFT, KM_RWIN,
     };
+    use std::str::FromStr;
+    use serde::{Deserialize, Serialize};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
     #[macro_export]
     macro_rules! key_mod {
         ($text:literal) => {
-            $text.parse::<KeyModifiersState>().unwrap()
+            $text.parse::<ModifierKeys>().unwrap()
         };
+    }
+
+    /* TOML requires root node to be annotated as #[derive(Serialize, Deserialize)] */
+    #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+    struct Wrapper<T> {
+        value: T,
     }
 
     #[test]
@@ -189,7 +254,7 @@ mod tests {
     #[test]
     fn test_key_modifiers_capture() {
         let mut keys = [false; 256];
-        assert_eq!(KM_NONE, KeyModifiersState::from(&keys));
+        assert_eq!(KM_NONE, ModifierKeys::from(&keys));
 
         keys[VK_LSHIFT.0 as usize] = true;
         keys[VK_RSHIFT.0 as usize] = true;
@@ -198,7 +263,7 @@ mod tests {
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_LCTRL | KM_RWIN,
-            KeyModifiersState::from(&keys)
+            ModifierKeys::from(&keys)
         );
     }
 
@@ -211,4 +276,48 @@ mod tests {
         assert_eq!("[]", KeyModifiers::All(KM_NONE).to_string());
         assert_eq!("", KeyModifiers::Any.to_string());
     }
+
+    #[test]
+    fn test_key_modifiers_from_str() {
+        assert_eq!(All(KM_NONE), KeyModifiers::from_str("").unwrap());
+
+        assert_eq!(
+            All(KM_LSHIFT | KM_RSHIFT | KM_RWIN),
+            KeyModifiers::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_modifiers_from_str_fails() {
+        assert!(KeyModifiers::from_str("BANANA").is_err());
+    }
+
+    #[test]
+    fn test_key_modifier_keys_serialize() {
+        let source = Wrapper {
+            value: key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN"),
+        };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+    }
+
+    #[test]
+    fn test_key_modifiers_serialize() {
+        let source = Wrapper {
+            value: All(key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN")),
+        };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = Wrapper { value: Any };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+    }
+
 }

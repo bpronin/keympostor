@@ -30,7 +30,7 @@ impl ProfilesMenu {
     pub(crate) fn build_items(&self, profiles: &Profiles) -> Result<(), nwg::NwgError> {
         let mut items = vec![];
 
-        for profile in &profiles.items {
+        for profile in &profiles.0 {
             let mut item: nwg::MenuItem = nwg::MenuItem::default();
             nwg::MenuItem::builder()
                 .parent(&self.menu)

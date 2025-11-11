@@ -2,7 +2,10 @@ use crate::keyboard::consts::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
 use crate::keyboard::error::KeyError;
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
+use crate::{deserialize_from_string, serialize_to_string};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {
@@ -118,8 +121,26 @@ impl Display for Key {
     }
 }
 
+impl FromStr for Key {
+    type Err = KeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_name(s)
+    }
+}
+
+impl Serialize for Key {
+    serialize_to_string!();
+}
+
+impl<'de> Deserialize<'de> for Key {
+    deserialize_from_string!();
+}
+
 #[cfg(test)]
 mod tests {
+    use std::str::FromStr;
+    use serde::{Deserialize, Serialize};
     use crate::append_prefix;
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
     use crate::keyboard::consts::{SCAN_CODES, VIRTUAL_KEYS};
@@ -375,4 +396,65 @@ mod tests {
             )
         );
     }
+
+    #[test]
+    fn test_key_from_str() {
+        assert_eq!(
+            Key {
+                vk_code: 0x0D,
+                scan_code: 0x1C,
+                is_ext_scan_code: false,
+            },
+            Key::from_str("ENTER").unwrap()
+        );
+
+        assert_eq!(
+            Key {
+                vk_code: 0x0D,
+                scan_code: 0x1C,
+                is_ext_scan_code: true,
+            },
+            Key::from_str("NUM_ENTER").unwrap()
+        );
+
+        assert_eq!(
+            Key {
+                vk_code: 0x72,
+                scan_code: 0x3D,
+                is_ext_scan_code: false,
+            },
+            Key::from_str("F3").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_from_str_fails() {
+        assert!(Key::from_str("BANANA").is_err());
+    }
+
+    /* TOML requires root node to be annotated as #[derive(Serialize, Deserialize)] */
+    #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+    struct Wrapper<T> {
+        value: T,
+    }
+
+    #[test]
+    fn test_key_serialize() {
+        let source = Wrapper {
+            value: key!("ENTER"),
+        };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = Wrapper {
+            value: key!("NUM_ENTER"),
+        };
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+    }
+
 }

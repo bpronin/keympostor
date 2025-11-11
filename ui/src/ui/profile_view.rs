@@ -13,7 +13,7 @@ impl ProfileView {
         text.push_str(&format!("{}\r\n", profile.title));
         text.push_str(&"-".repeat(profile.title.len()));
         text.push_str("\r\n");
-        for rule in &profile.rules.items {
+        for rule in profile.rules.iter() {
             text.push_str(&format!("{:22} : {}\r\n", rule.trigger, rule.actions));
         }
 
