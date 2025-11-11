@@ -1,5 +1,5 @@
 name = "bad"
-title = "Bad profile"
+title = "Bad layout"
 
 [rules]
 "BANANA↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"

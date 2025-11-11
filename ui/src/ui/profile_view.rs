@@ -1,5 +1,5 @@
 use crate::ui::utils::mono_font;
-use keympostor::profile::Profile;
+use keympostor::layout::Layout;
 use native_windows_gui as nwg;
 
 #[derive(Default)]
@@ -8,7 +8,7 @@ pub(crate) struct ProfileView {
 }
 
 impl ProfileView {
-    pub(crate) fn update_ui(&self, profile: &Profile) {
+    pub(crate) fn update_ui(&self, profile: &Layout) {
         let mut text = String::new();
         text.push_str(&format!("{}\r\n", profile.title));
         text.push_str(&"-".repeat(profile.title.len()));

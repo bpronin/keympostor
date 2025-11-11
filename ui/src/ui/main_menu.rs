@@ -5,7 +5,7 @@ use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::profiles_menu::ProfilesMenu;
 use crate::ui::App;
-use keympostor::profile::Profiles;
+use keympostor::layout::Layouts;
 use log::warn;
 use native_windows_gui as nwg;
 
@@ -79,7 +79,7 @@ impl MainMenu {
         self.profile_menu.update_ui(current_profile_name);
     }
 
-    pub(crate) fn build_profiles_menu(&self, profiles: &Profiles) {
+    pub(crate) fn build_profiles_menu(&self, profiles: &Layouts) {
         self.profile_menu.build_items(profiles).unwrap_or_else(|e| {
             warn!("Failed to build profiles menu: {}", e);
         });

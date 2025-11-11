@@ -1,5 +1,5 @@
 name = "minimal"
-title = "Minimal profile"
+title = "Minimal layout"
 
 [rules]
 "Q↓" = "X↓"

@@ -1,5 +1,5 @@
 name = "test"
-title = "Test profile"
+title = "Test layout"
 
 [auto_activation]
 window_title = "Notepad|Ghrome"

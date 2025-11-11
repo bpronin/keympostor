@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use crate::res::RESOURCES;
 use crate::rs;
-use keympostor::profile::Profiles;
+use keympostor::layout::Layouts;
 use native_windows_gui as nwg;
 
 use crate::res::res_ids::IDS_PROFILE;
@@ -27,7 +27,7 @@ impl ProfilesMenu {
         Ok(())
     }
 
-    pub(crate) fn build_items(&self, profiles: &Profiles) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build_items(&self, profiles: &Layouts) -> Result<(), nwg::NwgError> {
         let mut items = vec![];
 
         for profile in &profiles.0 {

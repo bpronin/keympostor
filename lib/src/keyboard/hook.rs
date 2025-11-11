@@ -23,8 +23,8 @@ static mut IS_SILENT: bool = true;
 pub struct KeyboardHook {}
 
 impl KeyboardHook {
-    pub fn apply_rules(&self, profile: &KeyTransformRules) {
-        unsafe { TRANSFORM_MAP = Some(KeyTransformMap::new(profile)) };
+    pub fn apply_rules(&self, rules: &KeyTransformRules) {
+        unsafe { TRANSFORM_MAP = Some(KeyTransformMap::new(rules)) };
     }
 
     pub fn set_listener(&self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {

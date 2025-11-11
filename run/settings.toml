@@ -4,7 +4,7 @@ window_profile_enabled = true
 profile = "game"
 
 [main_window]
-position = [1250, 135]
+position = [1118, 159]
 size = [716, 339]
 selected_page = 0
 

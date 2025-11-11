@@ -10,7 +10,7 @@ use crate::utils::{get_window_size, profile_path_from_args, set_window_size};
 use crate::win_watch::WinWatcher;
 use crate::{r_icon, rs};
 use keympostor::keyboard::hook::KeyboardHook;
-use keympostor::profile::{Profiles};
+use keympostor::layout::{Layouts};
 use log::{debug, warn};
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
@@ -27,7 +27,7 @@ mod utils;
 #[derive(Default)]
 pub(crate) struct App {
     current_profile_name: RefCell<Option<String>>,
-    profiles: RefCell<Profiles>,
+    profiles: RefCell<Layouts>,
     key_hook: KeyboardHook,
     win_watcher: WinWatcher,
     window: nwg::Window,
@@ -46,7 +46,7 @@ pub(crate) struct App {
 
 impl App {
     fn read_settings(&self) {
-        if let Ok(profiles) = Profiles::load("profiles") {
+        if let Ok(profiles) = Layouts::load("profiles") {
             self.profiles.replace(profiles);
         } else {
             ui_warn!("Unable to load profiles.");

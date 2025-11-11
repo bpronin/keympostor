@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use keympostor::profile::Profiles;
+use keympostor::layout::Layouts;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -13,7 +13,7 @@ pub(crate) struct AppSettings {
     pub(crate) window_profile_enabled: bool,
     pub(crate) main_window: MainWindow,
     pub(crate) profile: Option<String>,
-    pub(crate) profiles: Option<Profiles>,
+    pub(crate) profiles: Option<Layouts>,
     pub(crate) window_profile: Option<Vec<WindowProfile>>,
 }
 
@@ -77,7 +77,7 @@ impl WindowProfile {
 pub mod tests {
     use std::str::FromStr;
     use super::*;
-    use keympostor::profile::Profile;
+    use keympostor::layout::Layout;
 
     #[test]
     fn test_save_load_settings() {
@@ -101,9 +101,9 @@ pub mod tests {
                     profile: Some("game".to_string()),
                 },
             ]),
-            profiles: Some(Profiles (
+            profiles: Some(Layouts(
                 vec![
-                    Profile::from_str(
+                    Layout::from_str(
                         r#"
                         one
                         First profile
@@ -111,7 +111,7 @@ pub mod tests {
                         [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
                         "#
                     ).unwrap(),
-                    Profile::from_str(
+                    Layout::from_str(
                         r#"
                         game
                         Game profile
