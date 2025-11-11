@@ -8,7 +8,6 @@ mod settings;
 mod ui;
 mod util;
 pub mod win_watch;
-pub mod key_handler;
 
 fn main() {
     SimpleLogger::new()

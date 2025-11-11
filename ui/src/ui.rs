@@ -1,4 +1,4 @@
-use crate::key_handler::KeyboardHandler;
+use keympostor::keyboard::KeyboardHandler;
 use crate::r_icon;
 use crate::res::res_ids::IDI_ICON_APP;
 use crate::res::RESOURCES;
