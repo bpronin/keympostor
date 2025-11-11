@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use keympostor::profile::Profiles;
 
 const FILE_PATH: &str = "settings.toml";
 
@@ -12,6 +13,7 @@ pub(crate) struct AppSettings {
     pub(crate) window_profile_enabled: bool,
     pub(crate) main_window: MainWindow,
     pub(crate) profile: Option<String>,
+    pub(crate) profiles: Option<Profiles>,
     pub(crate) window_profile: Option<Vec<WindowProfile>>,
 }
 
@@ -22,6 +24,7 @@ impl Default for AppSettings {
             logging_enabled: false,
             window_profile_enabled: false,
             main_window: Default::default(),
+            profiles: None,
             profile: None,
             window_profile: Default::default(),
         }
@@ -96,6 +99,9 @@ pub mod tests {
                     profile: Some("game".to_string()),
                 },
             ]),
+            profiles: Some(Profiles{
+                items: vec![]
+            }),
         };
 
         assert!(settings.save("test_settings.toml").is_ok());

@@ -1,13 +1,12 @@
-use std::collections::HashMap;
 use crate::keyboard::error::KeyError;
 use crate::keyboard::rules::KeyTransformRules;
 use anyhow::{Context, Result};
+use log::warn;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
-use log::{warn};
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Profile {
@@ -51,31 +50,47 @@ impl FromStr for Profile {
     }
 }
 
+#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Profiles {
-    pub items: HashMap<String, Profile>,
+    // pub items: HashMap<String, Profile>,
+    pub items: Vec<Profile>,
 }
 
 impl Profiles {
+    // pub fn load(path: &str) -> Result<Self> {
+    //     let mut items = HashMap::new();
+    //     for entry in fs::read_dir(Path::new(path))? {
+    //         let path = entry?.path();
+    //         if path.is_file() {
+    //             let filename = path.to_str().unwrap();
+    //             if let Ok(profile) = Profile::load(filename) {
+    //                 items.insert(profile.name.clone(), profile);
+    //             }else {
+    //                 warn!("Ignored corrupted profile: {}", filename);
+    //             }
+    //         }
+    //     }
+    //     Ok(Self { items })
+    // }
+
     pub fn load(path: &str) -> Result<Self> {
-        let mut items = HashMap::new();
+        let mut items = vec![];
         for entry in fs::read_dir(Path::new(path))? {
             let path = entry?.path();
             if path.is_file() {
                 let filename = path.to_str().unwrap();
                 if let Ok(profile) = Profile::load(filename) {
-                    items.insert(profile.name.clone(), profile);
-                }else {
+                    items.push(profile);
+                } else {
                     warn!("Ignored corrupted profile: {}", filename);
                 }
             }
         }
         Ok(Self { items })
     }
-}
 
-impl Default for Profiles {
-    fn default() -> Self {
-        Self::load("profiles").unwrap()
+    pub fn get(&self, profile_name: &str) -> Option<&Profile> {
+        self.items.iter().filter(|p| p.name == profile_name).next()
     }
 }
 

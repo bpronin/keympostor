@@ -44,7 +44,7 @@ impl MainWindow {
             .parent(&app.tab_container)
             .build(&mut app.tab_profile)?;
 
-        app.main_menu.build_ui(&mut app.window, &app.profiles)?;
+        app.main_menu.build_ui(&mut app.window)?;
         app.tray.build_ui(&mut app.window)?;
         app.log_view.build_ui(&mut app.tab_log)?;
         app.profile_view.build_ui(&mut app.tab_profile)?;

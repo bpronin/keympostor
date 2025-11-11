@@ -1,4 +1,4 @@
-use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE};
+use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_NO_PROFILE};
 use crate::res::RESOURCES;
 use crate::settings::AppSettings;
 use crate::ui::log_view::LogView;
@@ -10,15 +10,15 @@ use crate::utils::{get_window_size, profile_path_from_args, set_window_size};
 use crate::win_watch::WinWatcher;
 use crate::{r_icon, rs};
 use keympostor::keyboard::hook::KeyboardHook;
-use keympostor::profile::{Profile, Profiles};
-use log::debug;
+use keympostor::profile::{Profiles};
+use log::{debug, warn};
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 use std::cell::RefCell;
 
 mod log_view;
-mod main_window;
 mod main_menu;
+mod main_window;
 mod profile_view;
 mod profiles_menu;
 mod tray;
@@ -27,9 +27,9 @@ mod utils;
 #[derive(Default)]
 pub(crate) struct App {
     current_profile_name: RefCell<Option<String>>,
+    profiles: RefCell<Profiles>,
     key_hook: KeyboardHook,
     win_watcher: WinWatcher,
-    profiles: Profiles,
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
     tab_log_layout: nwg::FlexboxLayout,
@@ -46,21 +46,30 @@ pub(crate) struct App {
 
 impl App {
     fn read_settings(&self) {
+        if let Ok(profiles) = Profiles::load("profiles") {
+            self.profiles.replace(profiles);
+        } else {
+            ui_warn!("Unable to load profiles.");
+        }
+
         let settings = AppSettings::load_default();
+
+        self.main_menu.build_profiles_menu(&self.profiles.borrow());
 
         self.select_profile(&profile_path_from_args().or(settings.profile));
 
+        self.key_hook.set_silent(!settings.logging_enabled);
         self.key_hook.set_enabled(settings.processing_enabled);
-        self.log_view
-            .on_processing_enabled(self.key_hook.is_enabled());
 
         self.win_watcher.set_rules(settings.window_profile);
         self.win_watcher
             .set_enabled(settings.window_profile_enabled);
 
         self.log_view
+            .on_processing_enabled(self.key_hook.is_enabled());
+
+        self.log_view
             .on_auto_switch_profile_enabled(self.win_watcher.is_enabled());
-        self.key_hook.set_silent(!settings.logging_enabled);
 
         if let Some(position) = settings.main_window.position {
             self.window.set_position(position.0, position.1);
@@ -89,21 +98,17 @@ impl App {
         });
     }
 
-    fn find_profile(&self, profile_name: &Option<String>) -> &Profile {
-        if let Some(name) = profile_name {
-            if let Some(profile) = self.profiles.items.get(name) {
-                return profile;
-            }
+    fn select_profile(&self, profile_name: &Option<String>) {
+        let Some(name) = profile_name else {
+            warn!("Empty profile name");
+            return;
         };
 
-        self.profiles
-            .items
-            .get("default")
-            .expect("No default profile found.")
-    }
-
-    fn select_profile(&self, profile_name: &Option<String>) {
-        let profile = self.find_profile(profile_name);
+        let profiles = self.profiles.borrow();
+        let Some(profile) = profiles.get(name) else {
+            warn!("No profiles found");
+            return;
+        };
 
         debug!("Selected profile: {:?}", profile.name);
 
@@ -137,7 +142,7 @@ impl App {
     fn build_title(&self) -> String {
         match self.current_profile_name.borrow().as_ref() {
             Some(name) => format!("{} - {}", rs!(IDS_APP_TITLE), name),
-            None => format!("{}", rs!(IDS_APP_TITLE)),
+            None => format!("{} - {}", rs!(IDS_APP_TITLE), rs!(IDS_NO_PROFILE)),
         }
     }
 
@@ -185,7 +190,7 @@ impl App {
         nwg::stop_thread_dispatch();
     }
 
-    pub(crate) fn on_open_window(&self) {
+    pub(crate) fn on_show_main_window(&self) {
         self.window.set_visible(true);
     }
 

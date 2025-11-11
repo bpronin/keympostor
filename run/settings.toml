@@ -1,7 +1,6 @@
 processing_enabled = true
 logging_enabled = true
 window_profile_enabled = true
-profile = "default"
 
 [main_window]
 position = [876, 265]

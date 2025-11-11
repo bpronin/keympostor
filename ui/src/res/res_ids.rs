@@ -12,6 +12,7 @@ pub const IDS_LOG: usize = 1007;
 pub const IDS_LOGGING_ENABLED: usize = 1008;
 pub const IDS_OPEN: usize = 1009;
 pub const IDS_PROFILE: usize = 1010;
+pub const IDS_NO_PROFILE: usize = 1011;
 pub const IDS_TRAY_TIP: usize = 1012;
 pub const IDS__LOGGING_DISABLED_: usize = 1013;
 pub const IDS__LOGGING_ENABLED_: usize = 1014;

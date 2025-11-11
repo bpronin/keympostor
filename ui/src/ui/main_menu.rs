@@ -6,6 +6,7 @@ use crate::rs;
 use crate::ui::profiles_menu::ProfilesMenu;
 use crate::ui::App;
 use keympostor::profile::Profiles;
+use log::warn;
 use native_windows_gui as nwg;
 
 #[derive(Default)]
@@ -21,17 +22,13 @@ pub(crate) struct MainMenu {
 }
 
 impl MainMenu {
-    pub(crate) fn build_ui(
-        &mut self,
-        parent: &nwg::Window,
-        profiles: &Profiles,
-    ) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::Menu::builder()
             .parent(parent)
             .text(rs!(IDS_FILE))
             .build(&mut self.menu)?;
 
-        self.profile_menu.build_ui(parent, profiles)?;
+        self.profile_menu.build_ui(parent)?;
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
@@ -80,6 +77,12 @@ impl MainMenu {
             .set_checked(is_auto_switch_profile_enabled);
         self.toggle_logging_enabled_item.set_checked(!is_silent);
         self.profile_menu.update_ui(current_profile_name);
+    }
+
+    pub(crate) fn build_profiles_menu(&self, profiles: &Profiles) {
+        self.profile_menu.build_items(profiles).unwrap_or_else(|e| {
+            warn!("Failed to build profiles menu: {}", e);
+        });
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: nwg::ControlHandle) {

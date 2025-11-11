@@ -80,7 +80,7 @@ impl Tray {
             }
             nwg::Event::OnMenuItemSelected => {
                 if &handle == &self.open_app_item {
-                    app.on_open_window();
+                    app.on_show_main_window();
                 } else if &handle == &self.toggle_processing_enabled_item {
                     app.on_toggle_processing_enabled();
                 } else if &handle == &self.exit_app_item {
