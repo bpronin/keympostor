@@ -1,7 +1,4 @@
-use crate::res::res_ids::{
-    IDS_PROFILE_LOADED, IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_,
-    IDS__PROCESSING_DISABLED_, IDS__PROCESSING_ENABLED_,
-};
+use crate::res::res_ids::{IDS_PROFILE_LOADED, IDS__AUTO_SWITCH_DISABLED_, IDS__AUTO_SWITCH_ENABLED_, IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_, IDS__PROCESSING_DISABLED_, IDS__PROCESSING_ENABLED_};
 use crate::res::RESOURCES;
 use crate::ui::ui_util::mono_font;
 use crate::util::str_fmt;
@@ -63,11 +60,9 @@ impl LogView {
     
     pub(crate) fn on_auto_switch_profile_enabled(&self, is_enabled: bool) {
         if is_enabled {
-            // self.append_line(rs!(IDS__PROCESSING_ENABLED_));
-            self.append_line("AUTO-SWITCH ON");
+            self.append_line(rs!(IDS__AUTO_SWITCH_ENABLED_));
         } else {
-            // self.append_line(rs!(IDS__PROCESSING_DISABLED_));
-            self.append_line("AUTO-SWITCH OFF");
+            self.append_line(rs!(IDS__AUTO_SWITCH_DISABLED_));
         }
     }
 

@@ -1,4 +1,4 @@
-use keympostor::keyboard::KeyboardHandler;
+use keympostor::keyboard::hook::KeyboardHook;
 use crate::r_icon;
 use crate::res::res_ids::IDI_ICON_APP;
 use crate::res::RESOURCES;
@@ -27,7 +27,7 @@ mod ui_util;
 #[derive(Default)]
 pub(crate) struct App {
     current_profile_name: RefCell<Option<String>>,
-    keyboard_handler: KeyboardHandler,
+    keyboard_handler: KeyboardHook,
     win_watcher: WinWatcher,
     profiles: Profiles,
     window: nwg::Window,

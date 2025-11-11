@@ -34,6 +34,8 @@ IDI_ICON_GAME_LOCK_OFF ICON "res/img/GameLockOff.ico"
 #define IDS__PROCESSING_DISABLED_ 1015
 #define IDS__PROCESSING_ENABLED_ 1016
 #define IDS_AUTO_SWITCH_PROFILE 1017
+#define IDS__AUTO_SWITCH_DISABLED_ 1018
+#define IDS__AUTO_SWITCH_ENABLED_ 1019
 
 STRINGTABLE
 BEGIN
@@ -52,5 +54,7 @@ BEGIN
     IDS__LOGGING_ENABLED_ "* Logging enabled"
     IDS__PROCESSING_DISABLED_ "* Processing disabled"
     IDS__PROCESSING_ENABLED_ "* Processing enabled"
+    IDS__AUTO_SWITCH_DISABLED_ "* Auto switch disabled"
+    IDS__AUTO_SWITCH_ENABLED_ "* Auto switch enabled"
     IDS_AUTO_SWITCH_PROFILE "Auto switch profile"
 END

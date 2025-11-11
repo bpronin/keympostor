@@ -1,11 +1,11 @@
-processing_enabled = false
+processing_enabled = true
 logging_enabled = true
 window_profile_enabled = true
-profile = "default"
+profile = "game"
 
 [main_window]
-position = [1268, 71]
-size = [716, 339]
+position = [1191, 71]
+size = [793, 339]
 selected_page = 0
 
 [[window_profile]]

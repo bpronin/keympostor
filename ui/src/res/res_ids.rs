@@ -19,3 +19,5 @@ pub const IDS__LOGGING_ENABLED_: usize = 1014;
 pub const IDS__PROCESSING_DISABLED_: usize = 1015;
 pub const IDS__PROCESSING_ENABLED_: usize = 1016;
 pub const IDS_AUTO_SWITCH_PROFILE: usize = 1017;
+pub const IDS__AUTO_SWITCH_DISABLED_: usize = 1018;
+pub const IDS__AUTO_SWITCH_ENABLED_: usize = 1019;
