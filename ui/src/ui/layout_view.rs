@@ -3,17 +3,17 @@ use keympostor::layout::Layout;
 use native_windows_gui as nwg;
 
 #[derive(Default)]
-pub(crate) struct ProfileView {
+pub(crate) struct LayoutView {
     view: nwg::TextBox,
 }
 
-impl ProfileView {
-    pub(crate) fn update_ui(&self, profile: &Layout) {
+impl LayoutView {
+    pub(crate) fn update_ui(&self, layout: &Layout) {
         let mut text = String::new();
-        text.push_str(&format!("{}\r\n", profile.title));
-        text.push_str(&"-".repeat(profile.title.len()));
+        text.push_str(&format!("{}\r\n", layout.title));
+        text.push_str(&"-".repeat(layout.title.len()));
         text.push_str("\r\n");
-        for rule in profile.rules.iter() {
+        for rule in layout.rules.iter() {
             text.push_str(&format!("{:22} : {}\r\n", rule.trigger, rule.actions));
         }
 
@@ -21,7 +21,7 @@ impl ProfileView {
     }
 }
 
-impl ProfileView {
+impl LayoutView {
     pub(crate) fn build_ui(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
         nwg::TextBox::builder()
             .parent(parent)

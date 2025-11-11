@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::Path;
+use std::slice::Iter;
 use std::str::FromStr;
 
 #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -51,7 +52,7 @@ impl FromStr for Layout {
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Layouts(pub Vec<Layout>);
+pub struct Layouts(Vec<Layout>);
 
 impl Layouts {
     pub fn load(path: &str) -> Result<Self> {
@@ -71,7 +72,11 @@ impl Layouts {
     }
 
     pub fn get(&self, name: &str) -> Option<&Layout> {
-        self.0.iter().filter(|p| p.name == name).next()
+        self.iter().filter(|p| p.name == name).next()
+    }
+
+    pub fn iter(&self) -> Iter<'_, Layout> {
+        self.0.iter()
     }
 }
 
@@ -201,9 +206,7 @@ pub mod tests {
     fn test_layout_save() {
         let actual = Layout::load("etc/test_data/layouts/test.toml").unwrap();
 
-        actual
-            .save("etc/test_data/layouts/test-copy.toml")
-            .unwrap();
+        actual.save("etc/test_data/layouts/test-copy.toml").unwrap();
 
         let expected = Layout::load("etc/test_data/layouts/test-copy.toml").unwrap();
 

@@ -1,9 +1,9 @@
 use crate::res::res_ids::{
-    IDS_AUTO_SWITCH_PROFILE, IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED,
+    IDS_AUTO_SWITCH_LAYOUT, IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED,
 };
 use crate::res::RESOURCES;
 use crate::rs;
-use crate::ui::profiles_menu::ProfilesMenu;
+use crate::ui::layouts_menu::LayoutsMenu;
 use crate::ui::App;
 use keympostor::layout::Layouts;
 use log::warn;
@@ -12,13 +12,13 @@ use native_windows_gui as nwg;
 #[derive(Default)]
 pub(crate) struct MainMenu {
     menu: nwg::Menu,
-    profile_menu: ProfilesMenu,
+    layout_menu: LayoutsMenu,
     toggle_processing_enabled_item: nwg::MenuItem,
     toggle_logging_enabled_item: nwg::MenuItem,
     clear_log_item: nwg::MenuItem,
     separator: nwg::MenuSeparator,
     exit_app_item: nwg::MenuItem,
-    toggle_auto_switch_profile_item: nwg::MenuItem,
+    toggle_auto_switch_layout_item: nwg::MenuItem,
 }
 
 impl MainMenu {
@@ -28,7 +28,7 @@ impl MainMenu {
             .text(rs!(IDS_FILE))
             .build(&mut self.menu)?;
 
-        self.profile_menu.build_ui(parent)?;
+        self.layout_menu.build_ui(parent)?;
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
@@ -37,8 +37,8 @@ impl MainMenu {
 
         nwg::MenuItem::builder()
             .parent(&self.menu)
-            .text(rs!(IDS_AUTO_SWITCH_PROFILE))
-            .build(&mut self.toggle_auto_switch_profile_item)?;
+            .text(rs!(IDS_AUTO_SWITCH_LAYOUT))
+            .build(&mut self.toggle_auto_switch_layout_item)?;
 
         nwg::MenuSeparator::builder()
             .parent(&self.menu)
@@ -67,21 +67,21 @@ impl MainMenu {
     pub(crate) fn update_ui(
         &self,
         is_processing_enabled: bool,
-        is_auto_switch_profile_enabled: bool,
+        is_auto_switch_layout_enabled: bool,
         is_silent: bool,
-        current_profile_name: &Option<String>,
+        current_layout_name: &Option<String>,
     ) {
         self.toggle_processing_enabled_item
             .set_checked(is_processing_enabled);
-        self.toggle_auto_switch_profile_item
-            .set_checked(is_auto_switch_profile_enabled);
+        self.toggle_auto_switch_layout_item
+            .set_checked(is_auto_switch_layout_enabled);
         self.toggle_logging_enabled_item.set_checked(!is_silent);
-        self.profile_menu.update_ui(current_profile_name);
+        self.layout_menu.update_ui(current_layout_name);
     }
 
-    pub(crate) fn build_profiles_menu(&self, profiles: &Layouts) {
-        self.profile_menu.build_items(profiles).unwrap_or_else(|e| {
-            warn!("Failed to build profiles menu: {}", e);
+    pub(crate) fn build_layouts_menu(&self, layouts: &Layouts) {
+        self.layout_menu.build_items(layouts).unwrap_or_else(|e| {
+            warn!("Failed to build layouts menu: {}", e);
         });
     }
 
@@ -96,13 +96,13 @@ impl MainMenu {
                     app.on_toggle_logging_enabled();
                 } else if &handle == &self.toggle_processing_enabled_item {
                     app.on_toggle_processing_enabled();
-                } else if &handle == &self.toggle_auto_switch_profile_item {
-                    app.on_toggle_auto_switch_profile();
+                } else if &handle == &self.toggle_auto_switch_layout_item {
+                    app.on_toggle_auto_switch_layout();
                 }
             }
             _ => {}
         };
 
-        self.profile_menu.handle_event(app, evt, handle);
+        self.layout_menu.handle_event(app, evt, handle);
     }
 }

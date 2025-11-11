@@ -1,4 +1,4 @@
-use crate::settings::WindowProfile;
+use crate::settings::Profile;
 use crate::ui::App;
 use crate::utils::hwnd;
 use error::Error;
@@ -35,8 +35,8 @@ impl WinWatcher {
         self.handle.replace(handle);
     }
 
-    pub(crate) fn set_rules(&self, window_profiles: Option<Vec<WindowProfile>>) {
-        self.detector.borrow_mut().rules = window_profiles;
+    pub(crate) fn set_profiles(&self, profiles: Option<Vec<Profile>>) {
+        self.detector.borrow_mut().profiles = profiles;
     }
 
     pub(crate) fn is_enabled(&self) -> bool {
@@ -79,7 +79,7 @@ impl WinWatcher {
 
     fn invoke_detector(&self, app: &App) {
         if let Some(result) = self.detector.borrow_mut().detect() {
-            app.on_select_profile(&result);
+            app.on_select_layout(&result);
         }
     }
 }
@@ -92,14 +92,14 @@ impl Drop for WinWatcher {
 
 #[derive(Default)]
 struct WindowActivationDetector {
-    rules: Option<Vec<WindowProfile>>,
+    profiles: Option<Vec<Profile>>,
     last_hwnd: Option<HWND>,
 }
 
 impl WindowActivationDetector {
     fn detect(&mut self) -> Option<Option<String>> {
-        if let Some(rules) = &self.rules {
-            if let Some((hwnd, profile)) = detect_active_window(rules) {
+        if let Some(profile) = &self.profiles {
+            if let Some((hwnd, profile)) = detect_active_window(profile) {
                 let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
                 self.last_hwnd = Some(hwnd);
                 if activated {
@@ -116,10 +116,10 @@ impl WindowActivationDetector {
     }
 }
 
-fn detect_active_window(rules: &Vec<WindowProfile>) -> Option<(HWND, Option<String>)> {
-    rules.iter().find_map(|rule| {
-        let regex = rule.regex();
-        get_active_window(&regex).map(|hwnd| (hwnd, rule.profile.clone()))
+fn detect_active_window(profiles: &Vec<Profile>) -> Option<(HWND, Option<String>)> {
+    profiles.iter().find_map(|profile| {
+        let regex = profile.regex();
+        get_active_window(&regex).map(|hwnd| (hwnd, profile.layout.clone()))
     })
 }
 
@@ -169,17 +169,17 @@ fn get_window_title(hwnd: HWND) -> Result<String, Box<dyn Error>> {
     }
 }
 
-fn get_active_window(rule: &Regex) -> Option<HWND> {
+fn get_active_window(regex: &Regex) -> Option<HWND> {
     let hwnd = unsafe { GetForegroundWindow() };
     if !hwnd.is_invalid() {
         if let Ok(window_title) = get_window_title(hwnd) {
-            if rule.is_match(&window_title) {
+            if regex.is_match(&window_title) {
                 return Some(hwnd);
             }
         }
 
         if let Ok(process_name) = get_process_name(hwnd) {
-            if rule.is_match(&process_name) {
+            if regex.is_match(&process_name) {
                 return Some(hwnd);
             }
         }

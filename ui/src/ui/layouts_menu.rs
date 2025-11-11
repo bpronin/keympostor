@@ -4,16 +4,16 @@ use crate::rs;
 use keympostor::layout::Layouts;
 use native_windows_gui as nwg;
 
-use crate::res::res_ids::IDS_PROFILE;
+use crate::res::res_ids::IDS_LAYOUT;
 use crate::ui::App;
 
 #[derive(Default)]
-pub(crate) struct ProfilesMenu {
+pub(crate) struct LayoutsMenu {
     menu: nwg::Menu,
     items: RefCell<Vec<(nwg::MenuItem, String)>>,
 }
 
-impl ProfilesMenu {
+impl LayoutsMenu {
 
     pub(crate) fn build_ui(
         &mut self,
@@ -21,23 +21,23 @@ impl ProfilesMenu {
     ) -> Result<(), nwg::NwgError> {
         nwg::Menu::builder()
             .parent(parent)
-            .text(rs!(IDS_PROFILE))
+            .text(rs!(IDS_LAYOUT))
             .build(&mut self.menu)?;
 
         Ok(())
     }
 
-    pub(crate) fn build_items(&self, profiles: &Layouts) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build_items(&self, layouts: &Layouts) -> Result<(), nwg::NwgError> {
         let mut items = vec![];
 
-        for profile in &profiles.0 {
+        for layout in layouts.iter() {
             let mut item: nwg::MenuItem = nwg::MenuItem::default();
             nwg::MenuItem::builder()
                 .parent(&self.menu)
-                .text(&profile.title)
+                .text(&layout.title)
                 .build(&mut item)?;
 
-            items.push((item, profile.name.clone()));
+            items.push((item, layout.name.clone()));
         }
 
         self.items.replace(items);
@@ -45,10 +45,10 @@ impl ProfilesMenu {
         Ok(())
     }
 
-    pub(crate) fn update_ui(&self, current_profile_name: &Option<String>) {
-        for (item, item_profile_name) in self.items.borrow().iter() {
-            item.set_checked(match current_profile_name {
-                Some(profile_name) => item_profile_name == profile_name,
+    pub(crate) fn update_ui(&self, layout_name: &Option<String>) {
+        for (item, item_layout_name) in self.items.borrow().iter() {
+            item.set_checked(match layout_name {
+                Some(name) => item_layout_name == name,
                 None => false,
             });
         }
@@ -57,9 +57,9 @@ impl ProfilesMenu {
     pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: nwg::ControlHandle) {
         match evt {
             nwg::Event::OnMenuItemSelected => {
-                for (item, profile_name) in self.items.borrow().iter() {
+                for (item, layout_name) in self.items.borrow().iter() {
                     if item.handle == handle {
-                        app.on_select_profile(&Some(profile_name.to_string()));
+                        app.on_select_layout(&Some(layout_name.to_string()));
                         break;
                     }
                 }

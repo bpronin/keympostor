@@ -1,20 +1,19 @@
 use anyhow::{Context, Result};
-use keympostor::layout::Layouts;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
 
-const FILE_PATH: &str = "settings.toml";
+const SETTINGS_FILE: &str = "settings.toml";
+pub const LAYOUTS_PATH: &str = "layouts";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct AppSettings {
     pub(crate) processing_enabled: bool,
     pub(crate) logging_enabled: bool,
-    pub(crate) window_profile_enabled: bool,
+    pub(crate) layouts_enabled: bool,
     pub(crate) main_window: MainWindow,
-    pub(crate) profile: Option<String>,
-    pub(crate) profiles: Option<Layouts>,
-    pub(crate) window_profile: Option<Vec<WindowProfile>>,
+    pub(crate) layout: Option<String>,
+    pub(crate) profiles: Option<Vec<Profile>>,
 }
 
 impl Default for AppSettings {
@@ -22,11 +21,10 @@ impl Default for AppSettings {
         Self {
             processing_enabled: true,
             logging_enabled: false,
-            window_profile_enabled: false,
+            layouts_enabled: false,
             main_window: Default::default(),
-            profiles: None,
-            profile: None,
-            window_profile: Default::default(),
+            layout: None,
+            profiles: Default::default(),
         }
     }
 }
@@ -46,11 +44,11 @@ impl AppSettings {
     }
 
     pub(crate) fn load_default() -> Self {
-        Self::load(FILE_PATH)
+        Self::load(SETTINGS_FILE)
     }
 
     pub(crate) fn save_default(&self) -> Result<()> {
-        self.save(FILE_PATH)
+        self.save(SETTINGS_FILE)
     }
 }
 
@@ -62,12 +60,12 @@ pub(crate) struct MainWindow {
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct WindowProfile {
+pub(crate) struct Profile {
     pub(crate) rule: String,
-    pub(crate) profile: Option<String>,
+    pub(crate) layout: Option<String>,
 }
 
-impl WindowProfile {
+impl Profile {
     pub(crate) fn regex(&self) -> Regex {
         Regex::new(self.rule.as_str()).unwrap()
     }
@@ -75,51 +73,49 @@ impl WindowProfile {
 
 #[cfg(test)]
 pub mod tests {
-    use std::str::FromStr;
     use super::*;
-    use keympostor::layout::Layout;
 
     #[test]
     fn test_save_load_settings() {
         let settings = AppSettings {
             processing_enabled: false,
             logging_enabled: false,
-            window_profile_enabled: true,
-            profile: Some("test-profile".to_string()),
+            layouts_enabled: true,
+            layout: Some("test-layout".to_string()),
             main_window: MainWindow {
                 position: Some((0, 0)),
                 size: Some((100, 200)),
                 selected_page: Some(0),
             },
-            window_profile: Some(vec![
-                WindowProfile {
+            profiles: Some(vec![
+                Profile {
                     rule: "Chrome".to_string(),
-                    profile: Some("game".to_string()),
+                    layout: Some("game".to_string()),
                 },
-                WindowProfile {
+                Profile {
                     rule: "TOTALCMD64.EXE".to_string(),
-                    profile: Some("game".to_string()),
+                    layout: Some("game".to_string()),
                 },
             ]),
-            profiles: Some(Layouts(
-                vec![
-                    Layout::from_str(
-                        r#"
-                        one
-                        First profile
-                        A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
-                        [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
-                        "#
-                    ).unwrap(),
-                    Layout::from_str(
-                        r#"
-                        game
-                        Game profile
-                        [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
-                        "#
-                    ).unwrap(),
-                ],
-            )),
+            // layouts: Some(Layouts(
+            //     vec![
+            //         Layout::from_str(
+            //             r#"
+            //             one
+            //             First layout
+            //             A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
+            //             [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
+            //             "#
+            //         ).unwrap(),
+            //         Layout::from_str(
+            //             r#"
+            //             game
+            //             Game layout
+            //             [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
+            //             "#
+            //         ).unwrap(),
+            //     ],
+            // )),
         };
 
         assert!(settings.save("test_settings.toml").is_ok());

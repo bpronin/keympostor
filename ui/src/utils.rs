@@ -6,7 +6,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SWP_NOZORDER,
 };
 
-pub fn profile_path_from_args() -> Option<String> {
+pub fn layout_path_from_args() -> Option<String> {
     let mut args = env::args();
     args.next(); /* executable name */
     args.next()

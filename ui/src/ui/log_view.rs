@@ -50,7 +50,7 @@ impl LogView {
         }
     }
 
-    pub(crate) fn on_auto_switch_profile_enabled(&self, is_enabled: bool) {
+    pub(crate) fn on_auto_switch_layout_enabled(&self, is_enabled: bool) {
         if is_enabled {
             self.append_line(rs!(IDS__AUTO_SWITCH_ENABLED_));
         } else {

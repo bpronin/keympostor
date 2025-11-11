@@ -1,5 +1,5 @@
 use super::*;
-use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LOG, IDS_PROFILE};
+use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LOG, IDS_LAYOUT};
 use crate::res::RESOURCES;
 use crate::ui::utils::default_font;
 use crate::{r_icon, rs};
@@ -40,14 +40,14 @@ impl MainWindow {
             .build(&mut app.tab_log)?;
 
         nwg::Tab::builder()
-            .text(rs!(IDS_PROFILE))
+            .text(rs!(IDS_LAYOUT))
             .parent(&app.tab_container)
-            .build(&mut app.tab_profile)?;
+            .build(&mut app.tab_layouts)?;
 
         app.main_menu.build_ui(&mut app.window)?;
         app.tray.build_ui(&mut app.window)?;
         app.log_view.build_ui(&mut app.tab_log)?;
-        app.profile_view.build_ui(&mut app.tab_profile)?;
+        app.layout_view.build_ui(&mut app.tab_layouts)?;
 
         /* Wrap-up */
 
@@ -138,15 +138,15 @@ impl MainWindow {
             .child_flex_grow(1.0)
             .build(&self.tab_log_layout)?;
 
-        /* Profile tab layout */
+        /* Layout tab layout */
 
         nwg::FlexboxLayout::builder()
             .parent(&self.tab_container)
             .padding(TAB_PADDING)
-            .child(self.profile_view.view())
+            .child(self.layout_view.view())
             .child_margin(TAB_MARGIN)
             .child_flex_grow(1.0)
-            .build(&self.tab_profiles_layout)?;
+            .build(&self.tab_layouts_layout)?;
 
         /* Main window layout */
 
