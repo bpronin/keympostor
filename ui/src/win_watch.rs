@@ -1,5 +1,6 @@
-use crate::settings::Profile;
+use crate::profile::Profile;
 use crate::ui::App;
+use crate::utils::raw_hwnd;
 use error::Error;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
@@ -18,7 +19,6 @@ use windows::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
 };
-use crate::utils::raw_hwnd;
 
 const DETECTOR_TIMER: u32 = 19717;
 const WIN_WATCH_INTERVAL: u32 = 500;
@@ -81,7 +81,7 @@ impl WinWatcher {
         if let Some(result) = self.detector.borrow_mut().detect() {
             match result {
                 Some(profile) => app.on_select_layout(&profile.layout),
-                None => app.on_select_layout(&None)
+                None => app.on_select_layout(&None),
             }
         }
     }
@@ -122,9 +122,9 @@ impl WindowActivationDetector {
 }
 
 fn detect_active_window(profiles: &Vec<Profile>) -> Option<(HWND, &Profile)> {
-    profiles.iter().find_map(|profile| {
-        get_active_window(&profile.regex()).map(|hwnd| (hwnd, profile))
-    })
+    profiles
+        .iter()
+        .find_map(|profile| get_active_window(&profile.regex()).map(|hwnd| (hwnd, profile)))
 }
 
 fn get_process_name(hwnd: HWND) -> Result<String, Box<dyn Error>> {

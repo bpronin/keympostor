@@ -1,14 +1,15 @@
 #![cfg_attr(not(feature = "console"), windows_subsystem = "windows")]
 
-use ui::run_app;
 use log::LevelFilter;
 use simple_logger::SimpleLogger;
+use ui::run_app;
 
-mod ui;
+mod profile;
 mod res;
 mod settings;
+mod ui;
 mod utils;
-pub mod win_watch;
+mod win_watch;
 
 fn main() {
     SimpleLogger::new()

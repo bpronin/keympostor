@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use crate::profile::Profile;
 
 const SETTINGS_FILE: &str = "settings.toml";
 pub const LAYOUTS_PATH: &str = "layouts";
@@ -59,18 +59,6 @@ pub(crate) struct MainWindow {
     pub(crate) selected_page: Option<usize>,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Profile {
-    pub(crate) rule: String,
-    pub(crate) layout: Option<String>,
-}
-
-impl Profile {
-    pub(crate) fn regex(&self) -> Regex {
-        Regex::new(self.rule.as_str()).unwrap()
-    }
-}
-
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -89,11 +77,13 @@ pub mod tests {
             },
             profiles: Some(vec![
                 Profile {
-                    rule: "Chrome".to_string(),
+                    name: "chrome".to_string(),
+                    activation_rule: "Chrome".to_string(),
                     layout: Some("game".to_string()),
                 },
                 Profile {
-                    rule: "TOTALCMD64.EXE".to_string(),
+                    name: "tc".to_string(),
+                    activation_rule: "TOTALCMD64.EXE".to_string(),
                     layout: Some("game".to_string()),
                 },
             ]),
