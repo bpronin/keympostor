@@ -20,14 +20,14 @@ pub fn layout_path_from_args() -> Option<String> {
 //     s
 // }
 
-pub fn hwnd(handle: ControlHandle) -> Option<HWND> {
+pub fn raw_hwnd(handle: ControlHandle) -> Option<HWND> {
     handle.hwnd().map(|h| HWND(h as _))
 }
 
 /// workaround for nwg bug
 pub fn get_window_size(handle: ControlHandle) -> (u32, u32) {
     unsafe {
-        let hwnd = hwnd(handle).unwrap();
+        let hwnd = raw_hwnd(handle).unwrap();
         let mut r: RECT = mem::zeroed();
         GetWindowRect(hwnd, &mut r).unwrap();
         ((r.right - r.left) as u32, (r.bottom - r.top) as u32)
@@ -38,7 +38,7 @@ pub fn get_window_size(handle: ControlHandle) -> (u32, u32) {
 pub fn set_window_size(handle: ControlHandle, size: (u32, u32)) {
     unsafe {
         SetWindowPos(
-            hwnd(handle).unwrap(),
+            raw_hwnd(handle).unwrap(),
             None,
             0,
             0,

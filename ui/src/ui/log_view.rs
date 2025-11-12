@@ -25,7 +25,7 @@ impl LogView {
         &self.view
     }
 
-    pub(crate) fn on_key_event(&self, event: &KeyEvent) {
+    pub(crate) fn add_key_event(&self, event: &KeyEvent) {
         let line = format!(
             "{:1}{:1}{:1} | [{:8}] {:20}| {:22}| {:18} | {:1} | T: {:9} ",
             if event.rule.is_some() { "!" } else { "" },
@@ -42,7 +42,7 @@ impl LogView {
         self.append_line(&line);
     }
 
-    pub(crate) fn on_processing_enabled(&self, is_enabled: bool) {
+    pub(crate) fn add_processing_enabled(&self, is_enabled: bool) {
         if is_enabled {
             self.append_line(rs!(IDS__PROCESSING_ENABLED_));
         } else {
@@ -50,7 +50,7 @@ impl LogView {
         }
     }
 
-    pub(crate) fn on_auto_switch_layout_enabled(&self, is_enabled: bool) {
+    pub(crate) fn add_auto_switch_layout_enabled(&self, is_enabled: bool) {
         if is_enabled {
             self.append_line(rs!(IDS__AUTO_SWITCH_ENABLED_));
         } else {
@@ -58,7 +58,7 @@ impl LogView {
         }
     }
 
-    pub(crate) fn on_log_enabled(&self, is_enabled: bool) {
+    pub(crate) fn add_logging_enabled(&self, is_enabled: bool) {
         if is_enabled {
             self.append_line(rs!(IDS__LOGGING_ENABLED_));
         } else {

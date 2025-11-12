@@ -6,7 +6,7 @@ use crate::ui::log_view::LogView;
 use crate::ui::main_menu::MainMenu;
 use crate::ui::tray::Tray;
 use crate::ui_warn;
-use crate::utils::{get_window_size, layout_path_from_args, set_window_size};
+use crate::utils::{get_window_size, layout_path_from_args, raw_hwnd, set_window_size};
 use crate::win_watch::WinWatcher;
 use crate::{r_icon, rs};
 use keympostor::keyboard::hook::KeyboardHook;
@@ -58,17 +58,17 @@ impl App {
 
         self.select_layout(&layout_path_from_args().or(settings.layout));
 
-        self.key_hook.set_silent(!settings.logging_enabled);
+        self.key_hook.set_notify_enabled(settings.logging_enabled);
         self.key_hook.set_enabled(settings.processing_enabled);
 
         self.win_watcher.set_profiles(settings.profiles);
         self.win_watcher.set_enabled(settings.layouts_enabled);
 
         self.log_view
-            .on_processing_enabled(self.key_hook.is_enabled());
+            .add_processing_enabled(self.key_hook.is_enabled());
 
         self.log_view
-            .on_auto_switch_layout_enabled(self.win_watcher.is_enabled());
+            .add_auto_switch_layout_enabled(self.win_watcher.is_enabled());
 
         if let Some(position) = settings.main_window.position {
             self.window.set_position(position.0, position.1);
@@ -87,7 +87,7 @@ impl App {
         settings.layout = self.current_layout.borrow().to_owned();
         settings.processing_enabled = self.key_hook.is_enabled();
         settings.layouts_enabled = self.win_watcher.is_enabled();
-        settings.logging_enabled = !self.key_hook.is_silent();
+        settings.logging_enabled = self.key_hook.is_notify_enabled();
         settings.main_window.position = Some(self.window.position());
         settings.main_window.size = Some(get_window_size(self.window.handle));
         settings.main_window.selected_page = Some(self.tab_container.selected_tab());
@@ -111,11 +111,10 @@ impl App {
 
         debug!("Selected layout: {:?}", layout.name);
 
+        self.key_hook.apply_rules(&layout.rules);
         self.current_layout.replace(Some(layout.name.clone()));
         self.layout_view.update_ui(layout);
-        self.key_hook.apply_rules(&layout.rules);
         self.update_controls();
-
         self.write_settings();
     }
 
@@ -130,7 +129,7 @@ impl App {
         self.main_menu.update_ui(
             self.key_hook.is_enabled(),
             self.win_watcher.is_enabled(),
-            self.key_hook.is_silent(),
+            self.key_hook.is_notify_enabled(),
             &self.current_layout.borrow(),
         );
 
@@ -146,12 +145,13 @@ impl App {
 
     pub(crate) fn run(&self) {
         self.win_watcher.init(self.window.handle);
+        self.key_hook.init(raw_hwnd(self.window.handle));
         self.window.set_icon(Some(r_icon!(IDI_ICON_APP))); /* bug workaround */
 
         self.read_settings();
         self.update_controls();
 
-        self.log_view.on_log_enabled(!self.key_hook.is_silent());
+        self.log_view.add_logging_enabled(self.key_hook.is_notify_enabled());
 
         #[cfg(feature = "debug")]
         self.window.set_visible(true);
@@ -161,24 +161,26 @@ impl App {
 
     pub(crate) fn on_toggle_processing_enabled(&self) {
         self.key_hook.set_enabled(!self.key_hook.is_enabled());
+
         self.log_view
-            .on_processing_enabled(self.key_hook.is_enabled());
+            .add_processing_enabled(self.key_hook.is_enabled());
         self.update_controls();
         self.write_settings();
     }
 
     pub(crate) fn on_toggle_logging_enabled(&self) {
-        self.key_hook.set_silent(!self.key_hook.is_silent());
+        self.key_hook.set_notify_enabled(!self.key_hook.is_notify_enabled());
 
-        self.log_view.on_log_enabled(!self.key_hook.is_silent());
+        self.log_view.add_logging_enabled(self.key_hook.is_notify_enabled());
         self.update_controls();
         self.write_settings();
     }
 
     pub(crate) fn on_toggle_auto_switch_layout(&self) {
         self.win_watcher.set_enabled(!self.win_watcher.is_enabled());
+
         self.log_view
-            .on_auto_switch_layout_enabled(self.win_watcher.is_enabled());
+            .add_auto_switch_layout_enabled(self.win_watcher.is_enabled());
         self.update_controls();
         self.write_settings();
     }

@@ -1,4 +1,3 @@
-use crate::ifd;
 use crate::keyboard::action::KeyAction;
 use crate::keyboard::action::KeyTransition::Down;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
@@ -6,37 +5,33 @@ use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::rules::KeyTransformRules;
 use crate::keyboard::transform::KeyTransformMap;
 use log::{debug, warn};
+use std::cell::RefCell;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
-//todo: bug: when holding one key on numpad, press and release another, the key events are not sent
-//todo: probably raw handler should be used instead of hook
-
-static mut HOOK_HANDLE: Option<HHOOK> = None;
-static mut KEYBOARD_STATE: [bool; 256] = [false; 256];
-static mut TRANSFORM_MAP: Option<KeyTransformMap> = None;
-static mut LISTENER: Option<Box<dyn Fn(&KeyEvent)>> = None;
-static mut IS_SILENT: bool = true;
+pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
 
 #[derive(Debug, Default)]
-pub struct KeyboardHook {}
+pub struct KeyboardHook {
+    owner: RefCell<Option<HWND>>,
+}
 
 impl KeyboardHook {
-    pub fn apply_rules(&self, rules: &KeyTransformRules) {
-        unsafe { TRANSFORM_MAP = Some(KeyTransformMap::new(rules)) };
+    pub fn init(&self, owner: Option<HWND>) {
+        self.owner.replace(owner);
     }
 
-    pub fn set_listener(&self, listener: Option<Box<dyn Fn(&KeyEvent)>>) {
-        unsafe { LISTENER = listener }
+    pub fn apply_rules(&self, rules: &KeyTransformRules) {
+        unsafe {
+            HOOK.transform_map = Some(KeyTransformMap::new(rules));
+        }
     }
 
     pub fn is_enabled(&self) -> bool {
-        unsafe {
-            match HOOK_HANDLE {
-                Some(_) => true,
-                None => false,
-            }
+        match unsafe { HOOK.handle } {
+            Some(_) => true,
+            None => false,
         }
     }
 
@@ -48,14 +43,21 @@ impl KeyboardHook {
         }
     }
 
-    pub fn is_silent(&self) -> bool {
-        unsafe { IS_SILENT }
+    pub fn is_notify_enabled(&self) -> bool {
+        match unsafe { HOOK.listener } {
+            Some(_) => true,
+            None => false,
+        }
     }
 
-    pub fn set_silent(&self, silent: bool) {
-        unsafe { IS_SILENT = silent }
-
-        debug!("Silent processing is {}", ifd!(silent, "on", "off"));
+    pub fn set_notify_enabled(&self, enabled: bool) {
+        unsafe {
+            HOOK.listener = if enabled {
+                self.owner.borrow().to_owned()
+            } else {
+                None
+            };
+        }
     }
 }
 
@@ -63,49 +65,70 @@ impl Drop for KeyboardHook {
     fn drop(&mut self) {
         uninstall_hook();
         unsafe {
-            TRANSFORM_MAP = None;
-            LISTENER = None;
+            HOOK.transform_map = None;
+            HOOK.listener = None;
         }
     }
 }
 
-pub(crate) fn install_hook() {
+struct HookState {
+    handle: Option<HHOOK>,
+    listener: Option<HWND>,
+    transform_map: Option<KeyTransformMap>,
+    keyboard_state: [bool; 256],
+}
+
+static mut HOOK: HookState = {
+    HookState {
+        handle: None,
+        listener: None,
+        transform_map: None,
+        keyboard_state: [false; 256],
+    }
+};
+
+extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+    if code == HC_ACTION as i32 {
+        if handle_key_action(l_param) {
+            return LRESULT(1);
+        }
+    }
+    unsafe { CallNextHookEx(HOOK.handle, code, w_param, l_param) }
+}
+
+fn install_hook() {
     unsafe {
-        if let Some(_) = HOOK_HANDLE {
+        if let Some(_) = HOOK.handle {
             warn!("Keyboard hook already installed");
-            return
+
+            return;
         }
 
         match SetWindowsHookExW(WH_KEYBOARD_LL, Some(keyboard_proc), None, 0) {
             Ok(handle) => {
-                HOOK_HANDLE = Some(handle);
+                HOOK.handle = Some(handle);
+
                 debug!("Keyboard hook installed");
             }
             Err(e) => {
-                HOOK_HANDLE = None;
+                HOOK.handle = None;
+
                 warn!("Failed to install keyboard hook: {}", e);
             }
         }
     }
 }
 
-pub(crate) fn uninstall_hook() {
+fn uninstall_hook() {
     unsafe {
-        if let Some(handle) = HOOK_HANDLE {
+        if let Some(handle) = HOOK.handle {
             match UnhookWindowsHookEx(handle) {
                 Ok(_) => debug!("Keyboard hook uninstalled"),
                 Err(e) => warn!("Failed to uninstall keyboard hook: {}", e),
             }
-            HOOK_HANDLE = None;
+            HOOK.handle = None;
         }
     }
-}
-
-extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-    if code == HC_ACTION as i32 && handle_key_action(l_param) {
-        return LRESULT(1);
-    }
-    unsafe { CallNextHookEx(HOOK_HANDLE, code, w_param, l_param) }
 }
 
 fn handle_key_action(l_param: LPARAM) -> bool {
@@ -115,27 +138,31 @@ fn handle_key_action(l_param: LPARAM) -> bool {
 
     if !(event.is_injected && event.is_private) {
         unsafe {
-            if let Some(ref map) = TRANSFORM_MAP {
+            if let Some(ref map) = HOOK.transform_map {
                 event.rule = map.get(&event);
             }
         }
     }
 
-    debug!("EVENT: {}", event);
+    debug!("Processing event: {}", event);
 
-    notify_listener(&event);
-    apply_transform(&event)
+    let result = apply_transform(&event);
+    notify_listener(event);
+
+    result
 }
 
 fn build_key_event<'a>(l_param: LPARAM) -> Result<KeyEvent<'a>, ()> {
     let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
-
     let action = KeyAction::from_keyboard_input(&input);
-    unsafe { KEYBOARD_STATE[action.key.vk_code as usize] = action.transition == Down }
+
+    unsafe {
+        HOOK.keyboard_state[action.key.vk_code as usize] = action.transition == Down;
+    }
 
     Ok(KeyEvent {
         action,
-        modifiers: ModifierKeys::from(&unsafe { KEYBOARD_STATE }),
+        modifiers: ModifierKeys::from(&unsafe { HOOK.keyboard_state }),
         is_injected: input.flags.contains(LLKHF_INJECTED),
         is_private: input.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr(),
         time: input.time,
@@ -144,21 +171,21 @@ fn build_key_event<'a>(l_param: LPARAM) -> Result<KeyEvent<'a>, ()> {
 }
 
 fn apply_transform(event: &KeyEvent) -> bool {
-    let Some(rule) = event.rule else { return false };
+    if let Some(rule) = event.rule {
+        debug!("Applying rule: {}", rule);
 
-    debug!("RULE: {}", rule);
-
-    unsafe { SendInput(&rule.actions.input, size_of::<INPUT>() as i32) };
-    true
+        unsafe { SendInput(&rule.actions.input, size_of::<INPUT>() as i32) };
+        true
+    } else {
+        false
+    }
 }
 
-fn notify_listener(event: &KeyEvent) {
+fn notify_listener(event: KeyEvent) {
     unsafe {
-        if IS_SILENT {
-            return;
-        }
-        if let Some(ref listener) = LISTENER {
-            listener(event)
+        if let Some(ref hwnd) = HOOK.listener {
+            let l_param = LPARAM(&event as *const _ as isize);
+            SendMessageW(*hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l_param));
         }
     }
 }

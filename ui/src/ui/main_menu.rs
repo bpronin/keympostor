@@ -68,14 +68,14 @@ impl MainMenu {
         &self,
         is_processing_enabled: bool,
         is_auto_switch_layout_enabled: bool,
-        is_silent: bool,
+        is_logging_enabled: bool,
         current_layout_name: &Option<String>,
     ) {
         self.toggle_processing_enabled_item
             .set_checked(is_processing_enabled);
         self.toggle_auto_switch_layout_item
             .set_checked(is_auto_switch_layout_enabled);
-        self.toggle_logging_enabled_item.set_checked(!is_silent);
+        self.toggle_logging_enabled_item.set_checked(is_logging_enabled);
         self.layout_menu.update_ui(current_layout_name);
     }
 

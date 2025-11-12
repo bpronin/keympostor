@@ -1,6 +1,5 @@
 use crate::settings::Profile;
 use crate::ui::App;
-use crate::utils::hwnd;
 use error::Error;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
@@ -19,6 +18,7 @@ use windows::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
 };
+use crate::utils::raw_hwnd;
 
 const DETECTOR_TIMER: u32 = 19717;
 const WIN_WATCH_INTERVAL: u32 = 500;
@@ -48,7 +48,7 @@ impl WinWatcher {
             return;
         }
 
-        let hwnd = hwnd(self.handle.borrow().to_owned());
+        let hwnd = raw_hwnd(self.handle.borrow().to_owned());
         if is_enabled {
             unsafe {
                 SetTimer(hwnd, DETECTOR_TIMER as usize, WIN_WATCH_INTERVAL, None);

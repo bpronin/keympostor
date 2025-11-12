@@ -1,9 +1,11 @@
 use super::*;
-use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LOG, IDS_LAYOUT};
+use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::res::RESOURCES;
 use crate::ui::utils::default_font;
 use crate::{r_icon, rs};
 use keympostor::keyboard::event::KeyEvent;
+use keympostor::keyboard::hook::WM_KEY_HOOK_NOTIFY;
+use log::error;
 use native_windows_gui as nwg;
 use std::cell::RefCell;
 use std::ops::Deref;
@@ -12,6 +14,7 @@ use std::rc::Rc;
 pub(crate) struct MainWindow {
     app: Rc<App>,
     event_handler: RefCell<Option<nwg::EventHandler>>,
+    raw_event_handler: RefCell<Option<nwg::RawEventHandler>>,
 }
 
 impl MainWindow {
@@ -54,22 +57,11 @@ impl MainWindow {
         Ok(Self {
             app: Rc::new(app),
             event_handler: Default::default(),
+            raw_event_handler: Default::default(),
         })
     }
 
     fn setup_event_handlers(&self) {
-        /* Components' callbacks */
-
-        let app_rc = Rc::downgrade(&self.app);
-        let kbd_handler_callback = move |event: &KeyEvent| {
-            if let Some(app) = app_rc.upgrade() {
-                app.log_view.on_key_event(event);
-            }
-        };
-        self.app
-            .key_hook
-            .set_listener(Some(Box::new(kbd_handler_callback)));
-
         /* Windows events */
 
         let app_rc = Rc::downgrade(&self.app);
@@ -92,6 +84,26 @@ impl MainWindow {
             &self.window.handle,
             event_handler,
         ));
+
+        /* Setup raw event handler */
+
+        let app_rc = Rc::downgrade(&self.app);
+        let raw_event_handler = move |_hwnd, msg, _w_param, l_param| {
+            if let Some(app) = app_rc.upgrade() {
+                unsafe {
+                    if msg == WM_KEY_HOOK_NOTIFY {
+                        let event = &*(l_param as *const KeyEvent);
+                        app.log_view.add_key_event(event);
+                    }
+                }
+            }
+            None
+        };
+
+        *self.raw_event_handler.borrow_mut() = Some(
+            nwg::bind_raw_event_handler(&self.window.handle, 0xFFFFF, raw_event_handler)
+                .expect("Failed to bind raw event handler"),
+        );
     }
 
     fn layout(&self) -> Result<(), nwg::NwgError> {
@@ -183,9 +195,12 @@ impl nwg::NativeUi<MainWindow> for App {
 
 impl Drop for MainWindow {
     fn drop(&mut self) {
-        let handler = self.event_handler.borrow();
-        if handler.is_some() {
-            nwg::unbind_event_handler(handler.as_ref().unwrap());
+        if let Some(handler) = self.event_handler.borrow().as_ref() {
+            nwg::unbind_event_handler(handler);
+        }
+        if let Some(handler) = self.raw_event_handler.borrow().as_ref() {
+            nwg::unbind_raw_event_handler(handler)
+                .unwrap_or_else(|e| error!("Failed to unbind raw event handler: {}", e));
         }
     }
 }
