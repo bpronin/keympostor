@@ -68,7 +68,7 @@ struct HookState {
     owner: Option<HWND>,
     transform_map: Option<KeyTransformMap>,
     keyboard_state: [bool; MAX_KEYS],
-    is_notify_enabled: bool
+    is_notify_enabled: bool,
 }
 
 static mut HOOK: HookState = {
@@ -194,4 +194,16 @@ pub(crate) fn is_any_key_pressed() -> bool {
         }
     }
     false
+}
+
+pub(crate) fn get_pressed_keys() -> Vec<usize> {
+    let mut result = Vec::new();
+    unsafe {
+        for i in 0..MAX_KEYS {
+            if HOOK.keyboard_state[i] {
+                result.push(i);
+            }
+        }
+    }
+    result
 }

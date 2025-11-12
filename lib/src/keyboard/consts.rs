@@ -49,8 +49,7 @@ macro_rules! new_key {
             $name,
             Key {
                 vk_code: $vk_code,
-                scan_code: $scan_code,
-                is_ext_scan_code: $is_ext_scan_code,
+                scan_code: ($scan_code, $is_ext_scan_code),
             },
         )
     };

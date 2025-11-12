@@ -4,6 +4,6 @@ layouts_enabled = false
 layout = "game"
 
 [main_window]
-position = [300, 300]
+position = [1205, 43]
 size = [716, 339]
 selected_page = 0

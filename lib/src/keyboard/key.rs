@@ -14,7 +14,13 @@ pub struct VirtualKey {
 }
 
 impl VirtualKey {
-    pub(crate) fn from_code(code: u8) -> Result<VirtualKey, KeyError> {
+    pub(crate) fn code_name(&self) -> String {
+        format!("VC_0x{:02X}", self.value)
+    }
+}
+
+impl From<u8> for VirtualKey {
+    fn from(code: u8) -> Self {
         VIRTUAL_KEYS
             .get(code as usize)
             .ok_or(KeyError::new(&format!(
@@ -22,10 +28,7 @@ impl VirtualKey {
                 code
             )))
             .copied()
-    }
-
-    pub(crate) fn code_name(&self) -> String {
-        format!("VC_0x{:02X}", self.value)
+            .expect("Illegal virtual key code.")
     }
 }
 
@@ -42,15 +45,21 @@ pub struct ScanCode {
     pub(crate) name: &'static str,
 }
 
+impl From<(u8, bool)> for ScanCode {
+    fn from(value: (u8, bool)) -> Self {
+        todo!()
+    }
+}
+
 impl ScanCode {
-    pub(crate) fn from_code(code: u8, extended: bool) -> Result<ScanCode, KeyError> {
+    pub(crate) fn from_code(code: (u8, bool)) -> Result<ScanCode, KeyError> {
         SCAN_CODES
-            .get(code as usize)
-            .ok_or(KeyError::new(&format!("Illegal scan code `{}`.", code)))?
-            .get(extended as usize)
+            .get(code.0 as usize)
+            .ok_or(KeyError::new(&format!("Illegal scan code `{}`.", code.0)))?
+            .get(code.1 as usize)
             .ok_or(KeyError::new(&format!(
                 "Illegal extended scan code `{}`.",
-                code
+                code.0
             )))
             .copied()
     }
@@ -77,16 +86,14 @@ impl Display for ScanCode {
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Key {
     pub vk_code: u8,
-    pub scan_code: u8,
-    pub is_ext_scan_code: bool,
+    pub scan_code: (u8, bool),
 }
 
 impl From<KBDLLHOOKSTRUCT> for Key {
     fn from(input: KBDLLHOOKSTRUCT) -> Self {
         Self {
             vk_code: input.vkCode as u8,
-            scan_code: input.scanCode as u8,
-            is_ext_scan_code: input.flags.contains(LLKHF_EXTENDED),
+            scan_code: (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED)),
         }
     }
 }
@@ -101,11 +108,11 @@ impl Key {
     }
 
     pub fn virtual_key(&self) -> VirtualKey {
-        VirtualKey::from_code(self.vk_code).unwrap()
+        VirtualKey::from(self.vk_code)
     }
 
     pub fn scan_code(&self) -> ScanCode {
-        ScanCode::from_code(self.scan_code, self.is_ext_scan_code).unwrap()
+        ScanCode::from_code(self.scan_code).unwrap()
     }
 
     pub(crate) fn code_name(&self) -> String {
@@ -145,11 +152,11 @@ mod tests {
     use crate::keyboard::consts::{SCAN_CODES, VIRTUAL_KEYS};
     use crate::keyboard::error::KeyError;
     use crate::keyboard::key::{Key, ScanCode, VirtualKey};
+    use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
     };
-    use crate::utils::test::SerdeWrapper;
 
     impl VirtualKey {
         pub(crate) fn from_name(name: &str) -> Result<VirtualKey, KeyError> {
@@ -173,7 +180,7 @@ mod tests {
             let code = u8::from_str_radix(src, 16).map_err(|e| {
                 KeyError::new(&format!("Error parsing virtual key code `{}`. {}", s, e))
             })?;
-            Self::from_code(code)
+            Ok(Self::from(code))
         }
 
         pub(crate) fn to_scan_code(&self) -> Result<ScanCode, KeyError> {
@@ -181,7 +188,7 @@ mod tests {
             if ext_code > 0 {
                 let code = ext_code as u8;
                 let is_extended = ext_code & 0xE000 != 0;
-                ScanCode::from_code(code, is_extended)
+                ScanCode::from_code((code, is_extended))
             } else {
                 Err(KeyError::new(&format!(
                     "Unable to convert virtual key {self} to scancode."
@@ -215,13 +222,13 @@ mod tests {
         }
 
         pub(crate) fn from_ext_code(ext_code: u16) -> Result<ScanCode, KeyError> {
-            Self::from_code(ext_code as u8, ext_code & 0xE000 == 0xE000)
+            Self::from_code((ext_code as u8, ext_code & 0xE000 == 0xE000))
         }
 
         pub(crate) fn to_virtual_key(&self) -> Result<VirtualKey, KeyError> {
             let vk_code = unsafe { MapVirtualKeyW(self.ext_value() as u32, MAPVK_VSC_TO_VK_EX) };
             if vk_code > 0 {
-                VirtualKey::from_code(vk_code as u8)
+                Ok(VirtualKey::from(vk_code as u8))
             } else {
                 Err(KeyError::new(&format!(
                     "Unable to convert scancode {self} to virtual key."
@@ -253,7 +260,7 @@ mod tests {
 
     #[test]
     fn test_vk_from_code() {
-        assert_eq!("VK_RETURN", VirtualKey::from_code(0x0D).unwrap().name);
+        assert_eq!("VK_RETURN", VirtualKey::from(0x0D).name);
     }
 
     #[test]
@@ -301,10 +308,10 @@ mod tests {
 
     #[test]
     fn test_sc_from_code() {
-        assert_eq!("SC_ENTER", ScanCode::from_code(0x1C, false).unwrap().name);
+        assert_eq!("SC_ENTER", ScanCode::from_code((0x1C, false)).unwrap().name);
         assert_eq!(
             "SC_CALCULATOR",
-            ScanCode::from_code(0x21, true).unwrap().name
+            ScanCode::from_code((0x21, true)).unwrap().name
         );
     }
 
@@ -380,8 +387,7 @@ mod tests {
                 "{}",
                 Key {
                     vk_code: 0x0D,
-                    scan_code: 0x1C,
-                    is_ext_scan_code: false,
+                    scan_code: (0x1C, false),
                 }
             )
         );
@@ -392,8 +398,7 @@ mod tests {
                 "{}",
                 Key {
                     vk_code: 0x0D,
-                    scan_code: 0x1C,
-                    is_ext_scan_code: true,
+                    scan_code: (0x1C, true),
                 }
             )
         );
@@ -404,8 +409,7 @@ mod tests {
         assert_eq!(
             Key {
                 vk_code: 0x0D,
-                scan_code: 0x1C,
-                is_ext_scan_code: false,
+                scan_code: (0x1C, false),
             },
             Key::from_str("ENTER").unwrap()
         );
@@ -413,8 +417,7 @@ mod tests {
         assert_eq!(
             Key {
                 vk_code: 0x0D,
-                scan_code: 0x1C,
-                is_ext_scan_code: true,
+                scan_code: (0x1C, true),
             },
             Key::from_str("NUM_ENTER").unwrap()
         );
@@ -422,8 +425,7 @@ mod tests {
         assert_eq!(
             Key {
                 vk_code: 0x72,
-                scan_code: 0x3D,
-                is_ext_scan_code: false,
+                scan_code: (0x3D, false),
             },
             Key::from_str("F3").unwrap()
         );

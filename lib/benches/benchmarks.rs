@@ -59,18 +59,18 @@ impl Default for KeyTransformMatrix {
 
 impl KeyTransformMatrix {
     fn get_group_mut(&mut self, action: &KeyAction) -> &mut Option<Group> {
-        &mut self.matrix[action.transition as usize][action.key.is_ext_scan_code as usize]
-            [action.key.scan_code as usize][action.key.vk_code as usize]
+        &mut self.matrix[action.transition as usize][action.key.scan_code.1 as usize]
+            [action.key.scan_code.0 as usize][action.key.vk_code as usize]
     }
 
     fn get_group(&self, action: &KeyAction) -> &Option<Group> {
-        &self.matrix[action.transition as usize][action.key.is_ext_scan_code as usize]
-            [action.key.scan_code as usize][action.key.vk_code as usize]
+        &self.matrix[action.transition as usize][action.key.scan_code.1 as usize]
+            [action.key.scan_code.0 as usize][action.key.vk_code as usize]
     }
 
     fn put_group(&mut self, action: &KeyAction, group: Group) {
-        self.matrix[action.transition as usize][action.key.is_ext_scan_code as usize]
-            [action.key.scan_code as usize][action.key.vk_code as usize] = Some(group);
+        self.matrix[action.transition as usize][action.key.scan_code.1 as usize]
+            [action.key.scan_code.0 as usize][action.key.vk_code as usize] = Some(group);
     }
 }
 
@@ -102,8 +102,7 @@ fn create_action(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyAction {
     KeyAction {
         key: Key {
             vk_code: vk,
-            scan_code: sc,
-            is_ext_scan_code: ext,
+            scan_code: (sc, ext),
         },
         transition: trans,
     }
@@ -135,8 +134,8 @@ where
     F: FnMut(u8, u8, bool, KeyTransition) -> (),
 {
     for (_name, key) in KEYS {
-        f(key.vk_code, key.scan_code, key.is_ext_scan_code, Down);
-        f(key.vk_code, key.scan_code, key.is_ext_scan_code, Up);
+        f(key.vk_code, key.scan_code.0, key.scan_code.1, Down);
+        f(key.vk_code, key.scan_code.0, key.scan_code.1, Up);
     }
 }
 
