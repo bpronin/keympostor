@@ -1,6 +1,6 @@
 use crate::keyboard::consts::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
 use crate::keyboard::error::KeyError;
-use crate::serialize_to_string;
+use crate::{deserialize_from_string, serialize_to_string};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
@@ -81,15 +81,17 @@ pub struct Key {
     pub is_ext_scan_code: bool,
 }
 
-impl Key {
-    pub(crate) fn from_keyboard_input(input: &KBDLLHOOKSTRUCT) -> Self {
+impl From<KBDLLHOOKSTRUCT> for Key {
+    fn from(input: KBDLLHOOKSTRUCT) -> Self {
         Self {
             vk_code: input.vkCode as u8,
             scan_code: input.scanCode as u8,
             is_ext_scan_code: input.flags.contains(LLKHF_EXTENDED),
         }
     }
+}
 
+impl Key {
     pub(crate) fn from_name(s: &str) -> Result<Self, KeyError> {
         KEY_MAP.with(|keys| keys.by_name(s.trim()))
     }
@@ -134,14 +136,7 @@ impl Serialize for Key {
 }
 
 impl<'de> Deserialize<'de> for Key {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        String::deserialize(deserializer)?
-            .parse()
-            .map_err(de::Error::custom)
-    }
+    deserialize_from_string!();
 }
 
 #[cfg(test)]

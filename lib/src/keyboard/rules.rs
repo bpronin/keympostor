@@ -16,18 +16,13 @@ pub struct KeyTransformRule {
     pub actions: KeyActionSequence,
 }
 
-impl Display for KeyTransformRule {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&format!("{} : {}", self.trigger, self.actions), f)
-    }
-}
 impl KeyTransformRule {
-    pub(crate) fn from_str_pair(
+    pub(crate) fn from_str_to_pair(
         triggers_str: &str,
         actions_str: &str,
     ) -> Result<Vec<Self>, KeyError> {
-        let triggers_list = KeyTrigger::from_str_list(triggers_str)?;
-        let sequences = KeyActionSequence::from_str_list(actions_str)?;
+        let triggers_list = KeyTrigger::from_str_to_vec(triggers_str)?;
+        let sequences = KeyActionSequence::from_str_to_vec(actions_str)?;
         let mut rules = Vec::new();
 
         for triggers in triggers_list {
@@ -40,13 +35,13 @@ impl KeyTransformRule {
                     } else {
                         &triggers[len_t - 1]
                     }
-                    .clone(),
+                        .clone(),
                     actions: if i < len_s {
                         &sequences[i]
                     } else {
                         &sequences[len_s - 1]
                     }
-                    .clone(),
+                        .clone(),
                 };
 
                 rules.push(rule);
@@ -56,12 +51,18 @@ impl KeyTransformRule {
         Ok(rules)
     }
 
-    fn from_str_list(s: &str) -> Result<Vec<Self>, KeyError> {
+    fn from_str_to_vec(s: &str) -> Result<Vec<Self>, KeyError> {
         let mut parts = s.trim().split(":");
-        Self::from_str_pair(
+        Self::from_str_to_pair(
             parts.next().ok_or(KeyError::new("Missing source part."))?,
             parts.next().ok_or(KeyError::new("Missing target part."))?,
         )
+    }
+}
+
+impl Display for KeyTransformRule {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&format!("{} : {}", self.trigger, self.actions), f)
     }
 }
 
@@ -69,7 +70,7 @@ impl FromStr for KeyTransformRule {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::from_str_list(s)?[0].clone())
+        Ok(Self::from_str_to_vec(s)?[0].clone())
     }
 }
 
@@ -80,7 +81,7 @@ impl KeyTransformRules {
     pub fn from_str_lines(lines: Lines) -> Result<Self, KeyError> {
         let mut items = Vec::new();
         for line in lines {
-            items.extend(KeyTransformRule::from_str_list(line.trim())?);
+            items.extend(KeyTransformRule::from_str_to_vec(line.trim())?);
         }
 
         Ok(Self(items))
@@ -152,7 +153,7 @@ impl<'de> Visitor<'de> for KeyTransformRuleVisitor {
         let mut items = Vec::new();
 
         while let Some((k, v)) = map.next_entry::<String, String>()? {
-            let rules = KeyTransformRule::from_str_pair(&k, &v).map_err(de::Error::custom)?;
+            let rules = KeyTransformRule::from_str_to_pair(&k, &v).map_err(de::Error::custom)?;
             for rule in rules {
                 items.push(rule);
             }
@@ -220,13 +221,13 @@ pub mod tests {
     }
 
     #[test]
-    fn test_key_transform_rule_from_str_list() {
+    fn test_key_transform_rule_from_str_to_vec() {
         assert_eq!(
             vec![
                 key_rule!("NUM_DOT↓ : LEFT_ALT↓"),
                 key_rule!("NUM_DELETE↓ : LEFT_ALT↓"),
             ],
-            KeyTransformRule::from_str_list("NUM_DOT↓, NUM_DELETE↓ : LEFT_ALT↓").unwrap()
+            KeyTransformRule::from_str_to_vec("NUM_DOT↓, NUM_DELETE↓ : LEFT_ALT↓").unwrap()
         );
 
         assert_eq!(
@@ -235,7 +236,7 @@ pub mod tests {
                 key_rule!("[LEFT_CTRL]B* : ENTER*"),
                 key_rule!("C^ : ENTER*"),
             ],
-            KeyTransformRule::from_str_list("A*, [LEFT_CTRL]B*, C^ : ENTER*").unwrap()
+            KeyTransformRule::from_str_to_vec("A*, [LEFT_CTRL]B*, C^ : ENTER*").unwrap()
         );
     }
 
@@ -361,7 +362,7 @@ pub mod tests {
     }
 
     #[test]
-    fn test_key_transform_rules_from_str_list() {
+    fn test_key_transform_rules_from_str_to_vec() {
         assert_eq!(
             key_rules!(
                 r#"

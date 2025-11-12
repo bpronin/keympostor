@@ -23,16 +23,6 @@ pub enum KeyTransition {
     Down,
 }
 
-impl KeyTransition {
-    pub(crate) fn from_keyboard_input(input: &KBDLLHOOKSTRUCT) -> Self {
-        if input.flags.contains(LLKHF_UP) {
-            Up
-        } else {
-            Down
-        }
-    }
-}
-
 impl Default for KeyTransition {
     fn default() -> Self {
         Up
@@ -48,6 +38,16 @@ impl Display for KeyTransition {
     }
 }
 
+impl From<KBDLLHOOKSTRUCT> for KeyTransition {
+    fn from(input: KBDLLHOOKSTRUCT) -> Self {
+        if input.flags.contains(LLKHF_UP) {
+            Up
+        } else {
+            Down
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct KeyAction {
     pub key: Key,
@@ -55,48 +55,7 @@ pub struct KeyAction {
 }
 
 impl KeyAction {
-    pub(crate) fn from_keyboard_input(input: &KBDLLHOOKSTRUCT) -> Self {
-        Self {
-            key: Key::from_keyboard_input(input),
-            transition: KeyTransition::from_keyboard_input(input),
-        }
-    }
-
-    fn create_input(&self) -> INPUT {
-        let virtual_key = self.key.virtual_key();
-        let scan_code = self.key.scan_code();
-
-        let mut flags = KEYEVENTF_SCANCODE;
-        if scan_code.is_extended {
-            flags |= KEYEVENTF_EXTENDEDKEY
-        }
-        if self.transition == Up {
-            flags |= KEYEVENTF_KEYUP;
-        }
-
-        INPUT {
-            r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 {
-                ki: KEYBDINPUT {
-                    wVk: VIRTUAL_KEY(virtual_key.value as u16),
-                    wScan: scan_code.ext_value(),
-                    dwFlags: flags,
-                    dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
-                    ..Default::default()
-                },
-            },
-        }
-    }
-}
-
-impl Display for KeyAction {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&format!("{}{}", self.key, self.transition), f)
-    }
-}
-
-impl KeyAction {
-    pub(crate) fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
+    pub(crate) fn from_str_to_vec(s: &str) -> Result<Vec<Self>, KeyError> {
         let ts = s.trim();
         let mut list = Vec::with_capacity(2);
 
@@ -156,11 +115,54 @@ impl KeyAction {
     }
 }
 
+impl Into<INPUT> for KeyAction {
+    fn into(self) -> INPUT {
+        let virtual_key = self.key.virtual_key();
+        let scan_code = self.key.scan_code();
+
+        let mut flags = KEYEVENTF_SCANCODE;
+        if scan_code.is_extended {
+            flags |= KEYEVENTF_EXTENDEDKEY
+        }
+        if self.transition == Up {
+            flags |= KEYEVENTF_KEYUP;
+        }
+
+        INPUT {
+            r#type: INPUT_KEYBOARD,
+            Anonymous: INPUT_0 {
+                ki: KEYBDINPUT {
+                    wVk: VIRTUAL_KEY(virtual_key.value as u16),
+                    wScan: scan_code.ext_value(),
+                    dwFlags: flags,
+                    dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
+                    ..Default::default()
+                },
+            },
+        }
+    }
+}
+
+impl From<KBDLLHOOKSTRUCT> for KeyAction {
+    fn from(input: KBDLLHOOKSTRUCT) -> Self {
+        Self {
+            key: Key::from(input),
+            transition: KeyTransition::from(input),
+        }
+    }
+}
+
+impl Display for KeyAction {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(&format!("{}{}", self.key, self.transition), f)
+    }
+}
+
 impl FromStr for KeyAction {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::from_str_expand(s)?[0])
+        Ok(Self::from_str_to_vec(s)?[0])
     }
 }
 
@@ -180,19 +182,17 @@ pub struct KeyActionSequence {
 
 impl KeyActionSequence {
     pub fn new(actions: Vec<KeyAction>) -> Self {
-        let input = actions.iter().map(|a| a.create_input()).collect();
+        let input = actions.iter().map(|a| (*a).into()).collect();
         Self { actions, input }
     }
-}
 
-impl KeyActionSequence {
-    pub(crate) fn from_str_list(s: &str) -> Result<Vec<Self>, KeyError> {
+    pub(crate) fn from_str_to_vec(s: &str) -> Result<Vec<Self>, KeyError> {
         let mut down_actions = Vec::new();
         let mut up_actions = Vec::new();
 
         let mut is_expanded = false;
         for part in s.split(|c| ['→', '>'].contains(&c)) {
-            let actions = KeyAction::from_str_expand(part)?;
+            let actions = KeyAction::from_str_to_vec(part)?;
             down_actions.push(actions[0]);
             if actions.len() == 1 {
                 up_actions.push(actions[0]);
@@ -236,7 +236,7 @@ impl FromStr for KeyActionSequence {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::from_str_list(s)?[0].clone())
+        Ok(Self::from_str_to_vec(s)?[0].clone())
     }
 }
 
@@ -255,12 +255,13 @@ mod tests {
     use crate::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::keyboard::event::SELF_EVENT_MARKER;
     use crate::keyboard::key::ScanCode;
+    use crate::utils::test::SerdeWrapper;
     use crate::{key, sc_key};
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, VK_RETURN,
+        INPUT, INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE,
+        VK_RETURN,
     };
-    use crate::utils::test::SerdeWrapper;
 
     #[macro_export]
     macro_rules! key_action {
@@ -329,7 +330,7 @@ mod tests {
 
     #[test]
     fn test_key_action_create_input() {
-        let actual = key_action!("ENTER*").create_input();
+        let actual: INPUT = key_action!("ENTER*").into();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
@@ -341,7 +342,7 @@ mod tests {
             );
         };
 
-        let actual = key_action!("NUM_ENTER^").create_input();
+        let actual: INPUT = key_action!("NUM_ENTER^").into();
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
@@ -386,7 +387,7 @@ mod tests {
                 key: key!("A"),
                 transition: Down,
             }],
-            KeyAction::from_str_expand("A↓").unwrap()
+            KeyAction::from_str_to_vec("A↓").unwrap()
         );
 
         assert_eq!(
@@ -394,7 +395,7 @@ mod tests {
                 key: key!("B"),
                 transition: Up,
             }],
-            KeyAction::from_str_expand("B^").unwrap()
+            KeyAction::from_str_to_vec("B^").unwrap()
         );
 
         assert_eq!(
@@ -408,7 +409,7 @@ mod tests {
                     transition: Up,
                 }
             ],
-            KeyAction::from_str_expand("A*^").unwrap()
+            KeyAction::from_str_to_vec("A*^").unwrap()
         );
 
         assert_eq!(
@@ -422,7 +423,7 @@ mod tests {
                     transition: Up,
                 }
             ],
-            KeyAction::from_str_expand("A↓↑").unwrap()
+            KeyAction::from_str_to_vec("A↓↑").unwrap()
         );
 
         assert_eq!(
@@ -436,7 +437,7 @@ mod tests {
                     transition: Up,
                 }
             ],
-            KeyAction::from_str_expand("A").unwrap()
+            KeyAction::from_str_to_vec("A").unwrap()
         );
     }
 
@@ -465,10 +466,10 @@ mod tests {
     }
 
     #[test]
-    fn test_key_action_sequence_from_str_list() {
+    fn test_key_action_sequence_from_str_to_vec() {
         assert_eq!(
             vec![KeyActionSequence::new(vec![key_action!("A↓")]),],
-            KeyActionSequence::from_str_list("A↓").unwrap()
+            KeyActionSequence::from_str_to_vec("A↓").unwrap()
         );
 
         assert_eq!(
@@ -477,25 +478,25 @@ mod tests {
                 key_action!("B↑"),
                 key_action!("C↓")
             ]),],
-            KeyActionSequence::from_str_list("A↓ → B↑ → C↓").unwrap()
+            KeyActionSequence::from_str_to_vec("A↓ → B↑ → C↓").unwrap()
         );
     }
 
     #[test]
-    fn test_key_action_sequence_from_str_list_expand() {
+    fn test_key_action_sequence_from_str_to_vec_expand() {
         assert_eq!(
             vec![key_action_seq!("A↓"), key_action_seq!("A↑")],
-            KeyActionSequence::from_str_list("A").unwrap()
+            KeyActionSequence::from_str_to_vec("A").unwrap()
         );
 
         assert_eq!(
             vec![key_action_seq!("A↓"), key_action_seq!("A↑")],
-            KeyActionSequence::from_str_list("A↓↑").unwrap()
+            KeyActionSequence::from_str_to_vec("A↓↑").unwrap()
         );
 
         assert_eq!(
             vec![key_action_seq!("A↓ → B↓"), key_action_seq!("A↑ → B↑")],
-            KeyActionSequence::from_str_list("A → B").unwrap()
+            KeyActionSequence::from_str_to_vec("A → B").unwrap()
         );
 
         assert_eq!(
@@ -503,7 +504,7 @@ mod tests {
                 key_action_seq!("A↓ → B↓ → C↓"),
                 key_action_seq!("A↑ → B↑ → C↓")
             ],
-            KeyActionSequence::from_str_list("A → B → C↓").unwrap()
+            KeyActionSequence::from_str_to_vec("A → B → C↓").unwrap()
         );
 
         assert_eq!(
@@ -511,7 +512,7 @@ mod tests {
                 key_action_seq!("C↓ → A↓ → B↓"),
                 key_action_seq!("C↓ → A↑ → B↑")
             ],
-            KeyActionSequence::from_str_list("C↓ → A → B").unwrap()
+            KeyActionSequence::from_str_to_vec("C↓ → A → B").unwrap()
         );
     }
 

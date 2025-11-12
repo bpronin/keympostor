@@ -15,7 +15,7 @@ pub struct KeyTrigger {
 }
 
 impl KeyTrigger {
-    pub(crate) fn from_str_list(s: &str) -> Result<Vec<Vec<Self>>, KeyError> {
+    pub(crate) fn from_str_to_vec(s: &str) -> Result<Vec<Vec<Self>>, KeyError> {
         let mut list = Vec::new();
         for part in s.split(',') {
             list.push(Self::from_str_expand(part)?);
@@ -31,12 +31,12 @@ impl KeyTrigger {
         if let Some(s) = ts.strip_prefix('[') {
             let mut parts = s.split(']');
             let modifiers = KeyModifiers::from_str(parts.next().expect("Missing modifiers part"))?;
-            let actions = KeyAction::from_str_expand(parts.next().expect("Missing actions part"))?;
+            let actions = KeyAction::from_str_to_vec(parts.next().expect("Missing actions part"))?;
             for action in actions {
                 list.push(Self { action, modifiers });
             }
         } else {
-            let actions = KeyAction::from_str_expand(ts)?;
+            let actions = KeyAction::from_str_to_vec(ts)?;
             for action in actions {
                 list.push(Self {
                     action,
@@ -172,19 +172,19 @@ mod tests {
     }
 
     #[test]
-    fn test_key_trigger_from_str_list() {
+    fn test_key_trigger_from_str_to_vec() {
         assert_eq!(
             vec![
                 vec![key_trigger!("A*")],
                 vec![key_trigger!("[LEFT_CTRL]B^")],
                 vec![key_trigger!("C*")],
             ],
-            KeyTrigger::from_str_list("A*, [LEFT_CTRL]B^, C*").unwrap()
+            KeyTrigger::from_str_to_vec("A*, [LEFT_CTRL]B^, C*").unwrap()
         );
 
         assert_eq!(
             vec![vec![key_trigger!("A*")]],
-            KeyTrigger::from_str_list("A*").unwrap()
+            KeyTrigger::from_str_to_vec("A*").unwrap()
         );
     }
 
@@ -192,12 +192,12 @@ mod tests {
     fn test_key_trigger_from_str_expand() {
         assert_eq!(
             vec![vec![key_trigger!("A↓"), key_trigger!("A↑")]],
-            KeyTrigger::from_str_list("A↓↑").unwrap()
+            KeyTrigger::from_str_to_vec("A↓↑").unwrap()
         );
 
         assert_eq!(
             vec![vec![key_trigger!("A↓"), key_trigger!("A↑")]],
-            KeyTrigger::from_str_list("A").unwrap()
+            KeyTrigger::from_str_to_vec("A").unwrap()
         );
 
         assert_eq!(
@@ -205,7 +205,7 @@ mod tests {
                 key_trigger!("[LEFT_CTRL]A↓"),
                 key_trigger!("[LEFT_CTRL]A↑")
             ]],
-            KeyTrigger::from_str_list("[LEFT_CTRL]A↓↑").unwrap()
+            KeyTrigger::from_str_to_vec("[LEFT_CTRL]A↓↑").unwrap()
         );
 
         assert_eq!(
@@ -213,18 +213,18 @@ mod tests {
                 key_trigger!("[LEFT_CTRL]A↓"),
                 key_trigger!("[LEFT_CTRL]A↑")
             ]],
-            KeyTrigger::from_str_list("[LEFT_CTRL]A").unwrap()
+            KeyTrigger::from_str_to_vec("[LEFT_CTRL]A").unwrap()
         );
     }
 
     #[test]
-    fn test_key_trigger_from_str_list_expand() {
+    fn test_key_trigger_from_str_to_vec_expand() {
         assert_eq!(
             vec![
                 vec![key_trigger!("A↓"), key_trigger!("A↑")],
                 vec![key_trigger!("B↓"), key_trigger!("B↑")],
             ],
-            KeyTrigger::from_str_list("A,B").unwrap()
+            KeyTrigger::from_str_to_vec("A,B").unwrap()
         );
 
         assert_eq!(
@@ -238,7 +238,7 @@ mod tests {
                     key_trigger!("[LEFT_CTRL + LEFT_ALT]B↑")
                 ],
             ],
-            KeyTrigger::from_str_list("[LEFT_SHIFT] A, [LEFT_CTRL + LEFT_ALT] B").unwrap()
+            KeyTrigger::from_str_to_vec("[LEFT_SHIFT] A, [LEFT_CTRL + LEFT_ALT] B").unwrap()
         );
     }
 

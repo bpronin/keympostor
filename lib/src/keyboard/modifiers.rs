@@ -12,15 +12,15 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_RWIN,
 };
 
-pub const KM_NONE: ModifierKeys = ModifierKeys(0);
-pub const KM_LSHIFT: ModifierKeys = ModifierKeys(1);
-pub const KM_RSHIFT: ModifierKeys = ModifierKeys(1 << 1);
-pub const KM_LCTRL: ModifierKeys = ModifierKeys(1 << 2);
-pub const KM_RCTRL: ModifierKeys = ModifierKeys(1 << 3);
-pub const KM_LALT: ModifierKeys = ModifierKeys(1 << 4);
-pub const KM_RALT: ModifierKeys = ModifierKeys(1 << 5);
-pub const KM_LWIN: ModifierKeys = ModifierKeys(1 << 6);
-pub const KM_RWIN: ModifierKeys = ModifierKeys(1 << 7);
+pub(crate) const KM_NONE: ModifierKeys = ModifierKeys(0);
+pub(crate) const KM_LSHIFT: ModifierKeys = ModifierKeys(1);
+pub(crate) const KM_RSHIFT: ModifierKeys = ModifierKeys(1 << 1);
+pub(crate) const KM_LCTRL: ModifierKeys = ModifierKeys(1 << 2);
+pub(crate) const KM_RCTRL: ModifierKeys = ModifierKeys(1 << 3);
+pub(crate) const KM_LALT: ModifierKeys = ModifierKeys(1 << 4);
+pub(crate) const KM_RALT: ModifierKeys = ModifierKeys(1 << 5);
+pub(crate) const KM_LWIN: ModifierKeys = ModifierKeys(1 << 6);
+pub(crate) const KM_RWIN: ModifierKeys = ModifierKeys(1 << 7);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
 pub struct ModifierKeys(u8);
@@ -199,14 +199,6 @@ impl FromStr for KeyModifiers {
         Ok(All(ModifierKeys::from_str(s.trim())?))
     }
 }
-
-// impl Serialize for KeyModifiers {
-//     serialize_to_string!();
-// }
-//
-// impl<'de> Deserialize<'de> for KeyModifiers {
-//     deserialize_from_string!();
-// }
 
 #[cfg(test)]
 mod tests {

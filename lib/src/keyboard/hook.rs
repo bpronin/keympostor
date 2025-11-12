@@ -1,6 +1,5 @@
 use crate::keyboard::action::KeyAction;
 use crate::keyboard::action::KeyTransition::Down;
-use crate::keyboard::antijam;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
 use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::rules::KeyTransformRules;
@@ -9,7 +8,6 @@ use log::{debug, warn};
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
-use crate::keyboard::antijam::start_anti_jammer;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
 
@@ -85,8 +83,6 @@ static mut HOOK: HookState = {
 
 extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
-        start_anti_jammer();
-
         if handle_key_action(l_param) {
             return LRESULT(1);
         }
@@ -150,7 +146,7 @@ fn handle_key_action(l_param: LPARAM) -> bool {
 
 fn build_key_event<'a>(l_param: LPARAM) -> KeyEvent<'a> {
     let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
-    let action = KeyAction::from_keyboard_input(&input);
+    let action = KeyAction::from(input);
 
     unsafe {
         HOOK.keyboard_state[action.key.vk_code as usize] = action.transition == Down;

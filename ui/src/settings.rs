@@ -8,7 +8,7 @@ pub const LAYOUTS_PATH: &str = "layouts";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct AppSettings {
-    pub(crate) processing_enabled: bool,
+    pub(crate) processing_enabled: bool, //todo: rename to `transform_enabled` ?
     pub(crate) logging_enabled: bool,
     pub(crate) layouts_enabled: bool,
     pub(crate) main_window: MainWindow,
