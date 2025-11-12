@@ -1,25 +1,26 @@
 use crate::keyboard::action::KeyAction;
 use crate::keyboard::action::KeyTransition::Down;
+use crate::keyboard::antijam;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
 use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::rules::KeyTransformRules;
 use crate::keyboard::transform::KeyTransformMap;
 use log::{debug, warn};
-use std::cell::RefCell;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
+use crate::keyboard::antijam::start_anti_jammer;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
 
 #[derive(Debug, Default)]
-pub struct KeyboardHook {
-    owner: RefCell<Option<HWND>>,
-}
+pub struct KeyboardHook;
 
 impl KeyboardHook {
     pub fn init(&self, owner: Option<HWND>) {
-        self.owner.replace(owner);
+        unsafe {
+            HOOK.owner = owner;
+        }
     }
 
     pub fn apply_rules(&self, rules: &KeyTransformRules) {
@@ -44,53 +45,47 @@ impl KeyboardHook {
     }
 
     pub fn is_notify_enabled(&self) -> bool {
-        match unsafe { HOOK.listener } {
-            Some(_) => true,
-            None => false,
-        }
+        unsafe { HOOK.is_notify_enabled }
     }
 
     pub fn set_notify_enabled(&self, enabled: bool) {
-        unsafe {
-            HOOK.listener = if enabled {
-                self.owner.borrow().to_owned()
-            } else {
-                None
-            };
-        }
+        unsafe { HOOK.is_notify_enabled = enabled }
     }
 }
 
 impl Drop for KeyboardHook {
     fn drop(&mut self) {
-        uninstall_hook();
+        self.set_enabled(false);
         unsafe {
             HOOK.transform_map = None;
-            HOOK.listener = None;
+            HOOK.owner = None;
         }
     }
 }
 
+const MAX_KEYS: usize = 256;
+
 struct HookState {
     handle: Option<HHOOK>,
-    listener: Option<HWND>,
+    owner: Option<HWND>,
     transform_map: Option<KeyTransformMap>,
-    keyboard_state: [bool; 256],
-    last_action_time: u64,
+    keyboard_state: [bool; MAX_KEYS],
+    is_notify_enabled: bool
 }
 
 static mut HOOK: HookState = {
     HookState {
         handle: None,
-        listener: None,
+        owner: None,
         transform_map: None,
         keyboard_state: [false; 256],
-        last_action_time: 0u64
+        is_notify_enabled: false,
     }
 };
 
 extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
+        start_anti_jammer();
 
         if handle_key_action(l_param) {
             return LRESULT(1);
@@ -184,9 +179,23 @@ fn apply_transform(event: &KeyEvent) -> bool {
 
 fn notify_listener(event: KeyEvent) {
     unsafe {
-        if let Some(ref hwnd) = HOOK.listener {
+        if !HOOK.is_notify_enabled {
+            return;
+        }
+        if let Some(ref hwnd) = HOOK.owner {
             let l_param = LPARAM(&event as *const _ as isize);
             SendMessageW(*hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l_param));
         }
     }
+}
+
+pub(crate) fn is_any_key_pressed() -> bool {
+    unsafe {
+        for i in 0..MAX_KEYS {
+            if HOOK.keyboard_state[i] {
+                return true;
+            }
+        }
+    }
+    false
 }
