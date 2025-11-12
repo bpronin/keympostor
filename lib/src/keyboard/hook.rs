@@ -76,6 +76,7 @@ struct HookState {
     listener: Option<HWND>,
     transform_map: Option<KeyTransformMap>,
     keyboard_state: [bool; 256],
+    last_action_time: u64,
 }
 
 static mut HOOK: HookState = {
@@ -84,11 +85,13 @@ static mut HOOK: HookState = {
         listener: None,
         transform_map: None,
         keyboard_state: [false; 256],
+        last_action_time: 0u64
     }
 };
 
 extern "system" fn keyboard_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
+
         if handle_key_action(l_param) {
             return LRESULT(1);
         }
@@ -132,9 +135,7 @@ fn uninstall_hook() {
 }
 
 fn handle_key_action(l_param: LPARAM) -> bool {
-    let Ok(mut event) = build_key_event(l_param) else {
-        return false;
-    };
+    let mut event = build_key_event(l_param);
 
     if !(event.is_injected && event.is_private) {
         unsafe {
@@ -152,7 +153,7 @@ fn handle_key_action(l_param: LPARAM) -> bool {
     result
 }
 
-fn build_key_event<'a>(l_param: LPARAM) -> Result<KeyEvent<'a>, ()> {
+fn build_key_event<'a>(l_param: LPARAM) -> KeyEvent<'a> {
     let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
     let action = KeyAction::from_keyboard_input(&input);
 
@@ -160,14 +161,14 @@ fn build_key_event<'a>(l_param: LPARAM) -> Result<KeyEvent<'a>, ()> {
         HOOK.keyboard_state[action.key.vk_code as usize] = action.transition == Down;
     }
 
-    Ok(KeyEvent {
+    KeyEvent {
         action,
         modifiers: ModifierKeys::from(&unsafe { HOOK.keyboard_state }),
         is_injected: input.flags.contains(LLKHF_INJECTED),
         is_private: input.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr(),
         time: input.time,
         rule: None,
-    })
+    }
 }
 
 fn apply_transform(event: &KeyEvent) -> bool {
