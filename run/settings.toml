@@ -1,9 +1,9 @@
 processing_enabled = true
 logging_enabled = true
 layouts_enabled = false
-layout = "game"
+layout = "default"
 
 [main_window]
-position = [1205, 43]
-size = [716, 339]
+position = [836, 219]
+size = [621, 445]
 selected_page = 0

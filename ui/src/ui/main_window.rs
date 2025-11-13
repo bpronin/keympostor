@@ -26,10 +26,7 @@ impl MainWindow {
             .title(rs!(IDS_APP_TITLE))
             .build(&mut app.window)?;
 
-        nwg::TextInput::builder()
-            .parent(&app.window)
-            .focus(true)
-            .build(&mut app.text_editor)?;
+        app.test_editor.build_ui(&mut app.window)?;
 
         /* Tabs */
 
@@ -70,6 +67,7 @@ impl MainWindow {
                 app.tray.handle_event(&app, evt, handle);
                 app.main_menu.handle_event(&app, evt, handle);
                 app.win_watcher.handle_event(&app, evt, handle);
+                app.test_editor.handle_event(&app, evt, handle);
 
                 #[cfg(feature = "debug")]
                 if let nwg::Event::OnWindowClose = evt {
@@ -171,7 +169,7 @@ impl MainWindow {
             .child_margin(MARGIN)
             .child_flex_grow(1.0)
             /* Test editor */
-            .child(&self.text_editor)
+            .child(self.test_editor.view())
             .child_margin(MARGIN)
             .child_size(Size {
                 width: D::Auto,

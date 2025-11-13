@@ -8,6 +8,18 @@ pub(crate) struct LayoutView {
 }
 
 impl LayoutView {
+    pub(crate) fn view(&self) -> impl Into<nwg::ControlHandle> {
+        &self.view
+    }
+
+    pub(crate) fn build_ui(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
+        nwg::TextBox::builder()
+            .parent(parent)
+            .readonly(true)
+            .font(Some(&mono_font(15)))
+            .build(&mut self.view)
+    }
+
     pub(crate) fn update_ui(&self, layout: &Layout) {
         let mut text = String::new();
         text.push_str(&format!("{}\r\n", layout.title));
@@ -18,19 +30,5 @@ impl LayoutView {
         }
 
         self.view.set_text(&text);
-    }
-}
-
-impl LayoutView {
-    pub(crate) fn build_ui(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
-        nwg::TextBox::builder()
-            .parent(parent)
-            .readonly(true)
-            .font(Some(&mono_font(15)))
-            .build(&mut self.view)
-    }
-
-    pub(crate) fn view(&self) -> impl Into<nwg::ControlHandle> {
-        &self.view
     }
 }

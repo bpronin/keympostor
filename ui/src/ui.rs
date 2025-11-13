@@ -15,12 +15,14 @@ use log::{debug, warn};
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 use std::cell::RefCell;
+use crate::ui::test_editor::TypeTestEditor;
 
 mod layout_view;
 mod layouts_menu;
 mod log_view;
 mod main_menu;
 mod main_window;
+mod test_editor;
 mod tray;
 mod utils;
 
@@ -34,7 +36,7 @@ pub(crate) struct App {
     layout: nwg::FlexboxLayout,
     tab_log_layout: nwg::FlexboxLayout,
     tab_layouts_layout: nwg::FlexboxLayout,
-    text_editor: nwg::TextInput,
+    test_editor: TypeTestEditor,
     tab_container: nwg::TabsContainer,
     tab_log: nwg::Tab,
     tab_layouts: nwg::Tab,
@@ -151,7 +153,8 @@ impl App {
         self.read_settings();
         self.update_controls();
 
-        self.log_view.add_logging_enabled(self.key_hook.is_notify_enabled());
+        self.log_view
+            .add_logging_enabled(self.key_hook.is_notify_enabled());
 
         #[cfg(feature = "debug")]
         self.window.set_visible(true);
@@ -169,9 +172,11 @@ impl App {
     }
 
     pub(crate) fn on_toggle_logging_enabled(&self) {
-        self.key_hook.set_notify_enabled(!self.key_hook.is_notify_enabled());
+        self.key_hook
+            .set_notify_enabled(!self.key_hook.is_notify_enabled());
 
-        self.log_view.add_logging_enabled(self.key_hook.is_notify_enabled());
+        self.log_view
+            .add_logging_enabled(self.key_hook.is_notify_enabled());
         self.update_controls();
         self.write_settings();
     }
