@@ -1,9 +1,12 @@
+use crate::res::res_ids::{
+    IDS__AUTO_SWITCH_DISABLED_, IDS__AUTO_SWITCH_ENABLED_, IDS__LOGGING_DISABLED_,
+    IDS__LOGGING_ENABLED_, IDS__PROCESSING_DISABLED_, IDS__PROCESSING_ENABLED_,
+};
 use crate::res::RESOURCES;
-use crate::ui::utils::mono_font;
 use crate::rs;
 use keympostor::keyboard::event::KeyEvent;
 use native_windows_gui as nwg;
-use crate::res::res_ids::{IDS__AUTO_SWITCH_DISABLED_, IDS__AUTO_SWITCH_ENABLED_, IDS__LOGGING_DISABLED_, IDS__LOGGING_ENABLED_, IDS__PROCESSING_DISABLED_, IDS__PROCESSING_ENABLED_};
+use crate::ui::style::SMALL_MONO_FONT;
 
 const MAX_LOG_LINES: usize = 256;
 
@@ -17,7 +20,7 @@ impl LogView {
         nwg::TextBox::builder()
             .parent(parent)
             .readonly(true)
-            .font(Some(&mono_font(15)))
+            .font(Some(&SMALL_MONO_FONT))
             .build(&mut self.view)
     }
 

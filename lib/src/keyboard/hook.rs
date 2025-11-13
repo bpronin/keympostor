@@ -48,6 +48,12 @@ impl KeyboardHook {
 
     pub fn set_notify_enabled(&self, enabled: bool) {
         unsafe { HOOK.is_notify_enabled = enabled }
+
+        if enabled {
+            debug!("Notifications enabled");
+        } else {
+            debug!("Notifications disabled");
+        }
     }
 }
 
@@ -179,31 +185,7 @@ fn notify_listener(event: KeyEvent) {
             return;
         }
         if let Some(ref hwnd) = HOOK.owner {
-            let l_param = LPARAM(&event as *const _ as isize);
-            SendMessageW(*hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l_param));
+            SendMessageW(*hwnd, WM_KEY_HOOK_NOTIFY, None, Some(event.into()));
         }
     }
-}
-
-pub(crate) fn is_any_key_pressed() -> bool {
-    unsafe {
-        for i in 0..MAX_KEYS {
-            if HOOK.keyboard_state[i] {
-                return true;
-            }
-        }
-    }
-    false
-}
-
-pub(crate) fn get_pressed_keys() -> Vec<usize> {
-    let mut result = Vec::new();
-    unsafe {
-        for i in 0..MAX_KEYS {
-            if HOOK.keyboard_state[i] {
-                result.push(i);
-            }
-        }
-    }
-    result
 }

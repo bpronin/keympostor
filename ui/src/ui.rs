@@ -4,24 +4,27 @@ use crate::settings::{AppSettings, LAYOUTS_PATH};
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
 use crate::ui::main_menu::MainMenu;
+use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::ui_warn;
 use crate::utils::{get_window_size, layout_path_from_args, raw_hwnd, set_window_size};
 use crate::win_watch::WinWatcher;
 use crate::{r_icon, rs};
+use event::KeyEvent;
+use keympostor::keyboard::event;
 use keympostor::keyboard::hook::KeyboardHook;
 use keympostor::layout::Layouts;
 use log::{debug, warn};
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 use std::cell::RefCell;
-use crate::ui::test_editor::TypeTestEditor;
 
 mod layout_view;
 mod layouts_menu;
 mod log_view;
 mod main_menu;
 mod main_window;
+mod style;
 mod test_editor;
 mod tray;
 mod utils;
@@ -36,6 +39,7 @@ pub(crate) struct App {
     layout: nwg::FlexboxLayout,
     tab_log_layout: nwg::FlexboxLayout,
     tab_layouts_layout: nwg::FlexboxLayout,
+    key_event_label: nwg::Label,
     test_editor: TypeTestEditor,
     tab_container: nwg::TabsContainer,
     tab_log: nwg::Tab,
@@ -145,6 +149,12 @@ impl App {
         }
     }
 
+    fn show_window(&self, show: bool) {
+        self.key_hook.set_notify_enabled(true);
+        self.update_controls();
+        self.window.set_visible(show);
+    }
+
     pub(crate) fn run(&self) {
         self.win_watcher.init(self.window.handle);
         self.key_hook.init(raw_hwnd(self.window.handle));
@@ -190,17 +200,26 @@ impl App {
         self.write_settings();
     }
 
+    pub(crate) fn on_window_close(&self) {
+        debug!("Window close event");
+
+        self.key_hook.set_notify_enabled(false);
+        self.update_controls();
+        #[cfg(feature = "debug")]
+        self.on_app_exit()
+    }
+
     pub(crate) fn on_app_exit(&self) {
         self.write_settings();
         nwg::stop_thread_dispatch();
     }
 
     pub(crate) fn on_show_main_window(&self) {
-        self.window.set_visible(true);
+        self.show_window(true);
     }
 
     pub(crate) fn on_toggle_window_visibility(&self) {
-        self.window.set_visible(!self.window.visible());
+        self.show_window(!self.window.visible());
     }
 
     pub(crate) fn on_select_layout(&self, layout_name: &Option<String>) {
@@ -210,6 +229,13 @@ impl App {
     pub(crate) fn on_log_view_clear(&self) {
         self.log_view.clear();
     }
+
+    pub(crate) fn on_key_hook_notify(&self, event: &KeyEvent) {
+        self.log_view.add_key_event(&event);
+        self.key_event_label
+            .set_text(format!("[{:8}] {}", event.modifiers, event.action).as_str());
+    }
+
 }
 
 pub(crate) fn run_app() {

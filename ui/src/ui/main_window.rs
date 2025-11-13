@@ -1,12 +1,16 @@
 use super::*;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::res::RESOURCES;
-use crate::ui::utils::default_font;
+use crate::ui::style::{
+    display_font, BIG_MONO_FONT, INFO_LABEL_FONT, MARGIN, MARGIN_2, PADDING, TAB_MARGIN,
+    TAB_PADDING,
+};
 use crate::{r_icon, rs};
 use keympostor::keyboard::event::KeyEvent;
 use keympostor::keyboard::hook::WM_KEY_HOOK_NOTIFY;
 use log::error;
 use native_windows_gui as nwg;
+use native_windows_gui::stretch::style::Dimension;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -25,6 +29,12 @@ impl MainWindow {
             .flags(nwg::WindowFlags::MAIN_WINDOW)
             .title(rs!(IDS_APP_TITLE))
             .build(&mut app.window)?;
+
+        nwg::Label::builder()
+            .parent(&app.window)
+            .text("")
+            .font(Some(&INFO_LABEL_FONT))
+            .build(&mut app.key_event_label)?;
 
         app.test_editor.build_ui(&mut app.window)?;
 
@@ -63,17 +73,19 @@ impl MainWindow {
 
         let app_rc = Rc::downgrade(&self.app);
         let event_handler = move |evt, _evt_data, handle| {
+            // debug!("NWG: {:?} {:?} {:?}", evt, _evt_data, handle);
             if let Some(app) = app_rc.upgrade() {
                 app.tray.handle_event(&app, evt, handle);
                 app.main_menu.handle_event(&app, evt, handle);
                 app.win_watcher.handle_event(&app, evt, handle);
                 app.test_editor.handle_event(&app, evt, handle);
-
-                #[cfg(feature = "debug")]
-                if let nwg::Event::OnWindowClose = evt {
-                    if &handle == &app.window {
-                        app.on_app_exit()
+                match evt {
+                    nwg::Event::OnWindowClose => {
+                        if &handle == &app.window {
+                            app.on_window_close()
+                        }
                     }
+                    _ => {}
                 }
             }
         };
@@ -88,11 +100,8 @@ impl MainWindow {
         let app_rc = Rc::downgrade(&self.app);
         let raw_event_handler = move |_hwnd, msg, _w_param, l_param| {
             if let Some(app) = app_rc.upgrade() {
-                unsafe {
-                    if msg == WM_KEY_HOOK_NOTIFY {
-                        let event = &*(l_param as *const KeyEvent);
-                        app.log_view.add_key_event(event);
-                    }
+                if msg == WM_KEY_HOOK_NOTIFY {
+                    app.on_key_hook_notify(KeyEvent::from_l_param(l_param));
                 }
             }
             None
@@ -105,38 +114,7 @@ impl MainWindow {
     }
 
     fn layout(&self) -> Result<(), nwg::NwgError> {
-        use nwg::stretch::{
-            geometry::{Rect, Size},
-            style::{Dimension as D, FlexDirection},
-        };
-
-        const PADDING: Rect<D> = Rect {
-            start: D::Points(4.0),
-            end: D::Points(4.0),
-            top: D::Points(4.0),
-            bottom: D::Points(4.0),
-        };
-
-        const TAB_PADDING: Rect<D> = Rect {
-            start: D::Points(0.0),
-            end: D::Points(8.0),
-            top: D::Points(0.0),
-            bottom: D::Points(4.0),
-        };
-
-        const MARGIN: Rect<D> = Rect {
-            start: D::Points(4.0),
-            end: D::Points(4.0),
-            top: D::Points(4.0),
-            bottom: D::Points(4.0),
-        };
-
-        const TAB_MARGIN: Rect<D> = Rect {
-            start: D::Points(4.0),
-            end: D::Points(4.0),
-            top: D::Points(4.0),
-            bottom: D::Points(18.0),
-        };
+        use nwg::stretch::{geometry::Size, style::FlexDirection};
 
         /* Log tab layout */
 
@@ -168,12 +146,19 @@ impl MainWindow {
             .child(&self.tab_container)
             .child_margin(MARGIN)
             .child_flex_grow(1.0)
-            /* Test editor */
-            .child(self.test_editor.view())
-            .child_margin(MARGIN)
+            /* Test label */
+            .child(&self.key_event_label)
+            .child_margin(MARGIN_2)
             .child_size(Size {
-                width: D::Auto,
-                height: D::Points(32.0),
+                width: Dimension::Auto,
+                height: Dimension::Points(30.0),
+            })
+            /* Test editor */
+            .child(self.test_editor.editor())
+            .child_margin(MARGIN_2)
+            .child_size(Size {
+                width: Dimension::Auto,
+                height: Dimension::Points(40.0),
             })
             .build(&self.layout)
     }
@@ -181,7 +166,7 @@ impl MainWindow {
 
 impl nwg::NativeUi<MainWindow> for App {
     fn build_ui(app: App) -> Result<MainWindow, nwg::NwgError> {
-        nwg::Font::set_global_default(default_font(17).into());
+        nwg::Font::set_global_default(Some(display_font(17)));
 
         let window = MainWindow::build(app)?;
         window.setup_event_handlers();
