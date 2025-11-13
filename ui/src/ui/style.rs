@@ -5,38 +5,58 @@ use std::sync::LazyLock;
 use native_windows_gui::stretch::style::Dimension;
 
 pub static PADDING: Rect<Dimension> = Rect {
-    start: PT(4.0),
-    end: PT(4.0),
-    top: PT(4.0),
-    bottom: PT(4.0),
+    // start: PT(4.0),
+    // end: PT(4.0),
+    // top: PT(4.0),
+    // bottom: PT(4.0),
+    start: PT(0.0),
+    end: PT(0.0),
+    top: PT(0.0),
+    bottom: PT(0.0),
 };
 
 pub static TAB_PADDING: Rect<Dimension> = Rect {
+    // start: PT(0.0),
+    // end: PT(8.0),
+    // top: PT(0.0),
+    // bottom: PT(4.0),
     start: PT(0.0),
-    end: PT(8.0),
+    end: PT(0.0),
     top: PT(0.0),
-    bottom: PT(4.0),
+    bottom: PT(0.0),
 };
 
 pub static MARGIN: Rect<Dimension> = Rect {
-    start: PT(4.0),
-    end: PT(4.0),
-    top: PT(4.0),
-    bottom: PT(4.0),
+//     start: PT(4.0),
+//     end: PT(4.0),
+//     top: PT(4.0),
+//     bottom: PT(4.0),
+    start: PT(0.0),
+    end: PT(0.0),
+    top: PT(0.0),
+    bottom: PT(0.0),
 };
 
 pub static MARGIN_2: Rect<Dimension> = Rect {
-    start: PT(12.0),
-    end: PT(12.0),
-    top: PT(4.0),
-    bottom: PT(4.0),
+    // start: PT(12.0),
+    // end: PT(12.0),
+    // top: PT(4.0),
+    // bottom: PT(4.0),
+    start: PT(0.0),
+    end: PT(0.0),
+    top: PT(0.0),
+    bottom: PT(0.0),
 };
 
 pub static TAB_MARGIN: Rect<Dimension> = Rect {
-    start: PT(4.0),
-    end: PT(4.0),
-    top: PT(4.0),
-    bottom: PT(18.0),
+    // start: PT(4.0),
+    // end: PT(4.0),
+    // top: PT(4.0),
+    // bottom: PT(18.0),
+    start: PT(0.0),
+    end: PT(0.0),
+    top: PT(0.0),
+    bottom: PT(0.0),
 };
 
 pub static INFO_LABEL_FONT: LazyLock<nwg::Font> = LazyLock::new(|| {

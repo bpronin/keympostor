@@ -13,11 +13,13 @@ use crate::{r_icon, rs};
 use event::KeyEvent;
 use keympostor::keyboard::event;
 use keympostor::keyboard::hook::KeyboardHook;
+use keympostor::keyboard::trigger::KeyTrigger;
 use keympostor::layout::Layouts;
 use log::{debug, warn};
 use native_windows_gui as nwg;
 use native_windows_gui::NativeUi;
 use std::cell::RefCell;
+use std::ops::Not;
 
 mod layout_view;
 mod layouts_menu;
@@ -31,10 +33,10 @@ mod utils;
 
 #[derive(Default)]
 pub(crate) struct App {
-    current_layout: RefCell<Option<String>>,
-    layouts: RefCell<Layouts>,
+    /* Components */
     key_hook: KeyboardHook,
     win_watcher: WinWatcher,
+    /* UI controls */
     window: nwg::Window,
     layout: nwg::FlexboxLayout,
     tab_log_layout: nwg::FlexboxLayout,
@@ -48,10 +50,14 @@ pub(crate) struct App {
     layout_view: LayoutView,
     main_menu: MainMenu,
     tray: Tray,
+    /* State */
+    is_log_enabled: RefCell<bool>,
+    layouts: RefCell<Layouts>,
+    current_layout: RefCell<Option<String>>,
 }
 
 impl App {
-    fn read_settings(&self) {
+    fn load_settings(&self) {
         if let Ok(layouts) = Layouts::load(LAYOUTS_PATH) {
             self.layouts.replace(layouts);
         } else {
@@ -64,17 +70,13 @@ impl App {
 
         self.select_layout(&layout_path_from_args().or(settings.layout));
 
-        self.key_hook.set_notify_enabled(settings.logging_enabled);
+        self.is_log_enabled.replace(settings.logging_enabled);
+        self.apply_log_enabled();
+
         self.key_hook.set_enabled(settings.processing_enabled);
 
         self.win_watcher.set_profiles(settings.profiles);
         self.win_watcher.set_enabled(settings.layouts_enabled);
-
-        self.log_view
-            .add_processing_enabled(self.key_hook.is_enabled());
-
-        self.log_view
-            .add_auto_switch_layout_enabled(self.win_watcher.is_enabled());
 
         if let Some(position) = settings.main_window.position {
             self.window.set_position(position.0, position.1);
@@ -85,15 +87,17 @@ impl App {
         if let Some(page) = settings.main_window.selected_page {
             self.tab_container.set_selected_tab(page);
         }
+
+        debug!("Loaded settings");
     }
 
-    fn write_settings(&self) {
+    fn save_settings(&self) {
         let mut settings = AppSettings::load_default();
 
         settings.layout = self.current_layout.borrow().to_owned();
         settings.processing_enabled = self.key_hook.is_enabled();
         settings.layouts_enabled = self.win_watcher.is_enabled();
-        settings.logging_enabled = self.key_hook.is_notify_enabled();
+        settings.logging_enabled = self.is_log_enabled.borrow().to_owned();
         settings.main_window.position = Some(self.window.position());
         settings.main_window.size = Some(get_window_size(self.window.handle));
         settings.main_window.selected_page = Some(self.tab_container.selected_tab());
@@ -101,6 +105,8 @@ impl App {
         settings.save_default().unwrap_or_else(|e| {
             ui_warn!("{}", e);
         });
+
+        debug!("Saved settings");
     }
 
     fn select_layout(&self, layout_name: &Option<String>) {
@@ -121,7 +127,7 @@ impl App {
         self.current_layout.replace(Some(layout.name.clone()));
         self.layout_view.update_ui(layout);
         self.update_controls();
-        self.write_settings();
+        self.save_settings();
     }
 
     fn update_controls(&self) {
@@ -135,7 +141,7 @@ impl App {
         self.main_menu.update_ui(
             self.key_hook.is_enabled(),
             self.win_watcher.is_enabled(),
-            self.key_hook.is_notify_enabled(),
+            self.is_log_enabled.borrow().to_owned(),
             &self.current_layout.borrow(),
         );
 
@@ -150,9 +156,14 @@ impl App {
     }
 
     fn show_window(&self, show: bool) {
-        self.key_hook.set_notify_enabled(true);
+        self.apply_log_enabled();
         self.update_controls();
         self.window.set_visible(show);
+    }
+
+    fn apply_log_enabled(&self) {
+        self.key_hook
+            .set_notify_enabled(self.is_log_enabled.borrow().to_owned());
     }
 
     pub(crate) fn run(&self) {
@@ -160,11 +171,8 @@ impl App {
         self.key_hook.init(raw_hwnd(self.window.handle));
         self.window.set_icon(Some(r_icon!(IDI_ICON_APP))); /* bug workaround */
 
-        self.read_settings();
+        self.load_settings();
         self.update_controls();
-
-        self.log_view
-            .add_logging_enabled(self.key_hook.is_notify_enabled());
 
         #[cfg(feature = "debug")]
         self.window.set_visible(true);
@@ -174,43 +182,32 @@ impl App {
 
     pub(crate) fn on_toggle_processing_enabled(&self) {
         self.key_hook.set_enabled(!self.key_hook.is_enabled());
-
-        self.log_view
-            .add_processing_enabled(self.key_hook.is_enabled());
         self.update_controls();
-        self.write_settings();
+        self.save_settings();
     }
 
     pub(crate) fn on_toggle_logging_enabled(&self) {
-        self.key_hook
-            .set_notify_enabled(!self.key_hook.is_notify_enabled());
-
-        self.log_view
-            .add_logging_enabled(self.key_hook.is_notify_enabled());
+        self.is_log_enabled.replace_with(|v| v.not());
+        self.apply_log_enabled();
         self.update_controls();
-        self.write_settings();
+        self.save_settings();
     }
 
     pub(crate) fn on_toggle_auto_switch_layout(&self) {
         self.win_watcher.set_enabled(!self.win_watcher.is_enabled());
-
-        self.log_view
-            .add_auto_switch_layout_enabled(self.win_watcher.is_enabled());
         self.update_controls();
-        self.write_settings();
+        self.save_settings();
     }
 
     pub(crate) fn on_window_close(&self) {
-        debug!("Window close event");
-
-        self.key_hook.set_notify_enabled(false);
+        self.key_hook.set_notify_enabled(false); /* temporarily disable logging */
         self.update_controls();
         #[cfg(feature = "debug")]
         self.on_app_exit()
     }
 
     pub(crate) fn on_app_exit(&self) {
-        self.write_settings();
+        self.save_settings();
         nwg::stop_thread_dispatch();
     }
 
@@ -231,11 +228,10 @@ impl App {
     }
 
     pub(crate) fn on_key_hook_notify(&self, event: &KeyEvent) {
-        self.log_view.add_key_event(&event);
+        self.log_view.append(&event);
         self.key_event_label
-            .set_text(format!("[{:8}] {}", event.modifiers, event.action).as_str());
+            .set_text(KeyTrigger::from(event).to_string().as_str());
     }
-
 }
 
 pub(crate) fn run_app() {

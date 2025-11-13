@@ -45,12 +45,6 @@ pub struct ScanCode {
     pub(crate) name: &'static str,
 }
 
-impl From<(u8, bool)> for ScanCode {
-    fn from(value: (u8, bool)) -> Self {
-        todo!()
-    }
-}
-
 impl ScanCode {
     pub(crate) fn from_code(code: (u8, bool)) -> Result<ScanCode, KeyError> {
         SCAN_CODES

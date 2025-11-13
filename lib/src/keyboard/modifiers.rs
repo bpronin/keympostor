@@ -12,53 +12,22 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_RWIN,
 };
 
-pub(crate) const KM_NONE: ModifierKeys = ModifierKeys(0);
-pub(crate) const KM_LSHIFT: ModifierKeys = ModifierKeys(1);
-pub(crate) const KM_RSHIFT: ModifierKeys = ModifierKeys(1 << 1);
-pub(crate) const KM_LCTRL: ModifierKeys = ModifierKeys(1 << 2);
-pub(crate) const KM_RCTRL: ModifierKeys = ModifierKeys(1 << 3);
-pub(crate) const KM_LALT: ModifierKeys = ModifierKeys(1 << 4);
-pub(crate) const KM_RALT: ModifierKeys = ModifierKeys(1 << 5);
-pub(crate) const KM_LWIN: ModifierKeys = ModifierKeys(1 << 6);
-pub(crate) const KM_RWIN: ModifierKeys = ModifierKeys(1 << 7);
+pub const KM_NONE: ModifierKeys = ModifierKeys(0);
+pub const KM_LSHIFT: ModifierKeys = ModifierKeys(1);
+pub const KM_RSHIFT: ModifierKeys = ModifierKeys(1 << 1);
+pub const KM_LCTRL: ModifierKeys = ModifierKeys(1 << 2);
+pub const KM_RCTRL: ModifierKeys = ModifierKeys(1 << 3);
+pub const KM_LALT: ModifierKeys = ModifierKeys(1 << 4);
+pub const KM_RALT: ModifierKeys = ModifierKeys(1 << 5);
+pub const KM_LWIN: ModifierKeys = ModifierKeys(1 << 6);
+pub const KM_RWIN: ModifierKeys = ModifierKeys(1 << 7);
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
 pub struct ModifierKeys(u8);
 
 impl ModifierKeys {
-    pub(crate) const fn contains(&self, other: Self) -> bool {
+    pub const fn contains(&self, other: Self) -> bool {
         self.0 & other.0 == other.0
-    }
-
-    pub fn to_string_short(&self) -> String {
-        let mut text: [char; 8] = ['.'; 8];
-
-        if self.contains(KM_LSHIFT) {
-            text[0] = 'S';
-        }
-        if self.contains(KM_RSHIFT) {
-            text[7] = 'S';
-        }
-        if self.contains(KM_LCTRL) {
-            text[1] = 'C';
-        }
-        if self.contains(KM_RCTRL) {
-            text[6] = 'C';
-        }
-        if self.contains(KM_LALT) {
-            text[2] = 'A';
-        }
-        if self.contains(KM_RALT) {
-            text[5] = 'A';
-        }
-        if self.contains(KM_LWIN) {
-            text[3] = 'W';
-        }
-        if self.contains(KM_RWIN) {
-            text[4] = 'W';
-        }
-
-        text.iter().collect()
     }
 }
 
@@ -204,12 +173,12 @@ impl FromStr for KeyModifiers {
 mod tests {
     use crate::keyboard::modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::modifiers::{
-        KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_NONE, KM_RALT, KM_RCTRL,
+        KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL,
         KM_RSHIFT, KM_RWIN,
     };
+    use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
-    use crate::utils::test::SerdeWrapper;
 
     #[macro_export]
     macro_rules! key_mod {
@@ -233,19 +202,6 @@ mod tests {
     }
 
     #[test]
-    fn test_key_modifiers_display_short() {
-        assert_eq!("........", KM_NONE.to_string_short());
-        assert_eq!("S...W...", (KM_LSHIFT | KM_RWIN).to_string_short());
-        assert_eq!("..A...C.", (KM_LALT | KM_RCTRL).to_string_short());
-
-        assert_eq!(
-            "SCAWWACS",
-            (KM_LSHIFT | KM_RSHIFT | KM_LWIN | KM_RWIN | KM_LALT | KM_RALT | KM_LCTRL | KM_RCTRL)
-                .to_string_short()
-        );
-    }
-
-    #[test]
     fn test_key_modifiers_capture() {
         let mut keys = [false; 256];
         assert_eq!(KM_NONE, ModifierKeys::from(&keys));
@@ -265,10 +221,10 @@ mod tests {
     fn test_keyboard_state_display() {
         assert_eq!(
             "[LEFT_SHIFT + RIGHT_WIN]",
-            KeyModifiers::All(KM_LSHIFT | KM_RWIN).to_string()
+            All(KM_LSHIFT | KM_RWIN).to_string()
         );
-        assert_eq!("[]", KeyModifiers::All(KM_NONE).to_string());
-        assert_eq!("", KeyModifiers::Any.to_string());
+        assert_eq!("[]", All(KM_NONE).to_string());
+        assert_eq!("", Any.to_string());
     }
 
     #[test]

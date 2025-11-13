@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! ifd {
+macro_rules! ife {
     ($condition:expr, $a:expr, $b:expr) => {
         if $condition { $a } else { $b }
     };

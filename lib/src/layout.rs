@@ -46,7 +46,7 @@ impl FromStr for Layout {
                 .ok_or(KeyError::new("Error parsing title."))?
                 .trim()
                 .into(),
-            rules: KeyTransformRules::from_str_lines(lines)?,
+            rules: KeyTransformRules::from_lines(lines)?,
         })
     }
 }

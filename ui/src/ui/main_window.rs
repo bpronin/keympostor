@@ -10,11 +10,12 @@ use keympostor::keyboard::event::KeyEvent;
 use keympostor::keyboard::hook::WM_KEY_HOOK_NOTIFY;
 use log::error;
 use native_windows_gui as nwg;
+use native_windows_gui::stretch::geometry::Rect;
 use native_windows_gui::stretch::style::Dimension;
+use nwg::stretch::style::Dimension::Points as PT;
 use std::cell::RefCell;
 use std::ops::Deref;
 use std::rc::Rc;
-
 pub(crate) struct MainWindow {
     app: Rc<App>,
     event_handler: RefCell<Option<nwg::EventHandler>>,
@@ -32,7 +33,7 @@ impl MainWindow {
 
         nwg::Label::builder()
             .parent(&app.window)
-            .text("")
+            .text("*")
             .font(Some(&INFO_LABEL_FONT))
             .build(&mut app.key_event_label)?;
 
@@ -103,6 +104,7 @@ impl MainWindow {
                 if msg == WM_KEY_HOOK_NOTIFY {
                     app.on_key_hook_notify(KeyEvent::from_l_param(l_param));
                 }
+                // app.log_view.handle_raw_event(msg, l_param);
             }
             None
         };
@@ -120,20 +122,28 @@ impl MainWindow {
 
         nwg::FlexboxLayout::builder()
             .parent(&self.tab_container)
-            .padding(TAB_PADDING)
+            // .padding(TAB_PADDING)
             .child(self.log_view.view())
-            .child_margin(TAB_MARGIN)
-            .child_flex_grow(1.0)
+            .child_margin(Rect {
+                start: PT(4.0),
+                end: PT(16.0),
+                top: PT(6.0),
+                bottom: PT(40.0),
+            })
             .build(&self.tab_log_layout)?;
 
         /* Layout tab layout */
 
         nwg::FlexboxLayout::builder()
             .parent(&self.tab_container)
-            .padding(TAB_PADDING)
+            // .padding(TAB_PADDING)
             .child(self.layout_view.view())
-            .child_margin(TAB_MARGIN)
-            .child_flex_grow(1.0)
+            .child_margin(Rect {
+                start: PT(4.0),
+                end: PT(16.0),
+                top: PT(6.0),
+                bottom: PT(40.0),
+            })
             .build(&self.tab_layouts_layout)?;
 
         /* Main window layout */
@@ -141,21 +151,21 @@ impl MainWindow {
         nwg::FlexboxLayout::builder()
             .parent(&self.window)
             .flex_direction(FlexDirection::Column)
-            .padding(PADDING)
+            // .padding(PADDING)
             /* Tabs */
             .child(&self.tab_container)
-            .child_margin(MARGIN)
+            // .child_margin(MARGIN)
             .child_flex_grow(1.0)
             /* Test label */
             .child(&self.key_event_label)
-            .child_margin(MARGIN_2)
+            // .child_margin(MARGIN_2)
             .child_size(Size {
                 width: Dimension::Auto,
-                height: Dimension::Points(30.0),
+                height: Dimension::Points(24.0),
             })
             /* Test editor */
             .child(self.test_editor.editor())
-            .child_margin(MARGIN_2)
+            // .child_margin(MARGIN_2)
             .child_size(Size {
                 width: Dimension::Auto,
                 height: Dimension::Points(40.0),

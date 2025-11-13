@@ -78,7 +78,7 @@ impl FromStr for KeyTransformRule {
 pub struct KeyTransformRules(Vec<KeyTransformRule>);
 
 impl KeyTransformRules {
-    pub fn from_str_lines(lines: Lines) -> Result<Self, KeyError> {
+    pub fn from_lines(lines: Lines) -> Result<Self, KeyError> {
         let mut items = Vec::new();
         for line in lines {
             items.extend(KeyTransformRule::from_str_to_vec(line.trim())?);
@@ -108,7 +108,7 @@ impl FromStr for KeyTransformRules {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_str_lines(s.trim().lines())
+        Self::from_lines(s.trim().lines())
     }
 }
 

@@ -1,3 +1,4 @@
+use std::cell::Ref;
 use crate::res::res_ids::{
     IDS_AUTO_SWITCH_LAYOUT, IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED,
 };

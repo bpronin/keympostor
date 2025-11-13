@@ -1,17 +1,27 @@
 use crate::keyboard::action::KeyAction;
 use crate::keyboard::error::KeyError;
 use crate::keyboard::modifiers::KeyModifiers;
-use crate::keyboard::modifiers::KeyModifiers::Any;
+use crate::keyboard::modifiers::KeyModifiers::{All, Any};
 use crate::{deserialize_from_string, serialize_to_string};
 use serde::{de, Deserialize, Serialize};
 use serde::{Deserializer, Serializer};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use crate::keyboard::event::KeyEvent;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct KeyTrigger {
     pub action: KeyAction,
     pub modifiers: KeyModifiers,
+}
+
+impl From<&KeyEvent<'_>> for KeyTrigger {
+    fn from(event: &KeyEvent) -> Self {
+        Self{
+            action:event.action,
+            modifiers: All(event.modifiers),
+        }
+    }
 }
 
 impl KeyTrigger {

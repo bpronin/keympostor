@@ -19,6 +19,7 @@ use windows::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
 };
+use keympostor::ife;
 
 const DETECTOR_TIMER: u32 = 19717;
 const WIN_WATCH_INTERVAL: u32 = 500;
@@ -61,7 +62,8 @@ impl WinWatcher {
             }
         };
 
-        debug!("Enabled: {}", self.is_enabled());
+
+        debug!("Profile auto-switch {}", ife!(self.is_enabled(), "enabled", "disabled"));
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {

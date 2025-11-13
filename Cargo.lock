@@ -730,6 +730,7 @@ dependencies = [
  "serde",
  "simple_logger",
  "toml",
+ "winapi",
  "windows",
 ]
 

@@ -1,6 +1,7 @@
 use crate::keyboard::action::KeyAction;
-use crate::keyboard::modifiers::ModifierKeys;
+use crate::keyboard::modifiers::{KeyModifiers, ModifierKeys};
 use crate::keyboard::rules::KeyTransformRule;
+use crate::keyboard::trigger::KeyTrigger;
 use std::fmt::{Display, Formatter};
 use windows::Win32::Foundation::LPARAM;
 
@@ -9,7 +10,7 @@ use windows::Win32::Foundation::LPARAM;
 /// Content does not matter.
 pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub struct KeyEvent<'a> {
     pub action: KeyAction,
     pub modifiers: ModifierKeys,
@@ -25,11 +26,20 @@ impl<'a> KeyEvent<'a> {
     }
 }
 
-impl<'a> Into<LPARAM> for KeyEvent<'a> {
+impl Into<LPARAM> for KeyEvent<'_> {
     fn into(self) -> LPARAM {
         LPARAM(&self as *const KeyEvent as isize)
     }
 }
+
+// impl Into<KeyTrigger> for KeyEvent<'_> {
+//     fn into(self) -> KeyTrigger {
+//         KeyTrigger {
+//             action: self.action.clone(),
+//             modifiers: KeyModifiers::Any,
+//         }
+//     }
+// }
 
 impl Display for KeyEvent<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
