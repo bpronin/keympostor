@@ -1,4 +1,3 @@
-use crate::ui::App;
 use crate::ui::style::BIG_MONO_FONT;
 use native_windows_gui as nwg;
 
@@ -18,7 +17,7 @@ impl TypeTestEditor {
             .build(&mut self.view)
     }
 
-    pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: nwg::ControlHandle) {
+    pub(crate) fn handle_event(&self, evt: nwg::Event) {
         match evt {
             nwg::Event::OnTextInput => {
                 let text = self.view.text();

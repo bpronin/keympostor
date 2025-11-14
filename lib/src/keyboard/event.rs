@@ -1,7 +1,6 @@
 use crate::keyboard::action::KeyAction;
-use crate::keyboard::modifiers::{KeyModifiers, ModifierKeys};
+use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::rules::KeyTransformRule;
-use crate::keyboard::trigger::KeyTrigger;
 use std::fmt::{Display, Formatter};
 use windows::Win32::Foundation::LPARAM;
 

@@ -19,12 +19,11 @@ use keympostor::keyboard::trigger::KeyTrigger;
 use keympostor::layout::Layouts;
 use log::{debug, error, warn};
 use native_windows_gui as nwg;
-use native_windows_gui::NativeUi;
+use native_windows_gui::{Event, NativeUi};
 use std::cell::RefCell;
 use std::ops::Not;
 use std::rc::Rc;
 
-mod app_ui;
 mod layout_view;
 mod layouts_menu;
 mod log_view;
@@ -37,13 +36,9 @@ mod utils;
 
 #[derive(Default)]
 pub(crate) struct App {
-    /* Components */
+    window: MainWindow,
     key_hook: KeyboardHook,
     win_watcher: WinWatcher,
-    /* UI controls */
-    window: MainWindow,
-    tray: Tray,
-    /* State */
     is_log_enabled: RefCell<bool>,
     layouts: RefCell<Layouts>,
     current_layout: RefCell<Option<String>>,
@@ -53,9 +48,7 @@ impl App {
     fn load_settings(&self) {
         let settings = AppSettings::load_default();
 
-        self.window
-            .main_menu
-            .build_layouts_menu(&self.layouts.borrow());
+        self.window.set_layouts(&self.layouts.borrow());
 
         self.select_layout(&layout_path_from_args().or(settings.layout));
 
@@ -67,17 +60,29 @@ impl App {
         self.win_watcher.set_profiles(settings.profiles);
         self.win_watcher.set_enabled(settings.layouts_enabled);
 
-        if let Some(position) = settings.main_window.position {
-            self.window.window.set_position(position.0, position.1);
-        }
-        if let Some(size) = settings.main_window.size {
-            set_window_size(self.window.window.handle, size);
-        }
-        if let Some(page) = settings.main_window.selected_page {
-            self.window.tab_container.set_selected_tab(page);
-        }
+        self.window.set_position(settings.main_window.position);
+        self.window.set_size(settings.main_window.size);
+        self.window.set_selected_page(settings.main_window.selected_page);
 
         debug!("Loaded settings");
+    }
+
+    fn save_settings(&self) {
+        let mut settings = AppSettings::load_default();
+
+        settings.layout = self.current_layout.borrow().to_owned();
+        settings.processing_enabled = self.key_hook.is_enabled();
+        settings.layouts_enabled = self.win_watcher.is_enabled();
+        settings.logging_enabled = self.is_log_enabled.borrow().to_owned();
+        settings.main_window.position = Some(self.window.get_position());
+        settings.main_window.size = Some(self.window.get_size());
+        settings.main_window.selected_page = Some(self.window.get_selected_page());
+
+        settings.save_default().unwrap_or_else(|e| {
+            ui_warn!("{}", e);
+        });
+
+        debug!("Saved settings");
     }
 
     fn load_layouts(&self) {
@@ -88,25 +93,7 @@ impl App {
         }
     }
 
-    fn save_settings(&self) {
-        let mut settings = AppSettings::load_default();
-
-        settings.layout = self.current_layout.borrow().to_owned();
-        settings.processing_enabled = self.key_hook.is_enabled();
-        settings.layouts_enabled = self.win_watcher.is_enabled();
-        settings.logging_enabled = self.is_log_enabled.borrow().to_owned();
-        settings.main_window.position = Some(self.window.window.position());
-        settings.main_window.size = Some(get_window_size(self.window.window.handle));
-        settings.main_window.selected_page = Some(self.window.tab_container.selected_tab());
-
-        settings.save_default().unwrap_or_else(|e| {
-            ui_warn!("{}", e);
-        });
-
-        debug!("Saved settings");
-    }
-
-    fn select_layout(&self, layout_name: &Option<String>) {
+    pub(crate) fn select_layout(&self, layout_name: &Option<String>) {
         let Some(name) = layout_name else {
             warn!("Empty layout name");
             return;
@@ -122,41 +109,39 @@ impl App {
 
         self.key_hook.apply_rules(&layout.rules);
         self.current_layout.replace(Some(layout.name.clone()));
-        self.window.layout_view.update_ui(layout);
+        self.window.on_select_layout(layout);
         self.update_controls();
         self.save_settings();
     }
 
     fn update_controls(&self) {
-        #[cfg(feature = "debug")]
-        self.window
-            .window
-            .set_text(format!("{} - DEBUG", self.build_title()).as_str());
-
-        #[cfg(not(feature = "debug"))]
-        self.window.set_text(self.build_title().as_str());
-
-        self.window.main_menu.update_ui(
+        self.update_title();
+        self.window.update_ui(
             self.key_hook.is_enabled(),
             self.win_watcher.is_enabled(),
             self.is_log_enabled.borrow().to_owned(),
             &self.current_layout.borrow(),
         );
-
-        self.tray.update_ui(self.key_hook.is_enabled());
     }
 
-    fn build_title(&self) -> String {
-        match self.current_layout.borrow().as_ref() {
+    fn update_title(&self) {
+        let title = match self.current_layout.borrow().as_ref() {
             Some(name) => format!("{} - {}", rs!(IDS_APP_TITLE), name),
             None => format!("{} - {}", rs!(IDS_APP_TITLE), rs!(IDS_NO_LAYOUT)),
-        }
+        };
+
+        #[cfg(feature = "debug")]
+        self.window
+            .set_title(format!("{} - DEBUG", title).as_str());
+
+        #[cfg(not(feature = "debug"))]
+        self.window.set_title(title.as_str());
     }
 
     fn show_window(&self, show: bool) {
         self.apply_log_enabled();
         self.update_controls();
-        self.window.window.set_visible(show);
+        self.window.set_visible(show);
     }
 
     fn apply_log_enabled(&self) {
@@ -164,33 +149,13 @@ impl App {
             .set_notify_enabled(self.is_log_enabled.borrow().to_owned());
     }
 
-    fn run(&self) {
-        self.win_watcher.init(self.window.window.handle);
-        self.key_hook.init(raw_hwnd(self.window.window.handle));
-
-        self.load_layouts();
-        self.load_settings();
-        self.update_controls();
-
-        #[cfg(feature = "debug")]
-        self.window.window.set_visible(true);
-
-        nwg::dispatch_thread_events();
-    }
-
     fn handle_event(&self, evt: nwg::Event, handle: nwg::ControlHandle) {
-        self.tray.handle_event(&self, evt, handle);
-        self.window.main_menu.handle_event(&self, evt, handle);
-        self.win_watcher.handle_event(&self, evt, handle);
-        self.window.test_editor.handle_event(&self, evt, handle);
         match evt {
-            nwg::Event::OnWindowClose => {
-                if &handle == &self.window.window.handle {
-                    self.on_window_close()
-                }
-            }
+            Event::OnInit => self.on_init(),
             _ => {}
         }
+        self.win_watcher.handle_event(&self, evt, handle);
+        self.window.handle_event(&self, evt, handle);
     }
 
     fn handle_raw_event(&self, msg: u32, l_param: isize) {
@@ -198,6 +163,18 @@ impl App {
             self.on_key_hook_notify(KeyEvent::from_l_param(l_param));
         }
         // app.log_view.handle_raw_event(msg, l_param);
+    }
+
+    fn on_init(&self) {
+        self.win_watcher.init(self.window.handle());
+        self.key_hook.init(raw_hwnd(self.window.handle()));
+
+        self.load_layouts();
+        self.load_settings();
+        self.update_controls();
+
+        #[cfg(feature = "debug")]
+        self.window.set_visible(true);
     }
 
     fn on_toggle_processing_enabled(&self) {
@@ -236,22 +213,15 @@ impl App {
     }
 
     fn on_toggle_window_visibility(&self) {
-        self.show_window(!self.window.window.visible());
-    }
-
-    pub(crate) fn on_select_layout(&self, layout_name: &Option<String>) {
-        self.select_layout(layout_name);
+        self.show_window(!self.window.is_visible());
     }
 
     fn on_log_view_clear(&self) {
-        self.window.log_view.clear();
+        self.window.clear_log();
     }
 
     fn on_key_hook_notify(&self, event: &KeyEvent) {
-        self.window.log_view.append(&event);
-        self.window
-            .key_event_label
-            .set_text(KeyTrigger::from(event).to_string().as_str());
+        self.window.on_key_hook_notify(event);
     }
 }
 
@@ -273,8 +243,6 @@ pub(crate) struct AppUi {
 impl AppUi {
     pub(crate) fn build(mut app: App) -> Result<Self, nwg::NwgError> {
         app.window.build()?;
-        app.tray.build(&app.window.window)?;
-
         Ok(Self {
             app: Rc::new(app),
             event_handler: Default::default(),
@@ -286,7 +254,7 @@ impl AppUi {
         let app_rc = Rc::downgrade(&self.app);
         self.event_handler
             .replace(Some(nwg::full_bind_event_handler(
-                &self.app.window.window.handle,
+                &self.app.window.handle(),
                 move |evt, _evt_data, handle| {
                     // debug!("NWG: {:?} {:?} {:?}", evt, _evt_data, handle);
                     if let Some(app) = app_rc.upgrade() {
@@ -298,7 +266,7 @@ impl AppUi {
         let app_rc = Rc::downgrade(&self.app);
         self.raw_event_handler.replace(Some(
             nwg::bind_raw_event_handler(
-                &self.app.window.window.handle,
+                &self.app.window.handle(),
                 0x10000,
                 move |_hwnd, msg, _w_param, l_param| {
                     // debug!("NWG RAW: {:?} {:?} {:?} {:?}", _hwnd, msg, _w_param, l_param);
@@ -314,7 +282,8 @@ impl AppUi {
 
     pub(crate) fn run(&self) {
         self.setup_event_handlers();
-        self.app.run()
+        // self.app.run();
+        nwg::dispatch_thread_events();
     }
 }
 

@@ -55,7 +55,7 @@ impl LayoutsMenu {
             nwg::Event::OnMenuItemSelected => {
                 for (item, layout_name) in self.items.borrow().iter() {
                     if item.handle == handle {
-                        app.on_select_layout(&Some(layout_name.to_string()));
+                        app.select_layout(&Some(layout_name.to_string()));
                         break;
                     }
                 }

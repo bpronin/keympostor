@@ -83,10 +83,11 @@ impl WinWatcher {
 
     fn invoke_detector(&self, app: &App) {
         if let Some(result) = self.detector.borrow_mut().detect() {
-            match result {
-                Some(profile) => app.on_select_layout(&profile.layout),
-                None => app.on_select_layout(&None),
-            }
+            let layout = match result {
+                Some(profile) => &profile.layout,
+                None => &None,
+            };
+            app.select_layout(layout);
         }
     }
 }
