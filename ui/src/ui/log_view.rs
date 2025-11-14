@@ -10,7 +10,8 @@ use native_windows_gui::{ListViewExFlags, ListViewStyle};
 use windows::Win32::Foundation::WPARAM;
 use windows::Win32::UI::Controls::*;
 use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
-const MAX_LOG_LINES: usize = 256;
+
+const MAX_LOG_ITEMS: usize = 256;
 
 #[derive(Default)]
 pub(crate) struct LogView {
@@ -25,59 +26,66 @@ impl LogView {
             .ex_flags(ListViewExFlags::FULL_ROW_SELECT)
             .build(&mut self.list)?;
 
-        // self.view.set_headers_enabled(true);
+        self.list.set_headers_enabled(true);
 
         self.list.insert_column(nwg::InsertListViewColumn {
             index: Some(0),
-            fmt: Some(nwg::ListViewColumnFlags::RIGHT),
-            width: Some(500),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(300),
             text: Some("Action".into()),
         });
 
         self.list.insert_column(nwg::InsertListViewColumn {
             index: Some(1),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
-            width: Some(0),
-            text: Some("Modifiers".into()),
+            width: Some(500),
+            text: Some("Rule".into()),
         });
 
         self.list.insert_column(nwg::InsertListViewColumn {
             index: Some(2),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("Key".into()),
+            text: Some("Modifiers".into()),
         });
 
         self.list.insert_column(nwg::InsertListViewColumn {
             index: Some(3),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("Transition".into()),
+            text: Some("Key".into()),
         });
 
         self.list.insert_column(nwg::InsertListViewColumn {
             index: Some(4),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("VK".into()),
+            text: Some("Transition".into()),
         });
 
         self.list.insert_column(nwg::InsertListViewColumn {
             index: Some(5),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("SC".into()),
+            text: Some("VK".into()),
         });
 
         self.list.insert_column(nwg::InsertListViewColumn {
             index: Some(6),
             fmt: Some(nwg::ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("Time".into()),
+            text: Some("SC".into()),
         });
 
         self.list.insert_column(nwg::InsertListViewColumn {
             index: Some(7),
+            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            width: Some(0),
+            text: Some("Time".into()),
+        });
+
+        self.list.insert_column(nwg::InsertListViewColumn {
+            index: Some(8),
             fmt: Some(nwg::ListViewColumnFlags::RIGHT),
             width: Some(0),
             text: Some("Status".into()),
@@ -91,10 +99,17 @@ impl LogView {
     }
 
     pub(crate) fn append(&self, event: &KeyEvent) {
+        self.list.set_redraw(false);
+
+        while self.list.len() > MAX_LOG_ITEMS {
+            self.list.remove_item(0);
+        }
+
         self.list.insert_items_row(
             None,
             &[
                 KeyTrigger::from(event).to_string(),
+                event.rule.map(|r| r.to_string()).unwrap_or("".to_string()),
                 format!(
                     "{:1} {:1} {:1} {:1} {:1} {:1} {:1} {:1}",
                     ife!(event.modifiers.contains(KM_LSHIFT), "S", "."),
@@ -119,6 +134,8 @@ impl LogView {
                 ),
             ],
         );
+
+        self.list.set_redraw(true);
         self.scroll_to_end();
     }
 
@@ -135,8 +152,6 @@ impl LogView {
             }
         }
     }
-
-    // }
 
     // pub(crate) fn handle_raw_event(&self, msg: u32, l_param: isize) {
     //     if msg == WM_NOTIFY {

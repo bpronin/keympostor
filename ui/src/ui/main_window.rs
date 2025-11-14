@@ -1,13 +1,12 @@
 use super::*;
-use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::res::RESOURCES;
+use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::{r_icon, rs};
 use keympostor::layout::Layout;
 use native_windows_gui as nwg;
 use native_windows_gui::stretch::geometry::Rect;
-use native_windows_gui::stretch::style::Dimension;
-use native_windows_gui::{ControlHandle, NwgError};
+use native_windows_gui::stretch::style::Dimension as D;
 use nwg::stretch::style::Dimension::Points as PT;
 
 #[derive(Default)]
@@ -28,7 +27,7 @@ pub(crate) struct MainWindow {
 }
 
 impl MainWindow {
-    pub(crate) fn build(&mut self) -> Result<(), NwgError> {
+    pub(crate) fn build(&mut self) -> Result<(), nwg::NwgError> {
         nwg::Window::builder()
             .size((700, 300))
             .icon(Some(r_icon!(IDI_ICON_APP)))
@@ -113,15 +112,15 @@ impl MainWindow {
             .child(&self.key_event_label)
             // .child_margin(MARGIN_2)
             .child_size(Size {
-                width: Dimension::Auto,
-                height: Dimension::Points(24.0),
+                width: D::Auto,
+                height: D::Points(24.0),
             })
             /* Test editor */
             .child(self.test_editor.editor())
             // .child_margin(MARGIN_2)
             .child_size(Size {
-                width: Dimension::Auto,
-                height: Dimension::Points(40.0),
+                width: D::Auto,
+                height: D::Points(40.0),
             })
             .build(&self.layout)
     }
@@ -157,7 +156,7 @@ impl MainWindow {
         self.tray.update_ui(is_processing_enabled);
     }
 
-    pub(crate) fn handle(&self) -> ControlHandle {
+    pub(crate) fn handle(&self) -> nwg::ControlHandle {
         self.window.handle
     }
 
@@ -197,16 +196,6 @@ impl MainWindow {
         self.main_menu.build_layouts_menu(layouts);
     }
 
-    pub(crate) fn on_select_layout(&self, layout: &Layout) {
-        self.layout_view.update_ui(layout);
-    }
-
-    pub(crate) fn on_key_hook_notify(&self, event: &KeyEvent) {
-        self.log_view.append(event);
-        self.key_event_label
-            .set_text(KeyTrigger::from(event).to_string().as_str());
-    }
-
     pub(crate) fn clear_log(&self) {
         self.log_view.clear()
     }
@@ -219,5 +208,15 @@ impl MainWindow {
         if let Some(page) = page {
             self.tab_container.set_selected_tab(page);
         }
+    }
+
+    pub(crate) fn on_select_layout(&self, layout: &Layout) {
+        self.layout_view.update_ui(layout);
+    }
+
+    pub(crate) fn on_key_hook_notify(&self, event: &KeyEvent) {
+        self.log_view.append(event);
+        self.key_event_label
+            .set_text(KeyTrigger::from(event).to_string().as_str());
     }
 }
