@@ -1,5 +1,5 @@
-use crate::res::res_ids::{IDS_APP_TITLE, IDS_NO_LAYOUT};
 use crate::res::RESOURCES;
+use crate::res::res_ids::{IDS_APP_TITLE, IDS_NO_LAYOUT};
 use crate::rs;
 use crate::settings::{AppSettings, LAYOUTS_PATH};
 use crate::ui::layout_view::LayoutView;
@@ -62,7 +62,8 @@ impl App {
 
         self.window.set_position(settings.main_window.position);
         self.window.set_size(settings.main_window.size);
-        self.window.set_selected_page(settings.main_window.selected_page);
+        self.window
+            .set_selected_page(settings.main_window.selected_page);
 
         debug!("Loaded settings");
     }
@@ -131,8 +132,7 @@ impl App {
         };
 
         #[cfg(feature = "debug")]
-        self.window
-            .set_title(format!("{} - DEBUG", title).as_str());
+        self.window.set_title(format!("{} - DEBUG", title).as_str());
 
         #[cfg(not(feature = "debug"))]
         self.window.set_title(title.as_str());

@@ -1,10 +1,10 @@
+use crate::res::RESOURCES;
 use crate::res::res_ids::{
     IDS_AUTO_SWITCH_LAYOUT, IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED,
 };
-use crate::res::RESOURCES;
 use crate::rs;
-use crate::ui::layouts_menu::LayoutsMenu;
 use crate::ui::App;
+use crate::ui::layouts_menu::LayoutsMenu;
 use keympostor::layout::Layouts;
 use log::warn;
 use native_windows_gui as nwg;
