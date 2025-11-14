@@ -257,12 +257,14 @@ impl App {
 
 impl NativeUi<AppUi> for App {
     fn build_ui(app: App) -> Result<AppUi, nwg::NwgError> {
+        nwg::init().expect("Failed to init Native Windows GUI.");
+        nwg::Font::set_global_default(Some(display_font(17)));
         AppUi::build(app)
     }
 }
 
 #[derive(Default)]
-struct AppUi {
+pub(crate) struct AppUi {
     app: Rc<App>,
     event_handler: RefCell<Option<nwg::EventHandler>>,
     raw_event_handler: RefCell<Option<nwg::RawEventHandler>>,
@@ -326,12 +328,4 @@ impl Drop for AppUi {
                 .unwrap_or_else(|e| error!("Failed to unbind raw event handler: {}", e));
         }
     }
-}
-
-pub(crate) fn run_app() {
-    nwg::init().expect("Failed to init Native Windows GUI.");
-    nwg::Font::set_global_default(Some(display_font(17)));
-    App::build_ui(Default::default())
-        .expect("Failed to build application UI.")
-        .run();
 }

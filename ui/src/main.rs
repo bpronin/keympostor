@@ -1,8 +1,9 @@
 #![cfg_attr(not(feature = "console"), windows_subsystem = "windows")]
 
+use crate::ui::App;
 use log::LevelFilter;
+use native_windows_gui::NativeUi;
 use simple_logger::SimpleLogger;
-use ui::run_app;
 
 mod profile;
 mod res;
@@ -17,5 +18,7 @@ fn main() {
         .init()
         .expect("Failed to initialize logger.");
 
-    run_app();
+    App::build_ui(Default::default())
+        .expect("Failed to build application UI.")
+        .run();
 }
