@@ -6,7 +6,7 @@ use crate::keyboard::rules::KeyTransformRules;
 use crate::keyboard::transform::KeyTransformMap;
 use log::{debug, warn};
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
+use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, SendInput};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;

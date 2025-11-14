@@ -1,7 +1,7 @@
+use crate::profile::Profile;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use crate::profile::Profile;
 
 const SETTINGS_FILE: &str = "settings.toml";
 pub const LAYOUTS_PATH: &str = "layouts";

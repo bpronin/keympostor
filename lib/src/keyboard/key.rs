@@ -1,7 +1,7 @@
 use crate::keyboard::consts::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
 use crate::keyboard::error::KeyError;
 use crate::{deserialize_from_string, serialize_to_string};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -149,7 +149,7 @@ mod tests {
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
+        MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX, MapVirtualKeyW,
     };
 
     impl VirtualKey {

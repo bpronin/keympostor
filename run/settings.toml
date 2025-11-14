@@ -1,9 +1,9 @@
-processing_enabled = false
-logging_enabled = false
+processing_enabled = true
+logging_enabled = true
 layouts_enabled = false
 layout = "default"
 
 [main_window]
-position = [300, 300]
-size = [716, 339]
+position = [697, 173]
+size = [799, 539]
 selected_page = 0

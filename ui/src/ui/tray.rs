@@ -1,8 +1,8 @@
+use crate::res::RESOURCES;
 use crate::res::res_ids::{
     IDI_ICON_APP, IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON, IDS_ENABLED, IDS_EXIT, IDS_OPEN,
     IDS_TRAY_TIP,
 };
-use crate::res::RESOURCES;
 use crate::ui::App;
 use crate::{r_icon, rs};
 use native_windows_gui as nwg;

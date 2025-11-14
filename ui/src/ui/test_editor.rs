@@ -1,6 +1,6 @@
 use crate::ui::App;
+use crate::ui::style::BIG_MONO_FONT;
 use native_windows_gui as nwg;
-use crate::ui::style::{BIG_MONO_FONT};
 
 const MAX_LENGTH: usize = 150;
 

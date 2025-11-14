@@ -4,7 +4,7 @@ use crate::keyboard::trigger::KeyTrigger;
 use crate::write_joined;
 use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::slice::Iter;
@@ -35,13 +35,13 @@ impl KeyTransformRule {
                     } else {
                         &triggers[len_t - 1]
                     }
-                        .clone(),
+                    .clone(),
                     actions: if i < len_s {
                         &sequences[i]
                     } else {
                         &sequences[len_s - 1]
                     }
-                        .clone(),
+                    .clone(),
                 };
 
                 rules.push(rule);

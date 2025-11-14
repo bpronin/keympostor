@@ -2,8 +2,8 @@ use native_windows_gui::ControlHandle;
 use std::{env, mem};
 use windows::Win32::Foundation::{HWND, RECT};
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowRect, SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER,
-    SWP_NOZORDER,
+    GetWindowRect, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER,
+    SetWindowPos,
 };
 
 pub fn layout_path_from_args() -> Option<String> {

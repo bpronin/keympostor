@@ -5,7 +5,7 @@ use crate::keyboard::key::Key;
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use serde::Deserializer;
 use serde::Serializer;
-use serde::{de, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de};
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 use std::str::FromStr;

@@ -70,10 +70,10 @@ impl MainWindow {
     }
 
     fn setup_event_handlers(&self) {
-        /* Windows events */
+        /* Setup default handler */
 
         let app_rc = Rc::downgrade(&self.app);
-        let event_handler = move |evt, _evt_data, handle| {
+        let default_event_handler = move |evt, _evt_data, handle| {
             // debug!("NWG: {:?} {:?} {:?}", evt, _evt_data, handle);
             if let Some(app) = app_rc.upgrade() {
                 app.tray.handle_event(&app, evt, handle);
@@ -91,10 +91,11 @@ impl MainWindow {
             }
         };
 
-        *self.event_handler.borrow_mut() = Some(nwg::full_bind_event_handler(
-            &self.window.handle,
-            event_handler,
-        ));
+        self.event_handler
+            .replace(Some(nwg::full_bind_event_handler(
+                &self.window.handle,
+                default_event_handler,
+            )));
 
         /* Setup raw event handler */
 
@@ -109,10 +110,10 @@ impl MainWindow {
             None
         };
 
-        *self.raw_event_handler.borrow_mut() = Some(
+        self.raw_event_handler.replace(Some(
             nwg::bind_raw_event_handler(&self.window.handle, 0xFFFFF, raw_event_handler)
                 .expect("Failed to bind raw event handler"),
-        );
+        ));
     }
 
     fn layout(&self) -> Result<(), nwg::NwgError> {

@@ -1,6 +1,6 @@
+use crate::ui::style::SMALL_MONO_FONT;
 use keympostor::layout::Layout;
 use native_windows_gui as nwg;
-use crate::ui::style::SMALL_MONO_FONT;
 
 #[derive(Default)]
 pub(crate) struct LayoutView {

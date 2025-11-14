@@ -59,7 +59,6 @@ impl Resources {
             .string(res_id as u32)
             .expect("Unable to read resource string")
     }
-
 }
 
 #[cfg(test)]
@@ -70,8 +69,8 @@ mod test {
     //     play_sound(SOUND_GAME_LOCK_OFF);
     // }
 
-    use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE};
     use crate::res::RESOURCES;
+    use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE};
 
     #[test]
     fn test_rs() {

@@ -1,13 +1,13 @@
 use crate::keyboard::action::KeyAction;
 use crate::keyboard::error::KeyError;
+use crate::keyboard::event::KeyEvent;
 use crate::keyboard::modifiers::KeyModifiers;
 use crate::keyboard::modifiers::KeyModifiers::{All, Any};
 use crate::{deserialize_from_string, serialize_to_string};
-use serde::{de, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de};
 use serde::{Deserializer, Serializer};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
-use crate::keyboard::event::KeyEvent;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct KeyTrigger {
@@ -17,8 +17,8 @@ pub struct KeyTrigger {
 
 impl From<&KeyEvent<'_>> for KeyTrigger {
     fn from(event: &KeyEvent) -> Self {
-        Self{
-            action:event.action,
+        Self {
+            action: event.action,
             modifiers: All(event.modifiers),
         }
     }
@@ -96,10 +96,10 @@ impl<'de> Deserialize<'de> for KeyTrigger {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::modifiers::KeyModifiers::{All, Any};
-    use crate::keyboard::modifiers::ModifierKeys;
     use crate::keyboard::modifiers::KM_LSHIFT;
     use crate::keyboard::modifiers::KM_NONE;
+    use crate::keyboard::modifiers::KeyModifiers::{All, Any};
+    use crate::keyboard::modifiers::ModifierKeys;
     use crate::keyboard::trigger::KeyAction;
     use crate::keyboard::trigger::KeyTrigger;
     use crate::utils::test::SerdeWrapper;

@@ -1,5 +1,5 @@
-use crate::keyboard::key::{Key, ScanCode, VirtualKey};
 use crate::keyboard::error::KeyError;
+use crate::keyboard::key::{Key, ScanCode, VirtualKey};
 use fxhash::FxHashMap;
 
 thread_local! {
@@ -694,7 +694,7 @@ pub(crate) static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::consts::{KEYS, KEY_MAP};
+    use crate::keyboard::consts::{KEY_MAP, KEYS};
 
     #[test]
     fn test_key_by_name() {

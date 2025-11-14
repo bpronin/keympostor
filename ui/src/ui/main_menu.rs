@@ -1,14 +1,14 @@
-use std::cell::Ref;
+use crate::res::RESOURCES;
 use crate::res::res_ids::{
     IDS_AUTO_SWITCH_LAYOUT, IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED,
 };
-use crate::res::RESOURCES;
 use crate::rs;
-use crate::ui::layouts_menu::LayoutsMenu;
 use crate::ui::App;
+use crate::ui::layouts_menu::LayoutsMenu;
 use keympostor::layout::Layouts;
 use log::warn;
 use native_windows_gui as nwg;
+use std::cell::Ref;
 
 #[derive(Default)]
 pub(crate) struct MainMenu {
@@ -76,7 +76,8 @@ impl MainMenu {
             .set_checked(is_processing_enabled);
         self.toggle_auto_switch_layout_item
             .set_checked(is_auto_switch_layout_enabled);
-        self.toggle_logging_enabled_item.set_checked(is_logging_enabled);
+        self.toggle_logging_enabled_item
+            .set_checked(is_logging_enabled);
         self.layout_menu.update_ui(current_layout_name);
     }
 

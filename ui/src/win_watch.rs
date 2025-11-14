@@ -2,24 +2,24 @@ use crate::profile::Profile;
 use crate::ui::App;
 use crate::utils::raw_hwnd;
 use error::Error;
+use keympostor::ife;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
 use std::cell::RefCell;
 use std::error;
-use windows::core::PWSTR;
 use windows::Win32::UI::WindowsAndMessaging::{KillTimer, SetTimer};
+use windows::core::PWSTR;
 use windows::{
     Win32::Foundation::{CloseHandle, HWND, MAX_PATH},
     Win32::System::Threading::{
-        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
-        PROCESS_QUERY_LIMITED_INFORMATION,
+        OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
+        QueryFullProcessImageNameW,
     },
     Win32::UI::WindowsAndMessaging::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
 };
-use keympostor::ife;
 
 const DETECTOR_TIMER: u32 = 19717;
 const WIN_WATCH_INTERVAL: u32 = 500;
@@ -62,8 +62,10 @@ impl WinWatcher {
             }
         };
 
-
-        debug!("Profile auto-switch {}", ife!(self.is_enabled(), "enabled", "disabled"));
+        debug!(
+            "Profile auto-switch {}",
+            ife!(self.is_enabled(), "enabled", "disabled")
+        );
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {

@@ -3,7 +3,7 @@ use crate::keyboard::modifiers::KeyModifiers::All;
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use core::ops;
 use ops::BitOr;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -173,8 +173,8 @@ impl FromStr for KeyModifiers {
 mod tests {
     use crate::keyboard::modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::modifiers::{
-        KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL,
-        KM_RSHIFT, KM_RWIN,
+        KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT, KM_RWIN, KeyModifiers,
+        ModifierKeys,
     };
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;

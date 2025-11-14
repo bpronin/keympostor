@@ -1,8 +1,8 @@
-use std::cell::RefCell;
 use crate::res::RESOURCES;
 use crate::rs;
 use keympostor::layout::Layouts;
 use native_windows_gui as nwg;
+use std::cell::RefCell;
 
 use crate::res::res_ids::IDS_LAYOUT;
 use crate::ui::App;
@@ -14,11 +14,7 @@ pub(crate) struct LayoutsMenu {
 }
 
 impl LayoutsMenu {
-
-    pub(crate) fn build_ui(
-        &mut self,
-        parent: &nwg::Window,
-    ) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::Menu::builder()
             .parent(parent)
             .text(rs!(IDS_LAYOUT))

@@ -1,15 +1,15 @@
 use criterion::measurement::WallTime;
-use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
+use criterion::{BenchmarkGroup, Criterion, criterion_group, criterion_main};
 use fxhash::FxHashMap;
-use keympostor::keyboard::key::Key;
 use keympostor::keyboard::action::KeyTransition::{Down, Up};
 use keympostor::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
 use keympostor::keyboard::consts::{KEYS, MAX_SCAN_CODE, MAX_VK_CODE};
 use keympostor::keyboard::event::KeyEvent;
+use keympostor::keyboard::key::Key;
 use keympostor::keyboard::modifiers::KeyModifiers;
 use keympostor::keyboard::modifiers::KeyModifiers::{All, Any};
-use keympostor::keyboard::trigger::KeyTrigger;
 use keympostor::keyboard::rules::KeyTransformRule;
+use keympostor::keyboard::trigger::KeyTrigger;
 
 type Group = FxHashMap<KeyModifiers, KeyTransformRule>;
 
@@ -30,8 +30,7 @@ pub struct KeyTransformHashMap {
 impl KeyTransformMap for KeyTransformHashMap {
     fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         let map = self.map.get(&event.action)?;
-        map.get(&All(event.modifiers))
-            .or_else(|| map.get(&Any))
+        map.get(&All(event.modifiers)).or_else(|| map.get(&Any))
     }
 
     fn put(&mut self, rule: KeyTransformRule) {
@@ -77,8 +76,7 @@ impl KeyTransformMatrix {
 impl KeyTransformMap for KeyTransformMatrix {
     fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         if let Some(map) = self.get_group(&event.action) {
-            map.get(&All(event.modifiers))
-                .or_else(|| map.get(&Any))
+            map.get(&All(event.modifiers)).or_else(|| map.get(&Any))
         } else {
             None
         }

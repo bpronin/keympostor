@@ -1,5 +1,5 @@
-use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_NO_LAYOUT};
 use crate::res::RESOURCES;
+use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_NO_LAYOUT};
 use crate::settings::{AppSettings, LAYOUTS_PATH};
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -58,12 +58,6 @@ pub(crate) struct App {
 
 impl App {
     fn load_settings(&self) {
-        if let Ok(layouts) = Layouts::load(LAYOUTS_PATH) {
-            self.layouts.replace(layouts);
-        } else {
-            ui_warn!("Unable to load layouts.");
-        }
-
         let settings = AppSettings::load_default();
 
         self.main_menu.build_layouts_menu(&self.layouts.borrow());
@@ -89,6 +83,14 @@ impl App {
         }
 
         debug!("Loaded settings");
+    }
+
+    fn load_layouts(&self) {
+        if let Ok(layouts) = Layouts::load(LAYOUTS_PATH) {
+            self.layouts.replace(layouts);
+        } else {
+            ui_warn!("Unable to load layouts.");
+        }
     }
 
     fn save_settings(&self) {
@@ -169,8 +171,8 @@ impl App {
     pub(crate) fn run(&self) {
         self.win_watcher.init(self.window.handle);
         self.key_hook.init(raw_hwnd(self.window.handle));
-        self.window.set_icon(Some(r_icon!(IDI_ICON_APP))); /* bug workaround */
 
+        self.load_layouts();
         self.load_settings();
         self.update_controls();
 
@@ -200,7 +202,7 @@ impl App {
     }
 
     pub(crate) fn on_window_close(&self) {
-        self.key_hook.set_notify_enabled(false); /* temporarily disable logging */
+        self.key_hook.set_notify_enabled(false); /* temporarily disable logging while closed */
         self.update_controls();
         #[cfg(feature = "debug")]
         self.on_app_exit()

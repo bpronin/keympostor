@@ -21,8 +21,7 @@ impl KeyTransformMap {
 
     pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         let map = self.map.get(&event.action)?;
-        map.get(&All(event.modifiers))
-            .or_else(|| map.get(&Any))
+        map.get(&All(event.modifiers)).or_else(|| map.get(&Any))
     }
 
     fn put(&mut self, rule: KeyTransformRule) {
@@ -37,10 +36,10 @@ impl KeyTransformMap {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::modifiers::ModifierKeys;
+    use crate::keyboard::rules::KeyTransformRule;
     use crate::keyboard::transform::KeyAction;
     use crate::keyboard::transform::KeyEvent;
     use crate::keyboard::transform::KeyTransformMap;
-    use crate::keyboard::rules::KeyTransformRule;
     use crate::{assert_none, key_action, key_event, key_rule};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LMENU, VK_LSHIFT};
 
@@ -115,7 +114,10 @@ mod tests {
         assert_eq!(expected, map.get(&key_event!("A↓", &KS_LSHIFT)).unwrap());
         assert_eq!(expected, map.get(&key_event!("A↓", &KS_LCTRL)).unwrap());
         assert_eq!(expected, map.get(&key_event!("A↓", &KS_LALT)).unwrap());
-        assert_eq!(expected, map.get(&key_event!("A↓", &KS_LCTRL_LALT)).unwrap());
+        assert_eq!(
+            expected,
+            map.get(&key_event!("A↓", &KS_LCTRL_LALT)).unwrap()
+        );
     }
 
     #[test]
