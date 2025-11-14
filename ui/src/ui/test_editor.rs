@@ -10,11 +10,7 @@ pub(crate) struct TypeTestEditor {
 }
 
 impl TypeTestEditor {
-    pub(crate) fn editor(&self) -> impl Into<nwg::ControlHandle> {
-        &self.view
-    }
-
-    pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::TextInput::builder()
             .parent(parent)
             .focus(true)
@@ -36,5 +32,9 @@ impl TypeTestEditor {
             }
             _ => {}
         };
+    }
+
+    pub(crate) fn editor(&self) -> impl Into<nwg::ControlHandle> {
+        &self.view
     }
 }

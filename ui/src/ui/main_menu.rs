@@ -23,13 +23,13 @@ pub(crate) struct MainMenu {
 }
 
 impl MainMenu {
-    pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::Menu::builder()
             .parent(parent)
             .text(rs!(IDS_FILE))
             .build(&mut self.menu)?;
 
-        self.layout_menu.build_ui(parent)?;
+        self.layout_menu.build(parent)?;
 
         nwg::MenuItem::builder()
             .parent(&self.menu)

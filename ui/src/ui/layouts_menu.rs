@@ -14,7 +14,7 @@ pub(crate) struct LayoutsMenu {
 }
 
 impl LayoutsMenu {
-    pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::Menu::builder()
             .parent(parent)
             .text(rs!(IDS_LAYOUT))

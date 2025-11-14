@@ -14,8 +14,9 @@ use native_windows_gui::stretch::geometry::Rect;
 use native_windows_gui::stretch::style::Dimension;
 use nwg::stretch::style::Dimension::Points as PT;
 use std::cell::RefCell;
-use std::ops::Deref;
 use std::rc::Rc;
+
+#[derive(Default)]
 pub(crate) struct MainWindow {
     app: Rc<App>,
     event_handler: RefCell<Option<nwg::EventHandler>>,
@@ -23,7 +24,8 @@ pub(crate) struct MainWindow {
 }
 
 impl MainWindow {
-    fn build(mut app: App) -> Result<Self, nwg::NwgError> {
+    pub(crate) fn build(mut app: App) -> Result<Self, nwg::NwgError> {
+
         nwg::Window::builder()
             .size((700, 300))
             .icon(Some(r_icon!(IDI_ICON_APP)))
@@ -37,7 +39,7 @@ impl MainWindow {
             .font(Some(&INFO_LABEL_FONT))
             .build(&mut app.key_event_label)?;
 
-        app.test_editor.build_ui(&mut app.window)?;
+        app.test_editor.build(&mut app.window)?;
 
         /* Tabs */
 
@@ -55,65 +57,19 @@ impl MainWindow {
             .parent(&app.tab_container)
             .build(&mut app.tab_layouts)?;
 
-        app.main_menu.build_ui(&mut app.window)?;
-        app.tray.build_ui(&mut app.window)?;
-        app.log_view.build_ui(&mut app.tab_log)?;
-        app.layout_view.build_ui(&mut app.tab_layouts)?;
+        app.main_menu.build(&mut app.window)?;
+        app.tray.build(&mut app.window)?;
+        app.log_view.build(&mut app.tab_log)?;
+        app.layout_view.build(&mut app.tab_layouts)?;
 
-        /* Wrap-up */
-
-        Ok(Self {
+        let this = Self {
             app: Rc::new(app),
             event_handler: Default::default(),
             raw_event_handler: Default::default(),
-        })
-    }
-
-    fn setup_event_handlers(&self) {
-        /* Setup default handler */
-
-        let app_rc = Rc::downgrade(&self.app);
-        let default_event_handler = move |evt, _evt_data, handle| {
-            // debug!("NWG: {:?} {:?} {:?}", evt, _evt_data, handle);
-            if let Some(app) = app_rc.upgrade() {
-                app.tray.handle_event(&app, evt, handle);
-                app.main_menu.handle_event(&app, evt, handle);
-                app.win_watcher.handle_event(&app, evt, handle);
-                app.test_editor.handle_event(&app, evt, handle);
-                match evt {
-                    nwg::Event::OnWindowClose => {
-                        if &handle == &app.window {
-                            app.on_window_close()
-                        }
-                    }
-                    _ => {}
-                }
-            }
         };
+        this.layout()?;
 
-        self.event_handler
-            .replace(Some(nwg::full_bind_event_handler(
-                &self.window.handle,
-                default_event_handler,
-            )));
-
-        /* Setup raw event handler */
-
-        let app_rc = Rc::downgrade(&self.app);
-        let raw_event_handler = move |_hwnd, msg, _w_param, l_param| {
-            if let Some(app) = app_rc.upgrade() {
-                if msg == WM_KEY_HOOK_NOTIFY {
-                    app.on_key_hook_notify(KeyEvent::from_l_param(l_param));
-                }
-                // app.log_view.handle_raw_event(msg, l_param);
-            }
-            None
-        };
-
-        self.raw_event_handler.replace(Some(
-            nwg::bind_raw_event_handler(&self.window.handle, 0xFFFFF, raw_event_handler)
-                .expect("Failed to bind raw event handler"),
-        ));
+        Ok(this)
     }
 
     fn layout(&self) -> Result<(), nwg::NwgError> {
@@ -122,68 +78,91 @@ impl MainWindow {
         /* Log tab layout */
 
         nwg::FlexboxLayout::builder()
-            .parent(&self.tab_container)
+            .parent(&self.app.tab_container)
             // .padding(TAB_PADDING)
-            .child(self.log_view.view())
+            .child(self.app.log_view.view())
             .child_margin(Rect {
                 start: PT(4.0),
                 end: PT(16.0),
                 top: PT(6.0),
                 bottom: PT(40.0),
             })
-            .build(&self.tab_log_layout)?;
+            .build(&self.app.tab_log_layout)?;
 
         /* Layout tab layout */
 
         nwg::FlexboxLayout::builder()
-            .parent(&self.tab_container)
+            .parent(&self.app.tab_container)
             // .padding(TAB_PADDING)
-            .child(self.layout_view.view())
+            .child(self.app.layout_view.view())
             .child_margin(Rect {
                 start: PT(4.0),
                 end: PT(16.0),
                 top: PT(6.0),
                 bottom: PT(40.0),
             })
-            .build(&self.tab_layouts_layout)?;
+            .build(&self.app.tab_layouts_layout)?;
 
         /* Main window layout */
 
         nwg::FlexboxLayout::builder()
-            .parent(&self.window)
+            .parent(&self.app.window)
             .flex_direction(FlexDirection::Column)
             // .padding(PADDING)
             /* Tabs */
-            .child(&self.tab_container)
+            .child(&self.app.tab_container)
             // .child_margin(MARGIN)
             .child_flex_grow(1.0)
             /* Test label */
-            .child(&self.key_event_label)
+            .child(&self.app.key_event_label)
             // .child_margin(MARGIN_2)
             .child_size(Size {
                 width: Dimension::Auto,
                 height: Dimension::Points(24.0),
             })
             /* Test editor */
-            .child(self.test_editor.editor())
+            .child(self.app.test_editor.editor())
             // .child_margin(MARGIN_2)
             .child_size(Size {
                 width: Dimension::Auto,
                 height: Dimension::Points(40.0),
             })
-            .build(&self.layout)
+            .build(&self.app.layout)
     }
-}
 
-impl nwg::NativeUi<MainWindow> for App {
-    fn build_ui(app: App) -> Result<MainWindow, nwg::NwgError> {
-        nwg::Font::set_global_default(Some(display_font(17)));
+    fn setup_event_handlers(&self) {
+        let app_rc = Rc::downgrade(&self.app);
+        self.event_handler
+            .replace(Some(nwg::full_bind_event_handler(
+                &self.app.window.handle,
+                move |evt, _evt_data, handle| {
+                    // debug!("NWG: {:?} {:?} {:?}", evt, _evt_data, handle);
+                    if let Some(app) = app_rc.upgrade() {
+                        app.handle_event(evt, handle);
+                    }
+                },
+            )));
 
-        let window = MainWindow::build(app)?;
-        window.setup_event_handlers();
-        window.layout()?;
+        let app_rc = Rc::downgrade(&self.app);
+        self.raw_event_handler.replace(Some(
+            nwg::bind_raw_event_handler(
+                &self.app.window.handle,
+                0x10000,
+                move |_hwnd, msg, _w_param, l_param| {
+                    // debug!("NWG RAW: {:?} {:?} {:?} {:?}", _hwnd, msg, _w_param, l_param);
+                    if let Some(app) = app_rc.upgrade() {
+                        app.handle_raw_event(msg, l_param);
+                    }
+                    None
+                },
+            )
+            .expect("Failed to bind raw event handler"),
+        ));
+    }
 
-        Ok(window)
+    pub(crate) fn run(&self) {
+        self.setup_event_handlers();
+        self.app.run()
     }
 }
 
@@ -196,13 +175,5 @@ impl Drop for MainWindow {
             nwg::unbind_raw_event_handler(handler)
                 .unwrap_or_else(|e| error!("Failed to unbind raw event handler: {}", e));
         }
-    }
-}
-
-impl Deref for MainWindow {
-    type Target = App;
-
-    fn deref(&self) -> &App {
-        &self.app
     }
 }

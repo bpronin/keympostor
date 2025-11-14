@@ -18,7 +18,7 @@ pub(crate) struct Tray {
 }
 
 impl Tray {
-    pub(crate) fn build_ui(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
         nwg::TrayNotification::builder()
             .parent(parent)
             .icon(Some(r_icon!(IDI_ICON_APP)))

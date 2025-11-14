@@ -18,7 +18,7 @@ pub(crate) struct LogView {
 }
 
 impl LogView {
-    pub(crate) fn build_ui(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
         nwg::ListView::builder()
             .parent(parent)
             .list_style(ListViewStyle::Detailed)

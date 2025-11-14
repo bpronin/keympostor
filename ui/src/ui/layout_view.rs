@@ -12,7 +12,7 @@ impl LayoutView {
         &self.view
     }
 
-    pub(crate) fn build_ui(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
         nwg::TextBox::builder()
             .parent(parent)
             .readonly(true)

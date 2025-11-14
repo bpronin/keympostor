@@ -1,5 +1,5 @@
+use crate::res::res_ids::{IDS_APP_TITLE, IDS_NO_LAYOUT};
 use crate::res::RESOURCES;
-use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_NO_LAYOUT};
 use crate::settings::{AppSettings, LAYOUTS_PATH};
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -9,17 +9,19 @@ use crate::ui::tray::Tray;
 use crate::ui_warn;
 use crate::utils::{get_window_size, layout_path_from_args, raw_hwnd, set_window_size};
 use crate::win_watch::WinWatcher;
-use crate::{r_icon, rs};
+use crate::{rs};
 use event::KeyEvent;
 use keympostor::keyboard::event;
-use keympostor::keyboard::hook::KeyboardHook;
+use keympostor::keyboard::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
 use keympostor::keyboard::trigger::KeyTrigger;
 use keympostor::layout::Layouts;
 use log::{debug, warn};
 use native_windows_gui as nwg;
-use native_windows_gui::NativeUi;
 use std::cell::RefCell;
 use std::ops::Not;
+use native_windows_gui::NativeUi;
+use crate::ui::main_window::MainWindow;
+use crate::ui::style::display_font;
 
 mod layout_view;
 mod layouts_menu;
@@ -168,7 +170,7 @@ impl App {
             .set_notify_enabled(self.is_log_enabled.borrow().to_owned());
     }
 
-    pub(crate) fn run(&self) {
+    fn run(&self) {
         self.win_watcher.init(self.window.handle);
         self.key_hook.init(raw_hwnd(self.window.handle));
 
@@ -182,42 +184,64 @@ impl App {
         nwg::dispatch_thread_events();
     }
 
-    pub(crate) fn on_toggle_processing_enabled(&self) {
+    fn handle_event(&self, evt: nwg::Event, handle: nwg::ControlHandle){
+        self.tray.handle_event(&self, evt, handle);
+        self.main_menu.handle_event(&self, evt, handle);
+        self.win_watcher.handle_event(&self, evt, handle);
+        self.test_editor.handle_event(&self, evt, handle);
+        match evt {
+            nwg::Event::OnWindowClose => {
+                if &handle == &self.window {
+                    self.on_window_close()
+                }
+            }
+            _ => {}
+        }
+    }
+
+    fn handle_raw_event(&self, msg: u32, l_param: isize){
+        if msg == WM_KEY_HOOK_NOTIFY {
+            self.on_key_hook_notify(KeyEvent::from_l_param(l_param));
+        }
+        // app.log_view.handle_raw_event(msg, l_param);  
+    }
+
+    fn on_toggle_processing_enabled(&self) {
         self.key_hook.set_enabled(!self.key_hook.is_enabled());
         self.update_controls();
         self.save_settings();
     }
 
-    pub(crate) fn on_toggle_logging_enabled(&self) {
+    fn on_toggle_logging_enabled(&self) {
         self.is_log_enabled.replace_with(|v| v.not());
         self.apply_log_enabled();
         self.update_controls();
         self.save_settings();
     }
 
-    pub(crate) fn on_toggle_auto_switch_layout(&self) {
+    fn on_toggle_auto_switch_layout(&self) {
         self.win_watcher.set_enabled(!self.win_watcher.is_enabled());
         self.update_controls();
         self.save_settings();
     }
 
-    pub(crate) fn on_window_close(&self) {
+    fn on_window_close(&self) {
         self.key_hook.set_notify_enabled(false); /* temporarily disable logging while closed */
         self.update_controls();
         #[cfg(feature = "debug")]
         self.on_app_exit()
     }
 
-    pub(crate) fn on_app_exit(&self) {
+    fn on_app_exit(&self) {
         self.save_settings();
         nwg::stop_thread_dispatch();
     }
 
-    pub(crate) fn on_show_main_window(&self) {
+    fn on_show_main_window(&self) {
         self.show_window(true);
     }
 
-    pub(crate) fn on_toggle_window_visibility(&self) {
+    fn on_toggle_window_visibility(&self) {
         self.show_window(!self.window.visible());
     }
 
@@ -225,20 +249,25 @@ impl App {
         self.select_layout(layout_name);
     }
 
-    pub(crate) fn on_log_view_clear(&self) {
+    fn on_log_view_clear(&self) {
         self.log_view.clear();
     }
 
-    pub(crate) fn on_key_hook_notify(&self, event: &KeyEvent) {
+    fn on_key_hook_notify(&self, event: &KeyEvent) {
         self.log_view.append(&event);
         self.key_event_label
             .set_text(KeyTrigger::from(event).to_string().as_str());
     }
 }
 
+impl NativeUi<MainWindow> for App {
+    fn build_ui(app: App) -> Result<MainWindow, nwg::NwgError> {
+        MainWindow::build(app)
+    }
+}
+
 pub(crate) fn run_app() {
     nwg::init().expect("Failed to init Native Windows GUI.");
-    App::build_ui(Default::default())
-        .expect("Failed to build application UI.")
-        .run();
+    nwg::Font::set_global_default(Some(display_font(17)));
+    App::build_ui(Default::default()).expect("Failed to build application UI.").run();
 }
