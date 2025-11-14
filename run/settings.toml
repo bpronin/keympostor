@@ -1,9 +1,14 @@
 processing_enabled = true
 logging_enabled = true
-layouts_enabled = false
-layout = "game"
+layouts_enabled = true
+layout = "default"
 
 [main_window]
-position = [1019, 146]
-size = [716, 869]
+position = [1355, 118]
+size = [576, 678]
 selected_page = 0
+
+[[profiles]]
+name = "chrome"
+rule = "Chrome"
+layout = "game"

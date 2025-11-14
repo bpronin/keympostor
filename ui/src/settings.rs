@@ -1,4 +1,4 @@
-use crate::profile::Profile;
+use crate::profile::{Profile, Profiles};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -13,7 +13,7 @@ pub(crate) struct AppSettings {
     pub(crate) layouts_enabled: bool,
     pub(crate) main_window: MainWindow,
     pub(crate) layout: Option<String>,
-    pub(crate) profiles: Option<Vec<Profile>>,
+    pub(crate) profiles: Option<Profiles>,
 }
 
 impl Default for AppSettings {
@@ -75,18 +75,18 @@ pub mod tests {
                 size: Some((100, 200)),
                 selected_page: Some(0),
             },
-            profiles: Some(vec![
+            profiles: Some(Profiles::new(vec![
                 Profile {
                     name: "chrome".to_string(),
-                    activation_rule: "Chrome".to_string(),
+                    rule: "Chrome".to_string(),
                     layout: Some("game".to_string()),
                 },
                 Profile {
                     name: "tc".to_string(),
-                    activation_rule: "TOTALCMD64.EXE".to_string(),
+                    rule: "TOTALCMD64.EXE".to_string(),
                     layout: Some("game".to_string()),
                 },
-            ]),
+            ])),
             // layouts: Some(Layouts(
             //     vec![
             //         Layout::from_str(

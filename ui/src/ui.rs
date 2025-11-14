@@ -1,5 +1,6 @@
-use crate::res::RESOURCES;
+use crate::profile::{Profile, Profiles};
 use crate::res::res_ids::{IDS_APP_TITLE, IDS_NO_LAYOUT};
+use crate::res::RESOURCES;
 use crate::rs;
 use crate::settings::{AppSettings, LAYOUTS_PATH};
 use crate::ui::layout_view::LayoutView;
@@ -40,24 +41,28 @@ pub(crate) struct App {
     key_hook: KeyboardHook,
     win_watcher: WinWatcher,
     is_log_enabled: RefCell<bool>,
+    profiles: RefCell<Rc<Profiles>>,
+    current_profile_name: RefCell<Option<String>>,
     layouts: RefCell<Layouts>,
     current_layout: RefCell<Option<String>>,
+    default_layout: RefCell<Option<String>>,
 }
 
 impl App {
     fn load_settings(&self) {
         let settings = AppSettings::load_default();
 
-        self.window.set_layouts(&self.layouts.borrow());
-
-        self.select_layout(&layout_path_from_args().or(settings.layout));
+        self.default_layout.replace(settings.layout);
+        self.apply_layout(&self.default_layout.borrow());
 
         self.is_log_enabled.replace(settings.logging_enabled);
         self.apply_log_enabled();
 
         self.key_hook.set_enabled(settings.processing_enabled);
 
-        self.win_watcher.set_profiles(settings.profiles);
+        self.profiles
+            .replace(Rc::new(settings.profiles.unwrap_or_default()));
+        self.win_watcher.set_profiles(&self.profiles.borrow());
         self.win_watcher.set_enabled(settings.layouts_enabled);
 
         self.window.set_position(settings.main_window.position);
@@ -71,7 +76,17 @@ impl App {
     fn save_settings(&self) {
         let mut settings = AppSettings::load_default();
 
-        settings.layout = self.current_layout.borrow().to_owned();
+        let current_layout = self.current_layout.borrow().to_owned();
+        if let Some(profile_name) = self.current_profile_name.borrow().as_ref() {
+            // todo: if let Some(profiles) = settings.profiles {
+            //     if let Some(profile) = profiles.get(profile_name){
+            //         profile.layout = current_layout;
+            //     }
+            // }
+        } else {
+            settings.layout = current_layout;
+        }
+
         settings.processing_enabled = self.key_hook.is_enabled();
         settings.layouts_enabled = self.win_watcher.is_enabled();
         settings.logging_enabled = self.is_log_enabled.borrow().to_owned();
@@ -92,9 +107,25 @@ impl App {
         } else {
             ui_warn!("Unable to load layouts.");
         }
+        self.window.on_load_layouts(&self.layouts.borrow());
     }
 
-    pub(crate) fn select_layout(&self, layout_name: &Option<String>) {
+    pub(crate) fn select_profile(&self, profile: Option<&Profile>) {
+        match profile {
+            Some(p) => {
+                self.current_profile_name.replace(Some(p.name.clone()));
+                self.apply_layout(&p.layout);
+            }
+            None => {
+                self.current_profile_name.replace(None);
+                self.apply_layout(&self.default_layout.borrow());
+            }
+        }
+
+        debug!("Selected profile: {:?}", self.current_profile_name.borrow());
+    }
+
+    fn apply_layout(&self, layout_name: &Option<String>) {
         let Some(name) = layout_name else {
             warn!("Empty layout name");
             return;
@@ -108,8 +139,8 @@ impl App {
 
         debug!("Selected layout: {:?}", layout.name);
 
-        self.key_hook.apply_rules(&layout.rules);
         self.current_layout.replace(Some(layout.name.clone()));
+        self.key_hook.apply_rules(&layout.rules);
         self.window.on_select_layout(layout);
         self.update_controls();
         self.save_settings();
@@ -205,6 +236,7 @@ impl App {
 
     fn on_app_exit(&self) {
         self.save_settings();
+        self.win_watcher.stop();
         nwg::stop_thread_dispatch();
     }
 

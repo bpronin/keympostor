@@ -1,4 +1,4 @@
-use crate::profile::Profile;
+use crate::profile::{Profile, Profiles};
 use crate::ui::App;
 use crate::utils::raw_hwnd;
 use error::Error;
@@ -6,15 +6,16 @@ use keympostor::ife;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::error;
-use windows::Win32::UI::WindowsAndMessaging::{KillTimer, SetTimer};
+use std::rc::Rc;
 use windows::core::PWSTR;
+use windows::Win32::UI::WindowsAndMessaging::{KillTimer, SetTimer};
 use windows::{
     Win32::Foundation::{CloseHandle, HWND, MAX_PATH},
     Win32::System::Threading::{
-        OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
-        QueryFullProcessImageNameW,
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+        PROCESS_QUERY_LIMITED_INFORMATION,
     },
     Win32::UI::WindowsAndMessaging::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
@@ -36,8 +37,8 @@ impl WinWatcher {
         self.handle.replace(handle);
     }
 
-    pub(crate) fn set_profiles(&self, profiles: Option<Vec<Profile>>) {
-        self.detector.borrow_mut().profiles = profiles;
+    pub(crate) fn set_profiles(&self, profiles: &Rc<Profiles>) {
+        self.detector.borrow_mut().profiles = Rc::clone(profiles);
     }
 
     pub(crate) fn is_enabled(&self) -> bool {
@@ -45,27 +46,40 @@ impl WinWatcher {
     }
 
     pub(crate) fn set_enabled(&self, is_enabled: bool) {
-        if is_enabled == self.is_enabled.replace(is_enabled) {
+        if is_enabled {
+            self.start()
+        } else {
+            self.stop()
+        }
+    }
+
+    pub(crate) fn start(&self) {
+        if self.is_enabled.replace(true) {
             return;
         }
 
-        let hwnd = raw_hwnd(self.handle.borrow().to_owned());
-        if is_enabled {
-            unsafe {
-                SetTimer(hwnd, DETECTOR_TIMER as usize, WIN_WATCH_INTERVAL, None);
-            }
-        } else {
-            unsafe {
-                KillTimer(hwnd, DETECTOR_TIMER as usize).unwrap_or_else(|e| {
-                    warn!("Failed to kill timer: {}", e);
-                });
-            }
-        };
+        unsafe {
+            let hwnd = raw_hwnd(self.handle.borrow().to_owned());
+            SetTimer(hwnd, DETECTOR_TIMER as usize, WIN_WATCH_INTERVAL, None);
+        }
 
-        debug!(
-            "Profile auto-switch {}",
-            ife!(self.is_enabled(), "enabled", "disabled")
-        );
+        debug!("Profile auto-switch enabled");
+    }
+
+    pub(crate) fn stop(&self) {
+        if !self.is_enabled.replace(false) {
+            return;
+        }
+
+        unsafe {
+            let hwnd = raw_hwnd(self.handle.borrow().to_owned());
+            //todo: hwnd may be invalid here
+            KillTimer(hwnd, DETECTOR_TIMER as usize).unwrap_or_else(|e| {
+                warn!("Failed to kill timer: {}", e);
+            });
+        }
+
+        debug!("Profile auto-switch disabled");
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
@@ -83,50 +97,38 @@ impl WinWatcher {
 
     fn invoke_detector(&self, app: &App) {
         if let Some(result) = self.detector.borrow_mut().detect() {
-            let layout = match result {
-                Some(profile) => &profile.layout,
-                None => &None,
-            };
-            app.select_layout(layout);
+            app.select_profile(result);
         }
-    }
-}
-
-impl Drop for WinWatcher {
-    fn drop(&mut self) {
-        self.set_enabled(false)
     }
 }
 
 #[derive(Default)]
 struct WindowActivationDetector {
-    profiles: Option<Vec<Profile>>,
+    profiles: Rc<Profiles>,
     last_hwnd: Option<HWND>,
 }
 
 impl WindowActivationDetector {
     fn detect(&mut self) -> Option<Option<&Profile>> {
-        if let Some(profile) = &self.profiles {
-            if let Some((hwnd, profile)) = detect_active_window(profile) {
-                let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
-                self.last_hwnd = Some(hwnd);
-                if activated {
-                    debug!("Window detected for profile: {:?}", profile);
+        if let Some((hwnd, profile)) = detect_active_window(self.profiles.as_ref()) {
+            let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
+            self.last_hwnd = Some(hwnd);
+            if activated {
+                debug!("Window detected for profile: {:?}", profile);
 
-                    return Some(Some(profile));
-                }
-            } else if self.last_hwnd.is_some() {
-                debug!("No active profile windows");
-
-                self.last_hwnd = None;
-                return Some(None);
+                return Some(Some(profile));
             }
+        } else if self.last_hwnd.is_some() {
+            debug!("No active profile windows");
+
+            self.last_hwnd = None;
+            return Some(None);
         }
         None
     }
 }
 
-fn detect_active_window(profiles: &Vec<Profile>) -> Option<(HWND, &Profile)> {
+fn detect_active_window(profiles: &Profiles) -> Option<(HWND, &Profile)> {
     profiles
         .iter()
         .find_map(|profile| get_active_window(&profile.regex()).map(|hwnd| (hwnd, profile)))

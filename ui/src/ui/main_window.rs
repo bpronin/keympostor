@@ -192,7 +192,7 @@ impl MainWindow {
         self.window.position()
     }
 
-    pub(crate) fn set_layouts(&self, layouts: &Layouts) {
+    pub(crate) fn on_load_layouts(&self, layouts: &Layouts) {
         self.main_menu.build_layouts_menu(layouts);
     }
 

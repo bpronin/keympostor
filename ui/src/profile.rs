@@ -1,31 +1,22 @@
+use std::ops::Deref;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::slice::Iter;
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Profile {
     pub(crate) name: String,
-    pub(crate) activation_rule: String,
+    pub(crate) rule: String,
     pub(crate) layout: Option<String>,
-}
-
-impl Default for Profile {
-    fn default() -> Self {
-        Self {
-            name: "default".to_string(),
-            activation_rule: "".to_string(),
-            layout: Some("default".to_string()),
-        }
-    }
 }
 
 impl Profile {
     pub(crate) fn regex(&self) -> Regex {
-        Regex::new(self.activation_rule.as_str()).unwrap()
+        Regex::new(self.rule.as_str()).unwrap()
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct Profiles(Vec<Profile>);
 
 impl Profiles {
