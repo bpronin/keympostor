@@ -136,6 +136,10 @@ impl MainWindow {
         }
     }
 
+    pub(crate) fn handle(&self) -> ControlHandle {
+        self.window.handle
+    }
+
     pub(crate) fn update_ui(
         &self,
         is_processing_enabled: bool,
@@ -151,10 +155,6 @@ impl MainWindow {
         );
 
         self.tray.update_ui(is_processing_enabled);
-    }
-
-    pub(crate) fn handle(&self) -> ControlHandle {
-        self.window.handle
     }
 
     pub(crate) fn set_title(&self, title: &str) {

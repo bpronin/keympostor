@@ -17,9 +17,10 @@ use event::KeyEvent;
 use keympostor::keyboard::event;
 use keympostor::keyboard::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
 use keympostor::keyboard::trigger::KeyTrigger;
-use keympostor::layout::Layouts;
+use keympostor::layout::{Layout, Layouts};
 use log::{debug, error, warn};
 use native_windows_gui as nwg;
+use native_windows_gui::OemCursor::No;
 use native_windows_gui::{Event, NativeUi};
 use std::cell::RefCell;
 use std::ops::Not;
@@ -42,7 +43,7 @@ pub(crate) struct App {
     win_watcher: WinWatcher,
     is_log_enabled: RefCell<bool>,
     profiles: RefCell<Rc<Profiles>>,
-    current_profile_name: RefCell<Option<String>>,
+    current_profile: RefCell<Option<String>>,
     layouts: RefCell<Layouts>,
     current_layout: RefCell<Option<String>>,
     default_layout: RefCell<Option<String>>,
@@ -53,7 +54,7 @@ impl App {
         let settings = AppSettings::load_default();
 
         self.default_layout.replace(settings.layout);
-        self.apply_layout(&self.default_layout.borrow());
+        self.select_layout(&None);
 
         self.is_log_enabled.replace(settings.logging_enabled);
         self.apply_log_enabled();
@@ -77,15 +78,15 @@ impl App {
         let mut settings = AppSettings::load_default();
 
         let current_layout = self.current_layout.borrow().to_owned();
-        if let Some(profile_name) = self.current_profile_name.borrow().as_ref() {
-            settings
-                .profiles
-                .get_or_insert_default()
-                .get_or_insert(profile_name, Profile {
+        if let Some(profile_name) = self.current_profile.borrow().as_ref() {
+            settings.profiles.get_or_insert_default().get_or_insert(
+                profile_name,
+                Profile {
                     name: profile_name.to_string(),
                     rule: "".to_string(),
                     layout: current_layout.clone(),
-                });
+                },
+            );
         } else {
             settings.layout = current_layout;
         }
@@ -116,33 +117,44 @@ impl App {
     pub(crate) fn select_profile(&self, profile: Option<&Profile>) {
         match profile {
             Some(p) => {
-                self.current_profile_name.replace(Some(p.name.clone()));
-                self.apply_layout(&p.layout);
+                self.current_profile.replace(Some(p.name.clone()));
+                self.select_layout(&p.layout);
             }
             None => {
-                self.current_profile_name.replace(None);
-                self.apply_layout(&self.default_layout.borrow());
+                self.current_profile.replace(None);
+                self.select_layout(&None);
             }
         }
 
-        debug!("Selected profile: {:?}", self.current_profile_name.borrow());
+        debug!("Selected profile: {:?}", self.current_profile.borrow());
     }
 
-    fn apply_layout(&self, layout_name: &Option<String>) {
-        let Some(name) = layout_name else {
-            warn!("Empty layout name");
-            return;
-        };
+    fn select_layout(&self, layout_name: &Option<String>) {
+        let name = layout_name
+            .to_owned()
+            .or(self.default_layout.borrow().to_owned());
 
         let layouts = self.layouts.borrow();
-        let Some(layout) = layouts.get(name) else {
-            warn!("No layouts found");
-            return;
+        let layout = if let Some(name) = name {
+            layouts.get(&name).unwrap_or(layouts.first())
+        } else {
+            layouts.first()
         };
 
-        debug!("Selected layout: {:?}", layout.name);
-
         self.current_layout.replace(Some(layout.name.clone()));
+
+        if self.current_profile.borrow().is_none() {
+            self.default_layout
+                .replace(self.current_layout.borrow().to_owned());
+        }
+
+        debug!(
+            "Selected layout: {:?} for: {:?}. Default: {:?}",
+            self.current_layout.borrow(),
+            self.current_profile.borrow(),
+            self.default_layout.borrow()
+        );
+
         self.key_hook.apply_rules(&layout.rules);
         self.window.on_select_layout(layout);
         self.update_controls();
@@ -160,16 +172,21 @@ impl App {
     }
 
     fn update_title(&self) {
-        let title = match self.current_layout.borrow().as_ref() {
-            Some(name) => format!("{} - {}", rs!(IDS_APP_TITLE), name),
-            None => format!("{} - {}", rs!(IDS_APP_TITLE), rs!(IDS_NO_LAYOUT)),
+        let mut title = rs!(IDS_APP_TITLE).to_string();
+        match self.current_profile.borrow().as_ref() {
+            Some(profile) => title = format!("{} - {}", title, profile),
+            None => {}
         };
-
-        #[cfg(feature = "debug")]
-        self.window.set_title(format!("{} - DEBUG", title).as_str());
+        match self.current_layout.borrow().as_ref() {
+            Some(layout) => title = format!("{} - {}", title, layout),
+            None => title = format!("{} - {}", title, rs!(IDS_NO_LAYOUT)),
+        };
 
         #[cfg(not(feature = "debug"))]
         self.window.set_title(title.as_str());
+
+        #[cfg(feature = "debug")]
+        self.window.set_title(format!("{} - DEBUG", title).as_str());
     }
 
     fn show_window(&self, show: bool) {

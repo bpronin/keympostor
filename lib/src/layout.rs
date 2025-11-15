@@ -72,7 +72,11 @@ impl Layouts {
     }
 
     pub fn get(&self, name: &str) -> Option<&Layout> {
-        self.iter().filter(|p| p.name == name).next()
+        self.0.iter().filter(|p| p.name == name).next()
+    }
+
+    pub fn first(&self) -> &Layout {
+        &self.0[0]
     }
 
     pub fn iter(&self) -> Iter<'_, Layout> {

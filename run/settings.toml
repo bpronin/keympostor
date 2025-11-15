@@ -4,9 +4,14 @@ layouts_enabled = true
 layout = "default"
 
 [main_window]
-position = [1172, 185]
+position = [1268, 165]
 size = [716, 550]
-selected_page = 0
+selected_page = 1
+
+[[profiles]]
+name = "tc"
+rule = "TOTALCMD64.EXE"
+layout = "default"
 
 [[profiles]]
 name = "chrome"
