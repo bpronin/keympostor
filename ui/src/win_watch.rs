@@ -128,9 +128,10 @@ impl WindowActivationDetector {
 }
 
 fn detect_active_window(profiles: &Profiles) -> Option<(HWND, &Profile)> {
-    profiles
-        .iter()
-        .find_map(|profile| get_active_window(&profile.regex()).map(|hwnd| (hwnd, profile)))
+    profiles.iter().find_map(|profile| match profile.regex() {
+        Some(regex) => get_active_window(&regex).map(|hwnd| (hwnd, profile)),
+        None => None,
+    })
 }
 
 fn get_process_name(hwnd: HWND) -> Result<String, Box<dyn Error>> {

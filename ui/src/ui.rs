@@ -83,7 +83,7 @@ impl App {
                 profile_name,
                 Profile {
                     name: profile_name.to_string(),
-                    rule: "".to_string(),
+                    rule: None,
                     layout: current_layout.clone(),
                 },
             );

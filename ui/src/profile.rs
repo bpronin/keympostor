@@ -1,6 +1,6 @@
 use regex::Regex;
 use serde::de::{SeqAccess, Visitor};
-use serde::ser::{SerializeSeq};
+use serde::ser::SerializeSeq;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::hash_map::Values;
 use std::collections::HashMap;
@@ -10,13 +10,16 @@ use std::fmt::Formatter;
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Profile {
     pub(crate) name: String,
-    pub(crate) rule: String,
+    pub(crate) rule: Option<String>,
     pub(crate) layout: Option<String>,
 }
 
 impl Profile {
-    pub(crate) fn regex(&self) -> Regex {
-        Regex::new(self.rule.as_str()).unwrap()
+    pub(crate) fn regex(&self) -> Option<Regex> {
+        match &self.rule {
+            Some(r) => Regex::new(r).ok(),
+            None => None,
+        }
     }
 }
 
@@ -89,5 +92,23 @@ impl<'de> Visitor<'de> for ProfileVisitor {
         }
 
         Ok(Profiles(items))
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    #[test]
+    fn test_regex_parsing() {
+        let profile = Profile::default();
+        assert!(profile.regex().is_none());
+
+        let profile = Profile {
+            rule: Some("".to_string()),
+            ..Default::default()
+        };
+
+        assert!(profile.regex().unwrap().is_match("test"));
     }
 }

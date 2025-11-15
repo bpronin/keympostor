@@ -79,12 +79,12 @@ pub mod tests {
             profiles: Some(Profiles::from(vec![
                 Profile {
                     name: "chrome".to_string(),
-                    rule: "Chrome".to_string(),
+                    rule: Some("Chrome".to_string()),
                     layout: Some("game".to_string()),
                 },
                 Profile {
                     name: "tc".to_string(),
-                    rule: "TOTALCMD64.EXE".to_string(),
+                    rule: Some("TOTALCMD64.EXE".to_string()),
                     layout: Some("game".to_string()),
                 },
             ])),

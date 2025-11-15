@@ -1,17 +1,12 @@
-processing_enabled = true
-logging_enabled = true
+processing_enabled = false
+logging_enabled = false
 layouts_enabled = true
 layout = "default"
 
 [main_window]
-position = [1268, 165]
-size = [716, 550]
-selected_page = 1
-
-[[profiles]]
-name = "tc"
-rule = "TOTALCMD64.EXE"
-layout = "default"
+position = [1308, 143]
+size = [716, 519]
+selected_page = 0
 
 [[profiles]]
 name = "chrome"
