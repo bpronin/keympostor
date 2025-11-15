@@ -76,7 +76,7 @@ pub mod tests {
                 size: Some((100, 200)),
                 selected_page: Some(0),
             },
-            profiles: Some(Profiles(vec![
+            profiles: Some(Profiles::from(vec![
                 Profile {
                     name: "chrome".to_string(),
                     rule: "Chrome".to_string(),
