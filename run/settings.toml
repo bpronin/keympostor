@@ -1,5 +1,5 @@
 processing_enabled = true
-logging_enabled = false
+logging_enabled = true
 layouts_enabled = true
 layout = "default"
 

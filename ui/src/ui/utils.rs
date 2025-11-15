@@ -1,14 +1,14 @@
-use crate::res::RESOURCES;
 use crate::res::res_ids::IDS_APP_TITLE;
+use crate::res::RESOURCES;
 use crate::rs;
-use native_windows_gui as nwg;
+use native_windows_gui::{message, MessageButtons, MessageIcons, MessageParams};
 
 pub(crate) fn warn(text: &str) {
-    nwg::message(&nwg::MessageParams {
+    message(&MessageParams {
         title: rs!(IDS_APP_TITLE),
         content: text,
-        buttons: nwg::MessageButtons::Ok,
-        icons: nwg::MessageIcons::Warning,
+        buttons: MessageButtons::Ok,
+        icons: MessageIcons::Warning,
     });
 }
 

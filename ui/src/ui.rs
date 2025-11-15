@@ -11,7 +11,7 @@ use crate::ui::style::display_font;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::ui_warn;
-use crate::utils::{get_window_size, layout_path_from_args, raw_hwnd, set_window_size};
+use crate::utils::{get_window_size, hwnd, set_window_size};
 use crate::win_watch::WinWatcher;
 use event::KeyEvent;
 use keympostor::keyboard::event;
@@ -201,7 +201,7 @@ impl App {
 
     fn on_init(&self) {
         self.win_watcher.init(self.window.handle());
-        self.key_hook.init(raw_hwnd(self.window.handle()));
+        self.key_hook.init(hwnd(self.window.handle()));
 
         self.load_layouts();
         self.load_settings();

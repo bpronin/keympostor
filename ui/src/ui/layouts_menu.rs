@@ -1,21 +1,20 @@
+use crate::res::res_ids::IDS_LAYOUT;
 use crate::res::RESOURCES;
 use crate::rs;
-use keympostor::layout::Layouts;
-use native_windows_gui as nwg;
-use std::cell::RefCell;
-
-use crate::res::res_ids::IDS_LAYOUT;
 use crate::ui::App;
+use keympostor::layout::Layouts;
+use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, NwgError, Window};
+use std::cell::RefCell;
 
 #[derive(Default)]
 pub(crate) struct LayoutsMenu {
-    menu: nwg::Menu,
-    items: RefCell<Vec<(nwg::MenuItem, String)>>,
+    menu: Menu,
+    items: RefCell<Vec<(MenuItem, String)>>,
 }
 
 impl LayoutsMenu {
-    pub(crate) fn build(&mut self, parent: &nwg::Window) -> Result<(), nwg::NwgError> {
-        nwg::Menu::builder()
+    pub(crate) fn build(&mut self, parent: &Window) -> Result<(), NwgError> {
+        Menu::builder()
             .parent(parent)
             .text(rs!(IDS_LAYOUT))
             .build(&mut self.menu)?;
@@ -23,12 +22,12 @@ impl LayoutsMenu {
         Ok(())
     }
 
-    pub(crate) fn build_items(&self, layouts: &Layouts) -> Result<(), nwg::NwgError> {
+    pub(crate) fn build_items(&self, layouts: &Layouts) -> Result<(), NwgError> {
         let mut items = vec![];
 
         for layout in layouts.iter() {
-            let mut item: nwg::MenuItem = nwg::MenuItem::default();
-            nwg::MenuItem::builder()
+            let mut item: MenuItem = MenuItem::default();
+            MenuItem::builder()
                 .parent(&self.menu)
                 .text(&layout.title)
                 .build(&mut item)?;
@@ -50,9 +49,9 @@ impl LayoutsMenu {
         }
     }
 
-    pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: nwg::ControlHandle) {
+    pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
         match evt {
-            nwg::Event::OnMenuItemSelected => {
+            Event::OnMenuItemSelected => {
                 for (item, layout_name) in self.items.borrow().iter() {
                     if item.handle == handle {
                         app.apply_layout(&Some(layout_name.to_string()));

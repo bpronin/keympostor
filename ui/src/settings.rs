@@ -1,4 +1,4 @@
-use crate::profile::{Profile, Profiles};
+use crate::profile::{Profiles};
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -61,6 +61,7 @@ pub(crate) struct MainWindow {
 
 #[cfg(test)]
 pub mod tests {
+    use crate::profile::Profile;
     use super::*;
 
     #[test]
@@ -75,7 +76,7 @@ pub mod tests {
                 size: Some((100, 200)),
                 selected_page: Some(0),
             },
-            profiles: Some(Profiles::new(vec![
+            profiles: Some(Profiles(vec![
                 Profile {
                     name: "chrome".to_string(),
                     rule: "Chrome".to_string(),

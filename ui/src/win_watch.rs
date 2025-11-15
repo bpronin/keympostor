@@ -1,12 +1,11 @@
 use crate::profile::{Profile, Profiles};
 use crate::ui::App;
-use crate::utils::raw_hwnd;
+use crate::utils::hwnd;
 use error::Error;
-use keympostor::ife;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::error;
 use std::rc::Rc;
 use windows::core::PWSTR;
@@ -59,7 +58,7 @@ impl WinWatcher {
         }
 
         unsafe {
-            let hwnd = raw_hwnd(self.handle.borrow().to_owned());
+            let hwnd = hwnd(self.handle.borrow().to_owned());
             SetTimer(hwnd, DETECTOR_TIMER as usize, WIN_WATCH_INTERVAL, None);
         }
 
@@ -72,7 +71,7 @@ impl WinWatcher {
         }
 
         unsafe {
-            let hwnd = raw_hwnd(self.handle.borrow().to_owned());
+            let hwnd = hwnd(self.handle.borrow().to_owned());
             //todo: hwnd may be invalid here
             KillTimer(hwnd, DETECTOR_TIMER as usize).unwrap_or_else(|e| {
                 warn!("Failed to kill timer: {}", e);
@@ -131,9 +130,7 @@ impl WindowActivationDetector {
 fn detect_active_window(profiles: &Profiles) -> Option<(HWND, &Profile)> {
     profiles
         .iter()
-        .find_map(|profile| {
-            get_active_window(&profile.regex()).map(|hwnd| (hwnd, profile))
-        })
+        .find_map(|profile| get_active_window(&profile.regex()).map(|hwnd| (hwnd, profile)))
 }
 
 fn get_process_name(hwnd: HWND) -> Result<String, Box<dyn Error>> {

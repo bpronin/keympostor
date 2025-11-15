@@ -1,19 +1,19 @@
 use crate::ui::style::SMALL_MONO_FONT;
 use keympostor::layout::Layout;
-use native_windows_gui as nwg;
+use native_windows_gui::{ControlHandle, NwgError, Tab, TextBox};
 
 #[derive(Default)]
 pub(crate) struct LayoutView {
-    view: nwg::TextBox,
+    view: TextBox,
 }
 
 impl LayoutView {
-    pub(crate) fn view(&self) -> impl Into<nwg::ControlHandle> {
+    pub(crate) fn view(&self) -> impl Into<ControlHandle> {
         &self.view
     }
 
-    pub(crate) fn build(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
-        nwg::TextBox::builder()
+    pub(crate) fn build(&mut self, parent: &Tab) -> Result<(), NwgError> {
+        TextBox::builder()
             .parent(parent)
             .readonly(true)
             .font(Some(&SMALL_MONO_FONT))

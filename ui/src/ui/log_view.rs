@@ -1,12 +1,20 @@
-use crate::utils::raw_hwnd;
+use crate::res::res_ids::{
+    IDS_ACTION, IDS_KEY, IDS_MODIFIERS, IDS_RULE, IDS_SCAN_CODE, IDS_STATUS, IDS_TIME,
+    IDS_TRANSITION, IDS_VIRTUAL_KEY,
+};
+use crate::rs;
+use crate::ui::RESOURCES;
+use crate::utils::hwnd;
 use keympostor::ife;
 use keympostor::keyboard::event::KeyEvent;
 use keympostor::keyboard::modifiers::{
     KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_RALT, KM_RCTRL, KM_RSHIFT, KM_RWIN,
 };
 use keympostor::keyboard::trigger::KeyTrigger;
-use native_windows_gui as nwg;
-use native_windows_gui::{ListViewExFlags, ListViewStyle};
+use native_windows_gui::{
+    ControlHandle, InsertListViewColumn, ListView, ListViewColumnFlags, ListViewExFlags,
+    ListViewStyle, NwgError, Tab,
+};
 use windows::Win32::Foundation::WPARAM;
 use windows::Win32::UI::Controls::*;
 use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
@@ -15,12 +23,12 @@ const MAX_LOG_ITEMS: usize = 256;
 
 #[derive(Default)]
 pub(crate) struct LogView {
-    list: nwg::ListView,
+    list: ListView,
 }
 
 impl LogView {
-    pub(crate) fn build(&mut self, parent: &nwg::Tab) -> Result<(), nwg::NwgError> {
-        nwg::ListView::builder()
+    pub(crate) fn build(&mut self, parent: &Tab) -> Result<(), NwgError> {
+        ListView::builder()
             .parent(parent)
             .list_style(ListViewStyle::Detailed)
             .ex_flags(ListViewExFlags::FULL_ROW_SELECT)
@@ -28,73 +36,73 @@ impl LogView {
 
         self.list.set_headers_enabled(true);
 
-        self.list.insert_column(nwg::InsertListViewColumn {
+        self.list.insert_column(InsertListViewColumn {
             index: Some(0),
-            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(300),
-            text: Some("Action".into()),
+            text: Some(rs!(IDS_ACTION).into()),
         });
 
-        self.list.insert_column(nwg::InsertListViewColumn {
+        self.list.insert_column(InsertListViewColumn {
             index: Some(1),
-            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(500),
-            text: Some("Rule".into()),
+            text: Some(rs!(IDS_RULE).into()),
         });
 
-        self.list.insert_column(nwg::InsertListViewColumn {
+        self.list.insert_column(InsertListViewColumn {
             index: Some(2),
-            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("Modifiers".into()),
+            text: Some(rs!(IDS_MODIFIERS).into()),
         });
 
-        self.list.insert_column(nwg::InsertListViewColumn {
+        self.list.insert_column(InsertListViewColumn {
             index: Some(3),
-            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("Key".into()),
+            text: Some(rs!(IDS_KEY).into()),
         });
 
-        self.list.insert_column(nwg::InsertListViewColumn {
+        self.list.insert_column(InsertListViewColumn {
             index: Some(4),
-            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("Transition".into()),
+            text: Some(rs!(IDS_TRANSITION).into()),
         });
 
-        self.list.insert_column(nwg::InsertListViewColumn {
+        self.list.insert_column(InsertListViewColumn {
             index: Some(5),
-            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("VK".into()),
+            text: Some(rs!(IDS_VIRTUAL_KEY).into()),
         });
 
-        self.list.insert_column(nwg::InsertListViewColumn {
+        self.list.insert_column(InsertListViewColumn {
             index: Some(6),
-            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("SC".into()),
+            text: Some(rs!(IDS_SCAN_CODE).into()),
         });
 
-        self.list.insert_column(nwg::InsertListViewColumn {
+        self.list.insert_column(InsertListViewColumn {
             index: Some(7),
-            fmt: Some(nwg::ListViewColumnFlags::LEFT),
+            fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some("Time".into()),
+            text: Some(rs!(IDS_TIME).into()),
         });
 
-        self.list.insert_column(nwg::InsertListViewColumn {
+        self.list.insert_column(InsertListViewColumn {
             index: Some(8),
-            fmt: Some(nwg::ListViewColumnFlags::RIGHT),
+            fmt: Some(ListViewColumnFlags::RIGHT),
             width: Some(0),
-            text: Some("Status".into()),
+            text: Some(rs!(IDS_STATUS).into()),
         });
 
         Ok(())
     }
 
-    pub(crate) fn view(&self) -> impl Into<nwg::ControlHandle> {
+    pub(crate) fn view(&self) -> impl Into<ControlHandle> {
         &self.list
     }
 
@@ -146,7 +154,7 @@ impl LogView {
     fn scroll_to_end(&self) {
         let len = self.list.len();
         if len > 0 {
-            let hwnd = raw_hwnd(self.list.handle).unwrap();
+            let hwnd = hwnd(self.list.handle).unwrap();
             unsafe {
                 SendMessageW(hwnd, LVM_ENSUREVISIBLE, Some(WPARAM(len - 1)), None);
             }

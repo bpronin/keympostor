@@ -1,41 +1,43 @@
 use super::*;
-use crate::res::RESOURCES;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
+use crate::res::RESOURCES;
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::{r_icon, rs};
 use keympostor::layout::Layout;
-use native_windows_gui as nwg;
-use native_windows_gui::stretch::geometry::Rect;
-use native_windows_gui::stretch::style::Dimension as D;
-use nwg::stretch::style::Dimension::Points as PT;
+use native_windows_gui::stretch::geometry::{Rect, Size};
+use native_windows_gui::stretch::style::Dimension::Points as PT;
+use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
+use native_windows_gui::{
+    ControlHandle, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags,
+};
 
 #[derive(Default)]
 pub(crate) struct MainWindow {
-    window: nwg::Window,
-    layout: nwg::FlexboxLayout,
-    tab_log_layout: nwg::FlexboxLayout,
-    tab_layouts_layout: nwg::FlexboxLayout,
-    tab_log: nwg::Tab,
-    tab_layouts: nwg::Tab,
+    window: Window,
+    layout: FlexboxLayout,
+    tab_log_layout: FlexboxLayout,
+    tab_layouts_layout: FlexboxLayout,
+    tab_log: Tab,
+    tab_layouts: Tab,
     main_menu: MainMenu,
-    tab_container: nwg::TabsContainer,
+    tab_container: TabsContainer,
     layout_view: LayoutView,
     log_view: LogView,
-    key_event_label: nwg::Label,
+    key_event_label: Label,
     test_editor: TypeTestEditor,
     tray: Tray,
 }
 
 impl MainWindow {
-    pub(crate) fn build(&mut self) -> Result<(), nwg::NwgError> {
-        nwg::Window::builder()
+    pub(crate) fn build(&mut self) -> Result<(), NwgError> {
+        Window::builder()
             .size((700, 300))
             .icon(Some(r_icon!(IDI_ICON_APP)))
-            .flags(nwg::WindowFlags::MAIN_WINDOW)
+            .flags(WindowFlags::MAIN_WINDOW)
             .title(rs!(IDS_APP_TITLE))
             .build(&mut self.window)?;
 
-        nwg::Label::builder()
+        Label::builder()
             .parent(&self.window)
             .text("*")
             .font(Some(&INFO_LABEL_FONT))
@@ -45,16 +47,16 @@ impl MainWindow {
 
         /* Tabs */
 
-        nwg::TabsContainer::builder()
+        TabsContainer::builder()
             .parent(&self.window)
             .build(&mut self.tab_container)?;
 
-        nwg::Tab::builder()
+        Tab::builder()
             .text(rs!(IDS_LOG))
             .parent(&self.tab_container)
             .build(&mut self.tab_log)?;
 
-        nwg::Tab::builder()
+        Tab::builder()
             .text(rs!(IDS_LAYOUT))
             .parent(&self.tab_container)
             .build(&mut self.tab_layouts)?;
@@ -67,12 +69,9 @@ impl MainWindow {
         self.layout()
     }
 
-    fn layout(&self) -> Result<(), nwg::NwgError> {
-        use nwg::stretch::{geometry::Size, style::FlexDirection};
-
-        /* Log tab layout */
-
-        nwg::FlexboxLayout::builder()
+    fn layout(&self) -> Result<(), NwgError> {
+        /* Log tab */
+        FlexboxLayout::builder()
             .parent(&self.tab_container)
             // .padding(TAB_PADDING)
             .child(self.log_view.view())
@@ -85,8 +84,7 @@ impl MainWindow {
             .build(&self.tab_log_layout)?;
 
         /* Layout tab layout */
-
-        nwg::FlexboxLayout::builder()
+        FlexboxLayout::builder()
             .parent(&self.tab_container)
             // .padding(TAB_PADDING)
             .child(self.layout_view.view())
@@ -98,9 +96,8 @@ impl MainWindow {
             })
             .build(&self.tab_layouts_layout)?;
 
-        /* Main window layout */
-
-        nwg::FlexboxLayout::builder()
+        /* Main window */
+        FlexboxLayout::builder()
             .parent(&self.window)
             .flex_direction(FlexDirection::Column)
             // .padding(PADDING)
@@ -125,12 +122,12 @@ impl MainWindow {
             .build(&self.layout)
     }
 
-    pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: nwg::ControlHandle) {
+    pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
         self.main_menu.handle_event(app, evt, handle);
         self.tray.handle_event(app, evt, handle);
         self.test_editor.handle_event(evt);
         match evt {
-            nwg::Event::OnWindowClose => {
+            Event::OnWindowClose => {
                 if &handle == &self.window.handle {
                     app.on_window_close()
                 }
@@ -156,7 +153,7 @@ impl MainWindow {
         self.tray.update_ui(is_processing_enabled);
     }
 
-    pub(crate) fn handle(&self) -> nwg::ControlHandle {
+    pub(crate) fn handle(&self) -> ControlHandle {
         self.window.handle
     }
 

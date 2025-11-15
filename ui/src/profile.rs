@@ -16,16 +16,12 @@ impl Profile {
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Profiles(Vec<Profile>);
+pub(crate) struct Profiles(pub(crate) Vec<Profile>);
 
 impl Profiles {
-    pub(crate) fn new(vec: Vec<Profile>) -> Self {
-        Self(vec)
-    }
-
-    pub(crate) fn get(&self, name: &str) -> Option<&Profile> {
-        self.0.iter().filter(|p| p.name == name).next()
-    }
+    // pub(crate) fn get(&self, name: &str) -> Option<&Profile> {
+    //     self.0.iter().filter(|p| p.name == name).next()
+    // }
 
     pub(crate) fn get_or_insert(&mut self, name: &str, default: Profile) -> &Profile {
         if let Some(p) = self.0.iter().position(|p| p.name == name) {
