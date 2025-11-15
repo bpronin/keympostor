@@ -87,25 +87,6 @@ pub mod tests {
                     layout: Some("game".to_string()),
                 },
             ])),
-            // layouts: Some(Layouts(
-            //     vec![
-            //         Layout::from_str(
-            //             r#"
-            //             one
-            //             First layout
-            //             A↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑
-            //             [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
-            //             "#
-            //         ).unwrap(),
-            //         Layout::from_str(
-            //             r#"
-            //             game
-            //             Game layout
-            //             [LEFT_CTRL + LEFT_SHIFT] ENTER↓ : ENTER↓ → ENTER↑
-            //             "#
-            //         ).unwrap(),
-            //     ],
-            // )),
         };
 
         assert!(settings.save("test_settings.toml").is_ok());

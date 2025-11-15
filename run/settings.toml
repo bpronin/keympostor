@@ -1,11 +1,11 @@
 processing_enabled = true
-logging_enabled = true
+logging_enabled = false
 layouts_enabled = true
 layout = "default"
 
 [main_window]
-position = [1355, 118]
-size = [576, 678]
+position = [1172, 185]
+size = [716, 550]
 selected_page = 0
 
 [[profiles]]

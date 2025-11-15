@@ -78,11 +78,14 @@ impl App {
 
         let current_layout = self.current_layout.borrow().to_owned();
         if let Some(profile_name) = self.current_profile_name.borrow().as_ref() {
-            // todo: if let Some(profiles) = settings.profiles {
-            //     if let Some(profile) = profiles.get(profile_name){
-            //         profile.layout = current_layout;
-            //     }
-            // }
+            settings
+                .profiles
+                .get_or_insert_default()
+                .get_or_insert(profile_name, Profile {
+                    name: profile_name.to_string(),
+                    rule: "".to_string(),
+                    layout: current_layout.clone(),
+                });
         } else {
             settings.layout = current_layout;
         }
