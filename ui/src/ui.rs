@@ -114,7 +114,7 @@ impl App {
 
     pub(crate) fn select_profile(&self, profile_name: Option<&String>) {
         self.current_profile.replace(profile_name.cloned());
-        
+
         debug!("Selected profile: {:?}", self.current_profile.borrow());
 
         let profiles = self.profiles.borrow();
@@ -123,11 +123,9 @@ impl App {
             None => None,
         };
 
-        debug!("Current profile: {:?}", profile);
-        
         match profile {
             Some(p) => self.select_layout(&p.layout),
-            None => self.select_layout(&None)
+            None => self.select_layout(&None),
         }
     }
 
@@ -137,10 +135,9 @@ impl App {
             .or(self.default_layout.borrow().to_owned());
 
         let layouts = self.layouts.borrow();
-        let layout = if let Some(name) = name {
-            layouts.get(&name).unwrap_or(layouts.first())
-        } else {
-            layouts.first()
+        let layout = match name {
+            Some(n) => layouts.get(&n).unwrap_or(layouts.first()),
+            None => layouts.first(),
         };
 
         self.current_layout.replace(Some(layout.name.clone()));
