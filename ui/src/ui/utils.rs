@@ -1,11 +1,9 @@
-use crate::res::res_ids::IDS_APP_TITLE;
-use crate::res::RESOURCES;
-use crate::rs;
+use crate::res::{RES};
 use native_windows_gui::{message, MessageButtons, MessageIcons, MessageParams};
 
 pub(crate) fn warn(text: &str) {
     message(&MessageParams {
-        title: rs!(IDS_APP_TITLE),
+        title: RES.strings.app_title.as_str(),
         content: text,
         buttons: MessageButtons::Ok,
         icons: MessageIcons::Warning,

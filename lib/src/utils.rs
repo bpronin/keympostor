@@ -67,17 +67,6 @@ macro_rules! deserialize_from_string {
     };
 }
 
-// pub(crate) fn play_sound(filename: &str) {
-//     let wide: Vec<u16> = OsStr::new(filename)
-//         .encode_wide()
-//         .chain(std::iter::once(0))
-//         .collect();
-//
-//     if unsafe { !PlaySoundW(PCWSTR(wide.as_ptr()), None, SND_FILENAME | SND_NODEFAULT).as_bool() } {
-//         eprintln!("Failed to play sound {}", filename);
-//     }
-// }
-
 // unsafe fn format_keyboard_state() -> String {
 //     let mut s = String::new();
 //     for i in 0..256 {

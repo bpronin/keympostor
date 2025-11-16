@@ -1,10 +1,9 @@
 use crate::res::res_ids::{
-    IDI_ICON_APP, IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON, IDS_ENABLED, IDS_EXIT, IDS_OPEN,
-    IDS_TRAY_TIP,
+    IDI_ICON_APP, IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON,
 };
-use crate::res::RESOURCES;
+use crate::res::{RES, RESOURCES};
 use crate::ui::App;
-use crate::{r_icon, rs};
+use crate::{r_icon};
 use native_windows_gui::{
     ControlHandle, Event, GlobalCursor, Menu, MenuItem, MenuSeparator, MousePressEvent, NwgError,
     TrayNotification, Window,
@@ -25,7 +24,7 @@ impl Tray {
         TrayNotification::builder()
             .parent(parent)
             .icon(Some(r_icon!(IDI_ICON_APP)))
-            .tip(Some(rs!(IDS_TRAY_TIP)))
+            .tip(Some(RES.strings.tray_tip.as_str()))
             .build(&mut self.notification)?;
 
         Menu::builder()
@@ -35,11 +34,11 @@ impl Tray {
 
         MenuItem::builder()
             .parent(&self.menu)
-            .text(rs!(IDS_ENABLED))
+            .text(RES.strings.enabled.as_str())
             .build(&mut self.toggle_processing_enabled_item)?;
 
         MenuItem::builder()
-            .text(rs!(IDS_OPEN))
+            .text(RES.strings.open.as_str())
             .parent(&self.menu)
             .build(&mut self.open_app_item)?;
 
@@ -48,7 +47,7 @@ impl Tray {
             .build(&mut self.separator)?;
 
         MenuItem::builder()
-            .text(rs!(IDS_EXIT))
+            .text(RES.strings.exit.as_str())
             .parent(&self.menu)
             .build(&mut self.exit_app_item)
     }

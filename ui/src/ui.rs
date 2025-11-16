@@ -1,7 +1,5 @@
 use crate::profile::{Profile, Profiles};
-use crate::res::res_ids::{IDS_APP_TITLE, IDS_NO_LAYOUT};
-use crate::res::RESOURCES;
-use crate::rs;
+use crate::res::{RES, RESOURCES};
 use crate::settings::{AppSettings, LAYOUTS_PATH};
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -171,14 +169,14 @@ impl App {
     }
 
     fn update_title(&self) {
-        let mut title = rs!(IDS_APP_TITLE).to_string();
+        let mut title = RES.strings.app_title.to_string();
         match self.current_profile.borrow().as_ref() {
             Some(profile) => title = format!("{} - {}", title, profile),
-            None => title = format!("{} - {}", title, "NO PROFILE"),
+            None => title = format!("{} - {}", title, RES.strings.no_profile),
         };
         match self.current_layout.borrow().as_ref() {
             Some(layout) => title = format!("{} - {}", title, layout),
-            None => title = format!("{} - {}", title, rs!(IDS_NO_LAYOUT)),
+            None => title = format!("{} - {}", title, RES.strings.no_layout),
         };
 
         #[cfg(not(feature = "debug"))]

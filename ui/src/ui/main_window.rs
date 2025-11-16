@@ -1,8 +1,7 @@
 use super::*;
-use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
-use crate::res::RESOURCES;
+use crate::res::res_ids::{IDI_ICON_APP};
+use crate::res::{RES, RESOURCES};
 use crate::ui::style::INFO_LABEL_FONT;
-use crate::{r_icon, rs};
 use keympostor::layout::Layout;
 use native_windows_gui::stretch::geometry::{Rect, Size};
 use native_windows_gui::stretch::style::Dimension::Points as PT;
@@ -10,6 +9,7 @@ use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
 use native_windows_gui::{
     ControlHandle, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags,
 };
+use crate::r_icon;
 
 #[derive(Default)]
 pub(crate) struct MainWindow {
@@ -34,7 +34,7 @@ impl MainWindow {
             .size((700, 300))
             .icon(Some(r_icon!(IDI_ICON_APP)))
             .flags(WindowFlags::MAIN_WINDOW)
-            .title(rs!(IDS_APP_TITLE))
+            .title(RES.strings.app_title.as_str())
             .build(&mut self.window)?;
 
         Label::builder()
@@ -52,12 +52,12 @@ impl MainWindow {
             .build(&mut self.tab_container)?;
 
         Tab::builder()
-            .text(rs!(IDS_LOG))
+            .text(RES.strings.log.as_str())
             .parent(&self.tab_container)
             .build(&mut self.tab_log)?;
 
         Tab::builder()
-            .text(rs!(IDS_LAYOUT))
+            .text(RES.strings.layout.as_str())
             .parent(&self.tab_container)
             .build(&mut self.tab_layouts)?;
 
