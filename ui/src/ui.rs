@@ -11,16 +11,15 @@ use crate::ui::style::display_font;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::ui_warn;
-use crate::utils::{get_window_size, hwnd, set_window_size};
+use crate::utils::{get_window_size, hwnd, set_window_size, try_hwnd};
 use crate::win_watch::WinWatcher;
 use event::KeyEvent;
 use keympostor::keyboard::event;
 use keympostor::keyboard::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
 use keympostor::keyboard::trigger::KeyTrigger;
-use keympostor::layout::{Layout, Layouts};
-use log::{debug, error, warn};
+use keympostor::layout::Layouts;
+use log::{debug, error};
 use native_windows_gui as nwg;
-use native_windows_gui::OemCursor::No;
 use native_windows_gui::{Event, NativeUi};
 use std::cell::RefCell;
 use std::ops::Not;
@@ -82,7 +81,6 @@ impl App {
             settings.profiles.get_or_insert_default().get_or_insert(
                 profile_name,
                 Profile {
-                    name: profile_name.to_string(),
                     rule: None,
                     layout: current_layout.clone(),
                 },
@@ -114,19 +112,23 @@ impl App {
         self.window.on_load_layouts(&self.layouts.borrow());
     }
 
-    pub(crate) fn select_profile(&self, profile: Option<&Profile>) {
-        match profile {
-            Some(p) => {
-                self.current_profile.replace(Some(p.name.clone()));
-                self.select_layout(&p.layout);
-            }
-            None => {
-                self.current_profile.replace(None);
-                self.select_layout(&None);
-            }
-        }
-
+    pub(crate) fn select_profile(&self, profile_name: Option<&String>) {
+        self.current_profile.replace(profile_name.cloned());
+        
         debug!("Selected profile: {:?}", self.current_profile.borrow());
+
+        let profiles = self.profiles.borrow();
+        let profile = match self.current_profile.borrow().as_ref() {
+            Some(n) => profiles.get(n),
+            None => None,
+        };
+
+        debug!("Current profile: {:?}", profile);
+        
+        match profile {
+            Some(p) => self.select_layout(&p.layout),
+            None => self.select_layout(&None)
+        }
     }
 
     fn select_layout(&self, layout_name: &Option<String>) {
@@ -175,7 +177,7 @@ impl App {
         let mut title = rs!(IDS_APP_TITLE).to_string();
         match self.current_profile.borrow().as_ref() {
             Some(profile) => title = format!("{} - {}", title, profile),
-            None => {}
+            None => title = format!("{} - {}", title, "NO PROFILE"),
         };
         match self.current_layout.borrow().as_ref() {
             Some(layout) => title = format!("{} - {}", title, layout),
@@ -217,8 +219,8 @@ impl App {
     }
 
     fn on_init(&self) {
-        self.win_watcher.init(self.window.handle());
-        self.key_hook.init(hwnd(self.window.handle()));
+        self.win_watcher.init(hwnd(self.window.handle()));
+        self.key_hook.init(try_hwnd(self.window.handle()));
 
         self.load_layouts();
         self.load_settings();
@@ -242,7 +244,8 @@ impl App {
     }
 
     fn on_toggle_auto_switch_layout(&self) {
-        self.win_watcher.set_enabled(!self.win_watcher.is_enabled());
+        self.win_watcher
+            .set_enabled(self.win_watcher.is_enabled().not());
         self.update_controls();
         self.save_settings();
     }

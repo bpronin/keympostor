@@ -1,4 +1,4 @@
-use crate::profile::{Profiles};
+use crate::profile::Profiles;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -61,8 +61,9 @@ pub(crate) struct MainWindow {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::profile::Profile;
     use super::*;
+    use crate::profile::Profile;
+    use keympostor::map;
 
     #[test]
     fn test_save_load_settings() {
@@ -76,14 +77,12 @@ pub mod tests {
                 size: Some((100, 200)),
                 selected_page: Some(0),
             },
-            profiles: Some(Profiles::from(vec![
-                Profile {
-                    name: "chrome".to_string(),
+            profiles: Some(Profiles(map![
+                "chrome".to_string() => Profile {
                     rule: Some("Chrome".to_string()),
                     layout: Some("game".to_string()),
                 },
-                Profile {
-                    name: "tc".to_string(),
+                "tc".to_string() => Profile {
                     rule: Some("TOTALCMD64.EXE".to_string()),
                     layout: Some("game".to_string()),
                 },

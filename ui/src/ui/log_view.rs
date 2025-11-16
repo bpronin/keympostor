@@ -154,7 +154,7 @@ impl LogView {
     fn scroll_to_end(&self) {
         let len = self.list.len();
         if len > 0 {
-            let hwnd = hwnd(self.list.handle).unwrap();
+            let hwnd = hwnd(self.list.handle);
             unsafe {
                 SendMessageW(hwnd, LVM_ENSUREVISIBLE, Some(WPARAM(len - 1)), None);
             }

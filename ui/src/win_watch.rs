@@ -1,6 +1,5 @@
-use crate::profile::{Profile, Profiles};
+use crate::profile::{Profiles};
 use crate::ui::App;
-use crate::utils::hwnd;
 use error::Error;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
@@ -26,14 +25,14 @@ const WIN_WATCH_INTERVAL: u32 = 500;
 
 #[derive(Default)]
 pub(crate) struct WinWatcher {
-    handle: RefCell<ControlHandle>,
+    owner: RefCell<HWND>,
     is_enabled: RefCell<bool>,
     detector: RefCell<WindowActivationDetector>,
 }
 
 impl WinWatcher {
-    pub(crate) fn init(&self, handle: ControlHandle) {
-        self.handle.replace(handle);
+    pub(crate) fn init(&self, owner: HWND) {
+        self.owner.replace(owner);
     }
 
     pub(crate) fn set_profiles(&self, profiles: &Rc<Profiles>) {
@@ -52,14 +51,18 @@ impl WinWatcher {
         }
     }
 
-    pub(crate) fn start(&self) {
+    fn start(&self) {
         if self.is_enabled.replace(true) {
             return;
         }
 
         unsafe {
-            let hwnd = hwnd(self.handle.borrow().to_owned());
-            SetTimer(hwnd, DETECTOR_TIMER as usize, WIN_WATCH_INTERVAL, None);
+            SetTimer(
+                Some(self.owner.borrow().to_owned()),
+                DETECTOR_TIMER as usize,
+                WIN_WATCH_INTERVAL,
+                None,
+            );
         }
 
         debug!("Profile auto-switch enabled");
@@ -71,9 +74,11 @@ impl WinWatcher {
         }
 
         unsafe {
-            let hwnd = hwnd(self.handle.borrow().to_owned());
-            //todo: hwnd may be invalid here
-            KillTimer(hwnd, DETECTOR_TIMER as usize).unwrap_or_else(|e| {
+            KillTimer(
+                Some(self.owner.borrow().to_owned()),
+                DETECTOR_TIMER as usize,
+            )
+            .unwrap_or_else(|e| {
                 warn!("Failed to kill timer: {}", e);
             });
         }
@@ -95,8 +100,12 @@ impl WinWatcher {
     }
 
     fn invoke_detector(&self, app: &App) {
-        if let Some(result) = self.detector.borrow_mut().detect() {
-            app.select_profile(result);
+        if let Some(profile_name) = self.detector.borrow_mut().detect() {
+            // if unsafe { GetForegroundWindow() } == self.owner.borrow().to_owned(){
+            //     debug!("Self window detected, skipping profile switch");
+            //     return;
+            // }
+            app.select_profile(profile_name);
         }
     }
 }
@@ -108,14 +117,14 @@ struct WindowActivationDetector {
 }
 
 impl WindowActivationDetector {
-    fn detect(&mut self) -> Option<Option<&Profile>> {
-        if let Some((hwnd, profile)) = detect_active_window(self.profiles.as_ref()) {
+    fn detect(&mut self) -> Option<Option<&String>> {
+        if let Some((hwnd, profile_name)) = detect_active_window(self.profiles.as_ref()) {
             let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
             self.last_hwnd = Some(hwnd);
             if activated {
-                debug!("Window detected for profile: {:?}", profile);
+                debug!("Window detected for profile: {:?}", profile_name);
 
-                return Some(Some(profile));
+                return Some(Some(profile_name));
             }
         } else if self.last_hwnd.is_some() {
             debug!("No active profile windows");
@@ -127,11 +136,13 @@ impl WindowActivationDetector {
     }
 }
 
-fn detect_active_window(profiles: &Profiles) -> Option<(HWND, &Profile)> {
-    profiles.iter().find_map(|profile| match profile.regex() {
-        Some(regex) => get_active_window(&regex).map(|hwnd| (hwnd, profile)),
-        None => None,
-    })
+fn detect_active_window(profiles: &Profiles) -> Option<(HWND, &String)> {
+    profiles
+        .iter()
+        .find_map(|(name, profile)| match profile.regex() {
+            Some(regex) => get_active_window(&regex).map(|hwnd| (hwnd, name)),
+            None => None,
+        })
 }
 
 fn get_process_name(hwnd: HWND) -> Result<String, Box<dyn Error>> {
