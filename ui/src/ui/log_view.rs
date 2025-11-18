@@ -1,4 +1,9 @@
-use crate::res::RES;
+use crate::res::res_ids::{
+    IDS_ACTION, IDS_KEY, IDS_MODIFIERS, IDS_RULE, IDS_SCAN_CODE, IDS_STATUS, IDS_TIME,
+    IDS_TRANSITION, IDS_VIRTUAL_KEY,
+};
+use crate::rs;
+use crate::ui::RESOURCES;
 use crate::utils::hwnd;
 use keympostor::ife;
 use keympostor::keyboard::event::KeyEvent;
@@ -35,63 +40,63 @@ impl LogView {
             index: Some(0),
             fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(300),
-            text: Some(RES.strings.action.clone()),
+            text: Some(rs!(IDS_ACTION).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(1),
             fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(500),
-            text: Some(RES.strings.rule.clone()),
+            text: Some(rs!(IDS_RULE).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(2),
             fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some(RES.strings.modifiers.clone()),
+            text: Some(rs!(IDS_MODIFIERS).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(3),
             fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some(RES.strings.key.clone()),
+            text: Some(rs!(IDS_KEY).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(4),
             fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some(RES.strings.transition.clone()),
+            text: Some(rs!(IDS_TRANSITION).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(5),
             fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some(RES.strings.virtual_key.clone()),
+            text: Some(rs!(IDS_VIRTUAL_KEY).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(6),
             fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some(RES.strings.scan_code.clone()),
+            text: Some(rs!(IDS_SCAN_CODE).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(7),
             fmt: Some(ListViewColumnFlags::LEFT),
             width: Some(0),
-            text: Some(RES.strings.time.clone()),
+            text: Some(rs!(IDS_TIME).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(8),
             fmt: Some(ListViewColumnFlags::RIGHT),
             width: Some(0),
-            text: Some(RES.strings.status.clone()),
+            text: Some(rs!(IDS_STATUS).into()),
         });
 
         Ok(())

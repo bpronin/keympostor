@@ -1,17 +1,17 @@
 processing_enabled = true
 logging_enabled = true
 layouts_enabled = true
-layout = "default"
+layout = "game"
 
 [main_window]
 position = [1320, 41]
 size = [716, 567]
 selected_page = 0
 
-[profiles.chrome]
-rule = "Chrome"
-layout = "game"
-
 [profiles.totalcmd]
 rule = "TOTALCMD64.EXE"
+layout = "game"
+
+[profiles.chrome]
+rule = "Chrome"
 layout = "game"

@@ -316,8 +316,8 @@ dependencies = [
  "criterion",
  "fxhash",
  "log",
- "regex",
  "serde",
+ "simple_logger",
  "toml",
  "windows",
 ]

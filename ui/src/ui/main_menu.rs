@@ -1,9 +1,13 @@
+use crate::res::res_ids::{
+    IDS_AUTO_SWITCH_LAYOUT, IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED,
+};
+use crate::res::RESOURCES;
+use crate::rs;
 use crate::ui::layouts_menu::LayoutsMenu;
 use crate::ui::App;
 use keympostor::layout::Layouts;
 use log::warn;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};
-use crate::res::RES;
 
 #[derive(Default)]
 pub(crate) struct MainMenu {
@@ -21,19 +25,19 @@ impl MainMenu {
     pub(crate) fn build(&mut self, parent: &Window) -> Result<(), NwgError> {
         Menu::builder()
             .parent(parent)
-            .text(RES.strings.file.as_str())
+            .text(rs!(IDS_FILE))
             .build(&mut self.menu)?;
 
         self.layout_menu.build(parent)?;
 
         MenuItem::builder()
             .parent(&self.menu)
-            .text(RES.strings.enabled.as_str())
+            .text(rs!(IDS_ENABLED))
             .build(&mut self.toggle_processing_enabled_item)?;
 
         MenuItem::builder()
             .parent(&self.menu)
-            .text(RES.strings.auto_switch_layout.as_str())
+            .text(rs!(IDS_AUTO_SWITCH_LAYOUT))
             .build(&mut self.toggle_auto_switch_layout_item)?;
 
         MenuSeparator::builder()
@@ -42,12 +46,12 @@ impl MainMenu {
 
         MenuItem::builder()
             .parent(&self.menu)
-            .text(RES.strings.logging_enabled.as_str())
+            .text(rs!(IDS_LOGGING_ENABLED))
             .build(&mut self.toggle_logging_enabled_item)?;
 
         MenuItem::builder()
             .parent(&self.menu)
-            .text(RES.strings.clear_log.as_str())
+            .text(rs!(IDS_CLEAR_LOG))
             .build(&mut self.clear_log_item)?;
 
         MenuSeparator::builder()
@@ -56,7 +60,7 @@ impl MainMenu {
 
         MenuItem::builder()
             .parent(&self.menu)
-            .text(RES.strings.exit.as_str())
+            .text(rs!(IDS_EXIT))
             .build(&mut self.exit_app_item)
     }
 

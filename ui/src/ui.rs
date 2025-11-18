@@ -1,5 +1,6 @@
 use crate::profile::{Profile, Profiles};
-use crate::res::{RES, RESOURCES};
+use crate::res::res_ids::{IDR_SWITCH_LAYOUT, IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
+use crate::res::RESOURCES;
 use crate::settings::{AppSettings, LAYOUTS_PATH};
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -8,9 +9,9 @@ use crate::ui::main_window::MainWindow;
 use crate::ui::style::display_font;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
-use crate::ui_warn;
 use crate::utils::{get_window_size, hwnd, set_window_size, try_hwnd};
 use crate::win_watch::WinWatcher;
+use crate::{r_snd, rs, ui_warn};
 use event::KeyEvent;
 use keympostor::keyboard::event;
 use keympostor::keyboard::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
@@ -156,6 +157,8 @@ impl App {
         self.window.on_select_layout(layout);
         self.update_controls();
         self.save_settings();
+
+        r_snd!(IDR_SWITCH_LAYOUT);
     }
 
     fn update_controls(&self) {
@@ -169,14 +172,14 @@ impl App {
     }
 
     fn update_title(&self) {
-        let mut title = RES.strings.app_title.to_string();
+        let mut title = rs!(IDS_APP_TITLE).to_string();
         match self.current_profile.borrow().as_ref() {
             Some(profile) => title = format!("{} - {}", title, profile),
-            None => title = format!("{} - {}", title, RES.strings.no_profile),
+            None => title = format!("{} - {}", title, rs!(IDS_NO_PROFILE)),
         };
         match self.current_layout.borrow().as_ref() {
             Some(layout) => title = format!("{} - {}", title, layout),
-            None => title = format!("{} - {}", title, RES.strings.no_layout),
+            None => title = format!("{} - {}", title, rs!(IDS_NO_LAYOUT)),
         };
 
         #[cfg(not(feature = "debug"))]

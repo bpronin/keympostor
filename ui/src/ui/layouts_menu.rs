@@ -1,4 +1,6 @@
-use crate::res::RES;
+use crate::res::res_ids::IDS_LAYOUT;
+use crate::res::RESOURCES;
+use crate::rs;
 use crate::ui::App;
 use keympostor::layout::Layouts;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, NwgError, Window};
@@ -14,7 +16,7 @@ impl LayoutsMenu {
     pub(crate) fn build(&mut self, parent: &Window) -> Result<(), NwgError> {
         Menu::builder()
             .parent(parent)
-            .text(RES.strings.layout.as_str())
+            .text(rs!(IDS_LAYOUT))
             .build(&mut self.menu)?;
 
         Ok(())

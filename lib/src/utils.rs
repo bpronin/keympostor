@@ -108,4 +108,13 @@ pub(crate) mod test {
             assert!($a.is_none())
         };
     }
+
+    // use log::LevelFilter;
+    // use simple_logger::SimpleLogger;
+    // pub fn setup_test_logger() {
+    //     SimpleLogger::new()
+    //         .with_level(LevelFilter::Debug)
+    //         .init()
+    //         .expect("Failed to initialize logger.");
+    // }
 }
