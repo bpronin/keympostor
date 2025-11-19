@@ -1,6 +1,8 @@
-use hook::KEY_HOOK;
+use std::cell::RefCell;
 use windows::Win32::Foundation::HWND;
 use log::debug;
+use hook::{install_key_hook, uninstall_key_hook};
+use crate::keyboard::hook::{install_mouse_hook, uninstall_mouse_hook, HOOK};
 use crate::keyboard::rules::KeyTransformRules;
 use crate::keyboard::transform::KeyTransformMap;
 
@@ -16,47 +18,49 @@ mod transform;
 pub mod trigger;
 
 #[derive(Debug, Default)]
-pub struct KeyboardHook;
+pub struct KeyboardHook{
+    is_enabled: RefCell<bool>,
+}
 
 impl KeyboardHook {
     pub fn init(&self, owner: Option<HWND>) {
         unsafe {
-            KEY_HOOK.owner = owner;
+            HOOK.owner = owner;
         }
     }
 
     pub fn apply_rules(&self, rules: &KeyTransformRules) {
         unsafe {
-            KEY_HOOK.transform_map = Some(KeyTransformMap::new(rules));
+            HOOK.transform_map = Some(KeyTransformMap::new(rules));
         }
     }
 
     pub fn is_enabled(&self) -> bool {
-        match unsafe { KEY_HOOK.handle } {
-            Some(_) => true,
-            None => false,
-        }
+        self.is_enabled.borrow().to_owned()
     }
 
     pub fn set_enabled(&self, enabled: bool) {
         if enabled {
-            hook::install_key_hook()
+            install_key_hook();
+            install_mouse_hook();
         } else {
-            hook::uninstall_key_hook()
+            uninstall_key_hook();
+            uninstall_mouse_hook();
         }
+        self.is_enabled.replace(enabled);
     }
 
     pub fn is_notify_enabled(&self) -> bool {
-        unsafe { KEY_HOOK.is_notify_enabled }
+        unsafe { HOOK.is_notify_enabled }
     }
 
     pub fn set_notify_enabled(&self, enabled: bool) {
-        unsafe { KEY_HOOK.is_notify_enabled = enabled }
+        unsafe { HOOK.is_notify_enabled = enabled }
 
         if enabled {
-            debug!("Keyboard hook notifications enabled");
+            debug!("Hooks notifications enabled");
         } else {
-            debug!("Keyboard hook notifications disabled");
+            debug!("Hooks notifications disabled");
         }
     }
 }

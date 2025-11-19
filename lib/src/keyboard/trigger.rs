@@ -82,7 +82,7 @@ impl FromStr for KeyTrigger {
 
 impl Display for KeyTrigger {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&format!("{} {}", self.modifiers, self.action), f)
+        Display::fmt(&format!("{}{}", self.modifiers, self.action), f)
     }
 }
 
