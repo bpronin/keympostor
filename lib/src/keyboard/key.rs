@@ -5,6 +5,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
+use std::sync::LazyLock;
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -18,7 +19,7 @@ impl From<KBDLLHOOKSTRUCT> for Key {
     fn from(input: KBDLLHOOKSTRUCT) -> Self {
         let vk_code = input.vkCode as u8;
         let scan_code = (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED));
-        KEY_MAP.with(|map| map.find_by_code(&(vk_code, scan_code))).unwrap()
+        KEY_MAP.find_by_code(&(vk_code, scan_code)).unwrap()
     }
 }
 
@@ -32,7 +33,7 @@ impl FromStr for Key {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        KEY_MAP.with(|map| map.find_by_name(s.trim()))
+        KEY_MAP.find_by_name(s.trim())
     }
 }
 
@@ -51,9 +52,7 @@ macro_rules! key {
     };
 }
 
-thread_local! {
-    static KEY_MAP: KeyMap = KeyMap::new();
-}
+static KEY_MAP: LazyLock<KeyMap> = LazyLock::new(KeyMap::new);
 
 struct KeyMap {
     code_to_key_map: FxHashMap<(u8, (u8, bool)), Key>,
