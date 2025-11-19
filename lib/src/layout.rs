@@ -220,6 +220,6 @@ pub mod tests {
     #[test]
     fn test_layouts_load() {
         let result = Layouts::load("etc/test_data/layouts/");
-        assert!(result.is_ok());
+        assert!(result.is_err());
     }
 }

@@ -18,7 +18,7 @@ use native_windows_gui::{
 use windows::Win32::Foundation::WPARAM;
 use windows::Win32::UI::Controls::*;
 use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
-
+use keympostor::keyboard::code::{ScanCode, VirtualKey};
 const MAX_LOG_ITEMS: usize = 256;
 
 #[derive(Default)]
@@ -74,14 +74,14 @@ impl LogView {
         self.list.insert_column(InsertListViewColumn {
             index: Some(5),
             fmt: Some(ListViewColumnFlags::LEFT),
-            width: Some(0),
+            width: Some(50),
             text: Some(rs!(IDS_VIRTUAL_KEY).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(6),
             fmt: Some(ListViewColumnFlags::LEFT),
-            width: Some(0),
+            width: Some(50),
             text: Some(rs!(IDS_SCAN_CODE).into()),
         });
 
@@ -131,8 +131,8 @@ impl LogView {
                 ),
                 event.action.key.to_string(),
                 event.action.transition.to_string(),
-                event.action.key.virtual_key().to_string(),
-                event.action.key.scan_code().to_string(),
+                VirtualKey::from(&event.action.key).to_string(),
+                ScanCode::from(&event.action.key).to_string(),
                 event.time.to_string(),
                 format!(
                     "{:1}{:1}{:1}",

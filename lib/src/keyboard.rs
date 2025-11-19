@@ -16,6 +16,7 @@ pub mod modifiers;
 pub mod rules;
 mod transform;
 pub mod trigger;
+pub mod code;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHook{

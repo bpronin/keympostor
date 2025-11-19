@@ -15,6 +15,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEINPUT, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
+use crate::keyboard::code::{ScanCode, VirtualKey};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum KeyTransition {
@@ -120,8 +121,8 @@ impl KeyAction {
     }
 
     fn into_key_input(self) -> INPUT {
-        let virtual_key = self.key.virtual_key();
-        let scan_code = self.key.scan_code();
+        let virtual_key = VirtualKey::from(&self.key);
+        let scan_code = ScanCode::from(&self.key);
 
         let mut flags = KEYEVENTF_SCANCODE;
         if scan_code.is_extended {
@@ -278,11 +279,11 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::action::Key;
+    use crate::keyboard::code::ScanCode;
+use crate::keyboard::action::Key;
     use crate::keyboard::action::KeyTransition::{Down, Up};
     use crate::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::keyboard::event::SELF_EVENT_MARKER;
-    use crate::keyboard::key::ScanCode;
     use crate::utils::test::SerdeWrapper;
     use crate::{key, sc_key};
     use std::str::FromStr;
