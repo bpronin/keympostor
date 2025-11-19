@@ -140,13 +140,6 @@ impl<'de> Deserialize<'de> for Key {
     deserialize_from_string!();
 }
 
-#[macro_export]
-macro_rules! key {
-    ($text:literal) => {
-        Key::from_name($text).unwrap()
-    };
-}
-
 #[cfg(test)]
 mod tests {
     use crate::append_prefix;
@@ -158,6 +151,12 @@ mod tests {
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
     };
+    #[macro_export]
+    macro_rules! key {
+        ($text:literal) => {
+            Key::from_name($text).unwrap()
+        };
+    }
 
     impl VirtualKey {
         pub(crate) fn from_name(name: &str) -> Result<VirtualKey, KeyError> {

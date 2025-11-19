@@ -1,4 +1,5 @@
-use crate::keyboard::action::KeyTransition::{Down, Up};
+use crate::keyboard::action::KeyTransition::{Distance, Down, Up};
+use crate::keyboard::consts::{KEY_MOUSE, KEY_WHEEL};
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::SELF_EVENT_MARKER;
 use crate::keyboard::key::Key;
@@ -10,8 +11,8 @@ use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
-    KEYEVENTF_SCANCODE, VIRTUAL_KEY,
+    INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
+    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEINPUT, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
 
@@ -21,6 +22,7 @@ pub enum KeyTransition {
     Up,
     #[serde(alias = "DOWN", alias = "down")]
     Down,
+    Distance(i16, i16),
 }
 
 impl Default for KeyTransition {
@@ -34,19 +36,20 @@ impl Display for KeyTransition {
         match self {
             Up => Display::fmt(&'↑', f),
             Down => Display::fmt(&'↓', f),
+            Distance(x, y) => {
+                write!(f, "({}:{})", x, y)
+            }
         }
-    }
-}
-
-impl From<bool> for KeyTransition {
-    fn from(is_up: bool) -> Self {
-        if is_up { Up } else { Down }
     }
 }
 
 impl From<KBDLLHOOKSTRUCT> for KeyTransition {
     fn from(input: KBDLLHOOKSTRUCT) -> Self {
-        Self::from (input.flags.contains(LLKHF_UP))
+        if input.flags.contains(LLKHF_UP) {
+            Up
+        } else {
+            Down
+        }
     }
 }
 
@@ -115,10 +118,8 @@ impl KeyAction {
 
         Ok(list)
     }
-}
 
-impl Into<INPUT> for KeyAction {
-    fn into(self) -> INPUT {
+    fn into_key_input(self) -> INPUT {
         let virtual_key = self.key.virtual_key();
         let scan_code = self.key.scan_code();
 
@@ -141,6 +142,31 @@ impl Into<INPUT> for KeyAction {
                     ..Default::default()
                 },
             },
+        }
+    }
+
+    fn into_mouse_input(self) -> INPUT {
+        INPUT {
+            r#type: INPUT_MOUSE,
+            Anonymous: INPUT_0 {
+                mi: MOUSEINPUT {
+                    // dx:self.distance
+                    // dy:self.distance
+                    //todo
+                    dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
+                    ..Default::default()
+                },
+            },
+        }
+    }
+}
+
+impl Into<INPUT> for KeyAction {
+    fn into(self) -> INPUT {
+        if self.key == KEY_MOUSE || self.key == KEY_WHEEL {
+            Self::into_mouse_input(self)
+        } else {
+            Self::into_key_input(self)
         }
     }
 }
