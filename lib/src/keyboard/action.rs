@@ -1,8 +1,7 @@
 use crate::keyboard::action::KeyTransition::{Distance, Down, Up};
-use crate::keyboard::consts::{KEY_MOUSE, KEY_WHEEL};
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::SELF_EVENT_MARKER;
-use crate::keyboard::key::Key;
+use crate::keyboard::key::{Key, KEY_MOUSE, KEY_WHEEL};
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use serde::Deserializer;
 use serde::Serializer;
@@ -15,7 +14,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEINPUT, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
-use crate::keyboard::code::{ScanCode, VirtualKey};
+use crate::keyboard::sc::ScanCode;
+use crate::keyboard::vk::VirtualKey;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum KeyTransition {
@@ -279,7 +279,7 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::code::ScanCode;
+    use crate::keyboard::sc::ScanCode;
 use crate::keyboard::action::Key;
     use crate::keyboard::action::KeyTransition::{Down, Up};
     use crate::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};

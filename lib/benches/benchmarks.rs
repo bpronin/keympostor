@@ -1,15 +1,17 @@
 use criterion::measurement::WallTime;
-use criterion::{BenchmarkGroup, Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
 use fxhash::FxHashMap;
 use keympostor::keyboard::action::KeyTransition::{Down, Up};
 use keympostor::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
-use keympostor::keyboard::consts::{KEYS, MAX_SCAN_CODE, MAX_VK_CODE};
+use keympostor::keyboard::sc::MAX_SCAN_CODE;
+use keympostor::keyboard::key::KEYS;
 use keympostor::keyboard::event::KeyEvent;
 use keympostor::keyboard::key::Key;
 use keympostor::keyboard::modifiers::KeyModifiers;
 use keympostor::keyboard::modifiers::KeyModifiers::{All, Any};
 use keympostor::keyboard::rules::KeyTransformRule;
 use keympostor::keyboard::trigger::KeyTrigger;
+use keympostor::keyboard::vk::MAX_VK_CODE;
 
 type Group = FxHashMap<KeyModifiers, KeyTransformRule>;
 

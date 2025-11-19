@@ -1,25 +1,25 @@
-use std::cell::RefCell;
-use windows::Win32::Foundation::HWND;
-use log::debug;
-use hook::{install_key_hook, uninstall_key_hook};
 use crate::keyboard::hook::{install_mouse_hook, uninstall_mouse_hook, HOOK};
 use crate::keyboard::rules::KeyTransformRules;
 use crate::keyboard::transform::KeyTransformMap;
+use hook::{install_key_hook, uninstall_key_hook};
+use log::debug;
+use std::cell::RefCell;
+use windows::Win32::Foundation::HWND;
 
 pub mod action;
-pub mod consts;
 pub mod error;
 pub mod event;
 pub mod hook;
 pub mod key;
 pub mod modifiers;
 pub mod rules;
+pub mod sc;
 mod transform;
 pub mod trigger;
-pub mod code;
+pub mod vk;
 
 #[derive(Debug, Default)]
-pub struct KeyboardHook{
+pub struct KeyboardHook {
     is_enabled: RefCell<bool>,
 }
 

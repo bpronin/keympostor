@@ -18,7 +18,9 @@ use native_windows_gui::{
 use windows::Win32::Foundation::WPARAM;
 use windows::Win32::UI::Controls::*;
 use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
-use keympostor::keyboard::code::{ScanCode, VirtualKey};
+use keympostor::keyboard::sc::ScanCode;
+use keympostor::keyboard::vk::VirtualKey;
+
 const MAX_LOG_ITEMS: usize = 256;
 
 #[derive(Default)]

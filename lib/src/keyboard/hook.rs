@@ -1,12 +1,8 @@
 use crate::keyboard::action::KeyTransition::Down;
 use crate::keyboard::action::{KeyAction, KeyTransition};
-use crate::keyboard::consts::{
-    KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE, KEY_RIGHT_BUTTON, KEY_WHEEL, KEY_XBUTTON1,
-    KEY_XBUTTON2,
-};
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
-use crate::keyboard::key::Key;
+use crate::keyboard::key::{Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE, KEY_RIGHT_BUTTON, KEY_WHEEL, KEY_XBUTTON1, KEY_XBUTTON2};
 use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::transform::KeyTransformMap;
 use log::{debug, warn};
