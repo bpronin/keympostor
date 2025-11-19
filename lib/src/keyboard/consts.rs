@@ -55,7 +55,7 @@ macro_rules! new_key {
     };
 }
 
-pub const MAX_KEYS: usize = 204;
+pub const MAX_KEYS: usize = 208;
 
 pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key!("	", 0x00, 0x0F, true),
@@ -262,6 +262,10 @@ pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key!("Z", 0x5A, 0x2C, false),
     new_key!("ZOOM", 0xFB, 0x62, false),
     new_key!("_", 0x00, 0x39, true),
+    new_key!("MOUSE_X", 0xF0, 0x00, true),
+    new_key!("MOUSE_Y", 0xF1, 0x00, true),
+    new_key!("WHEEL", 0xF2, 0x00, true),
+    new_key!("WHEEL_TILT", 0xF3, 0x00, true),
 ];
 
 macro_rules! new_vk {
@@ -516,10 +520,10 @@ pub(crate) static VIRTUAL_KEYS: [VirtualKey; MAX_VK_CODE] = [
     new_vk!(0xED, "UNASSIGNED"),
     new_vk!(0xEE, "UNASSIGNED"),
     new_vk!(0xEF, "UNASSIGNED"),
-    new_vk!(0xF0, "UNASSIGNED"),
-    new_vk!(0xF1, "UNASSIGNED"),
-    new_vk!(0xF2, "UNASSIGNED"),
-    new_vk!(0xF3, "UNASSIGNED"),
+    new_vk!(0xF0, "UNASSIGNED"),  /* used as a custom MOUSE_X key */
+    new_vk!(0xF1, "UNASSIGNED"),  /* used as a custom MOUSE_Y key */
+    new_vk!(0xF2, "UNASSIGNED"),  /* used as a custom WHEEL key */
+    new_vk!(0xF3, "UNASSIGNED"),  /* used as a custom WHEEL_TILT key */
     new_vk!(0xF4, "UNASSIGNED"),
     new_vk!(0xF5, "UNASSIGNED"),
     new_vk!(0xF6, "VK_ATTN"),

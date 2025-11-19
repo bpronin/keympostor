@@ -13,6 +13,7 @@ pub(crate) static SELF_EVENT_MARKER: &str = "banana";
 pub struct KeyEvent<'a> {
     pub action: KeyAction,
     pub modifiers: ModifierKeys,
+    pub distance: Option<u16>, /* for mouse wheel and motion events */
     pub rule: Option<&'a KeyTransformRule>,
     pub time: u32,
     pub is_injected: bool,
@@ -31,22 +32,18 @@ impl Into<LPARAM> for KeyEvent<'_> {
     }
 }
 
-// impl Into<KeyTrigger> for KeyEvent<'_> {
-//     fn into(self) -> KeyTrigger {
-//         KeyTrigger {
-//             action: self.action.clone(),
-//             modifiers: KeyModifiers::Any,
-//         }
-//     }
-// }
-
 impl Display for KeyEvent<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[{}] {} T:{:09} {} {}",
+            "[{}] {}{} T:{:09} {} {}",
             self.modifiers,
             self.action,
+            if let Some(d) = self.distance {
+                format!(" ({})", d)
+            } else {
+                "".to_string()
+            },
             self.time,
             if self.is_injected { "INJ" } else { "" },
             if self.is_private { "PRV" } else { "" },
@@ -66,6 +63,7 @@ mod tests {
             KeyEvent {
                 action: $action.parse().unwrap(),
                 modifiers: ModifierKeys::from($state),
+                distance: None,
                 time: 0,
                 is_injected: false,
                 is_private: false,

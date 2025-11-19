@@ -82,7 +82,10 @@ impl FromStr for KeyTrigger {
 
 impl Display for KeyTrigger {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&format!("{}{}", self.modifiers, self.action), f)
+        match self.modifiers {
+            Any => Display::fmt(&format!("{}", self.action), f),
+            All(m) => Display::fmt(&format!("[{}] {}", m, self.action), f)
+        }
     }
 }
 
@@ -119,13 +122,13 @@ mod tests {
             action: key_action!("A↓"),
             modifiers: All(KM_LSHIFT),
         };
-        assert_eq!("[LEFT_SHIFT]A↓", format!("{}", actual));
+        assert_eq!("[LEFT_SHIFT] A↓", format!("{}", actual));
 
         let actual = KeyTrigger {
             action: key_action!("A↓"),
             modifiers: All(KM_NONE),
         };
-        assert_eq!("[]A↓", format!("{}", actual));
+        assert_eq!("[] A↓", format!("{}", actual));
 
         let actual = KeyTrigger {
             action: key_action!("A↓"),
@@ -137,7 +140,7 @@ mod tests {
             action: key_action!("A↓"),
             modifiers: All(KM_LSHIFT),
         };
-        assert_eq!("|      [LEFT_SHIFT]A↓|", format!("|{:>20}|", actual));
+        assert_eq!("|     [LEFT_SHIFT] A↓|", format!("|{:>20}|", actual));
     }
 
     #[test]

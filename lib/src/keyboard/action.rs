@@ -5,7 +5,7 @@ use crate::keyboard::key::Key;
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use serde::Deserializer;
 use serde::Serializer;
-use serde::{Deserialize, Serialize, de};
+use serde::{de, Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 use std::str::FromStr;
@@ -38,13 +38,15 @@ impl Display for KeyTransition {
     }
 }
 
+impl From<bool> for KeyTransition {
+    fn from(is_up: bool) -> Self {
+        if is_up { Up } else { Down }
+    }
+}
+
 impl From<KBDLLHOOKSTRUCT> for KeyTransition {
     fn from(input: KBDLLHOOKSTRUCT) -> Self {
-        if input.flags.contains(LLKHF_UP) {
-            Up
-        } else {
-            Down
-        }
+        Self::from (input.flags.contains(LLKHF_UP))
     }
 }
 

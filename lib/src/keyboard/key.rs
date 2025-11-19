@@ -5,7 +5,6 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -32,19 +31,6 @@ impl From<u8> for VirtualKey {
             .expect("Illegal virtual key code.")
     }
 }
-
-// impl From<VIRTUAL_KEY> for VirtualKey {
-//     fn from(code: VIRTUAL_KEY) -> Self {
-//         VIRTUAL_KEYS
-//             .get(code.0 as usize)
-//             .ok_or(KeyError::new(&format!(
-//                 "Illegal virtual key code `{:?}`.",
-//                 code
-//             )))
-//             .copied()
-//             .expect("Illegal virtual key code.")
-//     }
-// }
 
 impl Display for VirtualKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

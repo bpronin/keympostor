@@ -1,10 +1,10 @@
-processing_enabled = false
-logging_enabled = false
+processing_enabled = true
+logging_enabled = true
 layouts_enabled = false
-layout = "game"
+layout = "default"
 
 [main_window]
-position = [300, 300]
+position = [1076, 152]
 size = [716, 339]
 selected_page = 0
 

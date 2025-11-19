@@ -120,6 +120,7 @@ fn create_event(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyEvent<'st
     KeyEvent {
         action: create_action(vk, sc, ext, trans),
         modifiers: Default::default(),
+        distance: None,
         rule: None,
         time: 0,
         is_injected: false,

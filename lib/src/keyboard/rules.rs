@@ -196,7 +196,7 @@ pub mod tests {
         };
 
         assert_eq!(
-            "|        [LEFT_SHIFT]ENTER↓ : ENTER↓|",
+            "|       [LEFT_SHIFT] ENTER↓ : ENTER↓|",
             format!("|{:>35}|", actual)
         );
     }
