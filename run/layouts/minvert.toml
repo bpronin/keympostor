@@ -1,0 +1,7 @@
+name = "invert_mouse"
+title = "Mouse invert"
+
+[rules]
+#"MOUSE(*,*)" = "MOUSE(*,-*)"
+"XBUTTON1" = "M"
+"M" = "XBUTTON1"

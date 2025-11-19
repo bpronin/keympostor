@@ -1,8 +1,8 @@
 use crate::keyboard::error::KeyError;
 use crate::keyboard::rules::KeyTransformRules;
 use anyhow::{Context, Result};
-use log::warn;
 use serde::{Deserialize, Serialize};
+use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::Path;
@@ -55,7 +55,7 @@ impl FromStr for Layout {
 pub struct Layouts(Vec<Layout>);
 
 impl Layouts {
-    pub fn load(path: &str) -> Result<Self> {
+    pub fn load(path: &str) -> Result<Self, Box<dyn Error>> {
         let mut items = vec![];
         for entry in fs::read_dir(Path::new(path))? {
             let path = entry?.path();
@@ -64,7 +64,7 @@ impl Layouts {
                 if let Ok(layout) = Layout::load(filename) {
                     items.push(layout);
                 } else {
-                    warn!("Ignored corrupted layout: {}", filename);
+                    return Err(format!("Corrupted layout: {}", filename).as_str())?;
                 }
             }
         }

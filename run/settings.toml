@@ -4,7 +4,7 @@ layouts_enabled = false
 layout = "default"
 
 [main_window]
-position = [1076, 152]
+position = [953, 166]
 size = [716, 339]
 selected_page = 0
 

@@ -103,10 +103,13 @@ impl App {
     }
 
     fn load_layouts(&self) {
-        if let Ok(layouts) = Layouts::load(LAYOUTS_PATH) {
-            self.layouts.replace(layouts);
-        } else {
-            ui_warn!("Unable to load layouts.");
+        match Layouts::load(LAYOUTS_PATH) {
+            Ok(layouts) => {
+                self.layouts.replace(layouts);
+            }
+            Err(e) => {
+                ui_warn!("Unable to load layouts. {}", e);
+            }
         }
         self.window.on_load_layouts(&self.layouts.borrow());
     }

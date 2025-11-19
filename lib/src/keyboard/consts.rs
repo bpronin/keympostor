@@ -7,7 +7,7 @@ thread_local! {
 }
 
 pub(crate) struct KeyMap {
-    key_to_name_map: FxHashMap<Key, &'static str>,
+    key_to_name_map: FxHashMap<(u8, (u8, bool)), &'static str>,
     name_to_key_map: FxHashMap<&'static str, Key>,
 }
 
@@ -19,7 +19,10 @@ impl KeyMap {
             if name_to_key_map.insert(name, key).is_some() {
                 panic!("Duplicate name: {}", name)
             };
-            if key_to_name_map.insert(key, name).is_some() {
+            if key_to_name_map
+                .insert((key.vk_code, key.scan_code), name)
+                .is_some()
+            {
                 panic!("Duplicate key: {}", key.code_name())
             };
         }
@@ -29,10 +32,10 @@ impl KeyMap {
         }
     }
 
-    pub(crate) fn name_of(&self, key: &Key) -> &'static str {
+    pub(crate) fn name_of(&self, key: &(u8, (u8, bool))) -> &'static str {
         self.key_to_name_map
             .get(key)
-            .expect(&format!("Unsupported key: {}", key.code_name()))
+            .expect(&format!("Unsupported key: {:?}", key))
     }
 
     pub(crate) fn by_name(&self, name: &str) -> Result<Key, KeyError> {
@@ -44,8 +47,9 @@ impl KeyMap {
 }
 
 macro_rules! new_key {
-    ($vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
+    ($name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
         Key {
+            name: $name,
             vk_code: $vk_code,
             scan_code: ($scan_code, $is_ext_scan_code),
         }
@@ -53,18 +57,27 @@ macro_rules! new_key {
 }
 
 macro_rules! new_key_entry {
-    ($name:expr, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
-        ($name, new_key!($vk_code, $scan_code, $is_ext_scan_code))
+    ($name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
+        (
+            $name,
+            new_key!($name, $vk_code, $scan_code, $is_ext_scan_code),
+        )
     };
 }
 
-pub static KEY_LEFT_BUTTON: Key = new_key!(0x01, 0x00, false);
-pub static KEY_RIGHT_BUTTON: Key = new_key!(0x02, 0x00, false);
-pub static KEY_MIDDLE_BUTTON: Key = new_key!(0x04, 0x00, false);
-pub static KEY_XBUTTON1: Key = new_key!(0x05, 0x00, false);
-pub static KEY_XBUTTON2: Key = new_key!(0x06, 0x00, false);
-pub static KEY_MOUSE: Key = new_key!(0xF0, 0x00, true);
-pub static KEY_WHEEL: Key = new_key!(0xF1, 0x00, true);
+macro_rules! key_entry {
+    ($key:expr) => {
+        ($key.name, $key)
+    };
+}
+
+pub static KEY_LEFT_BUTTON: Key = new_key!("LEFT_BUTTON", 0x01, 0x00, false);
+pub static KEY_RIGHT_BUTTON: Key = new_key!("RIGHT_BUTTON", 0x02, 0x00, false);
+pub static KEY_MIDDLE_BUTTON: Key = new_key!("MIDDLE_BUTTON", 0x04, 0x00, false);
+pub static KEY_XBUTTON1: Key = new_key!("XBUTTON1", 0x05, 0x00, false);
+pub static KEY_XBUTTON2: Key = new_key!("XBUTTON2", 0x06, 0x00, false);
+pub static KEY_MOUSE: Key = new_key!("MOUSE", 0xF0, 0x00, true);
+pub static KEY_WHEEL: Key = new_key!("WHEEL", 0xF1, 0x00, true);
 
 pub const MAX_KEYS: usize = 206;
 
@@ -177,7 +190,7 @@ pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key_entry!("LEFT", 0x25, 0x4B, true),
     new_key_entry!("LEFT_ALT", 0xA4, 0x38, false),
     new_key_entry!("LEFT_BRACKET", 0xDB, 0x1A, false),
-    ("LEFT_BUTTON", KEY_LEFT_BUTTON),
+    key_entry!(KEY_LEFT_BUTTON),
     new_key_entry!("LEFT_CTRL", 0xA2, 0x1D, false),
     new_key_entry!("LEFT_SHIFT", 0xA0, 0x2A, false),
     new_key_entry!("LEFT_WIN", 0x5B, 0x5B, true),
@@ -187,7 +200,7 @@ pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key_entry!("MEDIA_PREV_TRACK", 0xB1, 0x00, true),
     new_key_entry!("MEDIA_STOP", 0xB2, 0x24, true),
     new_key_entry!("MENU", 0x12, 0x38, false),
-    ("MIDDLE_BUTTON", KEY_MIDDLE_BUTTON),
+    key_entry!(KEY_MIDDLE_BUTTON),
     new_key_entry!("MINUS", 0xBD, 0x0C, false),
     new_key_entry!("MODE_CHANGE", 0x1F, 0x00, false),
     new_key_entry!("N", 0x4E, 0x31, false),
@@ -241,7 +254,7 @@ pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key_entry!("RIGHT", 0x27, 0x4D, true),
     new_key_entry!("RIGHT_ALT", 0xA5, 0x38, true),
     new_key_entry!("RIGHT_BRACKET", 0xDD, 0x1B, false),
-    ("RIGHT_BUTTON", KEY_RIGHT_BUTTON),
+    key_entry!(KEY_RIGHT_BUTTON),
     new_key_entry!("RIGHT_CTRL", 0xA3, 0x1D, true),
     new_key_entry!("RIGHT_SHIFT", 0xA1, 0x36, true),
     new_key_entry!("RIGHT_SHIFT_2", 0x00, 0x36, true),
@@ -267,14 +280,14 @@ pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
     new_key_entry!("VOLUME_UP", 0xAF, 0x00, true),
     new_key_entry!("W", 0x57, 0x11, false),
     new_key_entry!("X", 0x58, 0x2D, false),
-    ("XBUTTON1", KEY_XBUTTON1),
-    ("XBUTTON2", KEY_XBUTTON2),
+    key_entry!(KEY_XBUTTON1),
+    key_entry!(KEY_XBUTTON2),
     new_key_entry!("Y", 0x59, 0x15, false),
     new_key_entry!("Z", 0x5A, 0x2C, false),
     new_key_entry!("ZOOM", 0xFB, 0x62, false),
     new_key_entry!("_", 0x00, 0x39, true),
-    ("MOUSE_X", KEY_MOUSE),
-    ("WHEEL", KEY_WHEEL),
+    key_entry!(KEY_MOUSE),
+    key_entry!(KEY_WHEEL),
 ];
 
 macro_rules! new_vk {
@@ -721,7 +734,7 @@ mod tests {
     fn test_key_name() {
         assert!(
             KEYS.iter()
-                .all(|(name, key)| KEY_MAP.with(|k| k.name_of(key)) == *name)
+                .all(|(name, key)| KEY_MAP.with(|_| key.name == *name))
         )
     }
 

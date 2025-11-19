@@ -79,15 +79,20 @@ impl Display for ScanCode {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Key {
+    pub name: &'static str,
     pub vk_code: u8,
     pub scan_code: (u8, bool),
 }
 
 impl From<KBDLLHOOKSTRUCT> for Key {
     fn from(input: KBDLLHOOKSTRUCT) -> Self {
+        let vk_code = input.vkCode as u8;
+        let scan_code = (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED));
+        let name = KEY_MAP.with(|k| k.name_of(&(vk_code, scan_code)));
         Self {
-            vk_code: input.vkCode as u8,
-            scan_code: (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED)),
+            vk_code,
+            scan_code,
+            name,
         }
     }
 }
@@ -95,10 +100,6 @@ impl From<KBDLLHOOKSTRUCT> for Key {
 impl Key {
     pub(crate) fn from_name(s: &str) -> Result<Self, KeyError> {
         KEY_MAP.with(|keys| keys.by_name(s.trim()))
-    }
-
-    pub(crate) fn name(&self) -> &'static str {
-        KEY_MAP.with(|k| k.name_of(self))
     }
 
     pub fn virtual_key(&self) -> VirtualKey {
@@ -120,7 +121,7 @@ impl Key {
 
 impl Display for Key {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name(), f)
+        Display::fmt(&self.name, f)
     }
 }
 
@@ -217,7 +218,7 @@ mod tests {
                     .ok_or(KeyError::new("No `SC_0x` prefix."))?,
                 16,
             )
-            .map_err(|e| KeyError::new(&format!("Error parsing scan code `{}`. {}", s, e)))?;
+                .map_err(|e| KeyError::new(&format!("Error parsing scan code `{}`. {}", s, e)))?;
             Self::from_ext_code(code)
         }
 
@@ -379,6 +380,7 @@ mod tests {
             format!(
                 "{}",
                 Key {
+                    name: "ENTER",
                     vk_code: 0x0D,
                     scan_code: (0x1C, false),
                 }
@@ -390,6 +392,7 @@ mod tests {
             format!(
                 "{}",
                 Key {
+                    name: "NUM_ENTER",
                     vk_code: 0x0D,
                     scan_code: (0x1C, true),
                 }
@@ -401,6 +404,7 @@ mod tests {
     fn test_key_from_str() {
         assert_eq!(
             Key {
+                name: "ENTER",
                 vk_code: 0x0D,
                 scan_code: (0x1C, false),
             },
@@ -409,6 +413,7 @@ mod tests {
 
         assert_eq!(
             Key {
+                name: "NUM_ENTER",
                 vk_code: 0x0D,
                 scan_code: (0x1C, true),
             },
@@ -417,6 +422,7 @@ mod tests {
 
         assert_eq!(
             Key {
+                name: "F3",
                 vk_code: 0x72,
                 scan_code: (0x3D, false),
             },
