@@ -1,10 +1,11 @@
 use crate::keyboard::consts::{KEY_MAP, SCAN_CODES, VIRTUAL_KEYS};
 use crate::keyboard::error::KeyError;
 use crate::{deserialize_from_string, serialize_to_string};
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
+use windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -31,6 +32,19 @@ impl From<u8> for VirtualKey {
             .expect("Illegal virtual key code.")
     }
 }
+
+// impl From<VIRTUAL_KEY> for VirtualKey {
+//     fn from(code: VIRTUAL_KEY) -> Self {
+//         VIRTUAL_KEYS
+//             .get(code.0 as usize)
+//             .ok_or(KeyError::new(&format!(
+//                 "Illegal virtual key code `{:?}`.",
+//                 code
+//             )))
+//             .copied()
+//             .expect("Illegal virtual key code.")
+//     }
+// }
 
 impl Display for VirtualKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
@@ -140,6 +154,13 @@ impl<'de> Deserialize<'de> for Key {
     deserialize_from_string!();
 }
 
+#[macro_export]
+macro_rules! key {
+    ($text:literal) => {
+        Key::from_name($text).unwrap()
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use crate::append_prefix;
@@ -149,7 +170,7 @@ mod tests {
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
-        MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX, MapVirtualKeyW,
+        MapVirtualKeyW, MAPVK_VK_TO_VSC_EX, MAPVK_VSC_TO_VK_EX,
     };
 
     impl VirtualKey {
@@ -242,13 +263,6 @@ mod tests {
     macro_rules! sc_key {
         ($text:literal) => {
             ScanCode::from_name($text).unwrap()
-        };
-    }
-
-    #[macro_export]
-    macro_rules! key {
-        ($text:literal) => {
-            Key::from_name($text).unwrap()
         };
     }
 
