@@ -2,12 +2,8 @@ use crate::keyboard::action::KeyAction;
 use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::rules::KeyTransformRule;
 use std::fmt::{Display, Formatter};
-use windows::Win32::Foundation::LPARAM;
 
-/// A marker to detect self-generated keyboard events.
-/// Must be exactly `static` not `const`! Because of `const` ptrs may point at different addresses.
-/// Content does not matter.
-pub(crate) static SELF_EVENT_MARKER: &str = "banana";
+pub(crate) static SELF_EVENT_MARKER: usize = 497298395;
 
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct KeyEvent<'a> {
@@ -22,12 +18,6 @@ pub struct KeyEvent<'a> {
 impl<'a> KeyEvent<'a> {
     pub fn from_l_param(l_param: isize) -> &'a KeyEvent<'a> {
         unsafe { &*(l_param as *const KeyEvent) }
-    }
-}
-
-impl Into<LPARAM> for KeyEvent<'_> {
-    fn into(self) -> LPARAM {
-        LPARAM(&self as *const KeyEvent as isize)
     }
 }
 

@@ -1,10 +1,7 @@
 use crate::keyboard::error::KeyError;
-use crate::keyboard::event::SELF_EVENT_MARKER;
-use crate::keyboard::key::{key_by_name, Key, KEY_MOUSE, KEY_WHEEL};
-use crate::keyboard::sc::ScanCode;
+use crate::keyboard::key::{key_by_name, Key};
 use crate::keyboard::transition::KeyTransition;
-use crate::keyboard::transition::KeyTransition::{Distance, Down, Up};
-use crate::keyboard::vk::VirtualKey;
+use crate::keyboard::transition::KeyTransition::{Down, Up};
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use serde::Deserializer;
 use serde::Serializer;
@@ -12,10 +9,6 @@ use serde::{de, Deserialize, Serialize};
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
 use std::str::FromStr;
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
-    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEINPUT, VIRTUAL_KEY,
-};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct KeyAction {
@@ -48,25 +41,6 @@ impl KeyAction {
             list.push(KeyAction::new(key_by_name(k)?, Up));
         } else if let Some(k) = ts.strip_suffix('↑') {
             list.push(KeyAction::new(key_by_name(k)?, Up));
-        } else if let Some((k, sd)) = ts.split_once('(') {
-            let (sdx, sdy) = sd
-                .strip_suffix(')')
-                .ok_or(KeyError::new(
-                    "Invalid mouse action: missing ')' at the end of the string",
-                ))?
-                .split_once(':')
-                .ok_or(KeyError::new(
-                    "Invalid mouse action: missing ':' in the string",
-                ))?;
-            let dx = sdx
-                .trim()
-                .parse()
-                .map_err(|e| KeyError::new("Invalid dx value."))?;
-            let dy = sdy
-                .trim()
-                .parse()
-                .map_err(|e| KeyError::new("Invalid dy value."))?;
-            list.push(KeyAction::new(key_by_name(k)?, Distance(dx, dy)));
         } else {
             let key = key_by_name(ts)?;
             list.push(KeyAction::new(key, Down));
@@ -74,57 +48,6 @@ impl KeyAction {
         }
 
         Ok(list)
-    }
-
-    fn into_key_input(self) -> INPUT {
-        let virtual_key = VirtualKey::from(self.key);
-        let scan_code = ScanCode::from(self.key);
-
-        let mut flags = KEYEVENTF_SCANCODE;
-        if scan_code.is_extended {
-            flags |= KEYEVENTF_EXTENDEDKEY
-        }
-        if self.transition == Up {
-            flags |= KEYEVENTF_KEYUP;
-        }
-
-        INPUT {
-            r#type: INPUT_KEYBOARD,
-            Anonymous: INPUT_0 {
-                ki: KEYBDINPUT {
-                    wVk: VIRTUAL_KEY(virtual_key.value as u16),
-                    wScan: scan_code.ext_value(),
-                    dwFlags: flags,
-                    dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
-                    ..Default::default()
-                },
-            },
-        }
-    }
-
-    fn into_mouse_input(self) -> INPUT {
-        INPUT {
-            r#type: INPUT_MOUSE,
-            Anonymous: INPUT_0 {
-                mi: MOUSEINPUT {
-                    // dx:self.distance
-                    // dy:self.distance
-                    //todo
-                    dwExtraInfo: SELF_EVENT_MARKER.as_ptr() as usize,
-                    ..Default::default()
-                },
-            },
-        }
-    }
-}
-
-impl Into<INPUT> for KeyAction {
-    fn into(self) -> INPUT {
-        if self.key == &KEY_MOUSE || self.key == &KEY_WHEEL {
-            Self::into_mouse_input(self)
-        } else {
-            Self::into_key_input(self)
-        }
     }
 }
 
@@ -153,13 +76,11 @@ impl<'de> Deserialize<'de> for KeyAction {
 #[derive(Clone)]
 pub struct KeyActionSequence {
     pub(crate) actions: Vec<KeyAction>,
-    pub(crate) input: Vec<INPUT>,
 }
 
 impl KeyActionSequence {
     pub fn new(actions: Vec<KeyAction>) -> Self {
-        let input = actions.iter().map(|a| (*a).into()).collect();
-        Self { actions, input }
+        Self { actions }
     }
 
     pub(crate) fn from_str_to_vec(s: &str) -> Result<Vec<Self>, KeyError> {
@@ -227,17 +148,11 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::action::{KeyAction, KeyActionSequence};
-    use crate::keyboard::event::SELF_EVENT_MARKER;
     use crate::keyboard::key::key_by_name;
-    use crate::keyboard::sc::ScanCode;
     use crate::keyboard::transition::KeyTransition::{Down, Up};
     use crate::utils::test::SerdeWrapper;
-    use crate::{key, sc_key};
+    use crate::key;
     use std::str::FromStr;
-    use windows::Win32::UI::Input::KeyboardAndMouse::{
-        INPUT, INPUT_KEYBOARD, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE,
-        VK_RETURN,
-    };
 
     #[macro_export]
     macro_rules! key_action {
@@ -274,39 +189,6 @@ mod tests {
             transition: Down,
         };
         assert_eq!("[    ENTER↓]", format!("[{:>10}]", actual));
-    }
-
-    #[test]
-    fn test_key_action_create_input() {
-        let actual: INPUT = key_action!("ENTER*").into();
-        unsafe {
-            assert_eq!(INPUT_KEYBOARD, actual.r#type);
-            assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
-            assert_eq!(sc_key!("SC_ENTER").ext_value(), actual.Anonymous.ki.wScan);
-            assert_eq!(KEYEVENTF_SCANCODE, actual.Anonymous.ki.dwFlags);
-            assert_eq!(
-                SELF_EVENT_MARKER.as_ptr(),
-                actual.Anonymous.ki.dwExtraInfo as *const u8
-            );
-        };
-
-        let actual: INPUT = key_action!("NUM_ENTER^").into();
-        unsafe {
-            assert_eq!(INPUT_KEYBOARD, actual.r#type);
-            assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
-            assert_eq!(
-                sc_key!("SC_NUM_ENTER").ext_value(),
-                actual.Anonymous.ki.wScan
-            );
-            assert_eq!(
-                KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
-                actual.Anonymous.ki.dwFlags
-            );
-            assert_eq!(
-                SELF_EVENT_MARKER.as_ptr(),
-                actual.Anonymous.ki.dwExtraInfo as *const u8
-            );
-        };
     }
 
     #[test]
@@ -396,18 +278,16 @@ mod tests {
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
+        assert_eq!(actual.value.key, key!("A"));
+        assert_eq!(actual.value.transition, Down);
 
         let source = SerdeWrapper::new(key_action!("B^"));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
-
-        let source = SerdeWrapper::new(key_action!("MOUSE(-20:10)"));
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str(&text).unwrap();
-
-        assert_eq!(source, actual);
+        assert_eq!(actual.value.key, key!("B"));
+        assert_eq!(actual.value.transition, Up);
     }
 
     // Key action sequence

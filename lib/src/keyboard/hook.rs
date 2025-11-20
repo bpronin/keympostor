@@ -1,16 +1,26 @@
-use crate::keyboard::transition::KeyTransition::Down;
-use crate::keyboard::action::KeyAction;
+use crate::keyboard::action::{KeyAction, KeyActionSequence};
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
-use crate::keyboard::key::{key_by_code, Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE, KEY_RIGHT_BUTTON, KEY_WHEEL, KEY_XBUTTON1, KEY_XBUTTON2};
+use crate::keyboard::input;
+use crate::keyboard::key::{
+    key_by_code, Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y,
+    KEY_RIGHT_BUTTON, KEY_WHEEL_X, KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
+};
 use crate::keyboard::modifiers::ModifierKeys;
+use crate::keyboard::sc::ScanCode;
 use crate::keyboard::transform::KeyTransformMap;
-use log::{debug, warn};
-use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
-use windows::Win32::UI::WindowsAndMessaging::*;
-use crate::keyboard::transition::KeyTransition::Up;
 use crate::keyboard::transition::KeyTransition;
+use crate::keyboard::transition::KeyTransition::Down;
+use crate::keyboard::transition::KeyTransition::Up;
+use crate::keyboard::vk::VirtualKey;
+use log::{debug, warn};
+use std::result;
+use windows::Win32::Foundation::*;
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT,
+    KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEINPUT, VIRTUAL_KEY,
+};
+use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
 
@@ -113,7 +123,7 @@ pub(crate) fn uninstall_mouse_hook() {
     }
 }
 
-fn handle_key_event(mut event: KeyEvent) -> bool {
+fn handle_key_event(mut event: KeyEvent, delta: i32) -> bool {
     unsafe {
         HOOK.keyboard_state[event.action.key.vk_code as usize] = event.action.transition == Down;
     }
@@ -124,21 +134,21 @@ fn handle_key_event(mut event: KeyEvent) -> bool {
                 event.rule = map.get(&event);
             }
         }
-    }
+        debug!("Processing event: {}", event);
+    } else {
+        debug!("Ignoring event: {}", event);
+    };
 
-    debug!("Processing event: {}", event);
-
-    let result = apply_transform(&event);
+    let result = apply_transform(&event, delta);
     notify_listener(event);
-
     result
 }
 
-fn apply_transform(event: &KeyEvent) -> bool {
+fn apply_transform(event: &KeyEvent, delta: i32) -> bool {
     if let Some(rule) = event.rule {
         debug!("Applying rule: {}", rule);
-
-        unsafe { SendInput(&rule.actions.input, size_of::<INPUT>() as i32) };
+        let input = input::build_input(&rule.actions, delta);
+        unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
         true
     } else {
         false
@@ -151,7 +161,8 @@ fn notify_listener(event: KeyEvent) {
             return;
         }
         if let Some(ref hwnd) = HOOK.owner {
-            SendMessageW(*hwnd, WM_KEY_HOOK_NOTIFY, None, Some(event.into()));
+            let l = LPARAM(&event as *const KeyEvent as isize);
+            SendMessageW(*hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l));
         }
     }
 }
@@ -159,11 +170,41 @@ fn notify_listener(event: KeyEvent) {
 extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
         let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
-        if handle_key_event(build_key_event(input)) {
+        if handle_key_event(build_key_event(input), 0) {
             return LRESULT(1);
         }
     }
     unsafe { CallNextHookEx(HOOK.key_hook, code, w_param, l_param) }
+}
+
+extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+    let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
+    let handled = match w_param.0 as u32 {
+        WM_MOUSEMOVE => handle_mouse_move(&input),
+        WM_MOUSEWHEEL => handle_mouse_wheel(&input, false),
+        WM_MOUSEHWHEEL => handle_mouse_wheel(&input, true),
+        WM_LBUTTONDOWN => handle_mouse_button(&input, &KEY_LEFT_BUTTON, Down),
+        WM_RBUTTONDOWN => handle_mouse_button(&input, &KEY_RIGHT_BUTTON, Down),
+        WM_MBUTTONDOWN => handle_mouse_button(&input, &KEY_MIDDLE_BUTTON, Down),
+        WM_LBUTTONUP => handle_mouse_button(&input, &KEY_LEFT_BUTTON, Up),
+        WM_RBUTTONUP => handle_mouse_button(&input, &KEY_RIGHT_BUTTON, Up),
+        WM_MBUTTONUP => handle_mouse_button(&input, &KEY_MIDDLE_BUTTON, Up),
+        WM_XBUTTONDOWN => handle_mouse_x_button(&input, Down),
+        WM_XBUTTONUP => handle_mouse_x_button(&input, Up),
+        _ => {
+            warn!(
+                "Unhandled mouse event: c = {:?}, w = {:?}, l = {:?}",
+                code, w_param, l_param
+            );
+            false
+        }
+    };
+
+    if handled {
+        LRESULT(1)
+    } else {
+        unsafe { CallNextHookEx(HOOK.mouse_hook, code, w_param, l_param) }
+    }
 }
 
 fn build_key_event<'a>(input: KBDLLHOOKSTRUCT) -> KeyEvent<'a> {
@@ -181,44 +222,14 @@ fn build_key_event<'a>(input: KBDLLHOOKSTRUCT) -> KeyEvent<'a> {
         },
         modifiers: ModifierKeys::from(&unsafe { HOOK.keyboard_state }),
         is_injected: input.flags.contains(LLKHF_INJECTED),
-        is_private: input.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr(),
+        is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
         time: input.time,
         rule: None,
     }
 }
 
-extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-    let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
-    let handled = match w_param.0 as u32 {
-        WM_MOUSEMOVE => handle_mouse_move(input),
-        WM_MOUSEWHEEL => handle_mouse_wheel(input),
-        WM_MOUSEHWHEEL => handle_mouse_wheel_tilt(input),
-        WM_LBUTTONDOWN => handle_mouse_button(input, &KEY_LEFT_BUTTON, Down),
-        WM_RBUTTONDOWN => handle_mouse_button(input, &KEY_RIGHT_BUTTON, Down),
-        WM_MBUTTONDOWN => handle_mouse_button(input, &KEY_MIDDLE_BUTTON, Down),
-        WM_LBUTTONUP => handle_mouse_button(input, &KEY_LEFT_BUTTON, Up),
-        WM_RBUTTONUP => handle_mouse_button(input, &KEY_RIGHT_BUTTON, Up),
-        WM_MBUTTONUP => handle_mouse_button(input, &KEY_MIDDLE_BUTTON, Up),
-        WM_XBUTTONDOWN => handle_mouse_x_button(input, Down),
-        WM_XBUTTONUP => handle_mouse_x_button(input, Up),
-        _ => {
-            warn!(
-                "Unhandled mouse event: c = {:?}, w = {:?}, l = {:?}",
-                code, w_param, l_param
-            );
-            false
-        }
-    };
-
-    if handled {
-        LRESULT(1)
-    } else {
-        unsafe { CallNextHookEx(HOOK.mouse_hook, code, w_param, l_param) }
-    }
-}
-
 fn build_mouse_event<'a>(
-    input: MSLLHOOKSTRUCT,
+    input: &MSLLHOOKSTRUCT,
     key: &'static Key,
     transition: KeyTransition,
 ) -> KeyEvent<'a> {
@@ -226,54 +237,16 @@ fn build_mouse_event<'a>(
         action: KeyAction { key, transition },
         modifiers: ModifierKeys::from(&unsafe { HOOK.keyboard_state }),
         is_injected: (input.flags & (LLMHF_INJECTED | LLMHF_LOWER_IL_INJECTED)) != 0,
-        is_private: input.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr(),
+        is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
         time: input.time,
         rule: None,
     }
 }
 
-fn handle_mouse_button(input: MSLLHOOKSTRUCT, key: &'static Key, transition: KeyTransition) -> bool {
-    handle_key_event(build_mouse_event(input, key, transition))
-}
-
-fn handle_mouse_x_button(input: MSLLHOOKSTRUCT, transition: KeyTransition) -> bool {
-    match build_x_button_event(input, transition) {
-        Ok(event) => handle_key_event(event),
-        Err(e) => {
-            warn!("Failed to build mouse x button event: {}", e);
-            false
-        }
-    }
-}
-
-fn handle_mouse_wheel(input: MSLLHOOKSTRUCT) -> bool {
-    let transition = KeyTransition::Distance(0, (input.mouseData >> 16) as i16);
-    let event = build_mouse_event(input, &KEY_WHEEL, transition);
-    handle_key_event(event)
-}
-
-fn handle_mouse_wheel_tilt(input: MSLLHOOKSTRUCT) -> bool {
-    let transition = KeyTransition::Distance((input.mouseData >> 16) as i16, 0);
-    let event = build_mouse_event(input, &KEY_WHEEL, transition);
-    handle_key_event(event)
-}
-
-fn handle_mouse_move(input: MSLLHOOKSTRUCT) -> bool {
-    let last = unsafe { HOOK.last_mouse_position.unwrap_or_else(|| input.pt) };
-    let current = input.pt;
-    let dx = current.x - last.x;
-    let dy = current.y - last.y;
-    unsafe { HOOK.last_mouse_position = Some(current) }
-
-    let transition = KeyTransition::Distance(dx as i16, dy as i16);
-    let event = build_mouse_event(input, &KEY_MOUSE, transition);
-    handle_key_event(event)
-}
-
-fn build_x_button_event<'a>(
-    input: MSLLHOOKSTRUCT,
+fn build_x_button_event(
+    input: &MSLLHOOKSTRUCT,
     transition: KeyTransition,
-) -> Result<KeyEvent<'a>, KeyError> {
+) -> Result<KeyEvent, KeyError> {
     let key = match (input.mouseData >> 16) as u16 {
         1 => &KEY_XBUTTON1,
         2 => &KEY_XBUTTON2,
@@ -282,4 +255,42 @@ fn build_x_button_event<'a>(
         }
     };
     Ok(build_mouse_event(input, key, transition))
+}
+
+fn handle_mouse_button(
+    input: &MSLLHOOKSTRUCT,
+    key: &'static Key,
+    transition: KeyTransition,
+) -> bool {
+    handle_key_event(build_mouse_event(input, key, transition), 0)
+}
+
+fn handle_mouse_x_button(input: &MSLLHOOKSTRUCT, transition: KeyTransition) -> bool {
+    match build_x_button_event(input, transition) {
+        Ok(event) => handle_key_event(event, 0),
+        Err(e) => {
+            warn!("Failed to build mouse x button event: {}", e);
+            false
+        }
+    }
+}
+
+fn handle_mouse_wheel(input: &MSLLHOOKSTRUCT, tilt: bool) -> bool {
+    let d = (input.mouseData >> 16) as i32;
+    let key = if tilt { &KEY_MOUSE_X } else { &KEY_WHEEL_Y };
+    let mut event = build_mouse_event(input, key, KeyTransition::from(d > 0));
+    handle_key_event(event, d)
+}
+
+fn handle_mouse_move(input: &MSLLHOOKSTRUCT) -> bool {
+    let last = unsafe { HOOK.last_mouse_position.unwrap_or_else(|| input.pt) };
+    let current = input.pt;
+    let dx = current.x - last.x;
+    let dy = current.y - last.y;
+    unsafe { HOOK.last_mouse_position = Some(current) }
+
+    let x_event = build_mouse_event(input, &KEY_MOUSE_X, KeyTransition::from(dx > 0));
+    let y_event = build_mouse_event(input, &KEY_MOUSE_Y, KeyTransition::from(dy > 0));
+
+    handle_key_event(x_event, dx) | handle_key_event(y_event, dy)
 }

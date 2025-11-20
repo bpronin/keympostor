@@ -1,11 +1,11 @@
 processing_enabled = true
 logging_enabled = true
 layouts_enabled = false
-layout = "game"
+layout = "invert_mouse"
 
 [main_window]
-position = [967, 200]
-size = [716, 339]
+position = [811, 298]
+size = [716, 536]
 selected_page = 0
 
 [profiles.chrome]

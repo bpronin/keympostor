@@ -2,6 +2,7 @@ use crate::keyboard::key::Key;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
+use windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct VirtualKey {
@@ -13,6 +14,12 @@ impl VirtualKey {
     // pub(crate) fn hex_code(&self) -> String {
     //     format!("VC_0x{:02X}", self.value)
     // }
+}
+
+impl Display for VirtualKey {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, f)
+    }
 }
 
 impl FromStr for VirtualKey {
@@ -40,9 +47,9 @@ impl From<&Key> for VirtualKey {
     }
 }
 
-impl Display for VirtualKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name, f)
+impl Into<VIRTUAL_KEY> for VirtualKey {
+    fn into(self) -> VIRTUAL_KEY {
+        VIRTUAL_KEY(self.value as u16)
     }
 }
 

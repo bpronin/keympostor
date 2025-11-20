@@ -11,14 +11,6 @@ pub struct ScanCode {
 }
 
 impl ScanCode {
-    pub(crate) fn ext_value(&self) -> u16 {
-        if self.is_extended {
-            self.value as u16 | 0xE0 << 8
-        } else {
-            self.value as u16
-        }
-    }
-
     // pub(crate) fn hex_code(&self) -> String {
     //     format!("SC_0x{:04X}", self.ext_value())
     // }
@@ -36,12 +28,6 @@ impl From<(u8, bool)> for ScanCode {
     }
 }
 
-impl From<&Key> for ScanCode {
-    fn from(key: &Key) -> Self {
-        Self::from(key.scan_code)
-    }
-}
-
 impl FromStr for ScanCode {
     type Err = ();
 
@@ -53,6 +39,22 @@ impl FromStr for ScanCode {
             .next()
             .ok_or(())
             .copied()
+    }
+}
+
+impl From<&Key> for ScanCode {
+    fn from(key: &Key) -> Self {
+        Self::from(key.scan_code)
+    }
+}
+
+impl Into<u16> for ScanCode {
+    fn into(self) -> u16 {
+        if self.is_extended {
+            self.value as u16 | 0xE0 << 8
+        } else {
+            self.value as u16
+        }
     }
 }
 
@@ -260,8 +262,8 @@ mod tests {
 
     #[test]
     fn test_sc_ext_value() {
-        assert_eq!(0x1C, sc_key!("SC_ENTER").ext_value());
-        assert_eq!(0xE01D, sc_key!("SC_RIGHT_CTRL").ext_value());
+        assert_eq!(0x001Cu16, sc_key!("SC_ENTER").into());
+        assert_eq!(0xE01Du16, sc_key!("SC_RIGHT_CTRL").into());
     }
 
     #[test]

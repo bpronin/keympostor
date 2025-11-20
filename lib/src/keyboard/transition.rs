@@ -1,4 +1,4 @@
-use crate::keyboard::transition::KeyTransition::{Distance, Down, Up};
+use crate::keyboard::transition::KeyTransition::{Down, Up};
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
@@ -6,7 +6,12 @@ use std::fmt::{Display, Formatter};
 pub enum KeyTransition {
     Up,
     Down,
-    Distance(i16, i16),
+}
+
+impl From<bool> for KeyTransition {
+    fn from(value: bool) -> Self {
+        if value {Down} else {Up}
+    }
 }
 
 impl Default for KeyTransition {
@@ -20,7 +25,6 @@ impl Display for KeyTransition {
         match self {
             Up => Display::fmt(&'↑', f),
             Down => Display::fmt(&'↓', f),
-            Distance(x, y) => write!(f, "({}:{})", x, y),
         }
     }
 }
@@ -28,15 +32,12 @@ impl Display for KeyTransition {
 #[cfg(test)]
 mod tests {
     use crate::keyboard::transition::KeyTransition;
-    use crate::keyboard::transition::KeyTransition::{Distance, Down, Up};
-    use crate::utils::test::SerdeWrapper;
+    use crate::keyboard::transition::KeyTransition::{Down, Up};
 
     #[test]
     fn test_key_transition_display() {
         assert_eq!("↓", format!("{}", Down));
         assert_eq!("↑", format!("{}", Up));
-        assert_eq!("(0:100)", format!("{}", Distance(0, 100)));
-        assert_eq!("(-100:0)", format!("{}", Distance(-100, 0)));
     }
 
     #[test]
