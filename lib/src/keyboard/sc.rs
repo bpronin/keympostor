@@ -80,7 +80,7 @@ macro_rules! new_sc {
     };
 }
 
-const MAX_SCAN_CODE: usize = 136;
+pub const MAX_SCAN_CODE: usize = 136;
 
 static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
     new_sc!(0x00, "UNASSIGNED", "UNASSIGNED"),
@@ -223,14 +223,14 @@ static SCAN_CODES: [[ScanCode; 2]; MAX_SCAN_CODE] = [
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key::KEYS;
+    use crate::keyboard::key::NAME_TO_KEY_MAP;
     use crate::keyboard::sc::ScanCode;
     use crate::sc_key;
     use std::str::FromStr;
 
     #[test]
     fn test_map() {
-        KEYS.iter().for_each(|(_name, key)| {
+        NAME_TO_KEY_MAP.entries().for_each(|(_name, key)| {
             let _ = ScanCode::from(key); /* should not panic */
         })
     }

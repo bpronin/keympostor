@@ -4,14 +4,14 @@ layouts_enabled = false
 layout = "game"
 
 [main_window]
-position = [309, 139]
-size = [1100, 339]
+position = [967, 200]
+size = [716, 339]
 selected_page = 0
-
-[profiles.chrome]
-rule = "Chrome"
-layout = "game"
 
 [profiles.totalcmd]
 rule = "TOTALCMD64.EXE"
+layout = "game"
+
+[profiles.chrome]
+rule = "Chrome"
 layout = "game"

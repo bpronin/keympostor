@@ -1,11 +1,10 @@
 use crate::keyboard::error::KeyError;
 use crate::{deserialize_from_string, serialize_to_string};
-use fxhash::FxHashMap;
+use phf::phf_map;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use std::sync::LazyLock;
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -17,9 +16,11 @@ pub struct Key {
 
 impl From<KBDLLHOOKSTRUCT> for Key {
     fn from(input: KBDLLHOOKSTRUCT) -> Self {
-        let vk_code = input.vkCode as u8;
-        let scan_code = (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED));
-        KEY_MAP.find_by_code(&(vk_code, scan_code)).unwrap()
+        key_by_code(
+            input.vkCode as u8,
+            (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED)),
+        )
+        .unwrap()
     }
 }
 
@@ -33,7 +34,7 @@ impl FromStr for Key {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        KEY_MAP.find_by_name(s.trim())
+        key_by_name(s.trim())
     }
 }
 
@@ -45,54 +46,28 @@ impl<'de> Deserialize<'de> for Key {
     deserialize_from_string!();
 }
 
+pub fn key_by_code(vk_code: u8, sc_code: (u8, bool)) -> Result<Key, KeyError> {
+    CODE_TO_KEY_MAP
+        .get(&key_code(vk_code, sc_code))
+        .ok_or(KeyError::new(&format!(
+            "Illegal key code: `{:?}{:?}`.",
+            vk_code, sc_code
+        )))
+        .copied()
+}
+
+pub fn key_by_name(name: &str) -> Result<Key, KeyError> {
+    NAME_TO_KEY_MAP
+        .get(name)
+        .ok_or(KeyError::new(&format!("Illegal key name: `{}`.", name)))
+        .copied()
+}
+
 #[macro_export]
 macro_rules! key {
     ($text:literal) => {
         Key::from_str($text).unwrap()
     };
-}
-
-static KEY_MAP: LazyLock<KeyMap> = LazyLock::new(KeyMap::new);
-
-struct KeyMap {
-    code_to_key_map: FxHashMap<(u8, (u8, bool)), Key>,
-    name_to_key_map: FxHashMap<&'static str, Key>,
-}
-
-impl KeyMap {
-    fn new() -> Self {
-        let mut name_to_key_map = FxHashMap::default();
-        let mut code_to_key_map = FxHashMap::default();
-        for (name, key) in KEYS {
-            if name_to_key_map.insert(name, key).is_some() {
-                panic!("Duplicate name: {}", name)
-            };
-            if code_to_key_map
-                .insert((key.vk_code, key.scan_code), key)
-                .is_some()
-            {
-                panic!("Duplicate key: {}", key)
-            };
-        }
-        Self {
-            name_to_key_map,
-            code_to_key_map,
-        }
-    }
-
-    pub(crate) fn find_by_code(&self, code: &(u8, (u8, bool))) -> Result<Key, KeyError> {
-        self.code_to_key_map
-            .get(code)
-            .ok_or(KeyError::new(&format!("Illegal key code: `{:?}`.", code)))
-            .copied()
-    }
-
-    pub(crate) fn find_by_name(&self, name: &str) -> Result<Key, KeyError> {
-        self.name_to_key_map
-            .get(name)
-            .ok_or(KeyError::new(&format!("Illegal key name: `{}`.", name)))
-            .copied()
-    }
 }
 
 macro_rules! new_key {
@@ -312,242 +287,467 @@ pub(crate) static KEY__: Key = new_key!("_", 0x00, 0x39, true);
 pub(crate) static KEY__ESC: Key = new_key!("", 0x00, 0x01, true);
 pub(crate) static KEY___: Key = new_key!("	", 0x00, 0x0F, true);
 
-macro_rules! key_entry {
-    ($key:expr) => {
-        ($key.name, $key)
-    };
+fn key_code(vk_code: u8, sc_code: (u8, bool)) -> u32 {
+    (vk_code as u32) << 16 | (sc_code.0 as u32) << 8 | (sc_code.1 as u32)
 }
 
-pub const MAX_KEYS: usize = 206;
+pub(crate) static CODE_TO_KEY_MAP: phf::Map<u32, Key> = phf_map! {
+    0x300B00 => KEY_0,
+    0x005401 => KEY_00,
+    0x310200 => KEY_1,
+    0x320300 => KEY_2,
+    0x330400 => KEY_3,
+    0x340500 => KEY_4,
+    0x350600 => KEY_5,
+    0x360700 => KEY_6,
+    0x370800 => KEY_7,
+    0x380900 => KEY_8,
+    0x390A00 => KEY_9,
+    0x411E00 => KEY_A,
+    0x1E0000 => KEY_ACCEPT,
+    0xDE2800 => KEY_APOSTROPHE,
+    0x5D5D01 => KEY_APPLICATION,
+    0xF60000 => KEY_ATTN,
+    0x423000 => KEY_B,
+    0xDC2B00 => KEY_BACKSLASH,
+    0xE25600 => KEY_BACKSLASH_2,
+    0x080E00 => KEY_BACKSPACE,
+    0xC02900 => KEY_BACKTICK,
+    0x034601 => KEY_BREAK,
+    0x002B01 => KEY_BRIGHTNESS,
+    0xA66A01 => KEY_BROWSER_BACK,
+    0xAB6601 => KEY_BROWSER_FAVORITES,
+    0xA76901 => KEY_BROWSER_FORWARD,
+    0xAC0001 => KEY_BROWSER_HOME,
+    0xA86701 => KEY_BROWSER_REFRESH,
+    0xAA0001 => KEY_BROWSER_SEARCH,
+    0xA96801 => KEY_BROWSER_STOP,
+    0x432E00 => KEY_C,
+    0x143A00 => KEY_CAPS_LOCK,
+    0xBC3300 => KEY_COMMA,
+    0x1C0000 => KEY_CONVERT,
+    0xF70000 => KEY_CRSEL,
+    0x111D00 => KEY_CTRL,
+    0x442000 => KEY_D,
+    0x2E5301 => KEY_DELETE,
+    0xBE3400 => KEY_DOT,
+    0x285001 => KEY_DOWN,
+    0x451200 => KEY_E,
+    0x234F01 => KEY_END,
+    0x0D1C00 => KEY_ENTER,
+    0xBB0D00 => KEY_EQ,
+    0xF95D00 => KEY_EREOF,
+    0x1B0100 => KEY_ESC,
+    0x2B0000 => KEY_EXECUTE,
+    0xF80000 => KEY_EXSEL,
+    0x462100 => KEY_F,
+    0x703B00 => KEY_F1,
+    0x794400 => KEY_F10,
+    0x7A5700 => KEY_F11,
+    0x7B5800 => KEY_F12,
+    0x7C6400 => KEY_F13,
+    0x7D6500 => KEY_F14,
+    0x7E6600 => KEY_F15,
+    0x7F6700 => KEY_F16,
+    0x806800 => KEY_F17,
+    0x816900 => KEY_F18,
+    0x826A00 => KEY_F19,
+    0x713C00 => KEY_F2,
+    0x836B00 => KEY_F20,
+    0x846C00 => KEY_F21,
+    0x856D00 => KEY_F22,
+    0x866E00 => KEY_F23,
+    0x877600 => KEY_F24,
+    0x723D00 => KEY_F3,
+    0x733E00 => KEY_F4,
+    0x743F00 => KEY_F5,
+    0x754000 => KEY_F6,
+    0x764100 => KEY_F7,
+    0x774200 => KEY_F8,
+    0x784300 => KEY_F9,
+    0x180000 => KEY_FINAL,
+    0xAC3201 => KEY_FN_BROWSER_HOME,
+    0xAA6501 => KEY_FN_BROWSER_SEARCH,
+    0xB66B01 => KEY_FN_LAUNCH_APP1,
+    0xB72101 => KEY_FN_LAUNCH_APP2,
+    0xB46C01 => KEY_FN_LAUNCH_MAIL,
+    0xB01901 => KEY_FN_MEDIA_NEXT_TRACK,
+    0xB32201 => KEY_FN_MEDIA_PLAY_PAUSE,
+    0xB11001 => KEY_FN_MEDIA_PREV_TRACK,
+    0xAE2E01 => KEY_FN_VOLUME_DOWN,
+    0xAD2001 => KEY_FN_VOLUME_MUTE,
+    0xAF3001 => KEY_FN_VOLUME_UP,
+    0x472200 => KEY_G,
+    0x482300 => KEY_H,
+    0x190000 => KEY_HANJA,
+    0x2F6300 => KEY_HELP,
+    0x244701 => KEY_HOME,
+    0x491700 => KEY_I,
+    0x1A0000 => KEY_IME_OFF,
+    0x160000 => KEY_IME_ON,
+    0x2D5201 => KEY_INSERT,
+    0x4A2400 => KEY_J,
+    0x170000 => KEY_JUNJA,
+    0x4B2500 => KEY_K,
+    0x150000 => KEY_KANA,
+    0x4C2600 => KEY_L,
+    0xB60001 => KEY_LAUNCH_APP1,
+    0xB70001 => KEY_LAUNCH_APP2,
+    0xB40001 => KEY_LAUNCH_MAIL,
+    0xB56D01 => KEY_LAUNCH_MEDIA_SELECT,
+    0x254B01 => KEY_LEFT,
+    0xA43800 => KEY_LEFT_ALT,
+    0xDB1A00 => KEY_LEFT_BRACKET,
+    0x010000 => KEY_LEFT_BUTTON,
+    0xA21D00 => KEY_LEFT_CTRL,
+    0xA02A00 => KEY_LEFT_SHIFT,
+    0x5B5B01 => KEY_LEFT_WIN,
+    0x4D3200 => KEY_M,
+    0xB00001 => KEY_MEDIA_NEXT_TRACK,
+    0xB30001 => KEY_MEDIA_PLAY_PAUSE,
+    0xB10001 => KEY_MEDIA_PREV_TRACK,
+    0xB22401 => KEY_MEDIA_STOP,
+    0x123800 => KEY_MENU,
+    0x040000 => KEY_MIDDLE_BUTTON,
+    0xBD0C00 => KEY_MINUS,
+    0x1F0000 => KEY_MODE_CHANGE,
+    0xF00001 => KEY_MOUSE,
+    0x4E3100 => KEY_N,
+    0xFC0000 => KEY_NONAME,
+    0x1D0000 => KEY_NON_CONVERT,
+    0x605200 => KEY_NUM_0,
+    0x614F00 => KEY_NUM_1,
+    0x625000 => KEY_NUM_2,
+    0x635100 => KEY_NUM_3,
+    0x644B00 => KEY_NUM_4,
+    0x654C00 => KEY_NUM_5,
+    0x664D00 => KEY_NUM_6,
+    0x674700 => KEY_NUM_7,
+    0x684800 => KEY_NUM_8,
+    0x694900 => KEY_NUM_9,
+    0x0C4C00 => KEY_NUM_CLEAR,
+    0x2E5300 => KEY_NUM_DELETE,
+    0x6F3501 => KEY_NUM_DIV,
+    0x6E5300 => KEY_NUM_DOT,
+    0x285000 => KEY_NUM_DOWN,
+    0x234F00 => KEY_NUM_END,
+    0x0D1C01 => KEY_NUM_ENTER,
+    0x244700 => KEY_NUM_HOME,
+    0x2D5200 => KEY_NUM_INSERT,
+    0x254B00 => KEY_NUM_LEFT,
+    0x904501 => KEY_NUM_LOCK,
+    0x134501 => KEY_NUM_LOCK_2,
+    0x6D4A00 => KEY_NUM_MINUS,
+    0x6A3700 => KEY_NUM_MUL,
+    0x225100 => KEY_NUM_PAGE_DOWN,
+    0x214900 => KEY_NUM_PAGE_UP,
+    0x6B4E00 => KEY_NUM_PLUS,
+    0x274D00 => KEY_NUM_RIGHT,
+    0x264800 => KEY_NUM_UP,
+    0x4F1800 => KEY_O,
+    0xDF0000 => KEY_OEM_8,
+    0xFE0000 => KEY_OEM_CLEAR,
+    0x501900 => KEY_P,
+    0xFD0000 => KEY_PA1,
+    0xE70000 => KEY_PACKET,
+    0x225101 => KEY_PAGE_DOWN,
+    0x214901 => KEY_PAGE_UP,
+    0x134500 => KEY_PAUSE,
+    0xFA0000 => KEY_PLAY,
+    0x004E01 => KEY_PLUS,
+    0x2A0000 => KEY_PRINT,
+    0x2C3701 => KEY_PRINT_SCREEN,
+    0xE50000 => KEY_PROCESS_KEY,
+    0x511000 => KEY_Q,
+    0x521300 => KEY_R,
+    0x274D01 => KEY_RIGHT,
+    0xA53801 => KEY_RIGHT_ALT,
+    0xDD1B00 => KEY_RIGHT_BRACKET,
+    0x020000 => KEY_RIGHT_BUTTON,
+    0xA31D01 => KEY_RIGHT_CTRL,
+    0xA13601 => KEY_RIGHT_SHIFT,
+    0x003601 => KEY_RIGHT_SHIFT_2,
+    0x5C5C01 => KEY_RIGHT_WIN,
+    0x531F00 => KEY_S,
+    0x914600 => KEY_SCROLL_LOCK,
+    0x290000 => KEY_SELECT,
+    0xBA2700 => KEY_SEMICOLON,
+    0x6C0000 => KEY_SEPARATOR,
+    0x102A00 => KEY_SHIFT,
+    0xBF3500 => KEY_SLASH,
+    0x5F5F01 => KEY_SLEEP,
+    0x203900 => KEY_SPACE,
+    0x2C5400 => KEY_SYS_REQ,
+    0x541400 => KEY_T,
+    0x090F00 => KEY_TAB,
+    0x551600 => KEY_U,
+    0x000000 => KEY_UNASSIGNED,
+    0x264801 => KEY_UP,
+    0x562F00 => KEY_V,
+    0xAE0001 => KEY_VOLUME_DOWN,
+    0xAD0001 => KEY_VOLUME_MUTE,
+    0xAF0001 => KEY_VOLUME_UP,
+    0x571100 => KEY_W,
+    0xF10001 => KEY_WHEEL,
+    0x582D00 => KEY_X,
+    0x050000 => KEY_XBUTTON1,
+    0x060000 => KEY_XBUTTON2,
+    0x591500 => KEY_Y,
+    0x5A2C00 => KEY_Z,
+    0xFB6200 => KEY_ZOOM,
+    0x003901 => KEY__,
+    0x000101 => KEY__ESC,
+    0x000F01 => KEY___,
+};
 
-pub static KEYS: [(&'static str, Key); MAX_KEYS] = [
-    key_entry!(KEY_0),
-    key_entry!(KEY_00),
-    key_entry!(KEY_1),
-    key_entry!(KEY_2),
-    key_entry!(KEY_3),
-    key_entry!(KEY_4),
-    key_entry!(KEY_5),
-    key_entry!(KEY_6),
-    key_entry!(KEY_7),
-    key_entry!(KEY_8),
-    key_entry!(KEY_9),
-    key_entry!(KEY_A),
-    key_entry!(KEY_ACCEPT),
-    key_entry!(KEY_APOSTROPHE),
-    key_entry!(KEY_APPLICATION),
-    key_entry!(KEY_ATTN),
-    key_entry!(KEY_B),
-    key_entry!(KEY_BACKSLASH),
-    key_entry!(KEY_BACKSLASH_2),
-    key_entry!(KEY_BACKSPACE),
-    key_entry!(KEY_BACKTICK),
-    key_entry!(KEY_BREAK),
-    key_entry!(KEY_BRIGHTNESS),
-    key_entry!(KEY_BROWSER_BACK),
-    key_entry!(KEY_BROWSER_FAVORITES),
-    key_entry!(KEY_BROWSER_FORWARD),
-    key_entry!(KEY_BROWSER_HOME),
-    key_entry!(KEY_BROWSER_REFRESH),
-    key_entry!(KEY_BROWSER_SEARCH),
-    key_entry!(KEY_BROWSER_STOP),
-    key_entry!(KEY_C),
-    key_entry!(KEY_CAPS_LOCK),
-    key_entry!(KEY_COMMA),
-    key_entry!(KEY_CONVERT),
-    key_entry!(KEY_CRSEL),
-    key_entry!(KEY_CTRL),
-    key_entry!(KEY_D),
-    key_entry!(KEY_DELETE),
-    key_entry!(KEY_DOT),
-    key_entry!(KEY_DOWN),
-    key_entry!(KEY_E),
-    key_entry!(KEY_END),
-    key_entry!(KEY_ENTER),
-    key_entry!(KEY_EQ),
-    key_entry!(KEY_EREOF),
-    key_entry!(KEY_ESC),
-    key_entry!(KEY_EXECUTE),
-    key_entry!(KEY_EXSEL),
-    key_entry!(KEY_F),
-    key_entry!(KEY_F1),
-    key_entry!(KEY_F10),
-    key_entry!(KEY_F11),
-    key_entry!(KEY_F12),
-    key_entry!(KEY_F13),
-    key_entry!(KEY_F14),
-    key_entry!(KEY_F15),
-    key_entry!(KEY_F16),
-    key_entry!(KEY_F17),
-    key_entry!(KEY_F18),
-    key_entry!(KEY_F19),
-    key_entry!(KEY_F2),
-    key_entry!(KEY_F20),
-    key_entry!(KEY_F21),
-    key_entry!(KEY_F22),
-    key_entry!(KEY_F23),
-    key_entry!(KEY_F24),
-    key_entry!(KEY_F3),
-    key_entry!(KEY_F4),
-    key_entry!(KEY_F5),
-    key_entry!(KEY_F6),
-    key_entry!(KEY_F7),
-    key_entry!(KEY_F8),
-    key_entry!(KEY_F9),
-    key_entry!(KEY_FINAL),
-    key_entry!(KEY_FN_BROWSER_HOME),
-    key_entry!(KEY_FN_BROWSER_SEARCH),
-    key_entry!(KEY_FN_LAUNCH_APP1),
-    key_entry!(KEY_FN_LAUNCH_APP2),
-    key_entry!(KEY_FN_LAUNCH_MAIL),
-    key_entry!(KEY_FN_MEDIA_NEXT_TRACK),
-    key_entry!(KEY_FN_MEDIA_PLAY_PAUSE),
-    key_entry!(KEY_FN_MEDIA_PREV_TRACK),
-    key_entry!(KEY_FN_VOLUME_DOWN),
-    key_entry!(KEY_FN_VOLUME_MUTE),
-    key_entry!(KEY_FN_VOLUME_UP),
-    key_entry!(KEY_G),
-    key_entry!(KEY_H),
-    key_entry!(KEY_HANJA),
-    key_entry!(KEY_HELP),
-    key_entry!(KEY_HOME),
-    key_entry!(KEY_I),
-    key_entry!(KEY_IME_OFF),
-    key_entry!(KEY_IME_ON),
-    key_entry!(KEY_INSERT),
-    key_entry!(KEY_J),
-    key_entry!(KEY_JUNJA),
-    key_entry!(KEY_K),
-    key_entry!(KEY_KANA),
-    key_entry!(KEY_L),
-    key_entry!(KEY_LAUNCH_APP1),
-    key_entry!(KEY_LAUNCH_APP2),
-    key_entry!(KEY_LAUNCH_MAIL),
-    key_entry!(KEY_LAUNCH_MEDIA_SELECT),
-    key_entry!(KEY_LEFT),
-    key_entry!(KEY_LEFT_ALT),
-    key_entry!(KEY_LEFT_BRACKET),
-    key_entry!(KEY_LEFT_BUTTON),
-    key_entry!(KEY_LEFT_CTRL),
-    key_entry!(KEY_LEFT_SHIFT),
-    key_entry!(KEY_LEFT_WIN),
-    key_entry!(KEY_M),
-    key_entry!(KEY_MEDIA_NEXT_TRACK),
-    key_entry!(KEY_MEDIA_PLAY_PAUSE),
-    key_entry!(KEY_MEDIA_PREV_TRACK),
-    key_entry!(KEY_MEDIA_STOP),
-    key_entry!(KEY_MENU),
-    key_entry!(KEY_MIDDLE_BUTTON),
-    key_entry!(KEY_MINUS),
-    key_entry!(KEY_MODE_CHANGE),
-    key_entry!(KEY_MOUSE),
-    key_entry!(KEY_N),
-    key_entry!(KEY_NONAME),
-    key_entry!(KEY_NON_CONVERT),
-    key_entry!(KEY_NUM_0),
-    key_entry!(KEY_NUM_1),
-    key_entry!(KEY_NUM_2),
-    key_entry!(KEY_NUM_3),
-    key_entry!(KEY_NUM_4),
-    key_entry!(KEY_NUM_5),
-    key_entry!(KEY_NUM_6),
-    key_entry!(KEY_NUM_7),
-    key_entry!(KEY_NUM_8),
-    key_entry!(KEY_NUM_9),
-    key_entry!(KEY_NUM_CLEAR),
-    key_entry!(KEY_NUM_DELETE),
-    key_entry!(KEY_NUM_DIV),
-    key_entry!(KEY_NUM_DOT),
-    key_entry!(KEY_NUM_DOWN),
-    key_entry!(KEY_NUM_END),
-    key_entry!(KEY_NUM_ENTER),
-    key_entry!(KEY_NUM_HOME),
-    key_entry!(KEY_NUM_INSERT),
-    key_entry!(KEY_NUM_LEFT),
-    key_entry!(KEY_NUM_LOCK),
-    key_entry!(KEY_NUM_LOCK_2),
-    key_entry!(KEY_NUM_MINUS),
-    key_entry!(KEY_NUM_MUL),
-    key_entry!(KEY_NUM_PAGE_DOWN),
-    key_entry!(KEY_NUM_PAGE_UP),
-    key_entry!(KEY_NUM_PLUS),
-    key_entry!(KEY_NUM_RIGHT),
-    key_entry!(KEY_NUM_UP),
-    key_entry!(KEY_O),
-    key_entry!(KEY_OEM_8),
-    key_entry!(KEY_OEM_CLEAR),
-    key_entry!(KEY_P),
-    key_entry!(KEY_PA1),
-    key_entry!(KEY_PACKET),
-    key_entry!(KEY_PAGE_DOWN),
-    key_entry!(KEY_PAGE_UP),
-    key_entry!(KEY_PAUSE),
-    key_entry!(KEY_PLAY),
-    key_entry!(KEY_PLUS),
-    key_entry!(KEY_PRINT),
-    key_entry!(KEY_PRINT_SCREEN),
-    key_entry!(KEY_PROCESS_KEY),
-    key_entry!(KEY_Q),
-    key_entry!(KEY_R),
-    key_entry!(KEY_RIGHT),
-    key_entry!(KEY_RIGHT_ALT),
-    key_entry!(KEY_RIGHT_BRACKET),
-    key_entry!(KEY_RIGHT_BUTTON),
-    key_entry!(KEY_RIGHT_CTRL),
-    key_entry!(KEY_RIGHT_SHIFT),
-    key_entry!(KEY_RIGHT_SHIFT_2),
-    key_entry!(KEY_RIGHT_WIN),
-    key_entry!(KEY_S),
-    key_entry!(KEY_SCROLL_LOCK),
-    key_entry!(KEY_SELECT),
-    key_entry!(KEY_SEMICOLON),
-    key_entry!(KEY_SEPARATOR),
-    key_entry!(KEY_SHIFT),
-    key_entry!(KEY_SLASH),
-    key_entry!(KEY_SLEEP),
-    key_entry!(KEY_SPACE),
-    key_entry!(KEY_SYS_REQ),
-    key_entry!(KEY_T),
-    key_entry!(KEY_TAB),
-    key_entry!(KEY_U),
-    key_entry!(KEY_UNASSIGNED),
-    key_entry!(KEY_UP),
-    key_entry!(KEY_V),
-    key_entry!(KEY_VOLUME_DOWN),
-    key_entry!(KEY_VOLUME_MUTE),
-    key_entry!(KEY_VOLUME_UP),
-    key_entry!(KEY_W),
-    key_entry!(KEY_WHEEL),
-    key_entry!(KEY_X),
-    key_entry!(KEY_XBUTTON1),
-    key_entry!(KEY_XBUTTON2),
-    key_entry!(KEY_Y),
-    key_entry!(KEY_Z),
-    key_entry!(KEY_ZOOM),
-    key_entry!(KEY__),
-    key_entry!(KEY__ESC),
-    key_entry!(KEY___),
-];
+pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
+    "0" => KEY_0,
+    "<00>" => KEY_00,
+    "1" => KEY_1,
+    "2" => KEY_2,
+    "3" => KEY_3,
+    "4" => KEY_4,
+    "5" => KEY_5,
+    "6" => KEY_6,
+    "7" => KEY_7,
+    "8" => KEY_8,
+    "9" => KEY_9,
+    "A" => KEY_A,
+    "ACCEPT" => KEY_ACCEPT,
+    "APOSTROPHE" => KEY_APOSTROPHE,
+    "APPLICATION" => KEY_APPLICATION,
+    "ATTN" => KEY_ATTN,
+    "B" => KEY_B,
+    "BACKSLASH" => KEY_BACKSLASH,
+    "BACKSLASH_2" => KEY_BACKSLASH_2,
+    "BACKSPACE" => KEY_BACKSPACE,
+    "BACKTICK" => KEY_BACKTICK,
+    "BREAK" => KEY_BREAK,
+    "BRIGHTNESS" => KEY_BRIGHTNESS,
+    "BROWSER_BACK" => KEY_BROWSER_BACK,
+    "BROWSER_FAVORITES" => KEY_BROWSER_FAVORITES,
+    "BROWSER_FORWARD" => KEY_BROWSER_FORWARD,
+    "BROWSER_HOME" => KEY_BROWSER_HOME,
+    "BROWSER_REFRESH" => KEY_BROWSER_REFRESH,
+    "BROWSER_SEARCH" => KEY_BROWSER_SEARCH,
+    "BROWSER_STOP" => KEY_BROWSER_STOP,
+    "C" => KEY_C,
+    "CAPS_LOCK" => KEY_CAPS_LOCK,
+    "COMMA" => KEY_COMMA,
+    "CONVERT" => KEY_CONVERT,
+    "CRSEL" => KEY_CRSEL,
+    "CTRL" => KEY_CTRL,
+    "D" => KEY_D,
+    "DELETE" => KEY_DELETE,
+    "DOT" => KEY_DOT,
+    "DOWN" => KEY_DOWN,
+    "E" => KEY_E,
+    "END" => KEY_END,
+    "ENTER" => KEY_ENTER,
+    "EQ" => KEY_EQ,
+    "EREOF" => KEY_EREOF,
+    "ESC" => KEY_ESC,
+    "EXECUTE" => KEY_EXECUTE,
+    "EXSEL" => KEY_EXSEL,
+    "F" => KEY_F,
+    "F1" => KEY_F1,
+    "F10" => KEY_F10,
+    "F11" => KEY_F11,
+    "F12" => KEY_F12,
+    "F13" => KEY_F13,
+    "F14" => KEY_F14,
+    "F15" => KEY_F15,
+    "F16" => KEY_F16,
+    "F17" => KEY_F17,
+    "F18" => KEY_F18,
+    "F19" => KEY_F19,
+    "F2" => KEY_F2,
+    "F20" => KEY_F20,
+    "F21" => KEY_F21,
+    "F22" => KEY_F22,
+    "F23" => KEY_F23,
+    "F24" => KEY_F24,
+    "F3" => KEY_F3,
+    "F4" => KEY_F4,
+    "F5" => KEY_F5,
+    "F6" => KEY_F6,
+    "F7" => KEY_F7,
+    "F8" => KEY_F8,
+    "F9" => KEY_F9,
+    "FINAL" => KEY_FINAL,
+    "FN_BROWSER_HOME" => KEY_FN_BROWSER_HOME,
+    "FN_BROWSER_SEARCH" => KEY_FN_BROWSER_SEARCH,
+    "FN_LAUNCH_APP1" => KEY_FN_LAUNCH_APP1,
+    "FN_LAUNCH_APP2" => KEY_FN_LAUNCH_APP2,
+    "FN_LAUNCH_MAIL" => KEY_FN_LAUNCH_MAIL,
+    "FN_MEDIA_NEXT_TRACK" => KEY_FN_MEDIA_NEXT_TRACK,
+    "FN_MEDIA_PLAY_PAUSE" => KEY_FN_MEDIA_PLAY_PAUSE,
+    "FN_MEDIA_PREV_TRACK" => KEY_FN_MEDIA_PREV_TRACK,
+    "FN_VOLUME_DOWN" => KEY_FN_VOLUME_DOWN,
+    "FN_VOLUME_MUTE" => KEY_FN_VOLUME_MUTE,
+    "FN_VOLUME_UP" => KEY_FN_VOLUME_UP,
+    "G" => KEY_G,
+    "H" => KEY_H,
+    "HANJA" => KEY_HANJA,
+    "HELP" => KEY_HELP,
+    "HOME" => KEY_HOME,
+    "I" => KEY_I,
+    "IME_OFF" => KEY_IME_OFF,
+    "IME_ON" => KEY_IME_ON,
+    "INSERT" => KEY_INSERT,
+    "J" => KEY_J,
+    "JUNJA" => KEY_JUNJA,
+    "K" => KEY_K,
+    "KANA" => KEY_KANA,
+    "L" => KEY_L,
+    "LAUNCH_APP1" => KEY_LAUNCH_APP1,
+    "LAUNCH_APP2" => KEY_LAUNCH_APP2,
+    "LAUNCH_MAIL" => KEY_LAUNCH_MAIL,
+    "LAUNCH_MEDIA_SELECT" => KEY_LAUNCH_MEDIA_SELECT,
+    "LEFT" => KEY_LEFT,
+    "LEFT_ALT" => KEY_LEFT_ALT,
+    "LEFT_BRACKET" => KEY_LEFT_BRACKET,
+    "LEFT_BUTTON" => KEY_LEFT_BUTTON,
+    "LEFT_CTRL" => KEY_LEFT_CTRL,
+    "LEFT_SHIFT" => KEY_LEFT_SHIFT,
+    "LEFT_WIN" => KEY_LEFT_WIN,
+    "M" => KEY_M,
+    "MEDIA_NEXT_TRACK" => KEY_MEDIA_NEXT_TRACK,
+    "MEDIA_PLAY_PAUSE" => KEY_MEDIA_PLAY_PAUSE,
+    "MEDIA_PREV_TRACK" => KEY_MEDIA_PREV_TRACK,
+    "MEDIA_STOP" => KEY_MEDIA_STOP,
+    "MENU" => KEY_MENU,
+    "MIDDLE_BUTTON" => KEY_MIDDLE_BUTTON,
+    "MINUS" => KEY_MINUS,
+    "MODE_CHANGE" => KEY_MODE_CHANGE,
+    "MOUSE" => KEY_MOUSE,
+    "N" => KEY_N,
+    "NONAME" => KEY_NONAME,
+    "NON_CONVERT" => KEY_NON_CONVERT,
+    "NUM_0" => KEY_NUM_0,
+    "NUM_1" => KEY_NUM_1,
+    "NUM_2" => KEY_NUM_2,
+    "NUM_3" => KEY_NUM_3,
+    "NUM_4" => KEY_NUM_4,
+    "NUM_5" => KEY_NUM_5,
+    "NUM_6" => KEY_NUM_6,
+    "NUM_7" => KEY_NUM_7,
+    "NUM_8" => KEY_NUM_8,
+    "NUM_9" => KEY_NUM_9,
+    "NUM_CLEAR" => KEY_NUM_CLEAR,
+    "NUM_DELETE" => KEY_NUM_DELETE,
+    "NUM_DIV" => KEY_NUM_DIV,
+    "NUM_DOT" => KEY_NUM_DOT,
+    "NUM_DOWN" => KEY_NUM_DOWN,
+    "NUM_END" => KEY_NUM_END,
+    "NUM_ENTER" => KEY_NUM_ENTER,
+    "NUM_HOME" => KEY_NUM_HOME,
+    "NUM_INSERT" => KEY_NUM_INSERT,
+    "NUM_LEFT" => KEY_NUM_LEFT,
+    "NUM_LOCK" => KEY_NUM_LOCK,
+    "NUM_LOCK_2" => KEY_NUM_LOCK_2,
+    "NUM_MINUS" => KEY_NUM_MINUS,
+    "NUM_MUL" => KEY_NUM_MUL,
+    "NUM_PAGE_DOWN" => KEY_NUM_PAGE_DOWN,
+    "NUM_PAGE_UP" => KEY_NUM_PAGE_UP,
+    "NUM_PLUS" => KEY_NUM_PLUS,
+    "NUM_RIGHT" => KEY_NUM_RIGHT,
+    "NUM_UP" => KEY_NUM_UP,
+    "O" => KEY_O,
+    "OEM_8" => KEY_OEM_8,
+    "OEM_CLEAR" => KEY_OEM_CLEAR,
+    "P" => KEY_P,
+    "PA1" => KEY_PA1,
+    "PACKET" => KEY_PACKET,
+    "PAGE_DOWN" => KEY_PAGE_DOWN,
+    "PAGE_UP" => KEY_PAGE_UP,
+    "PAUSE" => KEY_PAUSE,
+    "PLAY" => KEY_PLAY,
+    "PLUS" => KEY_PLUS,
+    "PRINT" => KEY_PRINT,
+    "PRINT_SCREEN" => KEY_PRINT_SCREEN,
+    "PROCESS_KEY" => KEY_PROCESS_KEY,
+    "Q" => KEY_Q,
+    "R" => KEY_R,
+    "RIGHT" => KEY_RIGHT,
+    "RIGHT_ALT" => KEY_RIGHT_ALT,
+    "RIGHT_BRACKET" => KEY_RIGHT_BRACKET,
+    "RIGHT_BUTTON" => KEY_RIGHT_BUTTON,
+    "RIGHT_CTRL" => KEY_RIGHT_CTRL,
+    "RIGHT_SHIFT" => KEY_RIGHT_SHIFT,
+    "RIGHT_SHIFT_2" => KEY_RIGHT_SHIFT_2,
+    "RIGHT_WIN" => KEY_RIGHT_WIN,
+    "S" => KEY_S,
+    "SCROLL_LOCK" => KEY_SCROLL_LOCK,
+    "SELECT" => KEY_SELECT,
+    "SEMICOLON" => KEY_SEMICOLON,
+    "SEPARATOR" => KEY_SEPARATOR,
+    "SHIFT" => KEY_SHIFT,
+    "SLASH" => KEY_SLASH,
+    "SLEEP" => KEY_SLEEP,
+    "SPACE" => KEY_SPACE,
+    "SYS_REQ" => KEY_SYS_REQ,
+    "T" => KEY_T,
+    "TAB" => KEY_TAB,
+    "U" => KEY_U,
+    "UNASSIGNED" => KEY_UNASSIGNED,
+    "UP" => KEY_UP,
+    "V" => KEY_V,
+    "VOLUME_DOWN" => KEY_VOLUME_DOWN,
+    "VOLUME_MUTE" => KEY_VOLUME_MUTE,
+    "VOLUME_UP" => KEY_VOLUME_UP,
+    "W" => KEY_W,
+    "WHEEL" => KEY_WHEEL,
+    "X" => KEY_X,
+    "XBUTTON1" => KEY_XBUTTON1,
+    "XBUTTON2" => KEY_XBUTTON2,
+    "Y" => KEY_Y,
+    "Z" => KEY_Z,
+    "ZOOM" => KEY_ZOOM,
+    "_" => KEY__,
+    "" => KEY__ESC,
+    "	" => KEY___	,
+};
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key::{Key, KEYS, KEY_MAP};
+    use crate::keyboard::key::{key_by_name, key_code, Key, CODE_TO_KEY_MAP, NAME_TO_KEY_MAP};
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
 
     #[test]
+    fn test_key_code() {
+        assert_eq!(key_code(0x30, (0x0B, false)), 0x300B00);
+    }
+
+    #[test]
+    fn test_maps() {
+        CODE_TO_KEY_MAP.entries().for_each(|(code, key)| {
+            assert!(NAME_TO_KEY_MAP.get(key.name).is_some());
+            assert_eq!(*code, key_code(key.vk_code, key.scan_code));
+        });
+        NAME_TO_KEY_MAP.entries().for_each(|(name, key)| {
+            let code = key_code(key.vk_code, key.scan_code);
+            assert!(CODE_TO_KEY_MAP.get(&code).is_some());
+            assert_eq!(*name, key.name);
+        });
+    }
+
+    #[test]
     fn test_key_by_name() {
         assert!(
-            KEYS.iter()
-                .all(|(name, key)| KEY_MAP.with(|k| k.find_by_name(name).unwrap()) == *key)
+            NAME_TO_KEY_MAP
+                .entries()
+                .all(|(name, key)| key_by_name(name).unwrap() == *key)
         )
     }
 
     #[test]
     fn test_key_name() {
         assert!(
-            KEYS.iter()
-                .all(|(name, key)| KEY_MAP.with(|_| key.name == *name))
+            NAME_TO_KEY_MAP
+                .entries()
+                .all(|(name, key)| key.name == *name)
         )
     }
 
@@ -627,4 +827,15 @@ mod tests {
 
         assert_eq!(source, actual);
     }
+
+    // #[test]
+    // fn generate() {
+    //     for (_n, k) in KEYS {
+    //         // println!("\"{}\" => KEY_{},", k.name, k);
+    //         println!(
+    //             "(0x{:02X},0x{:02X},{}) => KEY_{},",
+    //             k.vk_code, k.scan_code.0, k.scan_code.1, k
+    //         );
+    //     }
+    // }
 }

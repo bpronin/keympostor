@@ -62,7 +62,7 @@ macro_rules! new_vk {
     };
 }
 
-const MAX_VK_CODE: usize = 256;
+pub const MAX_VK_CODE: usize = 256;
 
 static VIRTUAL_KEYS: [VirtualKey; MAX_VK_CODE] = [
     new_vk!(0x00, "UNASSIGNED"),
@@ -325,7 +325,7 @@ static VIRTUAL_KEYS: [VirtualKey; MAX_VK_CODE] = [
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key::KEYS;
+    use crate::keyboard::key::NAME_TO_KEY_MAP;
     use crate::keyboard::vk::VirtualKey;
     use crate::vk_key;
     use std::str::FromStr;
@@ -347,7 +347,7 @@ mod tests {
 
     #[test]
     fn test_map() {
-        KEYS.iter().for_each(|(_name, key)| {
+        NAME_TO_KEY_MAP.entries().for_each(|(_name, key)| {
             let _ = VirtualKey::from(key); /* should not panic */
         })
     }
