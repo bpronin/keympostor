@@ -72,7 +72,7 @@ macro_rules! deserialize_from_string {
 //     for i in 0..256 {
 //         if KEYBOARD_STATE[i] {
 //             let result = VirtualKey::from_code(i as u8).unwrap();
-//             s = s + format!(" {}", result).as_str();
+//             s = s + &format!(" {}", result);
 //         }
 //     }
 //     s

@@ -17,6 +17,7 @@ pub mod sc;
 mod transform;
 pub mod trigger;
 pub mod vk;
+mod transition;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHook {

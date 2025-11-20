@@ -1,15 +1,16 @@
-use crate::keyboard::action::KeyTransition::Down;
-use crate::keyboard::action::{KeyAction, KeyTransition};
+use crate::keyboard::transition::KeyTransition::Down;
+use crate::keyboard::action::KeyAction;
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
-use crate::keyboard::key::{Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE, KEY_RIGHT_BUTTON, KEY_WHEEL, KEY_XBUTTON1, KEY_XBUTTON2};
+use crate::keyboard::key::{key_by_code, Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE, KEY_RIGHT_BUTTON, KEY_WHEEL, KEY_XBUTTON1, KEY_XBUTTON2};
 use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::transform::KeyTransformMap;
 use log::{debug, warn};
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
-use KeyTransition::Up;
+use crate::keyboard::transition::KeyTransition::Up;
+use crate::keyboard::transition::KeyTransition;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
 
@@ -167,7 +168,17 @@ extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) ->
 
 fn build_key_event<'a>(input: KBDLLHOOKSTRUCT) -> KeyEvent<'a> {
     KeyEvent {
-        action: KeyAction::from(input),
+        action: KeyAction {
+            key: key_by_code(
+                input.vkCode as u8,
+                (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED)),
+            ),
+            transition: if input.flags.contains(LLKHF_UP) {
+                Up
+            } else {
+                Down
+            },
+        },
         modifiers: ModifierKeys::from(&unsafe { HOOK.keyboard_state }),
         is_injected: input.flags.contains(LLKHF_INJECTED),
         is_private: input.dwExtraInfo as *const u8 == SELF_EVENT_MARKER.as_ptr(),
@@ -267,7 +278,7 @@ fn build_x_button_event<'a>(
         1 => &KEY_XBUTTON1,
         2 => &KEY_XBUTTON2,
         b => {
-            return Err(KeyError::new(format!("Unsupported button: {}", b).as_str()));
+            return Err(KeyError::new(&format!("Unsupported button: {}", b)));
         }
     };
     Ok(build_mouse_event(input, key, transition))

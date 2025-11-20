@@ -64,7 +64,7 @@ impl Layouts {
                 if let Ok(layout) = Layout::load(filename) {
                     items.push(layout);
                 } else {
-                    return Err(format!("Corrupted layout: {}", filename).as_str())?;
+                    return Err(format!("Corrupted layout: {}", filename))?;
                 }
             }
         }

@@ -189,7 +189,7 @@ impl App {
         self.window.set_title(title.as_str());
 
         #[cfg(feature = "debug")]
-        self.window.set_title(format!("{} - DEBUG", title).as_str());
+        self.window.set_title(&format!("{} - DEBUG", title));
     }
 
     fn show_window(&self, show: bool) {

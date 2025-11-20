@@ -1,8 +1,9 @@
-use crate::keyboard::action::KeyTransition::{Distance, Down, Up};
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::SELF_EVENT_MARKER;
-use crate::keyboard::key::{key_by_code, key_by_name, Key, KEY_MOUSE, KEY_WHEEL};
+use crate::keyboard::key::{key_by_name, Key, KEY_MOUSE, KEY_WHEEL};
 use crate::keyboard::sc::ScanCode;
+use crate::keyboard::transition::KeyTransition;
+use crate::keyboard::transition::KeyTransition::{Distance, Down, Up};
 use crate::keyboard::vk::VirtualKey;
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use serde::Deserializer;
@@ -15,34 +16,6 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEINPUT, VIRTUAL_KEY,
 };
-use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_UP};
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
-pub enum KeyTransition {
-    #[serde(alias = "UP", alias = "up")]
-    Up,
-    #[serde(alias = "DOWN", alias = "down")]
-    Down,
-    Distance(i16, i16),
-}
-
-impl Default for KeyTransition {
-    fn default() -> Self {
-        Up
-    }
-}
-
-impl Display for KeyTransition {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Up => Display::fmt(&'↑', f),
-            Down => Display::fmt(&'↓', f),
-            Distance(x, y) => {
-                write!(f, "({}:{})", x, y)
-            }
-        }
-    }
-}
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct KeyAction {
@@ -75,6 +48,25 @@ impl KeyAction {
             list.push(KeyAction::new(key_by_name(k)?, Up));
         } else if let Some(k) = ts.strip_suffix('↑') {
             list.push(KeyAction::new(key_by_name(k)?, Up));
+        } else if let Some((k, sd)) = ts.split_once('(') {
+            let (sdx, sdy) = sd
+                .strip_suffix(')')
+                .ok_or(KeyError::new(
+                    "Invalid mouse action: missing ')' at the end of the string",
+                ))?
+                .split_once(':')
+                .ok_or(KeyError::new(
+                    "Invalid mouse action: missing ':' in the string",
+                ))?;
+            let dx = sdx
+                .trim()
+                .parse()
+                .map_err(|e| KeyError::new("Invalid dx value."))?;
+            let dy = sdy
+                .trim()
+                .parse()
+                .map_err(|e| KeyError::new("Invalid dy value."))?;
+            list.push(KeyAction::new(key_by_name(k)?, Distance(dx, dy)));
         } else {
             let key = key_by_name(ts)?;
             list.push(KeyAction::new(key, Down));
@@ -132,22 +124,6 @@ impl Into<INPUT> for KeyAction {
             Self::into_mouse_input(self)
         } else {
             Self::into_key_input(self)
-        }
-    }
-}
-
-impl From<KBDLLHOOKSTRUCT> for KeyAction {
-    fn from(input: KBDLLHOOKSTRUCT) -> Self {
-        Self {
-            key: key_by_code(
-                input.vkCode as u8,
-                (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED)),
-            ),
-            transition: if input.flags.contains(LLKHF_UP) {
-                Up
-            } else {
-                Down
-            },
         }
     }
 }
@@ -250,11 +226,11 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::action::KeyTransition::{Distance, Down, Up};
-    use crate::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
+    use crate::keyboard::action::{KeyAction, KeyActionSequence};
     use crate::keyboard::event::SELF_EVENT_MARKER;
     use crate::keyboard::key::key_by_name;
     use crate::keyboard::sc::ScanCode;
+    use crate::keyboard::transition::KeyTransition::{Down, Up};
     use crate::utils::test::SerdeWrapper;
     use crate::{key, sc_key};
     use std::str::FromStr;
@@ -275,42 +251,6 @@ mod tests {
         ($text:literal) => {
             $text.parse::<KeyActionSequence>().unwrap()
         };
-    }
-
-    // Key transition
-
-    #[test]
-    fn test_key_transition_display() {
-        assert_eq!("↓", format!("{}", Down));
-        assert_eq!("↑", format!("{}", Up));
-        assert_eq!("(0:100)", format!("{}", Distance(0, 100)));
-        assert_eq!("(-100:0)", format!("{}", Distance(-100, 0)));
-    }
-
-    #[test]
-    fn test_key_transition_basics() {
-        assert_eq!(Up, KeyTransition::default());
-    }
-
-    #[test]
-    fn test_key_transition_serialize() {
-        let source = SerdeWrapper::new(Down);
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str(&text).unwrap();
-
-        assert_eq!(source, actual);
-
-        let source = SerdeWrapper::new(Up);
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str(&text).unwrap();
-
-        assert_eq!(source, actual);
-
-        let source = SerdeWrapper::new(Distance(100, 200));
-        let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str(&text).unwrap();
-
-        assert_eq!(source, actual);
     }
 
     // Key action
@@ -462,6 +402,12 @@ mod tests {
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
+
+        let source = SerdeWrapper::new(key_action!("MOUSE(-20:10)"));
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
     }
 
     // Key action sequence
@@ -526,8 +472,8 @@ mod tests {
 
     #[test]
     fn test_key_action_sequence_serialize() {
-        let source = SerdeWrapper::new(key_action_seq!("ENTER↓ → SHIFT↓"));
-        let text = toml::to_string_pretty(&source).unwrap();
+        let source = SerdeWrapper::new(key_action_seq!("ENTER↓ → SHIFT↓ → MOUSE(-20: 10)"));
+        let text = toml::to_string(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
         assert_eq!(source, actual);
