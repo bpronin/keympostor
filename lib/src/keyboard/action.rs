@@ -2,6 +2,8 @@ use crate::keyboard::action::KeyTransition::{Distance, Down, Up};
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::SELF_EVENT_MARKER;
 use crate::keyboard::key::{key_by_input, key_by_name, Key, KEY_MOUSE, KEY_WHEEL};
+use crate::keyboard::sc::ScanCode;
+use crate::keyboard::vk::VirtualKey;
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use serde::Deserializer;
 use serde::Serializer;
@@ -14,8 +16,6 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEINPUT, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
-use crate::keyboard::sc::ScanCode;
-use crate::keyboard::vk::VirtualKey;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum KeyTransition {
@@ -61,60 +61,34 @@ pub struct KeyAction {
 }
 
 impl KeyAction {
+    fn new(key: &'static Key, transition: KeyTransition) -> Self {
+        Self { key, transition }
+    }
+
     pub(crate) fn from_str_to_vec(s: &str) -> Result<Vec<Self>, KeyError> {
         let ts = s.trim();
         let mut list = Vec::with_capacity(2);
 
         if let Some(k) = ts.strip_suffix("*^") {
             let key = key_by_name(k)?;
-            list.push(KeyAction {
-                key,
-                transition: Down,
-            });
-            list.push(KeyAction {
-                key,
-                transition: Up,
-            });
+            list.push(KeyAction::new(key, Down));
+            list.push(KeyAction::new(key, Up));
         } else if let Some(k) = ts.strip_suffix("↓↑") {
             let key = key_by_name(k)?;
-            list.push(KeyAction {
-                key,
-                transition: Down,
-            });
-            list.push(KeyAction {
-                key,
-                transition: Up,
-            });
+            list.push(KeyAction::new(key, Down));
+            list.push(KeyAction::new(key, Up));
         } else if let Some(k) = ts.strip_suffix('*') {
-            list.push(KeyAction {
-                key: key_by_name(k)?,
-                transition: Down,
-            });
+            list.push(KeyAction::new(key_by_name(k)?, Down));
         } else if let Some(k) = ts.strip_suffix('↓') {
-            list.push(KeyAction {
-                key: key_by_name(k)?,
-                transition: Down,
-            });
+            list.push(KeyAction::new(key_by_name(k)?, Down));
         } else if let Some(k) = ts.strip_suffix('^') {
-            list.push(KeyAction {
-                key: key_by_name(k)?,
-                transition: Up,
-            });
+            list.push(KeyAction::new(key_by_name(k)?, Up));
         } else if let Some(k) = ts.strip_suffix('↑') {
-            list.push(KeyAction {
-                key: key_by_name(k)?,
-                transition: Up,
-            });
+            list.push(KeyAction::new(key_by_name(k)?, Up));
         } else {
             let key = key_by_name(ts)?;
-            list.push(KeyAction {
-                key,
-                transition: Down,
-            });
-            list.push(KeyAction {
-                key,
-                transition: Up,
-            });
+            list.push(KeyAction::new(key, Down));
+            list.push(KeyAction::new(key, Up));
         }
 
         Ok(list)
@@ -279,12 +253,11 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key::key_by_name;
-use crate::keyboard::sc::ScanCode;
-use crate::keyboard::action::Key;
     use crate::keyboard::action::KeyTransition::{Down, Up};
     use crate::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::keyboard::event::SELF_EVENT_MARKER;
+    use crate::keyboard::key::key_by_name;
+    use crate::keyboard::sc::ScanCode;
     use crate::utils::test::SerdeWrapper;
     use crate::{key, sc_key};
     use std::str::FromStr;
