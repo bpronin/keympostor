@@ -10,7 +10,9 @@ use keympostor::keyboard::event::KeyEvent;
 use keympostor::keyboard::modifiers::{
     KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_RALT, KM_RCTRL, KM_RSHIFT, KM_RWIN,
 };
+use keympostor::keyboard::sc::ScanCode;
 use keympostor::keyboard::trigger::KeyTrigger;
+use keympostor::keyboard::vk::VirtualKey;
 use native_windows_gui::{
     ControlHandle, InsertListViewColumn, ListView, ListViewColumnFlags, ListViewExFlags,
     ListViewStyle, NwgError, Tab,
@@ -18,8 +20,6 @@ use native_windows_gui::{
 use windows::Win32::Foundation::WPARAM;
 use windows::Win32::UI::Controls::*;
 use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
-use keympostor::keyboard::sc::ScanCode;
-use keympostor::keyboard::vk::VirtualKey;
 
 const MAX_LOG_ITEMS: usize = 256;
 
@@ -133,8 +133,8 @@ impl LogView {
                 ),
                 event.action.key.to_string(),
                 event.action.transition.to_string(),
-                VirtualKey::from(&event.action.key).to_string(),
-                ScanCode::from(&event.action.key).to_string(),
+                VirtualKey::from(event.action.key).to_string(),
+                ScanCode::from(event.action.key).to_string(),
                 event.time.to_string(),
                 format!(
                     "{:1}{:1}{:1}",

@@ -1,7 +1,7 @@
 use crate::keyboard::action::KeyTransition::{Distance, Down, Up};
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::SELF_EVENT_MARKER;
-use crate::keyboard::key::{Key, KEY_MOUSE, KEY_WHEEL};
+use crate::keyboard::key::{key_by_input, key_by_name, Key, KEY_MOUSE, KEY_WHEEL};
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use serde::Deserializer;
 use serde::Serializer;
@@ -56,7 +56,7 @@ impl From<KBDLLHOOKSTRUCT> for KeyTransition {
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct KeyAction {
-    pub key: Key,
+    pub key: &'static Key,
     pub transition: KeyTransition,
 }
 
@@ -66,9 +66,9 @@ impl KeyAction {
         let mut list = Vec::with_capacity(2);
 
         if let Some(k) = ts.strip_suffix("*^") {
-            let key = Key::from_str(k)?;
+            let key = key_by_name(k)?;
             list.push(KeyAction {
-                key: key.clone(),
+                key,
                 transition: Down,
             });
             list.push(KeyAction {
@@ -76,9 +76,9 @@ impl KeyAction {
                 transition: Up,
             });
         } else if let Some(k) = ts.strip_suffix("↓↑") {
-            let key = Key::from_str(k)?;
+            let key = key_by_name(k)?;
             list.push(KeyAction {
-                key: key.clone(),
+                key,
                 transition: Down,
             });
             list.push(KeyAction {
@@ -87,28 +87,28 @@ impl KeyAction {
             });
         } else if let Some(k) = ts.strip_suffix('*') {
             list.push(KeyAction {
-                key: Key::from_str(k)?,
+                key: key_by_name(k)?,
                 transition: Down,
             });
         } else if let Some(k) = ts.strip_suffix('↓') {
             list.push(KeyAction {
-                key: Key::from_str(k)?,
+                key: key_by_name(k)?,
                 transition: Down,
             });
         } else if let Some(k) = ts.strip_suffix('^') {
             list.push(KeyAction {
-                key: Key::from_str(k)?,
+                key: key_by_name(k)?,
                 transition: Up,
             });
         } else if let Some(k) = ts.strip_suffix('↑') {
             list.push(KeyAction {
-                key: Key::from_str(k)?,
+                key: key_by_name(k)?,
                 transition: Up,
             });
         } else {
-            let key = Key::from_str(ts)?;
+            let key = key_by_name(ts)?;
             list.push(KeyAction {
-                key: key.clone(),
+                key,
                 transition: Down,
             });
             list.push(KeyAction {
@@ -121,8 +121,8 @@ impl KeyAction {
     }
 
     fn into_key_input(self) -> INPUT {
-        let virtual_key = VirtualKey::from(&self.key);
-        let scan_code = ScanCode::from(&self.key);
+        let virtual_key = VirtualKey::from(self.key);
+        let scan_code = ScanCode::from(self.key);
 
         let mut flags = KEYEVENTF_SCANCODE;
         if scan_code.is_extended {
@@ -164,7 +164,7 @@ impl KeyAction {
 
 impl Into<INPUT> for KeyAction {
     fn into(self) -> INPUT {
-        if self.key == KEY_MOUSE || self.key == KEY_WHEEL {
+        if self.key == &KEY_MOUSE || self.key == &KEY_WHEEL {
             Self::into_mouse_input(self)
         } else {
             Self::into_key_input(self)
@@ -175,7 +175,7 @@ impl Into<INPUT> for KeyAction {
 impl From<KBDLLHOOKSTRUCT> for KeyAction {
     fn from(input: KBDLLHOOKSTRUCT) -> Self {
         Self {
-            key: Key::from(input),
+            key: key_by_input(input),
             transition: KeyTransition::from(input),
         }
     }
@@ -279,7 +279,8 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::sc::ScanCode;
+    use crate::keyboard::key::key_by_name;
+use crate::keyboard::sc::ScanCode;
 use crate::keyboard::action::Key;
     use crate::keyboard::action::KeyTransition::{Down, Up};
     use crate::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
@@ -405,7 +406,7 @@ use crate::keyboard::action::Key;
                 key: key!("F3"),
                 transition: Down,
             },
-            KeyAction::from_str("    F3\n*").unwrap()
+            KeyAction::from_str("F3*").unwrap()
         );
     }
 

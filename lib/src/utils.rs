@@ -86,7 +86,7 @@ pub(crate) mod test {
     /// as #[derive(Serialize, Deserialize)]
     #[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
     pub(crate) struct SerdeWrapper<T> {
-        value: T,
+        pub value: T,
     }
 
     impl<T> SerdeWrapper<T> {

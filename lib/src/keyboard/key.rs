@@ -14,16 +14,6 @@ pub struct Key {
     pub scan_code: (u8, bool),
 }
 
-impl From<KBDLLHOOKSTRUCT> for Key {
-    fn from(input: KBDLLHOOKSTRUCT) -> Self {
-        key_by_code(
-            input.vkCode as u8,
-            (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED)),
-        )
-        .unwrap()
-    }
-}
-
 impl Display for Key {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name, f)
@@ -34,7 +24,7 @@ impl FromStr for Key {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        key_by_name(s.trim())
+        key_by_name(s).copied()
     }
 }
 
@@ -46,27 +36,24 @@ impl<'de> Deserialize<'de> for Key {
     deserialize_from_string!();
 }
 
-pub fn key_by_code(vk_code: u8, sc_code: (u8, bool)) -> Result<Key, KeyError> {
+pub fn key_by_input(input: KBDLLHOOKSTRUCT) -> &'static Key {
+    let vk_code = input.vkCode as u8;
+    let sc_code = (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED));
     CODE_TO_KEY_MAP
         .get(&key_code(vk_code, sc_code))
-        .ok_or(KeyError::new(&format!(
-            "Illegal key code: `{:?}{:?}`.",
-            vk_code, sc_code
-        )))
-        .copied()
+        .expect(&format!("Illegal key code: `{:?} {:?}`.", vk_code, sc_code))
 }
 
-pub fn key_by_name(name: &str) -> Result<Key, KeyError> {
+pub fn key_by_name(name: &str) -> Result<&'static Key, KeyError> {
     NAME_TO_KEY_MAP
-        .get(name)
+        .get(name.trim())
         .ok_or(KeyError::new(&format!("Illegal key name: `{}`.", name)))
-        .copied()
 }
 
 #[macro_export]
 macro_rules! key {
     ($text:literal) => {
-        Key::from_str($text).unwrap()
+        key_by_name($text).unwrap()
     };
 }
 
@@ -284,16 +271,78 @@ pub(crate) static KEY_Y: Key = new_key!("Y", 0x59, 0x15, false);
 pub(crate) static KEY_Z: Key = new_key!("Z", 0x5A, 0x2C, false);
 pub(crate) static KEY_ZOOM: Key = new_key!("ZOOM", 0xFB, 0x62, false);
 pub(crate) static KEY__: Key = new_key!("_", 0x00, 0x39, true);
-pub(crate) static KEY__ESC: Key = new_key!("", 0x00, 0x01, true);
-pub(crate) static KEY___: Key = new_key!("	", 0x00, 0x0F, true);
+pub(crate) static KEY__ESC: Key = new_key!("<ESC>", 0x00, 0x01, true);
+pub(crate) static KEY__TAB: Key = new_key!("<TAB>", 0x00, 0x0F, true);
 
 fn key_code(vk_code: u8, sc_code: (u8, bool)) -> u32 {
     (vk_code as u32) << 16 | (sc_code.0 as u32) << 8 | (sc_code.1 as u32)
 }
 
 pub(crate) static CODE_TO_KEY_MAP: phf::Map<u32, Key> = phf_map! {
-    0x300B00 => KEY_0,
+    0x000000 => KEY_UNASSIGNED,
+    0x000101 => KEY__ESC,
+    0x000F01 => KEY__TAB,
+    0x002B01 => KEY_BRIGHTNESS,
+    0x003601 => KEY_RIGHT_SHIFT_2,
+    0x003901 => KEY__,
+    0x004E01 => KEY_PLUS,
     0x005401 => KEY_00,
+    0x010000 => KEY_LEFT_BUTTON,
+    0x020000 => KEY_RIGHT_BUTTON,
+    0x034601 => KEY_BREAK,
+    0x040000 => KEY_MIDDLE_BUTTON,
+    0x050000 => KEY_XBUTTON1,
+    0x060000 => KEY_XBUTTON2,
+    0x080E00 => KEY_BACKSPACE,
+    0x090F00 => KEY_TAB,
+    0x0C4C00 => KEY_NUM_CLEAR,
+    0x0D1C00 => KEY_ENTER,
+    0x0D1C01 => KEY_NUM_ENTER,
+    0x102A00 => KEY_SHIFT,
+    0x111D00 => KEY_CTRL,
+    0x123800 => KEY_MENU,
+    0x134500 => KEY_PAUSE,
+    0x134501 => KEY_NUM_LOCK_2,
+    0x143A00 => KEY_CAPS_LOCK,
+    0x150000 => KEY_KANA,
+    0x160000 => KEY_IME_ON,
+    0x170000 => KEY_JUNJA,
+    0x180000 => KEY_FINAL,
+    0x190000 => KEY_HANJA,
+    0x1A0000 => KEY_IME_OFF,
+    0x1B0100 => KEY_ESC,
+    0x1C0000 => KEY_CONVERT,
+    0x1D0000 => KEY_NON_CONVERT,
+    0x1E0000 => KEY_ACCEPT,
+    0x1F0000 => KEY_MODE_CHANGE,
+    0x203900 => KEY_SPACE,
+    0x214900 => KEY_NUM_PAGE_UP,
+    0x214901 => KEY_PAGE_UP,
+    0x225100 => KEY_NUM_PAGE_DOWN,
+    0x225101 => KEY_PAGE_DOWN,
+    0x234F00 => KEY_NUM_END,
+    0x234F01 => KEY_END,
+    0x244700 => KEY_NUM_HOME,
+    0x244701 => KEY_HOME,
+    0x254B00 => KEY_NUM_LEFT,
+    0x254B01 => KEY_LEFT,
+    0x264800 => KEY_NUM_UP,
+    0x264801 => KEY_UP,
+    0x274D00 => KEY_NUM_RIGHT,
+    0x274D01 => KEY_RIGHT,
+    0x285000 => KEY_NUM_DOWN,
+    0x285001 => KEY_DOWN,
+    0x290000 => KEY_SELECT,
+    0x2A0000 => KEY_PRINT,
+    0x2B0000 => KEY_EXECUTE,
+    0x2C3701 => KEY_PRINT_SCREEN,
+    0x2C5400 => KEY_SYS_REQ,
+    0x2D5200 => KEY_NUM_INSERT,
+    0x2D5201 => KEY_INSERT,
+    0x2E5300 => KEY_NUM_DELETE,
+    0x2E5301 => KEY_DELETE,
+    0x2F6300 => KEY_HELP,
+    0x300B00 => KEY_0,
     0x310200 => KEY_1,
     0x320300 => KEY_2,
     0x330400 => KEY_3,
@@ -304,117 +353,35 @@ pub(crate) static CODE_TO_KEY_MAP: phf::Map<u32, Key> = phf_map! {
     0x380900 => KEY_8,
     0x390A00 => KEY_9,
     0x411E00 => KEY_A,
-    0x1E0000 => KEY_ACCEPT,
-    0xDE2800 => KEY_APOSTROPHE,
-    0x5D5D01 => KEY_APPLICATION,
-    0xF60000 => KEY_ATTN,
     0x423000 => KEY_B,
-    0xDC2B00 => KEY_BACKSLASH,
-    0xE25600 => KEY_BACKSLASH_2,
-    0x080E00 => KEY_BACKSPACE,
-    0xC02900 => KEY_BACKTICK,
-    0x034601 => KEY_BREAK,
-    0x002B01 => KEY_BRIGHTNESS,
-    0xA66A01 => KEY_BROWSER_BACK,
-    0xAB6601 => KEY_BROWSER_FAVORITES,
-    0xA76901 => KEY_BROWSER_FORWARD,
-    0xAC0001 => KEY_BROWSER_HOME,
-    0xA86701 => KEY_BROWSER_REFRESH,
-    0xAA0001 => KEY_BROWSER_SEARCH,
-    0xA96801 => KEY_BROWSER_STOP,
     0x432E00 => KEY_C,
-    0x143A00 => KEY_CAPS_LOCK,
-    0xBC3300 => KEY_COMMA,
-    0x1C0000 => KEY_CONVERT,
-    0xF70000 => KEY_CRSEL,
-    0x111D00 => KEY_CTRL,
     0x442000 => KEY_D,
-    0x2E5301 => KEY_DELETE,
-    0xBE3400 => KEY_DOT,
-    0x285001 => KEY_DOWN,
     0x451200 => KEY_E,
-    0x234F01 => KEY_END,
-    0x0D1C00 => KEY_ENTER,
-    0xBB0D00 => KEY_EQ,
-    0xF95D00 => KEY_EREOF,
-    0x1B0100 => KEY_ESC,
-    0x2B0000 => KEY_EXECUTE,
-    0xF80000 => KEY_EXSEL,
     0x462100 => KEY_F,
-    0x703B00 => KEY_F1,
-    0x794400 => KEY_F10,
-    0x7A5700 => KEY_F11,
-    0x7B5800 => KEY_F12,
-    0x7C6400 => KEY_F13,
-    0x7D6500 => KEY_F14,
-    0x7E6600 => KEY_F15,
-    0x7F6700 => KEY_F16,
-    0x806800 => KEY_F17,
-    0x816900 => KEY_F18,
-    0x826A00 => KEY_F19,
-    0x713C00 => KEY_F2,
-    0x836B00 => KEY_F20,
-    0x846C00 => KEY_F21,
-    0x856D00 => KEY_F22,
-    0x866E00 => KEY_F23,
-    0x877600 => KEY_F24,
-    0x723D00 => KEY_F3,
-    0x733E00 => KEY_F4,
-    0x743F00 => KEY_F5,
-    0x754000 => KEY_F6,
-    0x764100 => KEY_F7,
-    0x774200 => KEY_F8,
-    0x784300 => KEY_F9,
-    0x180000 => KEY_FINAL,
-    0xAC3201 => KEY_FN_BROWSER_HOME,
-    0xAA6501 => KEY_FN_BROWSER_SEARCH,
-    0xB66B01 => KEY_FN_LAUNCH_APP1,
-    0xB72101 => KEY_FN_LAUNCH_APP2,
-    0xB46C01 => KEY_FN_LAUNCH_MAIL,
-    0xB01901 => KEY_FN_MEDIA_NEXT_TRACK,
-    0xB32201 => KEY_FN_MEDIA_PLAY_PAUSE,
-    0xB11001 => KEY_FN_MEDIA_PREV_TRACK,
-    0xAE2E01 => KEY_FN_VOLUME_DOWN,
-    0xAD2001 => KEY_FN_VOLUME_MUTE,
-    0xAF3001 => KEY_FN_VOLUME_UP,
     0x472200 => KEY_G,
     0x482300 => KEY_H,
-    0x190000 => KEY_HANJA,
-    0x2F6300 => KEY_HELP,
-    0x244701 => KEY_HOME,
     0x491700 => KEY_I,
-    0x1A0000 => KEY_IME_OFF,
-    0x160000 => KEY_IME_ON,
-    0x2D5201 => KEY_INSERT,
     0x4A2400 => KEY_J,
-    0x170000 => KEY_JUNJA,
     0x4B2500 => KEY_K,
-    0x150000 => KEY_KANA,
     0x4C2600 => KEY_L,
-    0xB60001 => KEY_LAUNCH_APP1,
-    0xB70001 => KEY_LAUNCH_APP2,
-    0xB40001 => KEY_LAUNCH_MAIL,
-    0xB56D01 => KEY_LAUNCH_MEDIA_SELECT,
-    0x254B01 => KEY_LEFT,
-    0xA43800 => KEY_LEFT_ALT,
-    0xDB1A00 => KEY_LEFT_BRACKET,
-    0x010000 => KEY_LEFT_BUTTON,
-    0xA21D00 => KEY_LEFT_CTRL,
-    0xA02A00 => KEY_LEFT_SHIFT,
-    0x5B5B01 => KEY_LEFT_WIN,
     0x4D3200 => KEY_M,
-    0xB00001 => KEY_MEDIA_NEXT_TRACK,
-    0xB30001 => KEY_MEDIA_PLAY_PAUSE,
-    0xB10001 => KEY_MEDIA_PREV_TRACK,
-    0xB22401 => KEY_MEDIA_STOP,
-    0x123800 => KEY_MENU,
-    0x040000 => KEY_MIDDLE_BUTTON,
-    0xBD0C00 => KEY_MINUS,
-    0x1F0000 => KEY_MODE_CHANGE,
-    0xF00001 => KEY_MOUSE,
     0x4E3100 => KEY_N,
-    0xFC0000 => KEY_NONAME,
-    0x1D0000 => KEY_NON_CONVERT,
+    0x4F1800 => KEY_O,
+    0x501900 => KEY_P,
+    0x511000 => KEY_Q,
+    0x521300 => KEY_R,
+    0x531F00 => KEY_S,
+    0x541400 => KEY_T,
+    0x551600 => KEY_U,
+    0x562F00 => KEY_V,
+    0x571100 => KEY_W,
+    0x582D00 => KEY_X,
+    0x591500 => KEY_Y,
+    0x5A2C00 => KEY_Z,
+    0x5B5B01 => KEY_LEFT_WIN,
+    0x5C5C01 => KEY_RIGHT_WIN,
+    0x5D5D01 => KEY_APPLICATION,
+    0x5F5F01 => KEY_SLEEP,
     0x605200 => KEY_NUM_0,
     0x614F00 => KEY_NUM_1,
     0x625000 => KEY_NUM_2,
@@ -425,79 +392,99 @@ pub(crate) static CODE_TO_KEY_MAP: phf::Map<u32, Key> = phf_map! {
     0x674700 => KEY_NUM_7,
     0x684800 => KEY_NUM_8,
     0x694900 => KEY_NUM_9,
-    0x0C4C00 => KEY_NUM_CLEAR,
-    0x2E5300 => KEY_NUM_DELETE,
-    0x6F3501 => KEY_NUM_DIV,
-    0x6E5300 => KEY_NUM_DOT,
-    0x285000 => KEY_NUM_DOWN,
-    0x234F00 => KEY_NUM_END,
-    0x0D1C01 => KEY_NUM_ENTER,
-    0x244700 => KEY_NUM_HOME,
-    0x2D5200 => KEY_NUM_INSERT,
-    0x254B00 => KEY_NUM_LEFT,
-    0x904501 => KEY_NUM_LOCK,
-    0x134501 => KEY_NUM_LOCK_2,
-    0x6D4A00 => KEY_NUM_MINUS,
     0x6A3700 => KEY_NUM_MUL,
-    0x225100 => KEY_NUM_PAGE_DOWN,
-    0x214900 => KEY_NUM_PAGE_UP,
     0x6B4E00 => KEY_NUM_PLUS,
-    0x274D00 => KEY_NUM_RIGHT,
-    0x264800 => KEY_NUM_UP,
-    0x4F1800 => KEY_O,
-    0xDF0000 => KEY_OEM_8,
-    0xFE0000 => KEY_OEM_CLEAR,
-    0x501900 => KEY_P,
-    0xFD0000 => KEY_PA1,
-    0xE70000 => KEY_PACKET,
-    0x225101 => KEY_PAGE_DOWN,
-    0x214901 => KEY_PAGE_UP,
-    0x134500 => KEY_PAUSE,
-    0xFA0000 => KEY_PLAY,
-    0x004E01 => KEY_PLUS,
-    0x2A0000 => KEY_PRINT,
-    0x2C3701 => KEY_PRINT_SCREEN,
-    0xE50000 => KEY_PROCESS_KEY,
-    0x511000 => KEY_Q,
-    0x521300 => KEY_R,
-    0x274D01 => KEY_RIGHT,
-    0xA53801 => KEY_RIGHT_ALT,
-    0xDD1B00 => KEY_RIGHT_BRACKET,
-    0x020000 => KEY_RIGHT_BUTTON,
-    0xA31D01 => KEY_RIGHT_CTRL,
-    0xA13601 => KEY_RIGHT_SHIFT,
-    0x003601 => KEY_RIGHT_SHIFT_2,
-    0x5C5C01 => KEY_RIGHT_WIN,
-    0x531F00 => KEY_S,
-    0x914600 => KEY_SCROLL_LOCK,
-    0x290000 => KEY_SELECT,
-    0xBA2700 => KEY_SEMICOLON,
     0x6C0000 => KEY_SEPARATOR,
-    0x102A00 => KEY_SHIFT,
-    0xBF3500 => KEY_SLASH,
-    0x5F5F01 => KEY_SLEEP,
-    0x203900 => KEY_SPACE,
-    0x2C5400 => KEY_SYS_REQ,
-    0x541400 => KEY_T,
-    0x090F00 => KEY_TAB,
-    0x551600 => KEY_U,
-    0x000000 => KEY_UNASSIGNED,
-    0x264801 => KEY_UP,
-    0x562F00 => KEY_V,
-    0xAE0001 => KEY_VOLUME_DOWN,
+    0x6D4A00 => KEY_NUM_MINUS,
+    0x6E5300 => KEY_NUM_DOT,
+    0x6F3501 => KEY_NUM_DIV,
+    0x703B00 => KEY_F1,
+    0x713C00 => KEY_F2,
+    0x723D00 => KEY_F3,
+    0x733E00 => KEY_F4,
+    0x743F00 => KEY_F5,
+    0x754000 => KEY_F6,
+    0x764100 => KEY_F7,
+    0x774200 => KEY_F8,
+    0x784300 => KEY_F9,
+    0x794400 => KEY_F10,
+    0x7A5700 => KEY_F11,
+    0x7B5800 => KEY_F12,
+    0x7C6400 => KEY_F13,
+    0x7D6500 => KEY_F14,
+    0x7E6600 => KEY_F15,
+    0x7F6700 => KEY_F16,
+    0x806800 => KEY_F17,
+    0x816900 => KEY_F18,
+    0x826A00 => KEY_F19,
+    0x836B00 => KEY_F20,
+    0x846C00 => KEY_F21,
+    0x856D00 => KEY_F22,
+    0x866E00 => KEY_F23,
+    0x877600 => KEY_F24,
+    0x904501 => KEY_NUM_LOCK,
+    0x914600 => KEY_SCROLL_LOCK,
+    0xA02A00 => KEY_LEFT_SHIFT,
+    0xA13601 => KEY_RIGHT_SHIFT,
+    0xA21D00 => KEY_LEFT_CTRL,
+    0xA31D01 => KEY_RIGHT_CTRL,
+    0xA43800 => KEY_LEFT_ALT,
+    0xA53801 => KEY_RIGHT_ALT,
+    0xA66A01 => KEY_BROWSER_BACK,
+    0xA76901 => KEY_BROWSER_FORWARD,
+    0xA86701 => KEY_BROWSER_REFRESH,
+    0xA96801 => KEY_BROWSER_STOP,
+    0xAA0001 => KEY_BROWSER_SEARCH,
+    0xAA6501 => KEY_FN_BROWSER_SEARCH,
+    0xAB6601 => KEY_BROWSER_FAVORITES,
+    0xAC0001 => KEY_BROWSER_HOME,
+    0xAC3201 => KEY_FN_BROWSER_HOME,
     0xAD0001 => KEY_VOLUME_MUTE,
+    0xAD2001 => KEY_FN_VOLUME_MUTE,
+    0xAE0001 => KEY_VOLUME_DOWN,
+    0xAE2E01 => KEY_FN_VOLUME_DOWN,
     0xAF0001 => KEY_VOLUME_UP,
-    0x571100 => KEY_W,
+    0xAF3001 => KEY_FN_VOLUME_UP,
+    0xB00001 => KEY_MEDIA_NEXT_TRACK,
+    0xB01901 => KEY_FN_MEDIA_NEXT_TRACK,
+    0xB10001 => KEY_MEDIA_PREV_TRACK,
+    0xB11001 => KEY_FN_MEDIA_PREV_TRACK,
+    0xB22401 => KEY_MEDIA_STOP,
+    0xB30001 => KEY_MEDIA_PLAY_PAUSE,
+    0xB32201 => KEY_FN_MEDIA_PLAY_PAUSE,
+    0xB40001 => KEY_LAUNCH_MAIL,
+    0xB46C01 => KEY_FN_LAUNCH_MAIL,
+    0xB56D01 => KEY_LAUNCH_MEDIA_SELECT,
+    0xB60001 => KEY_LAUNCH_APP1,
+    0xB66B01 => KEY_FN_LAUNCH_APP1,
+    0xB70001 => KEY_LAUNCH_APP2,
+    0xB72101 => KEY_FN_LAUNCH_APP2,
+    0xBA2700 => KEY_SEMICOLON,
+    0xBB0D00 => KEY_EQ,
+    0xBC3300 => KEY_COMMA,
+    0xBD0C00 => KEY_MINUS,
+    0xBE3400 => KEY_DOT,
+    0xBF3500 => KEY_SLASH,
+    0xC02900 => KEY_BACKTICK,
+    0xDB1A00 => KEY_LEFT_BRACKET,
+    0xDC2B00 => KEY_BACKSLASH,
+    0xDD1B00 => KEY_RIGHT_BRACKET,
+    0xDE2800 => KEY_APOSTROPHE,
+    0xDF0000 => KEY_OEM_8,
+    0xE25600 => KEY_BACKSLASH_2,
+    0xE50000 => KEY_PROCESS_KEY,
+    0xE70000 => KEY_PACKET,
+    0xF00001 => KEY_MOUSE,
     0xF10001 => KEY_WHEEL,
-    0x582D00 => KEY_X,
-    0x050000 => KEY_XBUTTON1,
-    0x060000 => KEY_XBUTTON2,
-    0x591500 => KEY_Y,
-    0x5A2C00 => KEY_Z,
+    0xF60000 => KEY_ATTN,
+    0xF70000 => KEY_CRSEL,
+    0xF80000 => KEY_EXSEL,
+    0xF95D00 => KEY_EREOF,
+    0xFA0000 => KEY_PLAY,
     0xFB6200 => KEY_ZOOM,
-    0x003901 => KEY__,
-    0x000101 => KEY__ESC,
-    0x000F01 => KEY___,
+    0xFC0000 => KEY_NONAME,
+    0xFD0000 => KEY_PA1,
+    0xFE0000 => KEY_OEM_CLEAR,
 };
 
 pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
@@ -705,8 +692,8 @@ pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
     "Z" => KEY_Z,
     "ZOOM" => KEY_ZOOM,
     "_" => KEY__,
-    "" => KEY__ESC,
-    "	" => KEY___	,
+    "<ESC>" => KEY__ESC,
+    "<TAB>" => KEY__TAB	,
 };
 
 #[cfg(test)]
@@ -738,7 +725,7 @@ mod tests {
         assert!(
             NAME_TO_KEY_MAP
                 .entries()
-                .all(|(name, key)| key_by_name(name).unwrap() == *key)
+                .all(|(name, key)| key_by_name(name).unwrap() == key)
         )
     }
 
@@ -817,15 +804,15 @@ mod tests {
     fn test_key_serialize() {
         let source = SerdeWrapper::new(key!("ENTER"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str(&text).unwrap();
+        let actual:SerdeWrapper<Key> = toml::from_str(&text).unwrap();
 
-        assert_eq!(source, actual);
+        assert_eq!(source.value, &actual.value);
 
         let source = SerdeWrapper::new(key!("NUM_ENTER"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual = toml::from_str(&text).unwrap();
+        let actual:SerdeWrapper<Key> = toml::from_str(&text).unwrap();
 
-        assert_eq!(source, actual);
+        assert_eq!(source.value, &actual.value);
     }
 
     // #[test]

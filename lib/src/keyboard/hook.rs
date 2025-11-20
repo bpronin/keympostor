@@ -182,12 +182,12 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
         WM_MOUSEMOVE => handle_mouse_move(input),
         WM_MOUSEWHEEL => handle_mouse_wheel(input),
         WM_MOUSEHWHEEL => handle_mouse_wheel_tilt(input),
-        WM_LBUTTONDOWN => handle_mouse_button(input, KEY_LEFT_BUTTON, Down),
-        WM_RBUTTONDOWN => handle_mouse_button(input, KEY_RIGHT_BUTTON, Down),
-        WM_MBUTTONDOWN => handle_mouse_button(input, KEY_MIDDLE_BUTTON, Down),
-        WM_LBUTTONUP => handle_mouse_button(input, KEY_LEFT_BUTTON, Up),
-        WM_RBUTTONUP => handle_mouse_button(input, KEY_RIGHT_BUTTON, Up),
-        WM_MBUTTONUP => handle_mouse_button(input, KEY_MIDDLE_BUTTON, Up),
+        WM_LBUTTONDOWN => handle_mouse_button(input, &KEY_LEFT_BUTTON, Down),
+        WM_RBUTTONDOWN => handle_mouse_button(input, &KEY_RIGHT_BUTTON, Down),
+        WM_MBUTTONDOWN => handle_mouse_button(input, &KEY_MIDDLE_BUTTON, Down),
+        WM_LBUTTONUP => handle_mouse_button(input, &KEY_LEFT_BUTTON, Up),
+        WM_RBUTTONUP => handle_mouse_button(input, &KEY_RIGHT_BUTTON, Up),
+        WM_MBUTTONUP => handle_mouse_button(input, &KEY_MIDDLE_BUTTON, Up),
         WM_XBUTTONDOWN => handle_mouse_x_button(input, Down),
         WM_XBUTTONUP => handle_mouse_x_button(input, Up),
         _ => {
@@ -208,7 +208,7 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
 
 fn build_mouse_event<'a>(
     input: MSLLHOOKSTRUCT,
-    key: Key,
+    key: &'static Key,
     transition: KeyTransition,
 ) -> KeyEvent<'a> {
     KeyEvent {
@@ -221,7 +221,7 @@ fn build_mouse_event<'a>(
     }
 }
 
-fn handle_mouse_button(input: MSLLHOOKSTRUCT, key: Key, transition: KeyTransition) -> bool {
+fn handle_mouse_button(input: MSLLHOOKSTRUCT, key: &'static Key, transition: KeyTransition) -> bool {
     handle_key_event(build_mouse_event(input, key, transition))
 }
 
@@ -237,13 +237,13 @@ fn handle_mouse_x_button(input: MSLLHOOKSTRUCT, transition: KeyTransition) -> bo
 
 fn handle_mouse_wheel(input: MSLLHOOKSTRUCT) -> bool {
     let transition = KeyTransition::Distance(0, (input.mouseData >> 16) as i16);
-    let event = build_mouse_event(input, KEY_WHEEL, transition);
+    let event = build_mouse_event(input, &KEY_WHEEL, transition);
     handle_key_event(event)
 }
 
 fn handle_mouse_wheel_tilt(input: MSLLHOOKSTRUCT) -> bool {
     let transition = KeyTransition::Distance((input.mouseData >> 16) as i16, 0);
-    let event = build_mouse_event(input, KEY_WHEEL, transition);
+    let event = build_mouse_event(input, &KEY_WHEEL, transition);
     handle_key_event(event)
 }
 
@@ -255,7 +255,7 @@ fn handle_mouse_move(input: MSLLHOOKSTRUCT) -> bool {
     unsafe { HOOK.last_mouse_position = Some(current) }
 
     let transition = KeyTransition::Distance(dx as i16, dy as i16);
-    let event = build_mouse_event(input, KEY_MOUSE, transition);
+    let event = build_mouse_event(input, &KEY_MOUSE, transition);
     handle_key_event(event)
 }
 
@@ -264,8 +264,8 @@ fn build_x_button_event<'a>(
     transition: KeyTransition,
 ) -> Result<KeyEvent<'a>, KeyError> {
     let key = match (input.mouseData >> 16) as u16 {
-        1 => KEY_XBUTTON1,
-        2 => KEY_XBUTTON2,
+        1 => &KEY_XBUTTON1,
+        2 => &KEY_XBUTTON2,
         b => {
             return Err(KeyError::new(format!("Unsupported button: {}", b).as_str()));
         }
