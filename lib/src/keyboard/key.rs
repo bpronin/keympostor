@@ -5,7 +5,6 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Key {
@@ -36,9 +35,7 @@ impl<'de> Deserialize<'de> for Key {
     deserialize_from_string!();
 }
 
-pub fn key_by_input(input: KBDLLHOOKSTRUCT) -> &'static Key {
-    let vk_code = input.vkCode as u8;
-    let sc_code = (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED));
+pub fn key_by_code(vk_code: u8, sc_code: (u8, bool)) -> &'static Key {
     CODE_TO_KEY_MAP
         .get(&key_code(vk_code, sc_code))
         .expect(&format!("Illegal key code: `{:?} {:?}`.", vk_code, sc_code))
@@ -804,13 +801,13 @@ mod tests {
     fn test_key_serialize() {
         let source = SerdeWrapper::new(key!("ENTER"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual:SerdeWrapper<Key> = toml::from_str(&text).unwrap();
+        let actual: SerdeWrapper<Key> = toml::from_str(&text).unwrap();
 
         assert_eq!(source.value, &actual.value);
 
         let source = SerdeWrapper::new(key!("NUM_ENTER"));
         let text = toml::to_string_pretty(&source).unwrap();
-        let actual:SerdeWrapper<Key> = toml::from_str(&text).unwrap();
+        let actual: SerdeWrapper<Key> = toml::from_str(&text).unwrap();
 
         assert_eq!(source.value, &actual.value);
     }

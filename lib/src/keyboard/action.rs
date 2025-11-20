@@ -1,7 +1,7 @@
 use crate::keyboard::action::KeyTransition::{Distance, Down, Up};
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::SELF_EVENT_MARKER;
-use crate::keyboard::key::{key_by_input, key_by_name, Key, KEY_MOUSE, KEY_WHEEL};
+use crate::keyboard::key::{key_by_code, key_by_name, Key, KEY_MOUSE, KEY_WHEEL};
 use crate::keyboard::sc::ScanCode;
 use crate::keyboard::vk::VirtualKey;
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
@@ -15,7 +15,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEINPUT, VIRTUAL_KEY,
 };
-use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_UP};
+use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_UP};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum KeyTransition {
@@ -40,16 +40,6 @@ impl Display for KeyTransition {
             Distance(x, y) => {
                 write!(f, "({}:{})", x, y)
             }
-        }
-    }
-}
-
-impl From<KBDLLHOOKSTRUCT> for KeyTransition {
-    fn from(input: KBDLLHOOKSTRUCT) -> Self {
-        if input.flags.contains(LLKHF_UP) {
-            Up
-        } else {
-            Down
         }
     }
 }
@@ -149,8 +139,15 @@ impl Into<INPUT> for KeyAction {
 impl From<KBDLLHOOKSTRUCT> for KeyAction {
     fn from(input: KBDLLHOOKSTRUCT) -> Self {
         Self {
-            key: key_by_input(input),
-            transition: KeyTransition::from(input),
+            key: key_by_code(
+                input.vkCode as u8,
+                (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED)),
+            ),
+            transition: if input.flags.contains(LLKHF_UP) {
+                Up
+            } else {
+                Down
+            },
         }
     }
 }
@@ -253,7 +250,7 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::action::KeyTransition::{Down, Up};
+    use crate::keyboard::action::KeyTransition::{Distance, Down, Up};
     use crate::keyboard::action::{KeyAction, KeyActionSequence, KeyTransition};
     use crate::keyboard::event::SELF_EVENT_MARKER;
     use crate::keyboard::key::key_by_name;
@@ -286,6 +283,8 @@ mod tests {
     fn test_key_transition_display() {
         assert_eq!("↓", format!("{}", Down));
         assert_eq!("↑", format!("{}", Up));
+        assert_eq!("(0:100)", format!("{}", Distance(0, 100)));
+        assert_eq!("(-100:0)", format!("{}", Distance(-100, 0)));
     }
 
     #[test]
@@ -302,6 +301,12 @@ mod tests {
         assert_eq!(source, actual);
 
         let source = SerdeWrapper::new(Up);
+        let text = toml::to_string_pretty(&source).unwrap();
+        let actual = toml::from_str(&text).unwrap();
+
+        assert_eq!(source, actual);
+
+        let source = SerdeWrapper::new(Distance(100, 200));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
