@@ -276,10 +276,10 @@ fn handle_mouse_x_button(input: &MSLLHOOKSTRUCT, transition: KeyTransition) -> b
 }
 
 fn handle_mouse_wheel(input: &MSLLHOOKSTRUCT, tilt: bool) -> bool {
-    let d = (input.mouseData >> 16) as i32;
     let key = if tilt { &KEY_MOUSE_X } else { &KEY_WHEEL_Y };
-    let mut event = build_mouse_event(input, key, KeyTransition::from(d > 0));
-    handle_key_event(event, d)
+    let d = (input.mouseData >> 16) as i16; /* do not cast to i32 to preserve sign */
+    let event = build_mouse_event(input, key, KeyTransition::from(d < 0));
+    handle_key_event(event, d as i32)
 }
 
 fn handle_mouse_move(input: &MSLLHOOKSTRUCT) -> bool {

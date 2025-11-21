@@ -33,32 +33,6 @@ fn build_action_input(action: &KeyAction, delta: i32) -> INPUT {
     )
 }
 
-fn build_key_input(action: &KeyAction) -> INPUT {
-    let virtual_key = VirtualKey::from(action.key);
-    let scan_code = ScanCode::from(action.key);
-
-    let mut flags = KEYEVENTF_SCANCODE;
-    if scan_code.is_extended {
-        flags |= KEYEVENTF_EXTENDEDKEY
-    }
-    if action.transition == Up {
-        flags |= KEYEVENTF_KEYUP;
-    }
-
-    INPUT {
-        r#type: INPUT_KEYBOARD,
-        Anonymous: INPUT_0 {
-            ki: KEYBDINPUT {
-                wVk: virtual_key.into(),
-                wScan: scan_code.into(),
-                dwFlags: flags,
-                dwExtraInfo: SELF_EVENT_MARKER,
-                ..Default::default()
-            },
-        },
-    }
-}
-
 fn build_mouse_move_input(action: &KeyAction, delta: i32) -> Option<INPUT> {
     if action.key == &KEY_MOUSE_X {
         build_mouse_input(delta, 0, MOUSEEVENTF_MOVE, 0)
@@ -137,6 +111,32 @@ fn build_mouse_input(x: i32, y: i32, flags: MOUSE_EVENT_FLAGS, data: u32) -> Opt
             },
         },
     })
+}
+
+fn build_key_input(action: &KeyAction) -> INPUT {
+    let virtual_key = VirtualKey::from(action.key);
+    let scan_code = ScanCode::from(action.key);
+
+    let mut flags = KEYEVENTF_SCANCODE;
+    if scan_code.is_extended {
+        flags |= KEYEVENTF_EXTENDEDKEY
+    }
+    if action.transition == Up {
+        flags |= KEYEVENTF_KEYUP;
+    }
+
+    INPUT {
+        r#type: INPUT_KEYBOARD,
+        Anonymous: INPUT_0 {
+            ki: KEYBDINPUT {
+                wVk: virtual_key.into(),
+                wScan: scan_code.into(),
+                dwFlags: flags,
+                dwExtraInfo: SELF_EVENT_MARKER,
+                ..Default::default()
+            },
+        },
+    }
 }
 
 #[cfg(test)]

@@ -6,7 +6,7 @@ layout = "invert_mouse"
 [main_window]
 position = [811, 298]
 size = [716, 536]
-selected_page = 0
+selected_page = 1
 
 [profiles.chrome]
 rule = "Chrome"
