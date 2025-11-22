@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use crate::profile::Profiles;
 use keympostor::key_err;
 use keympostor::keyboard::error::KeyError;
@@ -12,7 +13,8 @@ pub(crate) struct AppSettings {
     pub(crate) processing_enabled: bool, //todo: rename to `transform_enabled` ?
     pub(crate) logging_enabled: bool,
     pub(crate) layouts_enabled: bool,
-    pub(crate) main_window: MainWindow,
+    pub(crate) main_window: MainWindowSettings,
+    pub(crate) log_view: LogViewSettings,
     pub(crate) layout: Option<String>,
     pub(crate) profiles: Option<Profiles>,
 }
@@ -24,6 +26,7 @@ impl Default for AppSettings {
             logging_enabled: false,
             layouts_enabled: false,
             main_window: Default::default(),
+            log_view: Default::default(),
             layout: None,
             profiles: Default::default(),
         }
@@ -57,10 +60,15 @@ impl AppSettings {
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct MainWindow {
+pub(crate) struct MainWindowSettings {
     pub(crate) position: Option<(i32, i32)>,
     pub(crate) size: Option<(u32, u32)>,
     pub(crate) selected_page: Option<usize>,
+}
+
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+pub(crate) struct LogViewSettings {
+    pub(crate) columns: Option<HashMap<usize, isize>>,
 }
 
 #[cfg(test)]
@@ -76,7 +84,7 @@ pub mod tests {
             logging_enabled: false,
             layouts_enabled: true,
             layout: Some("test-layout".to_string()),
-            main_window: MainWindow {
+            main_window: MainWindowSettings {
                 position: Some((0, 0)),
                 size: Some((100, 200)),
                 selected_page: Some(0),
@@ -91,6 +99,7 @@ pub mod tests {
                     layout: Some("game".to_string()),
                 },
             ])),
+            log_view: Default::default(),
         };
 
         assert!(settings.save("test_settings.toml").is_ok());

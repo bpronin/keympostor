@@ -3,8 +3,9 @@ use crate::res::res_ids::{
     IDS_TRANSITION, IDS_VIRTUAL_KEY,
 };
 use crate::rs;
+use crate::settings::AppSettings;
 use crate::ui::RESOURCES;
-use crate::utils::hwnd;
+use crate::ui::utils::hwnd;
 use keympostor::ife;
 use keympostor::keyboard::event::KeyEvent;
 use keympostor::keyboard::modifiers::{
@@ -17,9 +18,11 @@ use native_windows_gui::{
     ControlHandle, InsertListViewColumn, ListView, ListViewColumnFlags, ListViewExFlags,
     ListViewStyle, NwgError, Tab,
 };
+use std::collections::HashMap;
 use windows::Win32::Foundation::WPARAM;
 use windows::Win32::UI::Controls::*;
 use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
+use crate::ui::utils::get_list_column_width;
 
 const MAX_LOG_ITEMS: usize = 256;
 
@@ -106,6 +109,24 @@ impl LogView {
 
     pub(crate) fn view(&self) -> impl Into<ControlHandle> {
         &self.list
+    }
+
+    pub(crate) fn apply_settings(&self, settings: &AppSettings) {
+        if let Some(columns) = &settings.log_view.columns {
+            for i in 0..self.list.column_len() {
+                if let Some(w) = columns.get(&i) {
+                    self.list.set_column_width(i, *w);
+                }
+            }
+        }
+    }
+
+    pub(crate) fn update_settings(&self, settings: &mut AppSettings) {
+        let mut map = HashMap::new();
+        for i in 0..self.list.column_len() {
+            map.insert(i, get_list_column_width(&self.list, i));
+        }
+        settings.log_view.columns = Some(map);
     }
 
     pub(crate) fn append(&self, event: &KeyEvent) {

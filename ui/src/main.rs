@@ -9,7 +9,6 @@ mod profile;
 mod res;
 mod settings;
 mod ui;
-mod utils;
 mod win_watch;
 
 fn main() {

@@ -1,17 +1,20 @@
 processing_enabled = true
 logging_enabled = true
 layouts_enabled = false
-layout = "game"
+layout = "default"
 
 [main_window]
-position = [782, 128]
-size = [716, 573]
+position = [822, 138]
+size = [716, 560]
 selected_page = 0
 
-[profiles.totalcmd]
-rule = "TOTALCMD64.EXE"
-layout = "game"
-
-[profiles.chrome]
-rule = "Chrome"
-layout = "game"
+[log_view.columns]
+7 = 94
+1 = 94
+4 = 50
+6 = 50
+3 = 50
+2 = 50
+5 = 50
+0 = 124
+8 = 50

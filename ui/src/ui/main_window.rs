@@ -167,12 +167,14 @@ impl MainWindow {
         if let Some(page) = settings.main_window.selected_page {
             self.tab_container.set_selected_tab(page);
         }
+        self.log_view.apply_settings(settings);
     }
 
     pub(crate) fn update_settings(&self, settings: &mut AppSettings) {
         settings.main_window.position = Some(self.window.position());
         settings.main_window.size = Some(get_window_size(self.window.handle));
         settings.main_window.selected_page = Some(self.tab_container.selected_tab());
+        self.log_view.update_settings(settings);
     }
 
     pub(crate) fn set_title(&self, title: &str) {
