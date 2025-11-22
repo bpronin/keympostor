@@ -1,6 +1,6 @@
+use crate::key_err;
 use crate::keyboard::error::KeyError;
 use crate::keyboard::rules::KeyTransformRules;
-use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -17,9 +17,9 @@ pub struct Layout {
 }
 
 impl Layout {
-    pub fn load(path: &str) -> Result<Self> {
-        toml::from_str(&fs::read_to_string(&path).context(format!("Unable to read {} file", path))?)
-            .context(format!("Unable to parse {}", path))
+    pub fn load(path: &str) -> Result<Self, KeyError> {
+        toml::from_str(&fs::read_to_string(&path).or(key_err!("Unable to read `{path}` file"))?)
+            .or(key_err!("Unable to parse `{path}` file"))
     }
 }
 
@@ -90,24 +90,12 @@ pub mod tests {
     use crate::keyboard::rules::KeyTransformRule;
     use crate::keyboard::rules::KeyTransformRules;
     use crate::layout::{Layout, Layouts};
-    use anyhow::{Context, Error};
-    use std::fs;
 
     #[macro_export]
     macro_rules! key_layout {
         ($text:expr) => {
             $text.parse::<Layout>().unwrap()
         };
-    }
-
-    impl Layout {
-        pub(crate) fn save(&self, path: &str) -> Result<(), Error> {
-            fs::write(
-                path,
-                toml::to_string_pretty(self).context(format!("Unable to serialize {}", path))?,
-            )
-            .context(format!("Unable to write {} file", path))
-        }
     }
 
     #[test]
@@ -204,17 +192,6 @@ pub mod tests {
     #[test]
     fn test_layout_load_fails() {
         assert!(Layout::load("test/layouts/bad.toml").is_err());
-    }
-
-    #[test]
-    fn test_layout_save() {
-        let actual = Layout::load("etc/test_data/layouts/test.toml").unwrap();
-
-        actual.save("etc/test_data/layouts/test-copy.toml").unwrap();
-
-        let expected = Layout::load("etc/test_data/layouts/test-copy.toml").unwrap();
-
-        assert_eq!(expected, actual);
     }
 
     #[test]

@@ -15,6 +15,7 @@ use log::{debug, warn};
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, SendInput};
 use windows::Win32::UI::WindowsAndMessaging::*;
+use crate::key_err;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
 
@@ -245,7 +246,7 @@ fn build_x_button_event(
         1 => &KEY_XBUTTON1,
         2 => &KEY_XBUTTON2,
         b => {
-            return Err(KeyError::new(&format!("Unsupported mouse x button: {}", b)));
+            return key_err!("Unsupported mouse x-button: `{b}`");
         }
     };
     Ok(build_mouse_event(input, key, transition))

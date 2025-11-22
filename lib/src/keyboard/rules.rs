@@ -1,7 +1,7 @@
 use crate::keyboard::action::KeyActionSequence;
 use crate::keyboard::error::KeyError;
 use crate::keyboard::trigger::KeyTrigger;
-use crate::write_joined;
+use crate::{key_err, write_joined};
 use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -69,7 +69,7 @@ impl FromStr for KeyTransformRule {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let vec = Self::from_str_expand(s)?;
         if vec.len() > 1 {
-            return Err(KeyError::new("Multiple rules"));
+            return key_err!("String must be exactly single rule");
         }
         Ok(vec[0].clone())
     }

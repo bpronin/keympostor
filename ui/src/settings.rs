@@ -1,5 +1,6 @@
 use crate::profile::Profiles;
-use anyhow::{Context, Result};
+use keympostor::key_err;
+use keympostor::keyboard::error::KeyError;
 use serde::{Deserialize, Serialize};
 use std::fs;
 
@@ -37,17 +38,20 @@ impl AppSettings {
             .unwrap_or_default()
     }
 
-    pub(crate) fn save(&self, filename: &str) -> Result<()> {
-        let text = toml::to_string(self) /* dont want `to_string_pretty` */
-            .context(format!("Error serializing `{}`", filename))?;
-        fs::write(filename, text).context(format!("Error writing `{}`", filename))
+    pub(crate) fn save(&self, path: &str) -> Result<(), KeyError> {
+        fs::write(
+            path,
+            toml::to_string(self) /* dont want `to_string_pretty` */
+                .or(key_err!("Error serializing `{path}`"))?,
+        )
+        .or(key_err!("Error writing `{path}`"))
     }
 
     pub(crate) fn load_default() -> Self {
         Self::load(SETTINGS_FILE)
     }
 
-    pub(crate) fn save_default(&self) -> Result<()> {
+    pub(crate) fn save_default(&self) -> Result<(), KeyError> {
         self.save(SETTINGS_FILE)
     }
 }

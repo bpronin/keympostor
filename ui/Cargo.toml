@@ -16,7 +16,6 @@ log = "0.4.28"
 simple_logger = "5.1.0"
 serde = { version = "1.0.228", features = ["derive"] }
 toml = "0.9.8"
-anyhow = "1.0.100"
 regex = "1.12.2"
 
 [build-dependencies]

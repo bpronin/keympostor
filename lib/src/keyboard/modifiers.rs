@@ -1,9 +1,13 @@
 use crate::keyboard::error::KeyError;
+use crate::keyboard::key::{
+    KEY_CTRL, KEY_LEFT_ALT, KEY_LEFT_CTRL, KEY_LEFT_SHIFT, KEY_LEFT_WIN, KEY_RIGHT_ALT,
+    KEY_RIGHT_CTRL, KEY_RIGHT_SHIFT, KEY_RIGHT_WIN, KEY_SHIFT,
+};
 use crate::keyboard::modifiers::KeyModifiers::All;
-use crate::{deserialize_from_string, serialize_to_string, write_joined};
+use crate::{deserialize_from_string, key_err, serialize_to_string, write_joined};
 use core::ops;
 use ops::BitOr;
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -31,17 +35,6 @@ impl ModifierKeys {
     }
 }
 
-static MODIFIER_KEYS: [VIRTUAL_KEY; 8] = [
-    VK_LSHIFT,
-    VK_RSHIFT,
-    VK_LCONTROL,
-    VK_RCONTROL,
-    VK_LMENU,
-    VK_RMENU,
-    VK_LWIN,
-    VK_RWIN,
-];
-
 impl BitOr for ModifierKeys {
     type Output = Self;
     fn bitor(self, other: Self) -> Self {
@@ -54,28 +47,28 @@ impl Display for ModifierKeys {
         let mut names: Vec<&str> = Vec::new();
 
         if self.contains(KM_LSHIFT) {
-            names.push("LEFT_SHIFT");
+            names.push(KEY_LEFT_SHIFT.name);
         }
         if self.contains(KM_RSHIFT) {
-            names.push("RIGHT_SHIFT");
+            names.push(KEY_RIGHT_SHIFT.name);
         }
         if self.contains(KM_LCTRL) {
-            names.push("LEFT_CTRL");
+            names.push(KEY_LEFT_CTRL.name);
         }
         if self.contains(KM_RCTRL) {
-            names.push("RIGHT_CTRL");
+            names.push(KEY_RIGHT_CTRL.name);
         }
         if self.contains(KM_LALT) {
-            names.push("LEFT_ALT");
+            names.push(KEY_LEFT_ALT.name);
         }
         if self.contains(KM_RALT) {
-            names.push("RIGHT_ALT");
+            names.push(KEY_RIGHT_ALT.name);
         }
         if self.contains(KM_LWIN) {
-            names.push("LEFT_WIN");
+            names.push(KEY_LEFT_WIN.name);
         }
         if self.contains(KM_RWIN) {
-            names.push("RIGHT_WIN");
+            names.push(KEY_RIGHT_WIN.name);
         }
 
         if !names.is_empty() {
@@ -85,6 +78,17 @@ impl Display for ModifierKeys {
         }
     }
 }
+
+static MODIFIER_KEYS: [VIRTUAL_KEY; 8] = [
+    VK_LSHIFT,
+    VK_RSHIFT,
+    VK_LCONTROL,
+    VK_RCONTROL,
+    VK_LMENU,
+    VK_RMENU,
+    VK_LWIN,
+    VK_RWIN,
+];
 
 impl From<&[bool; 256]> for ModifierKeys {
     fn from(keyboard_state: &[bool; 256]) -> Self {
@@ -103,34 +107,44 @@ impl FromStr for ModifierKeys {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let ts = s.trim();
-        if ts.is_empty() {
+        if s.trim().is_empty() {
             Ok(KM_NONE)
         } else {
-            let result = ts.split('+').fold(KM_NONE, |acc, part| {
-                acc | match part.trim() {
-                    "LEFT_SHIFT" => KM_LSHIFT,
-                    "RIGHT_SHIFT" => KM_RSHIFT,
-                    "SHIFT" => KM_LSHIFT | KM_RSHIFT,
-                    "LEFT_CTRL" => KM_LCTRL,
-                    "RIGHT_CTRL" => KM_RCTRL,
-                    "CTRL" => KM_LCTRL | KM_RCTRL,
-                    "LEFT_ALT" => KM_LALT,
-                    "RIGHT_ALT" => KM_RALT,
-                    "ALT" => KM_LALT | KM_RALT,
-                    "LEFT_WIN" => KM_LWIN,
-                    "RIGHT_WIN" => KM_RWIN,
-                    "WIN" => KM_LWIN | KM_RWIN,
-                    &_ => KM_NONE,
+            let result = s.trim().split('+').fold(KM_NONE, |acc, part| {
+                let p = part.trim();
+                acc | if KEY_LEFT_SHIFT.name == p {
+                    KM_LSHIFT
+                } else if KEY_RIGHT_SHIFT.name == p {
+                    KM_RSHIFT
+                } else if KEY_SHIFT.name == p {
+                    KM_LSHIFT | KM_RSHIFT
+                } else if KEY_LEFT_CTRL.name == p {
+                    KM_LCTRL
+                } else if KEY_RIGHT_CTRL.name == p {
+                    KM_RCTRL
+                } else if KEY_CTRL.name == p {
+                    KM_LCTRL | KM_RCTRL
+                } else if KEY_LEFT_ALT.name == p {
+                    KM_LALT
+                } else if KEY_RIGHT_ALT.name == p {
+                    KM_RALT
+                } else if KEY_LEFT_WIN.name == p {
+                    KM_LWIN
+                } else if KEY_RIGHT_WIN.name == p {
+                    KM_RWIN
+                } else if "ALT" == p {
+                    KM_LALT | KM_RALT
+                } else if "WIN" == p {
+                    KM_LWIN | KM_RWIN
+                } else {
+                    KM_NONE
                 }
             });
 
             if result != KM_NONE {
                 Ok(result)
             } else {
-                Err(KeyError::new(&format!(
-                    "Error parsing key modifiers: `{ts}`"
-                )))
+                key_err!("Error parsing key modifiers: `{s}`")
             }
         }
     }
@@ -173,8 +187,8 @@ impl FromStr for KeyModifiers {
 mod tests {
     use crate::keyboard::modifiers::KeyModifiers::{All, Any};
     use crate::keyboard::modifiers::{
-        KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT, KM_RWIN, KeyModifiers,
-        ModifierKeys,
+        KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT,
+        KM_RWIN,
     };
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;

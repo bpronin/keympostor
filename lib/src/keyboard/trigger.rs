@@ -3,7 +3,7 @@ use crate::keyboard::error::KeyError;
 use crate::keyboard::event::KeyEvent;
 use crate::keyboard::modifiers::KeyModifiers;
 use crate::keyboard::modifiers::KeyModifiers::{All, Any};
-use crate::{deserialize_from_string, serialize_to_string};
+use crate::{deserialize_from_string, key_err, serialize_to_string};
 use serde::{Deserialize, Serialize, de};
 use serde::{Deserializer, Serializer};
 use std::fmt::{Display, Formatter};
@@ -74,7 +74,7 @@ impl FromStr for KeyTrigger {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let vec = Self::from_str_expand(s)?;
         if vec.len() > 1 {
-            return Err(KeyError::new("Multiple triggers"));
+            return key_err!("String must be exactly single trigger");
         }
         Ok(vec[0])
     }
