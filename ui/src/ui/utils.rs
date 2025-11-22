@@ -6,7 +6,7 @@ use native_windows_gui::{
 };
 use std::mem;
 use windows::Win32::Foundation::{HWND, RECT, WPARAM};
-use windows::Win32::UI::Controls::LVM_GETCOLUMNWIDTH;
+use windows::Win32::UI::Controls::{LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH};
 use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowRect, SendMessageW, SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
     SWP_NOOWNERZORDER, SWP_NOZORDER,
@@ -46,15 +46,25 @@ pub fn set_window_size(handle: ControlHandle, size: (u32, u32)) {
 }
 
 /// workaround for nwg bug
-pub fn get_list_column_width(list_view: &ListView, index: usize) -> isize {
+pub fn get_list_view_column_width(view: &ListView, index: usize) -> isize {
     unsafe {
         SendMessageW(
-            hwnd(list_view.handle),
+            hwnd(view.handle),
             LVM_GETCOLUMNWIDTH,
             Some(WPARAM(index)),
             None,
         )
         .0
+    }
+}
+
+pub fn scroll_list_view_to_end(view: &ListView) {
+    let len = view.len();
+    if len > 0 {
+        let hwnd = hwnd(view.handle);
+        unsafe {
+            SendMessageW(hwnd, LVM_ENSUREVISIBLE, Some(WPARAM(len - 1)), None);
+        }
     }
 }
 

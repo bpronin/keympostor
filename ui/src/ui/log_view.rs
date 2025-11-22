@@ -5,7 +5,7 @@ use crate::res::res_ids::{
 use crate::rs;
 use crate::settings::AppSettings;
 use crate::ui::RESOURCES;
-use crate::ui::utils::hwnd;
+use crate::ui::utils::{hwnd, scroll_list_view_to_end};
 use keympostor::ife;
 use keympostor::keyboard::event::KeyEvent;
 use keympostor::keyboard::modifiers::{
@@ -22,7 +22,7 @@ use std::collections::HashMap;
 use windows::Win32::Foundation::WPARAM;
 use windows::Win32::UI::Controls::*;
 use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
-use crate::ui::utils::get_list_column_width;
+use crate::ui::utils::get_list_view_column_width;
 
 const MAX_LOG_ITEMS: usize = 256;
 
@@ -124,7 +124,7 @@ impl LogView {
     pub(crate) fn update_settings(&self, settings: &mut AppSettings) {
         let mut map = HashMap::new();
         for i in 0..self.list.column_len() {
-            map.insert(i, get_list_column_width(&self.list, i));
+            map.insert(i, get_list_view_column_width(&self.list, i));
         }
         settings.log_view.columns = Some(map);
     }
@@ -167,23 +167,14 @@ impl LogView {
         );
 
         self.list.set_redraw(true);
-        self.scroll_to_end();
+        
+        scroll_list_view_to_end(&self.list);
     }
 
     pub(crate) fn clear(&self) {
         self.list.clear()
     }
-
-    fn scroll_to_end(&self) {
-        let len = self.list.len();
-        if len > 0 {
-            let hwnd = hwnd(self.list.handle);
-            unsafe {
-                SendMessageW(hwnd, LVM_ENSUREVISIBLE, Some(WPARAM(len - 1)), None);
-            }
-        }
-    }
-
+    
     // pub(crate) fn handle_raw_event(&self, msg: u32, l_param: isize) {
     //     if msg == WM_NOTIFY {
     //         unsafe {
