@@ -51,6 +51,8 @@ impl App {
     fn load_settings(&self) {
         let settings = AppSettings::load_default();
 
+        self.window.apply_settings(&settings);
+
         self.default_layout.replace(settings.layout);
         self.select_layout(&None);
 
@@ -63,11 +65,6 @@ impl App {
             .replace(Rc::new(settings.profiles.unwrap_or_default()));
         self.win_watcher.set_profiles(&self.profiles.borrow());
         self.win_watcher.set_enabled(settings.layouts_enabled);
-
-        self.window.set_position(settings.main_window.position);
-        self.window.set_size(settings.main_window.size);
-        self.window
-            .set_selected_page(settings.main_window.selected_page);
 
         debug!("Loaded settings");
     }
@@ -91,9 +88,8 @@ impl App {
         settings.processing_enabled = self.key_hook.is_enabled();
         settings.layouts_enabled = self.win_watcher.is_enabled();
         settings.logging_enabled = self.is_log_enabled.borrow().to_owned();
-        settings.main_window.position = Some(self.window.get_position());
-        settings.main_window.size = Some(self.window.get_size());
-        settings.main_window.selected_page = Some(self.window.get_selected_page());
+
+        self.window.update_settings(&mut settings);
 
         settings.save_default().unwrap_or_else(|e| {
             ui_warn!("{}", e);

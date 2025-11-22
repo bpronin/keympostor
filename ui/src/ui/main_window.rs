@@ -157,6 +157,24 @@ impl MainWindow {
         self.tray.update_ui(is_processing_enabled);
     }
 
+    pub(crate) fn apply_settings(&self, settings: &AppSettings) {
+        if let Some(position) = settings.main_window.position {
+            self.window.set_position(position.0, position.1)
+        }
+        if let Some(size) = settings.main_window.size {
+            set_window_size(self.window.handle, size);
+        }
+        if let Some(page) = settings.main_window.selected_page {
+            self.tab_container.set_selected_tab(page);
+        }
+    }
+
+    pub(crate) fn update_settings(&self, settings: &mut AppSettings) {
+        settings.main_window.position = Some(self.window.position());
+        settings.main_window.size = Some(get_window_size(self.window.handle));
+        settings.main_window.selected_page = Some(self.tab_container.selected_tab());
+    }
+
     pub(crate) fn set_title(&self, title: &str) {
         self.window.set_text(title)
     }
@@ -169,42 +187,12 @@ impl MainWindow {
         self.window.visible()
     }
 
-    pub(crate) fn set_size(&self, size: Option<(u32, u32)>) {
-        if let Some(size) = size {
-            set_window_size(self.window.handle, size);
-        }
-    }
-
-    pub(crate) fn get_size(&self) -> (u32, u32) {
-        get_window_size(self.window.handle)
-    }
-
-    pub(crate) fn set_position(&self, position: Option<(i32, i32)>) {
-        if let Some(position) = position {
-            self.window.set_position(position.0, position.1)
-        }
-    }
-
-    pub(crate) fn get_position(&self) -> (i32, i32) {
-        self.window.position()
-    }
-
-    pub(crate) fn on_load_layouts(&self, layouts: &Layouts) {
-        self.main_menu.build_layouts_menu(layouts);
-    }
-
     pub(crate) fn clear_log(&self) {
         self.log_view.clear()
     }
 
-    pub(crate) fn get_selected_page(&self) -> usize {
-        self.tab_container.selected_tab()
-    }
-
-    pub(crate) fn set_selected_page(&self, page: Option<usize>) {
-        if let Some(page) = page {
-            self.tab_container.set_selected_tab(page);
-        }
+    pub(crate) fn on_load_layouts(&self, layouts: &Layouts) {
+        self.main_menu.build_layouts_menu(layouts);
     }
 
     pub(crate) fn on_select_layout(&self, layout: &Layout) {

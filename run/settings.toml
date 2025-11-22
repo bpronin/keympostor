@@ -8,10 +8,10 @@ position = [782, 128]
 size = [716, 573]
 selected_page = 0
 
-[profiles.chrome]
-rule = "Chrome"
-layout = "game"
-
 [profiles.totalcmd]
 rule = "TOTALCMD64.EXE"
+layout = "game"
+
+[profiles.chrome]
+rule = "Chrome"
 layout = "game"
