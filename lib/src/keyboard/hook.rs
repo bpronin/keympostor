@@ -209,11 +209,7 @@ fn build_key_event<'a>(input: KBDLLHOOKSTRUCT) -> KeyEvent<'a> {
                 input.vkCode as u8,
                 (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED)),
             ),
-            transition: if input.flags.contains(LLKHF_UP) {
-                Up
-            } else {
-                Down
-            },
+            transition: KeyTransition::from(!input.flags.contains(LLKHF_UP))
         },
         modifiers: ModifierKeys::from(&unsafe { HOOK.keyboard_state }),
         is_injected: input.flags.contains(LLKHF_INJECTED),

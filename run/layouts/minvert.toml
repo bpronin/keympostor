@@ -11,11 +11,11 @@ title = "Mouse invert"
 #"WHEEL_Y*" = "D* > D^"
 #"WHEEL_Y^" = "U* > U^"
 
-#"XBUTTON1" = "A"
-#"A" = "XBUTTON1"
+"XBUTTON1" = "A"
+"A" = "XBUTTON1"
 "XBUTTON2" = "B"
-#"B" = "XBUTTON2"
-#
+"B" = "XBUTTON2"
+
 #"LEFT_BUTTON" = "1"
 #"RIGHT_BUTTON" = "2"
 #"MIDDLE_BUTTON" = "3"

@@ -38,13 +38,13 @@ impl<'de> Deserialize<'de> for Key {
 pub fn key_by_code(vk_code: u8, sc_code: (u8, bool)) -> &'static Key {
     CODE_TO_KEY_MAP
         .get(&key_code(vk_code, sc_code))
-        .expect(&format!("Illegal key code: `{:?} {:?}`.", vk_code, sc_code))
+        .expect(&format!("Unsupported key code: `{:?} {:?}`.", vk_code, sc_code))
 }
 
 pub fn key_by_name(name: &str) -> Result<&'static Key, KeyError> {
     NAME_TO_KEY_MAP
         .get(name.trim())
-        .ok_or(KeyError::new(&format!("Illegal key name: `{}`.", name)))
+        .ok_or(KeyError::new(&format!("Illegal key name: `{name}`.")))
 }
 
 #[macro_export]

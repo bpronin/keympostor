@@ -55,21 +55,21 @@ impl LogView {
         self.list.insert_column(InsertListViewColumn {
             index: Some(2),
             fmt: Some(ListViewColumnFlags::LEFT),
-            width: Some(0),
+            width: Some(50),
             text: Some(rs!(IDS_MODIFIERS).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(3),
             fmt: Some(ListViewColumnFlags::LEFT),
-            width: Some(0),
+            width: Some(50),
             text: Some(rs!(IDS_KEY).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(4),
             fmt: Some(ListViewColumnFlags::LEFT),
-            width: Some(0),
+            width: Some(50),
             text: Some(rs!(IDS_TRANSITION).into()),
         });
 
@@ -90,14 +90,14 @@ impl LogView {
         self.list.insert_column(InsertListViewColumn {
             index: Some(7),
             fmt: Some(ListViewColumnFlags::LEFT),
-            width: Some(0),
+            width: Some(50),
             text: Some(rs!(IDS_TIME).into()),
         });
 
         self.list.insert_column(InsertListViewColumn {
             index: Some(8),
             fmt: Some(ListViewColumnFlags::RIGHT),
-            width: Some(0),
+            width: Some(50),
             text: Some(rs!(IDS_STATUS).into()),
         });
 
