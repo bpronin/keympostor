@@ -1,7 +1,7 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::Iter;
 use std::collections::HashMap;
+use std::collections::hash_map::Iter;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Profile {

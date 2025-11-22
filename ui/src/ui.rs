@@ -1,6 +1,6 @@
 use crate::profile::{Profile, Profiles};
-use crate::res::res_ids::{IDR_SWITCH_LAYOUT, IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
 use crate::res::RESOURCES;
+use crate::res::res_ids::{IDR_SWITCH_LAYOUT, IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
 use crate::settings::{AppSettings, LAYOUTS_PATH};
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -13,9 +13,9 @@ use crate::utils::{get_window_size, hwnd, set_window_size, try_hwnd};
 use crate::win_watch::WinWatcher;
 use crate::{r_snd, rs, ui_warn};
 use event::KeyEvent;
-use keympostor::keyboard::{event, KeyboardHook};
 use keympostor::keyboard::hook::WM_KEY_HOOK_NOTIFY;
 use keympostor::keyboard::trigger::KeyTrigger;
+use keympostor::keyboard::{KeyboardHook, event};
 use keympostor::layout::Layouts;
 use log::{debug, error};
 use native_windows_gui as nwg;

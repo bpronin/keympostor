@@ -1,7 +1,7 @@
-use crate::ui::RESOURCES;
-use native_windows_gui::{message, MessageButtons, MessageIcons, MessageParams};
 use crate::res::res_ids::IDS_APP_TITLE;
 use crate::rs;
+use crate::ui::RESOURCES;
+use native_windows_gui::{MessageButtons, MessageIcons, MessageParams, message};
 
 pub(crate) fn warn(text: &str) {
     message(&MessageParams {

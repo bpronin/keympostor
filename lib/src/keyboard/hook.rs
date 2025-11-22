@@ -1,25 +1,19 @@
-use crate::keyboard::action::{KeyAction, KeyActionSequence};
+use crate::keyboard::action::KeyAction;
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
 use crate::keyboard::input;
 use crate::keyboard::key::{
-    key_by_code, Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y,
-    KEY_RIGHT_BUTTON, KEY_WHEEL_X, KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
+    KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y, KEY_RIGHT_BUTTON, KEY_WHEEL_X,
+    KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2, Key, key_by_code,
 };
 use crate::keyboard::modifiers::ModifierKeys;
-use crate::keyboard::sc::ScanCode;
 use crate::keyboard::transform::KeyTransformMap;
 use crate::keyboard::transition::KeyTransition;
 use crate::keyboard::transition::KeyTransition::Down;
 use crate::keyboard::transition::KeyTransition::Up;
-use crate::keyboard::vk::VirtualKey;
 use log::{debug, warn};
-use std::result;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    SendInput, INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT,
-    KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEINPUT, VIRTUAL_KEY,
-};
+use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, SendInput};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
@@ -123,7 +117,7 @@ pub(crate) fn uninstall_mouse_hook() {
     }
 }
 
-fn handle_key_event(mut event: KeyEvent, delta: i32) -> bool {
+fn handle_key_event(mut event: KeyEvent, delta: u32) -> bool {
     unsafe {
         HOOK.keyboard_state[event.action.key.vk_code as usize] = event.action.transition == Down;
     }
@@ -144,7 +138,7 @@ fn handle_key_event(mut event: KeyEvent, delta: i32) -> bool {
     result
 }
 
-fn apply_transform(event: &KeyEvent, delta: i32) -> bool {
+fn apply_transform(event: &KeyEvent, delta: u32) -> bool {
     if let Some(rule) = event.rule {
         debug!("Applying rule: {}", rule);
         let input = input::build_input(&rule.actions, delta);
@@ -251,7 +245,7 @@ fn build_x_button_event(
         1 => &KEY_XBUTTON1,
         2 => &KEY_XBUTTON2,
         b => {
-            return Err(KeyError::new(&format!("Unsupported button: {}", b)));
+            return Err(KeyError::new(&format!("Unsupported mouse x button: {}", b)));
         }
     };
     Ok(build_mouse_event(input, key, transition))
@@ -276,10 +270,11 @@ fn handle_mouse_x_button(input: &MSLLHOOKSTRUCT, transition: KeyTransition) -> b
 }
 
 fn handle_mouse_wheel(input: &MSLLHOOKSTRUCT, tilt: bool) -> bool {
-    let key = if tilt { &KEY_MOUSE_X } else { &KEY_WHEEL_Y };
-    let d = (input.mouseData >> 16) as i16; /* do not cast to i32 to preserve sign */
+    let key = if tilt { &KEY_WHEEL_X } else { &KEY_WHEEL_Y };
+    let d = (input.mouseData >> 16) as i16; /* do not cast to i32 here to preserve the sign */
     let event = build_mouse_event(input, key, KeyTransition::from(d < 0));
-    handle_key_event(event, d as i32)
+
+    handle_key_event(event, d.abs() as u32)
 }
 
 fn handle_mouse_move(input: &MSLLHOOKSTRUCT) -> bool {
@@ -292,5 +287,5 @@ fn handle_mouse_move(input: &MSLLHOOKSTRUCT) -> bool {
     let x_event = build_mouse_event(input, &KEY_MOUSE_X, KeyTransition::from(dx > 0));
     let y_event = build_mouse_event(input, &KEY_MOUSE_Y, KeyTransition::from(dy > 0));
 
-    handle_key_event(x_event, dx) | handle_key_event(y_event, dy)
+    handle_key_event(x_event, dx.abs() as u32) | handle_key_event(y_event, dy.abs() as u32)
 }

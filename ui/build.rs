@@ -24,7 +24,10 @@ fn generate_resource_consts() {
         if line.starts_with("#define ") {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() >= 3 && parts[1].starts_with("ID") {
-                out.push_str(&format!("pub(crate) const {}: usize = {};\n", parts[1], parts[2]));
+                out.push_str(&format!(
+                    "pub(crate) const {}: usize = {};\n",
+                    parts[1], parts[2]
+                ));
             }
         }
     }

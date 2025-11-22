@@ -1,13 +1,15 @@
 use crate::keyboard::error::KeyError;
-use crate::keyboard::key::{key_by_name, Key};
+use crate::keyboard::key::{Key, key_by_name};
 use crate::keyboard::transition::KeyTransition;
 use crate::keyboard::transition::KeyTransition::{Down, Up};
 use crate::{deserialize_from_string, serialize_to_string, write_joined};
 use serde::Deserializer;
 use serde::Serializer;
-use serde::{de, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de};
+use slice::Iter;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
+use std::slice;
 use std::str::FromStr;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -22,30 +24,29 @@ impl KeyAction {
     }
 
     pub(crate) fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
-        let (sk, st) = match s.find(|c| ['^', '*', '↓', '↑'].contains(&c)) {
-            Some(p) => {
-                (s.get(..p).ok_or(KeyError::new("Missing key part"))?, s.get(p..))
-            }
-            None => (s, None),
-        };
+        let ts = s.trim();
+        let mut list = Vec::with_capacity(2);
 
-        let key = key_by_name(sk)?;
-
-        let mut list = Vec::new();
-        match st {
-            Some(t) => {
-                for char in t.trim().chars() {
-                    match char {
-                        '*' | '↓' => list.push(KeyAction::new(key, Down)),
-                        '^' | '↑' => list.push(KeyAction::new(key, Up)),
-                        _ => return Err(KeyError::new(&format!("Invalid transition character: `{}`", char))),
-                    }
-                }
-            }
-            None => {
-                list.push(KeyAction::new(key, Down));
-                list.push(KeyAction::new(key, Up));
-            }
+        if let Some(k) = ts.strip_suffix("*^") {
+            let key = key_by_name(k)?;
+            list.push(KeyAction::new(key, Down));
+            list.push(KeyAction::new(key, Up));
+        } else if let Some(k) = ts.strip_suffix("↓↑") {
+            let key = key_by_name(k)?;
+            list.push(KeyAction::new(key, Down));
+            list.push(KeyAction::new(key, Up));
+        } else if let Some(k) = ts.strip_suffix('*') {
+            list.push(KeyAction::new(key_by_name(k)?, Down));
+        } else if let Some(k) = ts.strip_suffix('↓') {
+            list.push(KeyAction::new(key_by_name(k)?, Down));
+        } else if let Some(k) = ts.strip_suffix('^') {
+            list.push(KeyAction::new(key_by_name(k)?, Up));
+        } else if let Some(k) = ts.strip_suffix('↑') {
+            list.push(KeyAction::new(key_by_name(k)?, Up));
+        } else {
+            let key = key_by_name(ts)?;
+            list.push(KeyAction::new(key, Down));
+            list.push(KeyAction::new(key, Up));
         }
 
         Ok(list)
@@ -62,7 +63,11 @@ impl FromStr for KeyAction {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self::from_str_expand(s)?[0])
+        let vec = Self::from_str_expand(s)?;
+        if vec.len() > 1 {
+            return Err(KeyError::new("Multiple actions"));
+        }
+        Ok(vec[0])
     }
 }
 
@@ -74,34 +79,59 @@ impl<'de> Deserialize<'de> for KeyAction {
     deserialize_from_string!();
 }
 
-#[derive(Clone)]
-pub struct KeyActionSequence {
-    pub(crate) actions: Vec<KeyAction>,
-}
+#[derive(Clone, Eq)]
+pub struct KeyActionSequence(Vec<KeyAction>);
 
 impl KeyActionSequence {
     pub fn new(actions: Vec<KeyAction>) -> Self {
-        Self { actions }
+        Self(actions)
+    }
+
+    pub fn iter(&self) -> Iter<'_, KeyAction> {
+        self.0.iter()
+    }
+
+    pub(crate) fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
+        let mut down_actions = Vec::new();
+        let mut up_actions = Vec::new();
+
+        let mut is_expanded = false;
+        for part in s.split(|c| ['→', '>'].contains(&c)) {
+            let actions = KeyAction::from_str_expand(part)?;
+            down_actions.push(actions[0]);
+            if actions.len() == 1 {
+                up_actions.push(actions[0]);
+            } else {
+                up_actions.push(actions[1]);
+                is_expanded = true;
+            }
+        }
+
+        let mut list = Vec::new();
+        list.push(KeyActionSequence::new(down_actions));
+        if is_expanded {
+            list.push(KeyActionSequence::new(up_actions))
+        }
+
+        Ok(list)
     }
 }
 
 impl PartialEq<Self> for KeyActionSequence {
     fn eq(&self, other: &Self) -> bool {
-        self.actions == other.actions
+        self.0 == other.0
     }
 }
 
-impl Eq for KeyActionSequence {}
-
 impl Debug for KeyActionSequence {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:?}", self.actions)
+        write!(f, "{:?}", self.0)
     }
 }
 
 impl Display for KeyActionSequence {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write_joined!(f, &self.actions, " → ")
+        write_joined!(f, &self.0, " → ")
     }
 }
 
@@ -109,12 +139,11 @@ impl FromStr for KeyActionSequence {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut actions = Vec::new();
-        for part in s.split(|c| ['→', '>'].contains(&c)) {
-            actions.append(&mut KeyAction::from_str_expand(part)?);
+        let vec = Self::from_str_expand(s)?;
+        if vec.len() > 1 {
+            return Err(KeyError::new("Multiple sequences"));
         }
-
-        Ok(Self { actions })
+        Ok(vec[0].clone())
     }
 }
 
@@ -130,7 +159,7 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 mod tests {
     use crate::key;
     use crate::keyboard::action::{KeyAction, KeyActionSequence};
-    use crate::keyboard::key::{key_by_name, KEY_ENTER, KEY_SHIFT};
+    use crate::keyboard::key::key_by_name;
     use crate::keyboard::transition::KeyTransition::{Down, Up};
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
@@ -152,7 +181,7 @@ mod tests {
     // Key action
 
     #[test]
-    fn test_action_display() {
+    fn test_key_action_display() {
         let actual = KeyAction {
             key: key!("ENTER"),
             transition: Down,
@@ -173,7 +202,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_from_str() {
+    fn test_key_action_from_str() {
         assert_eq!(
             KeyAction {
                 key: key!("ENTER"),
@@ -192,7 +221,7 @@ mod tests {
     }
 
     #[test]
-    fn test_action_from_str_expand() {
+    fn test_key_action_from_str_expand() {
         assert_eq!(
             vec![KeyAction {
                 key: key!("A"),
@@ -227,20 +256,6 @@ mod tests {
             vec![
                 KeyAction {
                     key: key!("A"),
-                    transition: Up,
-                },
-                KeyAction {
-                    key: key!("A"),
-                    transition: Down,
-                },
-            ],
-            KeyAction::from_str_expand("A^*").unwrap()
-        );
-
-        assert_eq!(
-            vec![
-                KeyAction {
-                    key: key!("A"),
                     transition: Down,
                 },
                 KeyAction {
@@ -264,28 +279,10 @@ mod tests {
             ],
             KeyAction::from_str_expand("A").unwrap()
         );
-
-        assert_eq!(
-            vec![
-                KeyAction {
-                    key: key!("A"),
-                    transition: Down,
-                },
-                KeyAction {
-                    key: key!("A"),
-                    transition: Down,
-                },
-                KeyAction {
-                    key: key!("A"),
-                    transition: Up,
-                }
-            ],
-            KeyAction::from_str_expand("A↓↓↑").unwrap()
-        );
     }
 
     #[test]
-    fn test_action_serialize() {
+    fn test_key_action_serialize() {
         let source = SerdeWrapper::new(key_action!("A*"));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
@@ -306,78 +303,60 @@ mod tests {
     // Key action sequence
 
     #[test]
-    fn test_sequence_display() {
+    fn test_key_action_sequence_display() {
         let actual = key_action_seq!("ENTER↓ → SHIFT↑");
 
         assert_eq!("ENTER↓ → SHIFT↑", format!("{}", actual));
     }
 
     #[test]
-    fn test_sequence_from_str() {
+    fn test_key_action_sequence_from_str_to_vec() {
         assert_eq!(
-            KeyActionSequence {
-                actions: vec![KeyAction {
-                    key: &KEY_ENTER,
-                    transition: Down,
-                }]
-            },
-            KeyActionSequence::from_str("ENTER↓").unwrap()
+            vec![KeyActionSequence::new(vec![key_action!("A↓")]),],
+            KeyActionSequence::from_str_expand("A↓").unwrap()
         );
 
         assert_eq!(
-            KeyActionSequence {
-                actions: vec![
-                    KeyAction {
-                        key: &KEY_ENTER,
-                        transition: Down,
-                    },
-                    KeyAction {
-                        key: &KEY_SHIFT,
-                        transition: Up,
-                    }
-                ]
-            },
-            KeyActionSequence::from_str("ENTER↓ → SHIFT↑").unwrap()
+            vec![KeyActionSequence::new(vec![
+                key_action!("A↓"),
+                key_action!("B↑"),
+                key_action!("C↓")
+            ]),],
+            KeyActionSequence::from_str_expand("A↓ → B↑ → C↓").unwrap()
+        );
+    }
+
+    #[test]
+    fn test_key_action_sequence_from_str_to_vec_expand() {
+        assert_eq!(
+            vec![key_action_seq!("A↓"), key_action_seq!("A↑")],
+            KeyActionSequence::from_str_expand("A").unwrap()
         );
 
         assert_eq!(
-            KeyActionSequence {
-                actions: vec![
-                    KeyAction {
-                        key: &KEY_ENTER,
-                        transition: Down,
-                    },
-                    KeyAction {
-                        key: &KEY_ENTER,
-                        transition: Up,
-                    }
-                ]
-            },
-            KeyActionSequence::from_str("ENTER↓↑").unwrap()
+            vec![key_action_seq!("A↓"), key_action_seq!("A↑")],
+            KeyActionSequence::from_str_expand("A↓↑").unwrap()
         );
 
         assert_eq!(
-            KeyActionSequence {
-                actions: vec![
-                    KeyAction {
-                        key: &KEY_ENTER,
-                        transition: Down,
-                    },
-                    KeyAction {
-                        key: &KEY_ENTER,
-                        transition: Up,
-                    },
-                    KeyAction {
-                        key: &KEY_SHIFT,
-                        transition: Down,
-                    },
-                    KeyAction {
-                        key: &KEY_SHIFT,
-                        transition: Up,
-                    }
-                ]
-            },
-            KeyActionSequence::from_str("ENTER → SHIFT").unwrap()
+            vec![key_action_seq!("A↓ → B↓"), key_action_seq!("A↑ → B↑")],
+            KeyActionSequence::from_str_expand("A → B").unwrap()
+        );
+
+        assert_eq!(
+            vec![
+                key_action_seq!("A↓ → B↓ → C↓"),
+                key_action_seq!("A↑ → B↑ → C↓")
+            ],
+            KeyActionSequence::from_str_expand("A → B → C↓").unwrap()
+        );
+
+        assert_eq!(
+            vec![
+                key_action_seq!("C↓ → A↓ → B↓"),
+                key_action_seq!("C↓ → A↑ → B↑")
+            ],
+            KeyActionSequence::from_str_expand("C↓ → A → B").unwrap()
         );
     }
 

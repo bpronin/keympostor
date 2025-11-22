@@ -1,5 +1,5 @@
-use crate::res::res_ids::IDS_LAYOUT;
 use crate::res::RESOURCES;
+use crate::res::res_ids::IDS_LAYOUT;
 use crate::rs;
 use crate::ui::App;
 use keympostor::layout::Layouts;

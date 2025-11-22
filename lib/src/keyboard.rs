@@ -1,4 +1,4 @@
-use crate::keyboard::hook::{install_mouse_hook, uninstall_mouse_hook, HOOK};
+use crate::keyboard::hook::{HOOK, install_mouse_hook, uninstall_mouse_hook};
 use crate::keyboard::rules::KeyTransformRules;
 use crate::keyboard::transform::KeyTransformMap;
 use hook::{install_key_hook, uninstall_key_hook};
@@ -10,15 +10,15 @@ pub mod action;
 pub mod error;
 pub mod event;
 pub mod hook;
+mod input;
 pub mod key;
 pub mod modifiers;
 pub mod rules;
 pub mod sc;
 mod transform;
+mod transition;
 pub mod trigger;
 pub mod vk;
-mod transition;
-mod input;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHook {

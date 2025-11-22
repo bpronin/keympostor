@@ -14,17 +14,19 @@ impl ScanCode {
     // pub(crate) fn hex_code(&self) -> String {
     //     format!("SC_0x{:04X}", self.ext_value())
     // }
+
+    pub(crate) fn ext_value(self) -> u16 {
+        if self.is_extended {
+            self.value as u16 | 0xE0 << 8
+        } else {
+            self.value as u16
+        }
+    }
 }
 
 impl Display for ScanCode {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name, f)
-    }
-}
-
-impl From<(u8, bool)> for ScanCode {
-    fn from(code: (u8, bool)) -> Self {
-        SCAN_CODES[code.0 as usize][code.1 as usize]
     }
 }
 
@@ -42,19 +44,15 @@ impl FromStr for ScanCode {
     }
 }
 
-impl From<&Key> for ScanCode {
-    fn from(key: &Key) -> Self {
-        Self::from(key.scan_code)
+impl From<(u8, bool)> for ScanCode {
+    fn from(code: (u8, bool)) -> Self {
+        SCAN_CODES[code.0 as usize][code.1 as usize]
     }
 }
 
-impl Into<u16> for ScanCode {
-    fn into(self) -> u16 {
-        if self.is_extended {
-            self.value as u16 | 0xE0 << 8
-        } else {
-            self.value as u16
-        }
+impl From<&Key> for ScanCode {
+    fn from(key: &Key) -> Self {
+        Self::from(key.scan_code)
     }
 }
 
@@ -255,15 +253,15 @@ mod tests {
     }
 
     // #[test]
-    // fn test_sc_from_code_name() {
+    // fn test_sc_from_hex_code() {
     //     assert_eq!("SC_ENTER", ScanCode::from_str("SC_0x001C").unwrap().name);
     //     assert_eq!("SC_BACKTICK", ScanCode::from_str("SC_0xE029").unwrap().name);
     // }
 
     #[test]
     fn test_sc_ext_value() {
-        assert_eq!(0x001Cu16, sc_key!("SC_ENTER").into());
-        assert_eq!(0xE01Du16, sc_key!("SC_RIGHT_CTRL").into());
+        assert_eq!(0x001Cu16, sc_key!("SC_ENTER").ext_value());
+        assert_eq!(0xE01Du16, sc_key!("SC_RIGHT_CTRL").ext_value());
     }
 
     #[test]

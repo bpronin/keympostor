@@ -5,11 +5,8 @@ title = "Mouse invert"
 #"MOUSE_Y*" = "MOUSE_Y^"
 #"MOUSE_Y^" = "MOUSE_Y*"
 
-"A^" = "U"
-"A*" = "D"
-
-#"WHEEL_Y*" = "D*^"
-#"WHEEL_Y^" = "U*^"
+"WHEEL_Y*" = "D* > D^"
+"WHEEL_Y^" = "U* > U^"
 
 #"XBUTTON1" = "A"
 #"A" = "XBUTTON1"

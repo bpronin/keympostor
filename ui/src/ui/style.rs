@@ -1,5 +1,5 @@
-use std::sync::LazyLock;
 use native_windows_gui::Font;
+use std::sync::LazyLock;
 
 pub static INFO_LABEL_FONT: LazyLock<Font> = LazyLock::new(|| {
     let mut font = Font::default();

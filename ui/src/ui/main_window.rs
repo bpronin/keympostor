@@ -1,6 +1,6 @@
 use super::*;
-use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::res::RESOURCES;
+use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::{r_icon, rs};
 use keympostor::layout::Layout;

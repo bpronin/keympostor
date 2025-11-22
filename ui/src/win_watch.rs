@@ -1,4 +1,4 @@
-use crate::profile::{Profiles};
+use crate::profile::Profiles;
 use crate::ui::App;
 use error::Error;
 use log::{debug, warn};
@@ -7,13 +7,13 @@ use regex::Regex;
 use std::cell::RefCell;
 use std::error;
 use std::rc::Rc;
-use windows::core::PWSTR;
 use windows::Win32::UI::WindowsAndMessaging::{KillTimer, SetTimer};
+use windows::core::PWSTR;
 use windows::{
     Win32::Foundation::{CloseHandle, HWND, MAX_PATH},
     Win32::System::Threading::{
-        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
-        PROCESS_QUERY_LIMITED_INFORMATION,
+        OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
+        QueryFullProcessImageNameW,
     },
     Win32::UI::WindowsAndMessaging::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,

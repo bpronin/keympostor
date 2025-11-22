@@ -1,5 +1,4 @@
 use crate::keyboard::transition::KeyTransition::{Down, Up};
-use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -10,7 +9,7 @@ pub enum KeyTransition {
 
 impl From<bool> for KeyTransition {
     fn from(value: bool) -> Self {
-        if value {Down} else {Up}
+        if value { Down } else { Up }
     }
 }
 
