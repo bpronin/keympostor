@@ -1,18 +1,15 @@
 use criterion::measurement::WallTime;
-use criterion::{BenchmarkGroup, Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
 use fxhash::FxHashMap;
 use keympostor::keyboard::action::{KeyAction, KeyActionSequence};
 use keympostor::keyboard::event::KeyEvent;
-use keympostor::keyboard::key::KEYS;
-use keympostor::keyboard::key::Key;
+use keympostor::keyboard::key::{key_by_code};
 use keympostor::keyboard::modifiers::KeyModifiers;
 use keympostor::keyboard::modifiers::KeyModifiers::{All, Any};
 use keympostor::keyboard::rules::KeyTransformRule;
-use keympostor::keyboard::sc::MAX_SCAN_CODE;
 use keympostor::keyboard::transition::KeyTransition;
 use keympostor::keyboard::transition::KeyTransition::{Down, Up};
 use keympostor::keyboard::trigger::KeyTrigger;
-use keympostor::keyboard::vk::MAX_VK_CODE;
 
 type Group = FxHashMap<KeyModifiers, KeyTransformRule>;
 
@@ -53,26 +50,25 @@ pub struct KeyTransformMatrix {
 impl Default for KeyTransformMatrix {
     fn default() -> Self {
         Self {
-            matrix: vec![vec![vec![vec![None; MAX_VK_CODE]; MAX_SCAN_CODE]; 2]; 2]
-                .into_boxed_slice(),
+            matrix: vec![vec![vec![vec![None; 256]; 136]; 2]; 2].into_boxed_slice(),
         }
     }
 }
 
 impl KeyTransformMatrix {
     fn get_group_mut(&mut self, action: &KeyAction) -> &mut Option<Group> {
-        &mut self.matrix[action.transition as usize][action.key.scan_code.1 as usize]
-            [action.key.scan_code.0 as usize][action.key.vk_code as usize]
+        &mut self.matrix[action.transition as usize][action.key.sc.1 as usize]
+            [action.key.sc.0 as usize][action.key.vk.0 as usize]
     }
 
     fn get_group(&self, action: &KeyAction) -> &Option<Group> {
-        &self.matrix[action.transition as usize][action.key.scan_code.1 as usize]
-            [action.key.scan_code.0 as usize][action.key.vk_code as usize]
+        &self.matrix[action.transition as usize][action.key.sc.1 as usize][action.key.sc.0 as usize]
+            [action.key.vk.0 as usize]
     }
 
     fn put_group(&mut self, action: &KeyAction, group: Group) {
-        self.matrix[action.transition as usize][action.key.scan_code.1 as usize]
-            [action.key.scan_code.0 as usize][action.key.vk_code as usize] = Some(group);
+        self.matrix[action.transition as usize][action.key.sc.1 as usize]
+            [action.key.sc.0 as usize][action.key.vk.0 as usize] = Some(group);
     }
 }
 
@@ -101,10 +97,7 @@ impl KeyTransformMap for KeyTransformMatrix {
 
 fn create_action(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyAction {
     KeyAction {
-        key: Key {
-            vk_code: vk,
-            scan_code: (sc, ext),
-        },
+        key: key_by_code(vk, sc, ext),
         transition: trans,
     }
 }
@@ -134,9 +127,13 @@ pub fn for_all<F>(mut f: F)
 where
     F: FnMut(u8, u8, bool, KeyTransition) -> (),
 {
-    for (_name, key) in KEYS {
-        f(key.vk_code, key.scan_code.0, key.scan_code.1, Down);
-        f(key.vk_code, key.scan_code.0, key.scan_code.1, Up);
+    for vk in 0..255 {
+        for sc in 0..135 {
+            f(vk, sc, false, Down);
+            f(vk, sc, false, Up);
+            f(vk, sc, true, Down);
+            f(vk, sc, true, Up);
+        }
     }
 }
 

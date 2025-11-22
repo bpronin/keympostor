@@ -210,7 +210,8 @@ impl App {
 
     fn handle_raw_event(&self, msg: u32, l_param: isize) {
         if msg == WM_KEY_HOOK_NOTIFY {
-            self.on_key_hook_notify(KeyEvent::from_l_param(l_param));
+            let param = unsafe { &*(l_param as *const KeyEvent) };
+            self.on_key_hook_notify(param);
         }
         // app.log_view.handle_raw_event(msg, l_param);
     }

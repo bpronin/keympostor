@@ -15,12 +15,6 @@ pub struct KeyEvent<'a> {
     pub is_private: bool,
 }
 
-impl<'a> KeyEvent<'a> {
-    pub fn from_l_param(l_param: isize) -> &'a KeyEvent<'a> {
-        unsafe { &*(l_param as *const KeyEvent) }
-    }
-}
-
 impl Display for KeyEvent<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(

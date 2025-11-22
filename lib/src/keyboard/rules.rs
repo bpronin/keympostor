@@ -49,17 +49,17 @@ impl KeyTransformRule {
     }
 
     fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
-        let mut parts = s.trim().split("=");
+        let mut parts = s.trim().split(":");
         Self::from_str_pair(
-            parts.next().ok_or(KeyError::new("Missing source part."))?,
-            parts.next().ok_or(KeyError::new("Missing target part."))?,
+            parts.next().ok_or(KeyError::new(&format!("Missing trigger part in `{s}`")))?,
+            parts.next().ok_or(KeyError::new(&format!("Missing rule part in `{s}`.")))?,
         )
     }
 }
 
 impl Display for KeyTransformRule {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&format!("{} = {}", self.trigger, self.actions), f)
+        Display::fmt(&format!("{} : {}", self.trigger, self.actions), f)
     }
 }
 

@@ -16,7 +16,7 @@ pub mod modifiers;
 pub mod rules;
 pub mod sc;
 mod transform;
-mod transition;
+pub mod transition;
 pub mod trigger;
 pub mod vk;
 

@@ -4,25 +4,20 @@ use crate::res::res_ids::{
 };
 use crate::rs;
 use crate::settings::AppSettings;
+use crate::ui::utils::get_list_view_column_width;
+use crate::ui::utils::scroll_list_view_to_end;
 use crate::ui::RESOURCES;
-use crate::ui::utils::{hwnd, scroll_list_view_to_end};
 use keympostor::ife;
 use keympostor::keyboard::event::KeyEvent;
 use keympostor::keyboard::modifiers::{
     KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_RALT, KM_RCTRL, KM_RSHIFT, KM_RWIN,
 };
-use keympostor::keyboard::sc::ScanCode;
 use keympostor::keyboard::trigger::KeyTrigger;
-use keympostor::keyboard::vk::VirtualKey;
 use native_windows_gui::{
     ControlHandle, InsertListViewColumn, ListView, ListViewColumnFlags, ListViewExFlags,
     ListViewStyle, NwgError, Tab,
 };
 use std::collections::HashMap;
-use windows::Win32::Foundation::WPARAM;
-use windows::Win32::UI::Controls::*;
-use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
-use crate::ui::utils::get_list_view_column_width;
 
 const MAX_LOG_ITEMS: usize = 256;
 
@@ -154,8 +149,8 @@ impl LogView {
                 ),
                 event.action.key.to_string(),
                 event.action.transition.to_string(),
-                VirtualKey::from(event.action.key).to_string(),
-                ScanCode::from(event.action.key).to_string(),
+                event.action.key.vk.to_string(),
+                event.action.key.sc.to_string(),
                 event.time.to_string(),
                 format!(
                     "{:1}{:1}{:1}",
@@ -167,14 +162,14 @@ impl LogView {
         );
 
         self.list.set_redraw(true);
-        
+
         scroll_list_view_to_end(&self.list);
     }
 
     pub(crate) fn clear(&self) {
         self.list.clear()
     }
-    
+
     // pub(crate) fn handle_raw_event(&self, msg: u32, l_param: isize) {
     //     if msg == WM_NOTIFY {
     //         unsafe {

@@ -4,15 +4,13 @@ use crate::keyboard::key::{
     KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y, KEY_RIGHT_BUTTON, KEY_WHEEL_X,
     KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
 };
-use crate::keyboard::sc::ScanCode;
 use crate::keyboard::transition::KeyTransition::{Down, Up};
-use crate::keyboard::vk::VirtualKey;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
-    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSE_EVENT_FLAGS, MOUSEEVENTF_LEFTDOWN,
-    MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_MOVE,
-    MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN,
-    MOUSEEVENTF_XUP, MOUSEINPUT,
+    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
+    MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_MOVE, MOUSEEVENTF_RIGHTDOWN,
+    MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP,
+    MOUSEINPUT, MOUSE_EVENT_FLAGS,
 };
 use windows::Win32::UI::WindowsAndMessaging::{XBUTTON1, XBUTTON2};
 
@@ -123,11 +121,8 @@ fn build_mouse_input(x: i32, y: i32, flags: MOUSE_EVENT_FLAGS, data: u32) -> Opt
 }
 
 fn build_key_input(action: &KeyAction) -> INPUT {
-    let virtual_key = VirtualKey::from(action.key);
-    let scan_code = ScanCode::from(action.key);
-
     let mut flags = KEYEVENTF_SCANCODE;
-    if scan_code.is_extended {
+    if action.key.sc.1 {
         flags |= KEYEVENTF_EXTENDEDKEY
     }
     if action.transition == Up {
@@ -138,8 +133,8 @@ fn build_key_input(action: &KeyAction) -> INPUT {
         r#type: INPUT_KEYBOARD,
         Anonymous: INPUT_0 {
             ki: KEYBDINPUT {
-                wVk: virtual_key.into(),
-                wScan: scan_code.ext_value(),
+                wVk: action.key.vk.into(),
+                wScan: action.key.sc.into_ext(),
                 dwFlags: flags,
                 dwExtraInfo: SELF_EVENT_MARKER,
                 ..Default::default()
@@ -150,16 +145,15 @@ fn build_key_input(action: &KeyAction) -> INPUT {
 
 #[cfg(test)]
 mod tests {
+    use crate::key_action;
     use crate::keyboard::action::KeyAction;
     use crate::keyboard::event::SELF_EVENT_MARKER;
     use crate::keyboard::input::{build_action_input, build_key_input};
-    use crate::keyboard::sc::ScanCode;
-    use crate::{key_action, sc_key};
-    use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT, INPUT_KEYBOARD, INPUT_MOUSE, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
         KEYEVENTF_SCANCODE, MOUSEEVENTF_MOVE, MOUSEEVENTF_WHEEL, VK_RETURN,
     };
+    use crate::keyboard::sc::ScanCode;
 
     #[test]
     fn test_build_key_input() {
@@ -167,7 +161,7 @@ mod tests {
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
-            assert_eq!(sc_key!("SC_ENTER").ext_value(), actual.Anonymous.ki.wScan);
+            assert_eq!(ScanCode(0x1C, false).into_ext(), actual.Anonymous.ki.wScan);
             assert_eq!(KEYEVENTF_SCANCODE, actual.Anonymous.ki.dwFlags);
             assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.ki.dwExtraInfo);
         };
@@ -176,10 +170,7 @@ mod tests {
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
-            assert_eq!(
-                sc_key!("SC_NUM_ENTER").ext_value(),
-                actual.Anonymous.ki.wScan
-            );
+            assert_eq!(ScanCode(0x1C, true).into_ext(), actual.Anonymous.ki.wScan);
             assert_eq!(
                 KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
                 actual.Anonymous.ki.dwFlags

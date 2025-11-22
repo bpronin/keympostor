@@ -1,7 +1,7 @@
 processing_enabled = true
 logging_enabled = true
 layouts_enabled = false
-layout = "default"
+layout = "invert_mouse"
 
 [main_window]
 position = [822, 138]
@@ -9,12 +9,12 @@ size = [716, 560]
 selected_page = 0
 
 [log_view.columns]
-1 = 94
-3 = 50
-2 = 50
-4 = 50
-7 = 94
-6 = 50
+2 = 65
+0 = 129
+1 = 211
 5 = 50
-0 = 124
 8 = 50
+4 = 50
+6 = 108
+3 = 50
+7 = 94

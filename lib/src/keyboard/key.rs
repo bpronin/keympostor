@@ -1,16 +1,18 @@
 use crate::keyboard::error::KeyError;
+use crate::keyboard::vk::VirtualKey;
 use crate::{deserialize_from_string, serialize_to_string};
 use phf::phf_map;
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
+use crate::keyboard::sc::ScanCode;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct Key {
     pub name: &'static str,
-    pub vk_code: u8,
-    pub scan_code: (u8, bool),
+    pub vk: VirtualKey,
+    pub sc: ScanCode,
 }
 
 impl Display for Key {
@@ -35,10 +37,13 @@ impl<'de> Deserialize<'de> for Key {
     deserialize_from_string!();
 }
 
-pub fn key_by_code(vk_code: u8, sc_code: (u8, bool)) -> &'static Key {
+pub fn key_by_code(vk_code: u8, sc_code: u8, sc_ext: bool) -> &'static Key {
     CODE_TO_KEY_MAP
-        .get(&key_code(vk_code, sc_code))
-        .expect(&format!("Unsupported key code: `{:?} {:?}`.", vk_code, sc_code))
+        .get(&key_code(vk_code, sc_code, sc_ext))
+        .expect(&format!(
+            "Unsupported key code: `{:?} {:?}`.",
+            vk_code, sc_code
+        ))
 }
 
 pub fn key_by_name(name: &str) -> Result<&'static Key, KeyError> {
@@ -58,8 +63,8 @@ macro_rules! new_key {
     ($name:literal, $vk_code:literal, $scan_code:literal, $is_ext_scan_code:literal) => {
         Key {
             name: $name,
-            vk_code: $vk_code,
-            scan_code: ($scan_code, $is_ext_scan_code),
+            vk: VirtualKey($vk_code),
+            sc: ScanCode($scan_code, $is_ext_scan_code),
         }
     };
 }
@@ -273,8 +278,8 @@ pub(crate) static KEY__: Key = new_key!("_", 0x00, 0x39, true);
 pub(crate) static KEY__ESC: Key = new_key!("<ESC>", 0x00, 0x01, true);
 pub(crate) static KEY__TAB: Key = new_key!("<TAB>", 0x00, 0x0F, true);
 
-fn key_code(vk_code: u8, sc_code: (u8, bool)) -> u32 {
-    (vk_code as u32) << 16 | (sc_code.0 as u32) << 8 | (sc_code.1 as u32)
+fn key_code(vk_code: u8, sc_code: u8, sc_ext: bool) -> u32 {
+    (vk_code as u32) << 16 | (sc_code as u32) << 8 | (sc_ext as u32)
 }
 
 pub(crate) static CODE_TO_KEY_MAP: phf::Map<u32, Key> = phf_map! {
@@ -701,23 +706,25 @@ pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::key::{CODE_TO_KEY_MAP, Key, NAME_TO_KEY_MAP, key_by_name, key_code};
+    use crate::keyboard::key::{key_by_name, key_code, Key, CODE_TO_KEY_MAP, NAME_TO_KEY_MAP};
+    use crate::keyboard::vk::VirtualKey;
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
+    use crate::keyboard::sc::ScanCode;
 
     #[test]
     fn test_key_code() {
-        assert_eq!(key_code(0x30, (0x0B, false)), 0x300B00);
+        assert_eq!(key_code(0x30, 0x0B, false), 0x300B00);
     }
 
     #[test]
     fn test_maps() {
         CODE_TO_KEY_MAP.entries().for_each(|(code, key)| {
             assert!(NAME_TO_KEY_MAP.get(key.name).is_some());
-            assert_eq!(*code, key_code(key.vk_code, key.scan_code));
+            assert_eq!(*code, key_code(key.vk.0, key.sc.0, key.sc.1));
         });
         NAME_TO_KEY_MAP.entries().for_each(|(name, key)| {
-            let code = key_code(key.vk_code, key.scan_code);
+            let code = key_code(key.vk.0, key.sc.0, key.sc.1);
             assert!(CODE_TO_KEY_MAP.get(&code).is_some());
             assert_eq!(*name, key.name);
         });
@@ -749,8 +756,8 @@ mod tests {
                 "{}",
                 Key {
                     name: "ENTER",
-                    vk_code: 0x0D,
-                    scan_code: (0x1C, false),
+                    vk: VirtualKey(0x0D),
+                    sc: ScanCode(0x1C, false),
                 }
             )
         );
@@ -761,8 +768,8 @@ mod tests {
                 "{}",
                 Key {
                     name: "NUM_ENTER",
-                    vk_code: 0x0D,
-                    scan_code: (0x1C, true),
+                    vk: VirtualKey(0x0D),
+                    sc: ScanCode(0x1C, true),
                 }
             )
         );
@@ -773,8 +780,8 @@ mod tests {
         assert_eq!(
             Key {
                 name: "ENTER",
-                vk_code: 0x0D,
-                scan_code: (0x1C, false),
+                vk: VirtualKey(0x0D),
+                sc: ScanCode(0x1C, false),
             },
             Key::from_str("ENTER").unwrap()
         );
@@ -782,8 +789,8 @@ mod tests {
         assert_eq!(
             Key {
                 name: "NUM_ENTER",
-                vk_code: 0x0D,
-                scan_code: (0x1C, true),
+                vk: VirtualKey(0x0D),
+                sc: ScanCode(0x1C, true),
             },
             Key::from_str("NUM_ENTER").unwrap()
         );
@@ -791,8 +798,8 @@ mod tests {
         assert_eq!(
             Key {
                 name: "F3",
-                vk_code: 0x72,
-                scan_code: (0x3D, false),
+                vk: VirtualKey(0x72),
+                sc: ScanCode(0x3D, false),
             },
             Key::from_str("F3").unwrap()
         );

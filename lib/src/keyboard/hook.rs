@@ -1,10 +1,11 @@
+use crate::key_err;
 use crate::keyboard::action::KeyAction;
 use crate::keyboard::error::KeyError;
 use crate::keyboard::event::{KeyEvent, SELF_EVENT_MARKER};
 use crate::keyboard::input;
 use crate::keyboard::key::{
-    KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y, KEY_RIGHT_BUTTON, KEY_WHEEL_X,
-    KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2, Key, key_by_code,
+    key_by_code, Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y,
+    KEY_RIGHT_BUTTON, KEY_WHEEL_X, KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
 };
 use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::transform::KeyTransformMap;
@@ -13,9 +14,8 @@ use crate::keyboard::transition::KeyTransition::Down;
 use crate::keyboard::transition::KeyTransition::Up;
 use log::{debug, warn};
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, SendInput};
+use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
-use crate::key_err;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
 
@@ -120,7 +120,7 @@ pub(crate) fn uninstall_mouse_hook() {
 
 fn handle_key_event(mut event: KeyEvent, delta: u32) -> bool {
     unsafe {
-        HOOK.keyboard_state[event.action.key.vk_code as usize] = event.action.transition == Down;
+        HOOK.keyboard_state[event.action.key.vk.0 as usize] = event.action.transition == Down;
     }
 
     if !(event.is_injected && event.is_private) {
@@ -179,10 +179,10 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
         WM_MOUSEWHEEL => handle_mouse_wheel(&input, false),
         WM_MOUSEHWHEEL => handle_mouse_wheel(&input, true),
         WM_LBUTTONDOWN => handle_mouse_button(&input, &KEY_LEFT_BUTTON, Down),
-        WM_RBUTTONDOWN => handle_mouse_button(&input, &KEY_RIGHT_BUTTON, Down),
-        WM_MBUTTONDOWN => handle_mouse_button(&input, &KEY_MIDDLE_BUTTON, Down),
         WM_LBUTTONUP => handle_mouse_button(&input, &KEY_LEFT_BUTTON, Up),
+        WM_RBUTTONDOWN => handle_mouse_button(&input, &KEY_RIGHT_BUTTON, Down),
         WM_RBUTTONUP => handle_mouse_button(&input, &KEY_RIGHT_BUTTON, Up),
+        WM_MBUTTONDOWN => handle_mouse_button(&input, &KEY_MIDDLE_BUTTON, Down),
         WM_MBUTTONUP => handle_mouse_button(&input, &KEY_MIDDLE_BUTTON, Up),
         WM_XBUTTONDOWN => handle_mouse_x_button(&input, Down),
         WM_XBUTTONUP => handle_mouse_x_button(&input, Up),
@@ -207,9 +207,10 @@ fn build_key_event<'a>(input: KBDLLHOOKSTRUCT) -> KeyEvent<'a> {
         action: KeyAction {
             key: key_by_code(
                 input.vkCode as u8,
-                (input.scanCode as u8, input.flags.contains(LLKHF_EXTENDED)),
+                input.scanCode as u8,
+                input.flags.contains(LLKHF_EXTENDED),
             ),
-            transition: KeyTransition::from(!input.flags.contains(LLKHF_UP))
+            transition: KeyTransition::from(!input.flags.contains(LLKHF_UP)),
         },
         modifiers: ModifierKeys::from(&unsafe { HOOK.keyboard_state }),
         is_injected: input.flags.contains(LLKHF_INJECTED),
