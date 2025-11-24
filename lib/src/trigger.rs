@@ -1,8 +1,8 @@
-use crate::keyboard::action::KeyAction;
-use crate::keyboard::error::KeyError;
-use crate::keyboard::event::KeyEvent;
-use crate::keyboard::modifiers::KeyModifiers;
-use crate::keyboard::modifiers::KeyModifiers::{All, Any};
+use crate::action::KeyAction;
+use crate::error::KeyError;
+use crate::event::KeyEvent;
+use crate::modifiers::KeyModifiers;
+use crate::modifiers::KeyModifiers::{All, Any};
 use crate::{deserialize_from_string, key_err, serialize_to_string};
 use serde::{Deserialize, Serialize, de};
 use serde::{Deserializer, Serializer};
@@ -99,12 +99,12 @@ impl<'de> Deserialize<'de> for KeyTrigger {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::modifiers::KM_LSHIFT;
-    use crate::keyboard::modifiers::KM_NONE;
-    use crate::keyboard::modifiers::KeyModifiers::{All, Any};
-    use crate::keyboard::modifiers::ModifierKeys;
-    use crate::keyboard::trigger::KeyAction;
-    use crate::keyboard::trigger::KeyTrigger;
+    use crate::modifiers::KM_LSHIFT;
+    use crate::modifiers::KM_NONE;
+    use crate::modifiers::KeyModifiers::{All, Any};
+    use crate::modifiers::ModifierKeys;
+    use crate::trigger::KeyAction;
+    use crate::trigger::KeyTrigger;
     use crate::utils::test::SerdeWrapper;
     use crate::{key_action, key_mod};
     use std::str::FromStr;

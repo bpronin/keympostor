@@ -1,8 +1,8 @@
-use std::collections::HashMap;
 use crate::profile::Profiles;
+use keympostor::error::KeyError;
 use keympostor::key_err;
-use keympostor::keyboard::error::KeyError;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::fs;
 
 const SETTINGS_FILE: &str = "settings.toml";

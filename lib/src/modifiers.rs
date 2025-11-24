@@ -1,13 +1,14 @@
-use crate::keyboard::error::KeyError;
-use crate::keyboard::key::{
+use crate::error::KeyError;
+use crate::key::{
     KEY_CTRL, KEY_LEFT_ALT, KEY_LEFT_CTRL, KEY_LEFT_SHIFT, KEY_LEFT_WIN, KEY_RIGHT_ALT,
     KEY_RIGHT_CTRL, KEY_RIGHT_SHIFT, KEY_RIGHT_WIN, KEY_SHIFT,
 };
-use crate::keyboard::modifiers::KeyModifiers::All;
+use crate::modifiers::KeyModifiers::All;
+use crate::state::Bit256;
 use crate::{deserialize_from_string, key_err, serialize_to_string, write_joined};
 use core::ops;
 use ops::BitOr;
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -103,6 +104,19 @@ impl From<&[bool; 256]> for ModifierKeys {
     }
 }
 
+impl From<&Bit256> for ModifierKeys {
+    fn from(keyboard_state: &Bit256) -> Self {
+        let value = (0..MODIFIER_KEYS.len())
+            .filter(|modifier_index| {
+                let vk_code = MODIFIER_KEYS[*modifier_index].0;
+                keyboard_state.get(vk_code as u8)
+            })
+            .fold(0, |acc, flag_index| acc | (1 << flag_index));
+
+        Self(value as u8)
+    }
+}
+
 impl FromStr for ModifierKeys {
     type Err = KeyError;
 
@@ -185,10 +199,10 @@ impl FromStr for KeyModifiers {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::modifiers::KeyModifiers::{All, Any};
-    use crate::keyboard::modifiers::{
-        KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT,
-        KM_RWIN,
+    use crate::modifiers::KeyModifiers::{All, Any};
+    use crate::modifiers::{
+        KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT, KM_RWIN, KeyModifiers,
+        ModifierKeys,
     };
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;

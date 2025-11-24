@@ -1,14 +1,15 @@
-use crate::key_err;
-use crate::keyboard::action::KeyAction;
-use crate::keyboard::error::KeyError;
-use crate::keyboard::key::{
-    key_by_code, Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y,
-    KEY_RIGHT_BUTTON, KEY_WHEEL_X, KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
+use crate::action::KeyAction;
+use crate::error::KeyError;
+use crate::key::{
+    KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y, KEY_RIGHT_BUTTON, KEY_WHEEL_X,
+    KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2, Key, key_by_code,
 };
-use crate::keyboard::modifiers::ModifierKeys;
-use crate::keyboard::rules::KeyTransformRule;
-use crate::keyboard::transition::KeyTransition;
-use crate::keyboard::transition::KeyTransition::{Down, Up};
+use crate::key_err;
+use crate::modifiers::ModifierKeys;
+use crate::rules::KeyTransformRule;
+use crate::state::Bit256;
+use crate::transition::KeyTransition;
+use crate::transition::KeyTransition::{Down, Up};
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP, LLMHF_INJECTED,
@@ -31,10 +32,7 @@ pub struct KeyEvent<'a> {
 }
 
 impl<'a> KeyEvent<'a> {
-    pub(crate) fn new_key_event(
-        input: KBDLLHOOKSTRUCT,
-        keyboard_state: &[bool; 256],
-    ) -> KeyEvent<'a> {
+    pub(crate) fn new_key_event(input: KBDLLHOOKSTRUCT, keyboard_state: &Bit256) -> KeyEvent<'a> {
         Self {
             action: KeyAction {
                 key: key_by_code(
@@ -56,7 +54,7 @@ impl<'a> KeyEvent<'a> {
     pub(crate) fn new_mouse_event(
         msg: u32,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &[bool; 256],
+        keyboard_state: &Bit256,
     ) -> Result<KeyEvent<'a>, KeyError> {
         let event = match msg {
             WM_LBUTTONDOWN => Self::button_event(&KEY_LEFT_BUTTON, Down, input, keyboard_state),
@@ -79,7 +77,7 @@ impl<'a> KeyEvent<'a> {
         input: MSLLHOOKSTRUCT,
         dx: i32,
         dy: i32,
-        keyboard_state: &[bool; 256],
+        keyboard_state: &Bit256,
     ) -> (KeyEvent<'a>, KeyEvent<'a>) {
         (
             Self::mouse_move_event(&KEY_MOUSE_X, dx, input, keyboard_state),
@@ -91,7 +89,7 @@ impl<'a> KeyEvent<'a> {
         key: &'static Key,
         delta: i32,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &[bool; 256],
+        keyboard_state: &Bit256,
     ) -> KeyEvent<'a> {
         Self::mouse_event(
             KeyAction {
@@ -107,7 +105,7 @@ impl<'a> KeyEvent<'a> {
     fn wheel_event(
         key: &'static Key,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &[bool; 256],
+        keyboard_state: &Bit256,
     ) -> KeyEvent<'a> {
         let d = (input.mouseData >> 16) as i16;
         Self::mouse_event(
@@ -122,7 +120,7 @@ impl<'a> KeyEvent<'a> {
         key: &'static Key,
         transition: KeyTransition,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &[bool; 256],
+        keyboard_state: &Bit256,
     ) -> KeyEvent<'a> {
         Self::mouse_event(KeyAction::new(key, transition), None, input, keyboard_state)
     }
@@ -130,7 +128,7 @@ impl<'a> KeyEvent<'a> {
     fn x_button_event(
         transition: KeyTransition,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &[bool; 256],
+        keyboard_state: &Bit256,
     ) -> Result<KeyEvent<'a>, KeyError> {
         let key = match (input.mouseData >> 16) as u16 {
             1 => &KEY_XBUTTON1,
@@ -151,7 +149,7 @@ impl<'a> KeyEvent<'a> {
         action: KeyAction,
         distance: Option<u32>,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &[bool; 256],
+        keyboard_state: &Bit256,
     ) -> KeyEvent<'a> {
         Self {
             action,
@@ -181,8 +179,9 @@ impl Display for KeyEvent<'_> {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::event::KeyEvent;
-    use crate::keyboard::modifiers::ModifierKeys;
+    use crate::event::KeyEvent;
+    use crate::modifiers::ModifierKeys;
+    use crate::state::Bit256;
     use windows::Win32::UI::Input::KeyboardAndMouse::VK_LSHIFT;
 
     #[macro_export]
@@ -202,8 +201,8 @@ mod tests {
 
     #[test]
     fn test_key_event_display() {
-        let mut keyboard_state = [false; 256];
-        keyboard_state[VK_LSHIFT.0 as usize] = true;
+        let mut keyboard_state = Bit256::new();
+        keyboard_state.set(VK_LSHIFT.0 as u8, true);
         let event = key_event!("A↓", &keyboard_state);
 
         assert_eq!(format!("{}", event), "[LEFT_SHIFT] A↓ T:000000000  ");

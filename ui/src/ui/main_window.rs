@@ -3,6 +3,7 @@ use crate::res::RESOURCES;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::{r_icon, rs};
+use keympostor::event::KeyEvent;
 use keympostor::layout::Layout;
 use native_windows_gui::stretch::geometry::{Rect, Size};
 use native_windows_gui::stretch::style::Dimension::Points as PT;

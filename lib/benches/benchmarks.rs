@@ -1,15 +1,15 @@
 use criterion::measurement::WallTime;
-use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
+use criterion::{BenchmarkGroup, Criterion, criterion_group, criterion_main};
 use fxhash::FxHashMap;
-use keympostor::keyboard::action::{KeyAction, KeyActionSequence};
-use keympostor::keyboard::event::KeyEvent;
-use keympostor::keyboard::key::{key_by_code};
-use keympostor::keyboard::modifiers::KeyModifiers;
-use keympostor::keyboard::modifiers::KeyModifiers::{All, Any};
-use keympostor::keyboard::rules::KeyTransformRule;
-use keympostor::keyboard::transition::KeyTransition;
-use keympostor::keyboard::transition::KeyTransition::{Down, Up};
-use keympostor::keyboard::trigger::KeyTrigger;
+use keympostor::action::{KeyAction, KeyActionSequence};
+use keympostor::event::KeyEvent;
+use keympostor::key::key_by_code;
+use keympostor::modifiers::KeyModifiers;
+use keympostor::modifiers::KeyModifiers::{All, Any};
+use keympostor::rules::KeyTransformRule;
+use keympostor::transition::KeyTransition;
+use keympostor::transition::KeyTransition::{Down, Up};
+use keympostor::trigger::KeyTrigger;
 
 type Group = FxHashMap<KeyModifiers, KeyTransformRule>;
 
@@ -120,6 +120,7 @@ fn create_event(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyEvent<'st
         time: 0,
         is_injected: false,
         is_private: false,
+        distance: None,
     }
 }
 

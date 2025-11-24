@@ -1,11 +1,11 @@
-use crate::keyboard::error::KeyError;
-use crate::keyboard::key::{key_by_name, Key};
-use crate::keyboard::transition::KeyTransition;
-use crate::keyboard::transition::KeyTransition::{Down, Up};
+use crate::error::KeyError;
+use crate::key::{Key, key_by_name};
+use crate::transition::KeyTransition;
+use crate::transition::KeyTransition::{Down, Up};
 use crate::{deserialize_from_string, key_err, serialize_to_string, write_joined};
 use serde::Deserializer;
 use serde::Serializer;
-use serde::{de, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de};
 use slice::Iter;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
@@ -25,9 +25,10 @@ impl KeyAction {
 
     pub(crate) fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
         let (sk, st) = match s.find(|c| ['^', '*', '↓', '↑'].contains(&c)) {
-            Some(p) => {
-                (s.get(..p).ok_or(KeyError::new("Missing key part"))?, s.get(p..))
-            }
+            Some(p) => (
+                s.get(..p).ok_or(KeyError::new("Missing key part"))?,
+                s.get(p..),
+            ),
             None => (s, None),
         };
 
@@ -158,10 +159,11 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 
 #[cfg(test)]
 mod tests {
+    use crate::action::KeyAction;
+    use crate::action::KeyActionSequence;
     use crate::key;
-    use crate::keyboard::action::{KeyAction, KeyActionSequence};
-    use crate::keyboard::key::key_by_name;
-    use crate::keyboard::transition::KeyTransition::{Down, Up};
+    use crate::key::key_by_name;
+    use crate::transition::KeyTransition::{Down, Up};
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
 
@@ -331,7 +333,7 @@ mod tests {
     #[test]
     fn test_key_action_sequence_from_str_to_vec() {
         assert_eq!(
-            vec![KeyActionSequence::new(vec![key_action!("A↓")]), ],
+            vec![KeyActionSequence::new(vec![key_action!("A↓")]),],
             KeyActionSequence::from_str_expand("A↓").unwrap()
         );
 
@@ -340,7 +342,7 @@ mod tests {
                 key_action!("A↓"),
                 key_action!("B↑"),
                 key_action!("C↓")
-            ]), ],
+            ]),],
             KeyActionSequence::from_str_expand("A↓ → B↑ → C↓").unwrap()
         );
     }

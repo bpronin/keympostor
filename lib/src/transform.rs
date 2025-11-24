@@ -1,8 +1,8 @@
-use crate::keyboard::action::KeyAction;
-use crate::keyboard::event::KeyEvent;
-use crate::keyboard::modifiers::KeyModifiers;
-use crate::keyboard::modifiers::KeyModifiers::{All, Any};
-use crate::keyboard::rules::{KeyTransformRule, KeyTransformRules};
+use crate::action::KeyAction;
+use crate::event::KeyEvent;
+use crate::modifiers::KeyModifiers;
+use crate::modifiers::KeyModifiers::{All, Any};
+use crate::rules::{KeyTransformRule, KeyTransformRules};
 use fxhash::FxHashMap;
 
 #[derive(Debug, Default)]
@@ -35,11 +35,11 @@ impl KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::modifiers::ModifierKeys;
-    use crate::keyboard::rules::KeyTransformRule;
-    use crate::keyboard::transform::KeyAction;
-    use crate::keyboard::transform::KeyEvent;
-    use crate::keyboard::transform::KeyTransformMap;
+    use crate::modifiers::ModifierKeys;
+    use crate::rules::KeyTransformRule;
+    use crate::transform::KeyAction;
+    use crate::transform::KeyEvent;
+    use crate::transform::KeyTransformMap;
     use crate::{assert_none, key_action, key_event, key_rule};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LMENU, VK_LSHIFT};
 

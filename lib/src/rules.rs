@@ -1,6 +1,6 @@
-use crate::keyboard::action::KeyActionSequence;
-use crate::keyboard::error::KeyError;
-use crate::keyboard::trigger::KeyTrigger;
+use crate::action::KeyActionSequence;
+use crate::error::KeyError;
+use crate::trigger::KeyTrigger;
 use crate::{key_err, write_joined};
 use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
@@ -51,8 +51,12 @@ impl KeyTransformRule {
     fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
         let mut parts = s.trim().split(":");
         Self::from_str_pair(
-            parts.next().ok_or(KeyError::new(&format!("Missing trigger part in `{s}`")))?,
-            parts.next().ok_or(KeyError::new(&format!("Missing rule part in `{s}`.")))?,
+            parts
+                .next()
+                .ok_or(KeyError::new(&format!("Missing trigger part in `{s}`")))?,
+            parts
+                .next()
+                .ok_or(KeyError::new(&format!("Missing rule part in `{s}`.")))?,
         )
     }
 }
@@ -166,10 +170,10 @@ impl<'de> Visitor<'de> for KeyTransformRuleVisitor {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::keyboard::action::KeyActionSequence;
-    use crate::keyboard::rules::KeyTransformRule;
-    use crate::keyboard::rules::KeyTransformRules;
-    use crate::keyboard::trigger::KeyTrigger;
+    use crate::action::KeyActionSequence;
+    use crate::rules::KeyTransformRule;
+    use crate::rules::KeyTransformRules;
+    use crate::trigger::KeyTrigger;
     use crate::{key_action_seq, key_trigger};
     use std::str::FromStr;
 

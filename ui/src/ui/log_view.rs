@@ -4,15 +4,15 @@ use crate::res::res_ids::{
 };
 use crate::rs;
 use crate::settings::AppSettings;
+use crate::ui::RESOURCES;
 use crate::ui::utils::get_list_view_column_width;
 use crate::ui::utils::scroll_list_view_to_end;
-use crate::ui::RESOURCES;
+use keympostor::event::KeyEvent;
 use keympostor::ife;
-use keympostor::keyboard::event::KeyEvent;
-use keympostor::keyboard::modifiers::{
+use keympostor::modifiers::{
     KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_RALT, KM_RCTRL, KM_RSHIFT, KM_RWIN,
 };
-use keympostor::keyboard::trigger::KeyTrigger;
+use keympostor::trigger::KeyTrigger;
 use native_windows_gui::{
     ControlHandle, InsertListViewColumn, ListView, ListViewColumnFlags, ListViewExFlags,
     ListViewStyle, NwgError, Tab,

@@ -1,6 +1,6 @@
+use crate::error::KeyError;
 use crate::key_err;
-use crate::keyboard::error::KeyError;
-use crate::keyboard::rules::KeyTransformRules;
+use crate::rules::KeyTransformRules;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -87,9 +87,9 @@ impl Layouts {
 #[cfg(test)]
 pub mod tests {
     use crate::key_rule;
-    use crate::keyboard::rules::KeyTransformRule;
-    use crate::keyboard::rules::KeyTransformRules;
     use crate::layout::{Layout, Layouts};
+    use crate::rules::KeyTransformRule;
+    use crate::rules::KeyTransformRules;
 
     #[macro_export]
     macro_rules! key_layout {

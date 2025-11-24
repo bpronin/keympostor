@@ -1,4 +1,4 @@
-use crate::keyboard::transition::KeyTransition::{Down, Up};
+use crate::transition::KeyTransition::{Down, Up};
 use std::fmt::{Display, Formatter};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
@@ -8,7 +8,7 @@ pub enum KeyTransition {
 }
 
 impl KeyTransition {
-    pub(crate) fn  into_bool(self) -> bool {
+    pub(crate) fn into_bool(self) -> bool {
         self == Down
     }
 
@@ -34,8 +34,8 @@ impl Display for KeyTransition {
 
 #[cfg(test)]
 mod tests {
-    use crate::keyboard::transition::KeyTransition;
-    use crate::keyboard::transition::KeyTransition::{Down, Up};
+    use crate::transition::KeyTransition;
+    use crate::transition::KeyTransition::{Down, Up};
 
     #[test]
     fn test_key_transition_display() {

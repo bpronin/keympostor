@@ -1,16 +1,16 @@
-use crate::keyboard::action::{KeyAction, KeyActionSequence};
-use crate::keyboard::event::SELF_EVENT_MARKER;
-use crate::keyboard::key::{
+use crate::action::{KeyAction, KeyActionSequence};
+use crate::event::SELF_EVENT_MARKER;
+use crate::key::{
     KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y, KEY_RIGHT_BUTTON, KEY_WHEEL_X,
     KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
 };
-use crate::keyboard::transition::KeyTransition::{Down, Up};
+use crate::transition::KeyTransition::{Down, Up};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
-    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
-    MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_MOVE, MOUSEEVENTF_RIGHTDOWN,
-    MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP,
-    MOUSEINPUT, MOUSE_EVENT_FLAGS,
+    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSE_EVENT_FLAGS, MOUSEEVENTF_LEFTDOWN,
+    MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_MOVE,
+    MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN,
+    MOUSEEVENTF_XUP, MOUSEINPUT,
 };
 use windows::Win32::UI::WindowsAndMessaging::{XBUTTON1, XBUTTON2};
 
@@ -19,13 +19,11 @@ pub fn build_input(seq: &KeyActionSequence, delta: Option<u32>) -> Vec<INPUT> {
 }
 
 fn build_action_input(action: &KeyAction, delta: Option<u32>) -> INPUT {
-    build_mouse_button_input(action).unwrap_or(
-        build_mouse_x_button_input(action).unwrap_or(
-            build_mouse_move_input(action, delta.unwrap()).unwrap_or(
-                build_mouse_wheel_input(action, delta.unwrap()).unwrap_or(build_key_input(action)),
-            ),
+    build_mouse_button_input(action).unwrap_or(build_mouse_x_button_input(action).unwrap_or(
+        build_mouse_move_input(action, delta.unwrap()).unwrap_or(
+            build_mouse_wheel_input(action, delta.unwrap()).unwrap_or(build_key_input(action)),
         ),
-    )
+    ))
 }
 
 fn build_mouse_move_input(action: &KeyAction, delta: u32) -> Option<INPUT> {
@@ -145,15 +143,15 @@ fn build_key_input(action: &KeyAction) -> INPUT {
 
 #[cfg(test)]
 mod tests {
+    use crate::action::KeyAction;
+    use crate::event::SELF_EVENT_MARKER;
+    use crate::input::{build_action_input, build_key_input};
     use crate::key_action;
-    use crate::keyboard::action::KeyAction;
-    use crate::keyboard::event::SELF_EVENT_MARKER;
-    use crate::keyboard::input::{build_action_input, build_key_input};
+    use crate::sc::ScanCode;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT, INPUT_KEYBOARD, INPUT_MOUSE, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
         KEYEVENTF_SCANCODE, MOUSEEVENTF_MOVE, MOUSEEVENTF_WHEEL, VK_RETURN,
     };
-    use crate::keyboard::sc::ScanCode;
 
     #[test]
     fn test_build_key_input() {
