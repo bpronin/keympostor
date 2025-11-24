@@ -7,10 +7,10 @@ use crate::key::{
 use crate::transition::KeyTransition::{Down, Up};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
-    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSE_EVENT_FLAGS, MOUSEEVENTF_LEFTDOWN,
-    MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_MOVE,
-    MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN,
-    MOUSEEVENTF_XUP, MOUSEINPUT,
+    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
+    MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_MOVE, MOUSEEVENTF_RIGHTDOWN,
+    MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP,
+    MOUSEINPUT, MOUSE_EVENT_FLAGS,
 };
 use windows::Win32::UI::WindowsAndMessaging::{XBUTTON1, XBUTTON2};
 
@@ -20,8 +20,8 @@ pub fn build_input(seq: &KeyActionSequence, delta: Option<u32>) -> Vec<INPUT> {
 
 fn build_action_input(action: &KeyAction, delta: Option<u32>) -> INPUT {
     build_mouse_button_input(action).unwrap_or(build_mouse_x_button_input(action).unwrap_or(
-        build_mouse_move_input(action, delta.unwrap()).unwrap_or(
-            build_mouse_wheel_input(action, delta.unwrap()).unwrap_or(build_key_input(action)),
+        build_mouse_move_input(action, delta.unwrap_or(0)).unwrap_or(
+            build_mouse_wheel_input(action, delta.unwrap_or(0)).unwrap_or(build_key_input(action)),
         ),
     ))
 }

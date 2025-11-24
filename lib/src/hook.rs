@@ -1,13 +1,13 @@
 use crate::event::KeyEvent;
 use crate::input;
 use crate::rules::KeyTransformRules;
-use crate::state::Bit256;
+use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
 use log::{debug, warn};
 use std::cell::RefCell;
 use std::ptr::addr_of_mut;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, SendInput};
+use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
@@ -63,7 +63,7 @@ static mut STATE: HookState = {
         owner: None,
         transform_map: None,
         last_mouse_position: None,
-        keyboard_state: Bit256::new(),
+        keyboard_state: KeyboardState::new(),
         is_notify_enabled: false,
     }
 };
@@ -75,7 +75,7 @@ struct HookState {
     owner: Option<HWND>,
     transform_map: Option<KeyTransformMap>,
     last_mouse_position: Option<POINT>,
-    keyboard_state: Bit256,
+    keyboard_state: KeyboardState,
 }
 
 impl Drop for HookState {
@@ -158,9 +158,7 @@ fn uninstall_mouse_hook() {
 fn handle_key_event(mut event: KeyEvent) -> bool {
     unsafe {
         let state = addr_of_mut!(STATE);
-        (*state)
-            .keyboard_state
-            .set(event.action.key.vk.0, event.action.transition.into_bool());
+        (*state).keyboard_state.set_for_action(event.action);
     };
 
     if !(event.is_injected && event.is_private) {

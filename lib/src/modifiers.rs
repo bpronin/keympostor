@@ -4,11 +4,11 @@ use crate::key::{
     KEY_RIGHT_CTRL, KEY_RIGHT_SHIFT, KEY_RIGHT_WIN, KEY_SHIFT,
 };
 use crate::modifiers::KeyModifiers::All;
-use crate::state::Bit256;
+use crate::state::KeyboardState;
 use crate::{deserialize_from_string, key_err, serialize_to_string, write_joined};
 use core::ops;
 use ops::BitOr;
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -91,21 +91,8 @@ static MODIFIER_KEYS: [VIRTUAL_KEY; 8] = [
     VK_RWIN,
 ];
 
-impl From<&[bool; 256]> for ModifierKeys {
-    fn from(keyboard_state: &[bool; 256]) -> Self {
-        let value = (0..MODIFIER_KEYS.len())
-            .filter(|modifier_index| {
-                let vk_code = MODIFIER_KEYS[*modifier_index].0;
-                keyboard_state[vk_code as usize]
-            })
-            .fold(0, |acc, flag_index| acc | (1 << flag_index));
-
-        Self(value as u8)
-    }
-}
-
-impl From<&Bit256> for ModifierKeys {
-    fn from(keyboard_state: &Bit256) -> Self {
+impl From<&KeyboardState> for ModifierKeys {
+    fn from(keyboard_state: &KeyboardState) -> Self {
         let value = (0..MODIFIER_KEYS.len())
             .filter(|modifier_index| {
                 let vk_code = MODIFIER_KEYS[*modifier_index].0;
@@ -201,9 +188,10 @@ impl FromStr for KeyModifiers {
 mod tests {
     use crate::modifiers::KeyModifiers::{All, Any};
     use crate::modifiers::{
-        KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT, KM_RWIN, KeyModifiers,
-        ModifierKeys,
+        KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT,
+        KM_RWIN,
     };
+    use crate::state::KeyboardState;
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
@@ -231,13 +219,13 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_capture() {
-        let mut keys = [false; 256];
+        let mut keys = KeyboardState::new();
         assert_eq!(KM_NONE, ModifierKeys::from(&keys));
 
-        keys[VK_LSHIFT.0 as usize] = true;
-        keys[VK_RSHIFT.0 as usize] = true;
-        keys[VK_LCONTROL.0 as usize] = true;
-        keys[VK_RWIN.0 as usize] = true;
+        keys.set(VK_LSHIFT.0 as u8, true);
+        keys.set(VK_RSHIFT.0 as u8, true);
+        keys.set(VK_LCONTROL.0 as u8, true);
+        keys.set(VK_RWIN.0 as u8, true);
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_LCTRL | KM_RWIN,

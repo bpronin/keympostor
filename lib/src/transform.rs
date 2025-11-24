@@ -37,32 +37,33 @@ impl KeyTransformMap {
 mod tests {
     use crate::modifiers::ModifierKeys;
     use crate::rules::KeyTransformRule;
+    use crate::state::KeyboardState;
     use crate::transform::KeyAction;
     use crate::transform::KeyEvent;
     use crate::transform::KeyTransformMap;
     use crate::{assert_none, key_action, key_event, key_rule};
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LMENU, VK_LSHIFT};
 
-    static KS_ALL_UP: [bool; 256] = [false; 256];
-    static KS_LSHIFT: [bool; 256] = {
-        let mut keys = KS_ALL_UP;
-        keys[VK_LSHIFT.0 as usize] = true;
+    static KS_ALL_UP: KeyboardState = KeyboardState::new();
+    static KS_LSHIFT: KeyboardState = {
+        let mut keys = KeyboardState::new();
+        keys.set(VK_LSHIFT.0 as u8, true);
         keys
     };
-    static KS_LCTRL: [bool; 256] = {
-        let mut keys = KS_ALL_UP;
-        keys[VK_LCONTROL.0 as usize] = true;
+    static KS_LCTRL: KeyboardState = {
+        let mut keys = KeyboardState::new();
+        keys.set(VK_LCONTROL.0 as u8, true);
         keys
     };
-    static KS_LALT: [bool; 256] = {
-        let mut keys = KS_ALL_UP;
-        keys[VK_LMENU.0 as usize] = true;
+    static KS_LALT: KeyboardState = {
+        let mut keys = KeyboardState::new();
+        keys.set(VK_LMENU.0 as u8, true);
         keys
     };
-    static KS_LCTRL_LALT: [bool; 256] = {
-        let mut keys = KS_ALL_UP;
-        keys[VK_LCONTROL.0 as usize] = true;
-        keys[VK_LMENU.0 as usize] = true;
+    static KS_LCTRL_LALT: KeyboardState = {
+        let mut keys = KeyboardState::new();
+        keys.set(VK_LCONTROL.0 as u8, true);
+        keys.set(VK_LMENU.0 as u8, true);
         keys
     };
 

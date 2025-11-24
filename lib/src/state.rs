@@ -1,40 +1,46 @@
+use fmt::Display;
+use std::fmt;
+use crate::action::KeyAction;
 use crate::key::Key;
 use crate::transition::KeyTransition;
-use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct KeyboardState([bool; 256]);
-
-impl KeyboardState {
-    pub(crate) const fn new() -> Self {
-        Self([false; 256])
-    }
-
-    pub(crate) fn set(&mut self, key: &Key, transition: KeyTransition) {
-        self.set_vk(key.vk.0, transition);
-    }
-
-    pub(crate) fn set_vk(&mut self, vk: u8, transition: KeyTransition) {
-        self.0[vk as usize] = transition.into_bool();
-    }
-
-    // pub(crate) fn get(&self, vk: u8) -> KeyTransition {
-    //     KeyTransition::from_bool(self.is_set(vk))
-    // }
-
-    pub(crate) fn is_set(&self, vk: u8) -> bool {
-        self.0[vk as usize]
-    }
-}
+// #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+// pub struct KeyboardState([bool; 256]);
+// 
+// impl KeyboardState {
+//     pub(crate) const fn new() -> Self {
+//         Self([false; 256])
+//     }
+// 
+//     pub(crate) fn set(&mut self, key: &Key, transition: KeyTransition) {
+//         self.set_vk(key.vk.0, transition);
+//     }
+// 
+//     pub(crate) fn set_vk(&mut self, vk: u8, transition: KeyTransition) {
+//         self.0[vk as usize] = transition.into_bool();
+//     }
+// 
+//     // pub(crate) fn get(&self, vk: u8) -> KeyTransition {
+//     //     KeyTransition::from_bool(self.is_set(vk))
+//     // }
+// 
+//     pub(crate) fn is_set(&self, vk: u8) -> bool {
+//         self.0[vk as usize]
+//     }
+// }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct Bit256(pub [u128; 2]);
+pub struct KeyboardState([u128; 2]);
 
-impl Bit256 {
+impl KeyboardState {
     pub const fn new() -> Self {
         Self([0, 0])
     }
 
+    pub(crate) fn set_for_action(&mut self, action:KeyAction) {
+        self.set(action.key.vk.0, action.transition.into_bool())
+    }
+    
     pub(crate) const fn set(&mut self, index: u8, value: bool) {
         let (chunk, bit) = (index / 128, index % 128);
         if value {
@@ -47,6 +53,14 @@ impl Bit256 {
     pub(crate) const fn get(&self, index: u8) -> bool {
         let (chunk, bit) = (index / 128, index % 128);
         (self.0[chunk as usize] >> bit) & 1 != 0
+    }
+}
+
+impl Display for KeyboardState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "{:0128b}", self.0[1])?;
+        writeln!(f, "{:0128b}", self.0[0])?;
+        Ok(())
     }
 }
 
@@ -106,13 +120,6 @@ impl Bit256 {
 //     }
 // }
 //
-// impl fmt::Display for KeyboardState {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         writeln!(f, "{:0128b}", self.0[1])?;
-//         writeln!(f, "{:0128b}", self.0[0])?;
-//         Ok(())
-//     }
-// }
 
 #[cfg(test)]
 mod tests {
