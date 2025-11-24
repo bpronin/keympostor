@@ -7,8 +7,12 @@ pub enum KeyTransition {
     Down,
 }
 
-impl From<bool> for KeyTransition {
-    fn from(value: bool) -> Self {
+impl KeyTransition {
+    pub(crate) fn  into_bool(self) -> bool {
+        self == Down
+    }
+
+    pub(crate) fn from_bool(value: bool) -> Self {
         if value { Down } else { Up }
     }
 }

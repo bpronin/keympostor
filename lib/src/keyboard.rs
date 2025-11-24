@@ -1,4 +1,4 @@
-use crate::keyboard::hook::{HOOK, install_mouse_hook, uninstall_mouse_hook};
+use crate::keyboard::hook::{install_mouse_hook, uninstall_mouse_hook, HOOK};
 use crate::keyboard::rules::KeyTransformRules;
 use crate::keyboard::transform::KeyTransformMap;
 use hook::{install_key_hook, uninstall_key_hook};
@@ -15,6 +15,7 @@ pub mod key;
 pub mod modifiers;
 pub mod rules;
 pub mod sc;
+mod state;
 mod transform;
 pub mod transition;
 pub mod trigger;
