@@ -1,12 +1,6 @@
 use crate::keyboard::event::KeyEvent;
 use crate::keyboard::input;
-use crate::keyboard::key::{
-    Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y, KEY_RIGHT_BUTTON,
-    KEY_WHEEL_X, KEY_WHEEL_Y,
-};
 use crate::keyboard::transform::KeyTransformMap;
-use crate::keyboard::transition::KeyTransition;
-use crate::keyboard::transition::KeyTransition::{Down, Up};
 use log::{debug, warn};
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
@@ -113,7 +107,7 @@ pub(crate) fn uninstall_mouse_hook() {
     }
 }
 
-fn handle_key_event(mut event: KeyEvent, delta: u32) -> bool {
+fn handle_key_event(mut event: KeyEvent) -> bool {
     unsafe {
         HOOK.keyboard_state[event.action.key.vk.0 as usize] = event.action.transition.into_bool();
     }
@@ -129,15 +123,15 @@ fn handle_key_event(mut event: KeyEvent, delta: u32) -> bool {
         debug!("Ignoring event: {}", event);
     };
 
-    let result = apply_transform(&event, delta);
+    let result = apply_transform(&event);
     notify_listener(event);
     result
 }
 
-fn apply_transform(event: &KeyEvent, delta: u32) -> bool {
+fn apply_transform(event: &KeyEvent) -> bool {
     if let Some(rule) = event.rule {
         debug!("Applying rule: {}", rule);
-        let input = input::build_input(&rule.actions, delta);
+        let input = input::build_input(&rule.actions, event.distance);
         unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
         true
     } else {
@@ -163,7 +157,7 @@ extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) ->
             KeyEvent::new_key_event(unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) }, &unsafe {
                 HOOK.keyboard_state
             });
-        if handle_key_event(event, 0) {
+        if handle_key_event(event) {
             return LRESULT(1);
         }
     }
@@ -171,85 +165,39 @@ extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) ->
 }
 
 extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+    let msg = w_param.0 as u32;
     let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
-    let handled = match w_param.0 as u32 {
-        WM_MOUSEMOVE => handle_mouse_move(&input),
-        WM_MOUSEWHEEL => handle_mouse_wheel(&input, false),
-        WM_MOUSEHWHEEL => handle_mouse_wheel(&input, true),
-        WM_LBUTTONDOWN => handle_mouse_button(&input, &KEY_LEFT_BUTTON, Down),
-        WM_LBUTTONUP => handle_mouse_button(&input, &KEY_LEFT_BUTTON, Up),
-        WM_RBUTTONDOWN => handle_mouse_button(&input, &KEY_RIGHT_BUTTON, Down),
-        WM_RBUTTONUP => handle_mouse_button(&input, &KEY_RIGHT_BUTTON, Up),
-        WM_MBUTTONDOWN => handle_mouse_button(&input, &KEY_MIDDLE_BUTTON, Down),
-        WM_MBUTTONUP => handle_mouse_button(&input, &KEY_MIDDLE_BUTTON, Up),
-        WM_XBUTTONDOWN => handle_mouse_x_button(&input, Down),
-        WM_XBUTTONUP => handle_mouse_x_button(&input, Up),
-        _ => {
-            warn!(
-                "Unhandled mouse event: c = {:?}, w = {:?}, l = {:?}",
-                code, w_param, l_param
-            );
-            false
-        }
+
+    let handled = if msg == WM_MOUSEMOVE {
+        handle_mouse_motion(input)
+    } else {
+        handle_mouse_button(msg, input)
     };
 
     if handled {
-        LRESULT(1)
-    } else {
-        unsafe { CallNextHookEx(HOOK.mouse_hook, code, w_param, l_param) }
+        return LRESULT(1);
     }
+    unsafe { CallNextHookEx(HOOK.mouse_hook, code, w_param, l_param) }
 }
 
-fn handle_mouse_button(
-    input: &MSLLHOOKSTRUCT,
-    key: &'static Key,
-    transition: KeyTransition,
-) -> bool {
-    handle_key_event(
-        KeyEvent::new_mouse_event(input, key, transition, &unsafe { HOOK.keyboard_state }),
-        0,
-    )
-}
-
-fn handle_mouse_x_button(input: &MSLLHOOKSTRUCT, transition: KeyTransition) -> bool {
-    match KeyEvent::new_x_button_event(input, transition, &unsafe { HOOK.keyboard_state }) {
-        Ok(event) => handle_key_event(event, 0),
+fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
+    match KeyEvent::new_mouse_event(msg, input, &unsafe { HOOK.keyboard_state }) {
+        Ok(event) => handle_key_event(event),
         Err(e) => {
-            warn!("Failed to build mouse x button event: {}", e);
+            warn!("Failed to build event: {}", e);
             false
         }
     }
 }
 
-fn handle_mouse_wheel(input: &MSLLHOOKSTRUCT, tilt: bool) -> bool {
-    let key = if tilt { &KEY_WHEEL_X } else { &KEY_WHEEL_Y };
-    let d = (input.mouseData >> 16) as i16; /* do not cast to i32 here to preserve the sign */
-    let event = KeyEvent::new_mouse_event(input, key, KeyTransition::from_bool(d < 0), &unsafe {
-        HOOK.keyboard_state
-    });
-
-    handle_key_event(event, d.abs() as u32)
-}
-
-fn handle_mouse_move(input: &MSLLHOOKSTRUCT) -> bool {
+fn handle_mouse_motion(input: MSLLHOOKSTRUCT) -> bool {
     let last = unsafe { HOOK.last_mouse_position.unwrap_or_else(|| input.pt) };
     let current = input.pt;
     let dx = current.x - last.x;
     let dy = current.y - last.y;
     unsafe { HOOK.last_mouse_position = Some(current) }
 
-    let x_event = KeyEvent::new_mouse_event(
-        input,
-        &KEY_MOUSE_X,
-        KeyTransition::from_bool(dx > 0),
-        &unsafe { HOOK.keyboard_state },
-    );
-    let y_event = KeyEvent::new_mouse_event(
-        input,
-        &KEY_MOUSE_Y,
-        KeyTransition::from_bool(dy > 0),
-        &unsafe { HOOK.keyboard_state },
-    );
-
-    handle_key_event(x_event, dx.abs() as u32) | handle_key_event(y_event, dy.abs() as u32)
+    let (x_event, y_event) =
+        KeyEvent::new_mouse_move_events(input, dx, dy, &unsafe { HOOK.keyboard_state });
+    handle_key_event(x_event) | handle_key_event(y_event)
 }

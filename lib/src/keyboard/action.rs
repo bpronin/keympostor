@@ -19,7 +19,7 @@ pub struct KeyAction {
 }
 
 impl KeyAction {
-    fn new(key: &'static Key, transition: KeyTransition) -> Self {
+    pub(crate) const fn new(key: &'static Key, transition: KeyTransition) -> Self {
         Self { key, transition }
     }
 

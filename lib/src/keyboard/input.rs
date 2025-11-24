@@ -14,15 +14,15 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 use windows::Win32::UI::WindowsAndMessaging::{XBUTTON1, XBUTTON2};
 
-pub fn build_input(seq: &KeyActionSequence, delta: u32) -> Vec<INPUT> {
+pub fn build_input(seq: &KeyActionSequence, delta: Option<u32>) -> Vec<INPUT> {
     seq.iter().map(|a| build_action_input(a, delta)).collect()
 }
 
-fn build_action_input(action: &KeyAction, delta: u32) -> INPUT {
+fn build_action_input(action: &KeyAction, delta: Option<u32>) -> INPUT {
     build_mouse_button_input(action).unwrap_or(
         build_mouse_x_button_input(action).unwrap_or(
-            build_mouse_move_input(action, delta).unwrap_or(
-                build_mouse_wheel_input(action, delta).unwrap_or(build_key_input(action)),
+            build_mouse_move_input(action, delta.unwrap()).unwrap_or(
+                build_mouse_wheel_input(action, delta.unwrap()).unwrap_or(build_key_input(action)),
             ),
         ),
     )
@@ -157,7 +157,7 @@ mod tests {
 
     #[test]
     fn test_build_key_input() {
-        let actual: INPUT = build_action_input(&key_action!("ENTER*"), 0);
+        let actual: INPUT = build_action_input(&key_action!("ENTER*"), None);
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
@@ -181,7 +181,7 @@ mod tests {
 
     #[test]
     fn test_build_mouse_move_input() {
-        let actual: INPUT = build_action_input(&key_action!("MOUSE_Y*"), 10);
+        let actual: INPUT = build_action_input(&key_action!("MOUSE_Y*"), Some(10));
         unsafe {
             assert_eq!(INPUT_MOUSE, actual.r#type);
             assert_eq!(MOUSEEVENTF_MOVE, actual.Anonymous.mi.dwFlags);
@@ -191,7 +191,7 @@ mod tests {
             assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.mi.dwExtraInfo);
         };
 
-        let actual: INPUT = build_action_input(&key_action!("MOUSE_X^"), 10);
+        let actual: INPUT = build_action_input(&key_action!("MOUSE_X^"), Some(10));
         unsafe {
             assert_eq!(INPUT_MOUSE, actual.r#type);
             assert_eq!(MOUSEEVENTF_MOVE, actual.Anonymous.mi.dwFlags);
@@ -204,7 +204,7 @@ mod tests {
 
     #[test]
     fn test_build_mouse_wheel_input() {
-        let actual: INPUT = build_action_input(&key_action!("WHEEL_Y*"), 120);
+        let actual: INPUT = build_action_input(&key_action!("WHEEL_Y*"), Some(120));
         unsafe {
             assert_eq!(INPUT_MOUSE, actual.r#type);
             assert_eq!(MOUSEEVENTF_WHEEL, actual.Anonymous.mi.dwFlags);
@@ -214,7 +214,7 @@ mod tests {
             assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.mi.dwExtraInfo);
         };
 
-        let actual: INPUT = build_action_input(&key_action!("WHEEL_X^"), 480);
+        let actual: INPUT = build_action_input(&key_action!("WHEEL_X^"), Some(480));
         unsafe {
             assert_eq!(INPUT_MOUSE, actual.r#type);
             assert_eq!(MOUSEEVENTF_WHEEL, actual.Anonymous.mi.dwFlags);

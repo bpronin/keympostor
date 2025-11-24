@@ -1,14 +1,20 @@
 use crate::key_err;
 use crate::keyboard::action::KeyAction;
 use crate::keyboard::error::KeyError;
-use crate::keyboard::key::{key_by_code, Key, KEY_XBUTTON1, KEY_XBUTTON2};
+use crate::keyboard::key::{
+    key_by_code, Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y,
+    KEY_RIGHT_BUTTON, KEY_WHEEL_X, KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
+};
 use crate::keyboard::modifiers::ModifierKeys;
 use crate::keyboard::rules::KeyTransformRule;
 use crate::keyboard::transition::KeyTransition;
+use crate::keyboard::transition::KeyTransition::{Down, Up};
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP, LLMHF_INJECTED,
-    LLMHF_LOWER_IL_INJECTED, MSLLHOOKSTRUCT,
+    LLMHF_LOWER_IL_INJECTED, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN,
+    WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_XBUTTONDOWN,
+    WM_XBUTTONUP,
 };
 
 pub(crate) static SELF_EVENT_MARKER: usize = 497298395;
@@ -21,11 +27,14 @@ pub struct KeyEvent<'a> {
     pub time: u32,
     pub is_injected: bool,
     pub is_private: bool,
+    pub distance: Option<u32>, /* for mouse events only */
 }
 
 impl<'a> KeyEvent<'a> {
-
-    pub fn new_key_event(input: KBDLLHOOKSTRUCT, keyboard_state: &[bool; 256]) -> KeyEvent<'a> {
+    pub(crate) fn new_key_event(
+        input: KBDLLHOOKSTRUCT,
+        keyboard_state: &[bool; 256],
+    ) -> KeyEvent<'a> {
         Self {
             action: KeyAction {
                 key: key_by_code(
@@ -40,29 +49,88 @@ impl<'a> KeyEvent<'a> {
             is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
             time: input.time,
             rule: None,
+            distance: None,
         }
     }
 
     pub(crate) fn new_mouse_event(
-        input: &MSLLHOOKSTRUCT,
-        key: &'static Key,
-        transition: KeyTransition,
-        keyboard_state: &[bool; 256]
-    ) -> KeyEvent<'a> {
-        Self {
-            action: KeyAction { key, transition },
-            modifiers: ModifierKeys::from(keyboard_state),
-            is_injected: (input.flags & (LLMHF_INJECTED | LLMHF_LOWER_IL_INJECTED)) != 0,
-            is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
-            time: input.time,
-            rule: None,
-        }
+        msg: u32,
+        input: MSLLHOOKSTRUCT,
+        keyboard_state: &[bool; 256],
+    ) -> Result<KeyEvent<'a>, KeyError> {
+        let event = match msg {
+            WM_LBUTTONDOWN => Self::button_event(&KEY_LEFT_BUTTON, Down, input, keyboard_state),
+            WM_LBUTTONUP => Self::button_event(&KEY_LEFT_BUTTON, Up, input, keyboard_state),
+            WM_RBUTTONDOWN => Self::button_event(&KEY_RIGHT_BUTTON, Down, input, keyboard_state),
+            WM_RBUTTONUP => Self::button_event(&KEY_RIGHT_BUTTON, Up, input, keyboard_state),
+            WM_MBUTTONDOWN => Self::button_event(&KEY_MIDDLE_BUTTON, Down, input, keyboard_state),
+            WM_MBUTTONUP => Self::button_event(&KEY_MIDDLE_BUTTON, Up, input, keyboard_state),
+            WM_XBUTTONDOWN => Self::x_button_event(Down, input, keyboard_state)?,
+            WM_XBUTTONUP => Self::x_button_event(Up, input, keyboard_state)?,
+            WM_MOUSEWHEEL => Self::wheel_event(&KEY_WHEEL_Y, input, keyboard_state),
+            WM_MOUSEHWHEEL => Self::wheel_event(&KEY_WHEEL_X, input, keyboard_state),
+            _ => return key_err!("Unsupported mouse event: `{}`", msg),
+        };
+
+        Ok(event)
     }
 
-    pub fn new_x_button_event(
-        input: &MSLLHOOKSTRUCT,
+    pub(crate) fn new_mouse_move_events(
+        input: MSLLHOOKSTRUCT,
+        dx: i32,
+        dy: i32,
+        keyboard_state: &[bool; 256],
+    ) -> (KeyEvent<'a>, KeyEvent<'a>) {
+        (
+            Self::mouse_move_event(&KEY_MOUSE_X, dx, input, keyboard_state),
+            Self::mouse_move_event(&KEY_MOUSE_Y, dy, input, keyboard_state),
+        )
+    }
+
+    fn mouse_move_event(
+        key: &'static Key,
+        delta: i32,
+        input: MSLLHOOKSTRUCT,
+        keyboard_state: &[bool; 256],
+    ) -> KeyEvent<'a> {
+        Self::mouse_event(
+            KeyAction {
+                key,
+                transition: KeyTransition::from_bool(delta > 0),
+            },
+            Some(delta.abs() as u32),
+            input,
+            keyboard_state,
+        )
+    }
+
+    fn wheel_event(
+        key: &'static Key,
+        input: MSLLHOOKSTRUCT,
+        keyboard_state: &[bool; 256],
+    ) -> KeyEvent<'a> {
+        let d = (input.mouseData >> 16) as i16;
+        Self::mouse_event(
+            KeyAction::new(key, KeyTransition::from_bool(d < 0)),
+            Some(d.abs() as u32),
+            input,
+            keyboard_state,
+        )
+    }
+
+    fn button_event(
+        key: &'static Key,
         transition: KeyTransition,
-        keyboard_state: &[bool; 256]
+        input: MSLLHOOKSTRUCT,
+        keyboard_state: &[bool; 256],
+    ) -> KeyEvent<'a> {
+        Self::mouse_event(KeyAction::new(key, transition), None, input, keyboard_state)
+    }
+
+    fn x_button_event(
+        transition: KeyTransition,
+        input: MSLLHOOKSTRUCT,
+        keyboard_state: &[bool; 256],
     ) -> Result<KeyEvent<'a>, KeyError> {
         let key = match (input.mouseData >> 16) as u16 {
             1 => &KEY_XBUTTON1,
@@ -71,7 +139,29 @@ impl<'a> KeyEvent<'a> {
                 return key_err!("Unsupported mouse x-button: `{b}`");
             }
         };
-        Ok(Self::new_mouse_event(input, key, transition, keyboard_state))
+        Ok(Self::mouse_event(
+            KeyAction::new(key, transition),
+            None,
+            input,
+            keyboard_state,
+        ))
+    }
+
+    fn mouse_event(
+        action: KeyAction,
+        distance: Option<u32>,
+        input: MSLLHOOKSTRUCT,
+        keyboard_state: &[bool; 256],
+    ) -> KeyEvent<'a> {
+        Self {
+            action,
+            modifiers: ModifierKeys::from(keyboard_state),
+            is_injected: (input.flags & (LLMHF_INJECTED | LLMHF_LOWER_IL_INJECTED)) != 0,
+            is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
+            time: input.time,
+            rule: None,
+            distance,
+        }
     }
 }
 
@@ -105,6 +195,7 @@ mod tests {
                 is_injected: false,
                 is_private: false,
                 rule: None,
+                distance: None,
             }
         };
     }
