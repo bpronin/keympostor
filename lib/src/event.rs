@@ -1,8 +1,8 @@
 use crate::action::KeyAction;
 use crate::error::KeyError;
 use crate::key::{
-    KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y, KEY_RIGHT_BUTTON, KEY_WHEEL_X,
-    KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2, Key, key_by_code,
+    key_by_code, Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y,
+    KEY_RIGHT_BUTTON, KEY_WHEEL_X, KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
 };
 use crate::key_err;
 use crate::modifiers::ModifierKeys;
@@ -15,8 +15,8 @@ use std::rc::Rc;
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP, LLMHF_INJECTED,
     LLMHF_LOWER_IL_INJECTED, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN,
-    WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_XBUTTONDOWN,
-    WM_XBUTTONUP,
+    WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP,
+    WM_XBUTTONDOWN, WM_XBUTTONUP,
 };
 
 pub(crate) static SELF_EVENT_MARKER: usize = 497298395;
@@ -29,11 +29,14 @@ pub struct KeyEvent {
     pub time: u32,
     pub is_injected: bool,
     pub is_private: bool,
-    pub distance: Option<u32>, /* for mouse events only */
+    pub distance: Option<u32>, /* for mouse events */
 }
 
 impl KeyEvent {
-    pub(crate) fn new_key_event(input: KBDLLHOOKSTRUCT, keyboard_state: &KeyboardState) -> KeyEvent {
+    pub(crate) fn new_key_event(
+        input: KBDLLHOOKSTRUCT,
+        keyboard_state: &KeyboardState,
+    ) -> KeyEvent {
         Self {
             action: KeyAction {
                 key: key_by_code(
@@ -68,6 +71,7 @@ impl KeyEvent {
             WM_XBUTTONUP => Self::x_button_event(Up, input, keyboard_state)?,
             WM_MOUSEWHEEL => Self::wheel_event(&KEY_WHEEL_Y, input, keyboard_state),
             WM_MOUSEHWHEEL => Self::wheel_event(&KEY_WHEEL_X, input, keyboard_state),
+            //WM_MOUSEMOVE => Self::move_event(&KEY_LEFT_BUTTON, Down, input, keyboard_state),
             _ => return key_err!("Unsupported mouse event: `{}`", msg),
         };
 

@@ -222,6 +222,10 @@ fn notify_listener(event: KeyEvent) {
 }
 
 fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
+    if msg == WM_MOUSEMOVE {
+        return false;
+    }
+
     let keyboard_state = KEYBOARD_STATE.with_borrow(|state| *state);
     match KeyEvent::new_mouse_event(msg, input, &keyboard_state) {
         Ok(event) => handle_event(event),
@@ -238,7 +242,6 @@ fn handle_mouse_motion(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
     }
 
     let keyboard_state = KEYBOARD_STATE.with_borrow(|state| *state);
-
     let (x_event, y_event) = LAST_MOUSE_POSITION.with_borrow_mut(|last_pos| {
         let last = last_pos.unwrap_or_else(|| input.pt);
         let current = input.pt;
