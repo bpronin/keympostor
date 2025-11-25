@@ -5,7 +5,7 @@ use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
 use log::{debug, warn};
 use std::cell::RefCell;
-use std::ptr::addr_of_mut;
+use std::rc::Rc;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
@@ -19,11 +19,11 @@ pub struct KeyboardHook {
 
 impl KeyboardHook {
     pub fn init(&self, owner: Option<HWND>) {
-        unsafe { STATE.owner = owner };
+        NOTIFY_TARGET.replace(owner);
     }
 
     pub fn apply_rules(&self, rules: &KeyTransformRules) {
-        unsafe { STATE.transform_map = Some(KeyTransformMap::new(rules)) };
+        TRANSFOFM_MAP.replace(Some(KeyTransformMap::new(rules)));
     }
 
     pub fn is_enabled(&self) -> bool {
@@ -42,11 +42,11 @@ impl KeyboardHook {
     }
 
     pub fn is_notify_enabled(&self) -> bool {
-        unsafe { STATE.is_notify_enabled }
+        IS_NOTIFY_ENABLED.with_borrow(|enabled| *enabled)
     }
 
     pub fn set_notify_enabled(&self, enabled: bool) {
-        unsafe { STATE.is_notify_enabled = enabled }
+        IS_NOTIFY_ENABLED.replace(enabled);
 
         if enabled {
             debug!("Hooks notifications enabled");
@@ -56,130 +56,150 @@ impl KeyboardHook {
     }
 }
 
-static mut STATE: HookState = {
-    HookState {
-        key_hook: None,
-        mouse_hook: None,
-        owner: None,
-        transform_map: None,
-        last_mouse_position: None,
-        keyboard_state: KeyboardState::new(),
-        is_notify_enabled: false,
+impl Drop for KeyboardHook {
+    fn drop(&mut self) {
+        self.set_enabled(false);
+        TRANSFOFM_MAP.replace(None);
+        NOTIFY_TARGET.replace(None);
     }
-};
-
-struct HookState {
-    key_hook: Option<HHOOK>,
-    mouse_hook: Option<HHOOK>,
-    is_notify_enabled: bool,
-    owner: Option<HWND>,
-    transform_map: Option<KeyTransformMap>,
-    last_mouse_position: Option<POINT>,
-    keyboard_state: KeyboardState,
 }
 
-impl Drop for HookState {
-    fn drop(&mut self) {
-        self.transform_map = None;
-        self.owner = None;
-    }
+thread_local! {
+    static KEY_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
+    static MOUSE_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
+    static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(KeyboardState::new());
+    static NOTIFY_TARGET: RefCell<Option<HWND>> = RefCell::new(None);
+    static IS_NOTIFY_ENABLED: RefCell<bool> = RefCell::new(true);
+    static LAST_MOUSE_POSITION: RefCell<Option<POINT>> = RefCell::new(None);
+    static TRANSFOFM_MAP: RefCell<Option<KeyTransformMap>> = RefCell::new(None)
 }
 
 fn install_key_hook() {
-    unsafe {
-        if let Some(_) = STATE.key_hook {
+    KEY_HOOK.with_borrow_mut(|hook| {
+        if hook.is_some() {
             warn!("Keyboard hook already installed");
 
             return;
         }
 
-        match SetWindowsHookExW(WH_KEYBOARD_LL, Some(key_hook_proc), None, 0) {
+        match unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(key_hook_proc), None, 0) } {
             Ok(handle) => {
-                STATE.key_hook = Some(handle);
+                *hook = Some(handle);
 
                 debug!("Keyboard hook installed");
             }
             Err(e) => {
-                STATE.key_hook = None;
+                *hook = None;
 
                 warn!("Failed to install keyboard hook: {}", e);
             }
         }
-    }
+    })
 }
 
 fn uninstall_key_hook() {
-    unsafe {
-        if let Some(handle) = STATE.key_hook {
-            match UnhookWindowsHookEx(handle) {
+    KEY_HOOK.with_borrow_mut(|hook| {
+        if let Some(handle) = hook.take() {
+            match unsafe { UnhookWindowsHookEx(handle) } {
                 Ok(_) => debug!("Keyboard hook uninstalled"),
                 Err(e) => warn!("Failed to uninstall keyboard hook: {}", e),
             }
-            STATE.key_hook = None;
+        } else {
+            warn!("Keyboard hook already uninstalled");
         }
-    }
+    })
 }
 
 fn install_mouse_hook() {
-    unsafe {
-        if let Some(_) = STATE.mouse_hook {
+    MOUSE_HOOK.with_borrow_mut(|hook| {
+        if hook.is_some() {
             warn!("Mouse hook already installed");
 
             return;
         }
 
-        match SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), None, 0) {
+        match unsafe { SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), None, 0) } {
             Ok(handle) => {
-                STATE.mouse_hook = Some(handle);
+                *hook = Some(handle);
 
                 debug!("Mouse hook installed");
             }
             Err(e) => {
-                STATE.mouse_hook = None;
+                *hook = None;
 
                 warn!("Failed to install mouse hook: {}", e);
             }
         }
-    }
+    });
 }
 
 fn uninstall_mouse_hook() {
-    unsafe {
-        if let Some(handle) = STATE.mouse_hook {
-            match UnhookWindowsHookEx(handle) {
+    MOUSE_HOOK.with_borrow_mut(|hook| {
+        if let Some(handle) = hook.take() {
+            match unsafe { UnhookWindowsHookEx(handle) } {
                 Ok(_) => debug!("Mouse hook uninstalled"),
                 Err(e) => warn!("Failed to uninstall mouse hook: {}", e),
             }
-            STATE.mouse_hook = None;
+        } else {
+            warn!("Mouse hook already uninstalled");
         }
-    }
+    })
 }
 
-fn handle_key_event(mut event: KeyEvent) -> bool {
-    unsafe {
-        let state = addr_of_mut!(STATE);
-        (*state).keyboard_state.set_for_action(event.action);
-    };
+extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+    if code == HC_ACTION as i32 {
+        if handle_event(KeyEvent::new_key_event(
+            unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) },
+            &KEYBOARD_STATE.with(|it| *it.borrow()),
+        )) {
+            return LRESULT(1);
+        }
+    }
+
+    KEY_HOOK.with_borrow(|hook| unsafe { CallNextHookEx(*hook, code, w_param, l_param) })
+}
+
+extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
+    let msg = w_param.0 as u32;
+    let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
+
+    if handle_mouse_motion(msg, input) {
+        return LRESULT(1);
+    }
+    
+    if handle_mouse_button(msg, input) {
+        return LRESULT(1);
+    }
+
+    MOUSE_HOOK.with_borrow(|hook| unsafe { CallNextHookEx(*hook, code, w_param, l_param) })
+}
+
+fn handle_event(mut event: KeyEvent) -> bool {
+    KEYBOARD_STATE.with_borrow_mut(|state| state.update(event.action));
 
     if !(event.is_injected && event.is_private) {
-        unsafe {
-            if let Some(ref map) = STATE.transform_map {
-                event.rule = map.get(&event);
+        TRANSFOFM_MAP.with_borrow(|transform_map| {
+            if let Some(map) = transform_map {
+                if let Some(rule) = map.get(&event) {
+                    event.rule = Some(Rc::clone(rule));
+                }
             }
-        }
+        });
+
         debug!("Processing event: {}", event);
     } else {
         debug!("Ignoring event: {}", event);
     };
 
-    let result = apply_transform(&event);
+    let transformed = apply_transform(&event);
     notify_listener(event);
-    result
+    transformed
 }
 
 fn apply_transform(event: &KeyEvent) -> bool {
-    if let Some(rule) = event.rule {
+    if let Some(rule) = &event.rule {
         debug!("Applying rule: {}", rule);
+
         let input = input::build_input(&rule.actions, event.distance);
         unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
         true
@@ -189,65 +209,44 @@ fn apply_transform(event: &KeyEvent) -> bool {
 }
 
 fn notify_listener(event: KeyEvent) {
-    unsafe {
-        if !STATE.is_notify_enabled {
-            return;
-        }
-        if let Some(ref hwnd) = STATE.owner {
-            let l = LPARAM(&event as *const KeyEvent as isize);
-            SendMessageW(*hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l));
-        }
+    if !IS_NOTIFY_ENABLED.with_borrow(|enabled| *enabled) {
+        return;
     }
-}
 
-extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-    if code == HC_ACTION as i32 {
-        let event =
-            KeyEvent::new_key_event(unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) }, &unsafe {
-                STATE.keyboard_state
-            });
-        if handle_key_event(event) {
-            return LRESULT(1);
+    NOTIFY_TARGET.with_borrow(|target| {
+        if let Some(hwnd) = target {
+            let l_param = LPARAM(&event as *const KeyEvent as isize);
+            unsafe { SendMessageW(*hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l_param)) };
         }
-    }
-    unsafe { CallNextHookEx(STATE.key_hook, code, w_param, l_param) }
-}
-
-extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
-    let msg = w_param.0 as u32;
-    let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
-
-    let handled = if msg == WM_MOUSEMOVE {
-        false
-        // handle_mouse_motion(input)
-    } else {
-        handle_mouse_button(msg, input)
-    };
-
-    if handled {
-        return LRESULT(1);
-    }
-    unsafe { CallNextHookEx(STATE.mouse_hook, code, w_param, l_param) }
+    })
 }
 
 fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
-    match KeyEvent::new_mouse_event(msg, input, &unsafe { STATE.keyboard_state }) {
-        Ok(event) => handle_key_event(event),
-        Err(e) => {
-            warn!("Failed to build event: {}", e);
+    let keyboard_state = KEYBOARD_STATE.with_borrow(|state| *state);
+    match KeyEvent::new_mouse_event(msg, input, &keyboard_state) {
+        Ok(event) => handle_event(event),
+        Err(error) => {
+            warn!("Failed to build event: {}", error);
             false
         }
     }
 }
 
-fn handle_mouse_motion(input: MSLLHOOKSTRUCT) -> bool {
-    let last = unsafe { STATE.last_mouse_position.unwrap_or_else(|| input.pt) };
-    let current = input.pt;
-    let dx = current.x - last.x;
-    let dy = current.y - last.y;
-    unsafe { STATE.last_mouse_position = Some(current) }
+fn handle_mouse_motion(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
+    if msg != WM_MOUSEMOVE {
+        return false;
+    }
 
-    let (x_event, y_event) =
-        KeyEvent::new_mouse_move_events(input, dx, dy, &unsafe { STATE.keyboard_state });
-    handle_key_event(x_event) | handle_key_event(y_event)
+    let keyboard_state = KEYBOARD_STATE.with_borrow(|state| *state);
+
+    let (x_event, y_event) = LAST_MOUSE_POSITION.with_borrow_mut(|last_pos| {
+        let last = last_pos.unwrap_or_else(|| input.pt);
+        let current = input.pt;
+        let dx = current.x - last.x;
+        let dy = current.y - last.y;
+        *last_pos = Some(current);
+        KeyEvent::new_mouse_move_events(input, dx, dy, &keyboard_state)
+    });
+
+    handle_event(x_event) & handle_event(y_event)
 }

@@ -37,7 +37,7 @@ impl KeyboardState {
         Self([0, 0])
     }
 
-    pub(crate) fn set_for_action(&mut self, action:KeyAction) {
+    pub(crate) fn update(&mut self, action:KeyAction) {
         self.set(action.key.vk.0, action.transition.into_bool())
     }
     

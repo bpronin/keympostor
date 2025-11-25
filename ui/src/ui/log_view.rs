@@ -135,7 +135,7 @@ impl LogView {
             None,
             &[
                 KeyTrigger::from(event).to_string(),
-                event.rule.map(|r| r.to_string()).unwrap_or("".to_string()),
+                event.rule.as_ref().map(|r| r.to_string()).unwrap_or("".to_string()),
                 format!(
                     "{:1} {:1} {:1} {:1} {:1} {:1} {:1} {:1}",
                     ife!(event.modifiers.contains(KM_LSHIFT), "S", "."),

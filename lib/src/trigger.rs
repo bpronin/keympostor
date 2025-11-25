@@ -15,7 +15,7 @@ pub struct KeyTrigger {
     pub modifiers: KeyModifiers,
 }
 
-impl From<&KeyEvent<'_>> for KeyTrigger {
+impl From<&KeyEvent> for KeyTrigger {
     fn from(event: &KeyEvent) -> Self {
         Self {
             action: event.action,

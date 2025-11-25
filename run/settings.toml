@@ -1,7 +1,7 @@
 processing_enabled = true
-logging_enabled = true
+logging_enabled = false
 layouts_enabled = false
-layout = "default"
+layout = "game"
 
 [main_window]
 position = [822, 138]
@@ -10,11 +10,11 @@ selected_page = 0
 
 [log_view.columns]
 3 = 50
-5 = 50
 6 = 108
-2 = 89
-4 = 50
 8 = 50
+5 = 50
+4 = 50
+2 = 89
 1 = 179
 7 = 94
 0 = 187
