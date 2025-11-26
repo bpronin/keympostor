@@ -112,7 +112,7 @@ fn crete_rule(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyTransformRu
     }
 }
 
-fn create_event(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyEvent<'static> {
+fn create_event(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyEvent {
     KeyEvent {
         action: create_action(vk, sc, ext, trans),
         modifiers: Default::default(),
@@ -120,7 +120,6 @@ fn create_event(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyEvent<'st
         time: 0,
         is_injected: false,
         is_private: false,
-        distance: None,
     }
 }
 

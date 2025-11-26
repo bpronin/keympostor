@@ -7,7 +7,7 @@ use log::{debug, warn};
 use std::cell::RefCell;
 use std::rc::Rc;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
+use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, SendInput};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
@@ -60,7 +60,6 @@ impl KeyboardHook {
 impl Drop for KeyboardHook {
     fn drop(&mut self) {
         self.set_enabled(false);
-        TRANSFOFM_MAP.replace(None);
     }
 }
 
@@ -79,7 +78,7 @@ impl Drop for NotifyState {
 thread_local! {
     static KEY_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
     static MOUSE_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
-    static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(Default::default());
+    static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(KeyboardState::new());
     static LAST_MOUSE_POSITION: RefCell<Option<POINT>> = RefCell::new(None);
     static TRANSFOFM_MAP: RefCell<Option<KeyTransformMap>> = RefCell::new(None);
     static NOTIFY: RefCell<NotifyState> = RefCell::new(Default::default());
@@ -175,7 +174,7 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
     let msg = w_param.0 as u32;
     let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
 
-    if handle_mouse_motion(msg, input) || handle_mouse_button(msg, input) {
+    if handle_mouse_button(msg, input) {
         return LRESULT(1);
     }
 
@@ -208,7 +207,7 @@ fn apply_transform(event: &KeyEvent) -> bool {
     if let Some(rule) = &event.rule {
         debug!("Applying rule: {}", rule);
 
-        let input = input::build_input(&rule.actions, event.distance);
+        let input = input::build_input(&rule.actions);
         unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
         true
     } else {
@@ -242,29 +241,4 @@ fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
             false
         }
     }
-}
-
-fn handle_mouse_motion(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
-    if msg != WM_MOUSEMOVE {
-        return false;
-    }
-
-    let keyboard_state = KEYBOARD_STATE.with_borrow(|state| *state);
-    let (x_event, y_event) = LAST_MOUSE_POSITION.with_borrow_mut(|last_pos| {
-        let last = last_pos.unwrap_or_else(|| input.pt);
-        let current = input.pt;
-        let dx = current.x - last.x;
-        let dy = current.y - last.y;
-        *last_pos = Some(current);
-        KeyEvent::new_mouse_move_events(input, dx, dy, &keyboard_state)
-    });
-
-    let mut handled = false;
-    if let Some(event) = x_event {
-        handled |= handle_event(event)
-    }
-    if let Some(event) = y_event {
-        handled |= handle_event(event)
-    }
-    handled
 }

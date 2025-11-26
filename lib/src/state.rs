@@ -1,16 +1,19 @@
+use crate::action::KeyAction;
 use fmt::Display;
 use std::fmt;
-use crate::action::KeyAction;
 
-#[derive(Default, Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct KeyboardState([u128; 2]);
 
 impl KeyboardState {
-
-    pub(crate) fn update(&mut self, action:KeyAction) {
-        self.set(action.key.vk.0, action.transition.into_bool())
+    pub(crate) const fn new() -> Self {
+        Self([0u128; 2])
     }
     
+    pub(crate) fn update(&mut self, action: KeyAction) {
+        self.set(action.key.vk.0, action.transition.into_bool())
+    }
+
     pub(crate) const fn set(&mut self, index: u8, value: bool) {
         let (chunk, bit) = (index / 128, index % 128);
         if value {

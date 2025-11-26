@@ -1,61 +1,35 @@
-use log::debug;
 use crate::action::{KeyAction, KeyActionSequence};
 use crate::event::SELF_EVENT_MARKER;
 use crate::key::{
-    KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_MOUSE_X, KEY_MOUSE_Y, KEY_RIGHT_BUTTON, KEY_WHEEL_X,
-    KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
+    KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_RIGHT_BUTTON, KEY_WHEEL_X, KEY_WHEEL_Y, KEY_XBUTTON1,
+    KEY_XBUTTON2,
 };
 use crate::transition::KeyTransition::{Down, Up};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
     KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
-    MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_MOVE, MOUSEEVENTF_RIGHTDOWN,
+    MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_RIGHTDOWN,
     MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP,
     MOUSEINPUT, MOUSE_EVENT_FLAGS,
 };
 use windows::Win32::UI::WindowsAndMessaging::{XBUTTON1, XBUTTON2};
 
-pub fn build_input(seq: &KeyActionSequence, delta: Option<u32>) -> Vec<INPUT> {
-    seq.iter().map(|a| build_action_input(a, delta)).collect()
+pub fn build_input(seq: &KeyActionSequence) -> Vec<INPUT> {
+    seq.iter().map(|a| build_action_input(a)).collect()
 }
 
-fn build_action_input(action: &KeyAction, delta: Option<u32>) -> INPUT {
-    build_mouse_button_input(action).unwrap_or(build_mouse_x_button_input(action).unwrap_or(
-        build_mouse_move_input(action, delta.unwrap_or(0)).unwrap_or(
-            build_mouse_wheel_input(action, delta.unwrap_or(0)).unwrap_or(build_key_input(action)),
-        ),
-    ))
+fn build_action_input(action: &KeyAction) -> INPUT {
+    build_mouse_button_input(action).unwrap_or(
+        build_mouse_x_button_input(action)
+            .unwrap_or(build_mouse_wheel_input(action).unwrap_or(build_key_input(action))),
+    )
 }
 
-fn build_mouse_move_input(action: &KeyAction, delta: u32) -> Option<INPUT> {
-    let d = if action.transition == Down {
-        delta as i32
-    } else {
-        -(delta as i32)
-    };
-    
-    debug!("INPUT DELTA:{d}");
-    
-    if action.key == &KEY_MOUSE_X {
-        build_mouse_input(d, 0, MOUSEEVENTF_MOVE, 0)
-    } else if action.key == &KEY_MOUSE_Y {
-        build_mouse_input(0, d, MOUSEEVENTF_MOVE, 0)
-    } else {
-        return None;
-    }
-}
-
-fn build_mouse_wheel_input(action: &KeyAction, delta: u32) -> Option<INPUT> {
-    let d = if action.transition == Down {
-        delta as i32
-    } else {
-        -(delta as i32)
-    };
-
+fn build_mouse_wheel_input(action: &KeyAction) -> Option<INPUT> {
     if action.key == &KEY_WHEEL_X {
-        build_mouse_input(d, 0, MOUSEEVENTF_WHEEL, 0)
+        build_mouse_input(MOUSEEVENTF_WHEEL, 0)
     } else if action.key == &KEY_WHEEL_Y {
-        build_mouse_input(0, d, MOUSEEVENTF_WHEEL, 0)
+        build_mouse_input(MOUSEEVENTF_WHEEL, 0)
     } else {
         return None;
     }
@@ -84,7 +58,7 @@ fn build_mouse_button_input(action: &KeyAction) -> Option<INPUT> {
         return None;
     };
 
-    build_mouse_input(0, 0, flags, 0)
+    build_mouse_input(flags, 0)
 }
 
 fn build_mouse_x_button_input(action: &KeyAction) -> Option<INPUT> {
@@ -102,16 +76,14 @@ fn build_mouse_x_button_input(action: &KeyAction) -> Option<INPUT> {
         MOUSEEVENTF_XUP
     };
 
-    build_mouse_input(0, 0, flags, data as u32)
+    build_mouse_input(flags, data as u32)
 }
 
-fn build_mouse_input(x: i32, y: i32, flags: MOUSE_EVENT_FLAGS, data: u32) -> Option<INPUT> {
+fn build_mouse_input(flags: MOUSE_EVENT_FLAGS, data: u32) -> Option<INPUT> {
     Some(INPUT {
         r#type: INPUT_MOUSE,
         Anonymous: INPUT_0 {
             mi: MOUSEINPUT {
-                dx: x,
-                dy: y,
                 dwFlags: flags,
                 mouseData: data,
                 dwExtraInfo: SELF_EVENT_MARKER,
@@ -153,12 +125,12 @@ mod tests {
     use crate::sc::ScanCode;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT, INPUT_KEYBOARD, INPUT_MOUSE, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
-        KEYEVENTF_SCANCODE, MOUSEEVENTF_MOVE, MOUSEEVENTF_WHEEL, VK_RETURN,
+        KEYEVENTF_SCANCODE, MOUSEEVENTF_WHEEL, VK_RETURN,
     };
 
     #[test]
     fn test_build_key_input() {
-        let actual: INPUT = build_action_input(&key_action!("ENTER*"), None);
+        let actual: INPUT = build_action_input(&key_action!("ENTER*"));
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
@@ -181,31 +153,8 @@ mod tests {
     }
 
     #[test]
-    fn test_build_mouse_move_input() {
-        let actual: INPUT = build_action_input(&key_action!("MOUSE_Y*"), Some(10));
-        unsafe {
-            assert_eq!(INPUT_MOUSE, actual.r#type);
-            assert_eq!(MOUSEEVENTF_MOVE, actual.Anonymous.mi.dwFlags);
-            assert_eq!(10, actual.Anonymous.mi.dy);
-            assert_eq!(0, actual.Anonymous.mi.dx);
-            assert_eq!(0, actual.Anonymous.mi.mouseData);
-            assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.mi.dwExtraInfo);
-        };
-
-        let actual: INPUT = build_action_input(&key_action!("MOUSE_X^"), Some(10));
-        unsafe {
-            assert_eq!(INPUT_MOUSE, actual.r#type);
-            assert_eq!(MOUSEEVENTF_MOVE, actual.Anonymous.mi.dwFlags);
-            assert_eq!(0, actual.Anonymous.mi.dy);
-            assert_eq!(-10, actual.Anonymous.mi.dx);
-            assert_eq!(0, actual.Anonymous.mi.mouseData);
-            assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.mi.dwExtraInfo);
-        };
-    }
-
-    #[test]
     fn test_build_mouse_wheel_input() {
-        let actual: INPUT = build_action_input(&key_action!("WHEEL_Y*"), Some(120));
+        let actual: INPUT = build_action_input(&key_action!("WHEEL_Y*"));
         unsafe {
             assert_eq!(INPUT_MOUSE, actual.r#type);
             assert_eq!(MOUSEEVENTF_WHEEL, actual.Anonymous.mi.dwFlags);
@@ -215,7 +164,7 @@ mod tests {
             assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.mi.dwExtraInfo);
         };
 
-        let actual: INPUT = build_action_input(&key_action!("WHEEL_X^"), Some(480));
+        let actual: INPUT = build_action_input(&key_action!("WHEEL_X^"));
         unsafe {
             assert_eq!(INPUT_MOUSE, actual.r#type);
             assert_eq!(MOUSEEVENTF_WHEEL, actual.Anonymous.mi.dwFlags);

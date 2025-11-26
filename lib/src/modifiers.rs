@@ -219,7 +219,7 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_capture() {
-        let mut keys = KeyboardState::default();
+        let mut keys = KeyboardState::new();
         assert_eq!(KM_NONE, ModifierKeys::from(&keys));
 
         keys.set(VK_LSHIFT.0 as u8, true);
