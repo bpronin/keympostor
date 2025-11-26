@@ -1,3 +1,4 @@
+use log::debug;
 use crate::action::{KeyAction, KeyActionSequence};
 use crate::event::SELF_EVENT_MARKER;
 use crate::key::{
@@ -32,7 +33,9 @@ fn build_mouse_move_input(action: &KeyAction, delta: u32) -> Option<INPUT> {
     } else {
         -(delta as i32)
     };
-
+    
+    debug!("INPUT DELTA:{d}");
+    
     if action.key == &KEY_MOUSE_X {
         build_mouse_input(d, 0, MOUSEEVENTF_MOVE, 0)
     } else if action.key == &KEY_MOUSE_Y {

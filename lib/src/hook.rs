@@ -19,7 +19,7 @@ pub struct KeyboardHook {
 
 impl KeyboardHook {
     pub fn init(&self, owner: Option<HWND>) {
-        NOTIFY_TARGET.replace(owner);
+        NOTIFY.with_borrow_mut(|state| state.target = owner);
     }
 
     pub fn apply_rules(&self, rules: &KeyTransformRules) {
@@ -42,17 +42,18 @@ impl KeyboardHook {
     }
 
     pub fn is_notify_enabled(&self) -> bool {
-        IS_NOTIFY_ENABLED.with_borrow(|enabled| *enabled)
+        NOTIFY.with_borrow(|notify| notify.is_enabled)
     }
 
     pub fn set_notify_enabled(&self, enabled: bool) {
-        IS_NOTIFY_ENABLED.replace(enabled);
-
-        if enabled {
-            debug!("Hooks notifications enabled");
-        } else {
-            debug!("Hooks notifications disabled");
-        }
+        NOTIFY.with_borrow_mut(|notify| {
+            notify.is_enabled = enabled;
+            if notify.is_enabled {
+                debug!("Hooks notifications enabled");
+            } else {
+                debug!("Hooks notifications disabled");
+            }
+        });
     }
 }
 
@@ -60,18 +61,28 @@ impl Drop for KeyboardHook {
     fn drop(&mut self) {
         self.set_enabled(false);
         TRANSFOFM_MAP.replace(None);
-        NOTIFY_TARGET.replace(None);
+    }
+}
+
+#[derive(Default)]
+struct NotifyState {
+    target: Option<HWND>,
+    is_enabled: bool,
+}
+
+impl Drop for NotifyState {
+    fn drop(&mut self) {
+        self.target = None;
     }
 }
 
 thread_local! {
     static KEY_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
     static MOUSE_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
-    static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(KeyboardState::new());
-    static NOTIFY_TARGET: RefCell<Option<HWND>> = RefCell::new(None);
-    static IS_NOTIFY_ENABLED: RefCell<bool> = RefCell::new(true);
+    static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(Default::default());
     static LAST_MOUSE_POSITION: RefCell<Option<POINT>> = RefCell::new(None);
-    static TRANSFOFM_MAP: RefCell<Option<KeyTransformMap>> = RefCell::new(None)
+    static TRANSFOFM_MAP: RefCell<Option<KeyTransformMap>> = RefCell::new(None);
+    static NOTIFY: RefCell<NotifyState> = RefCell::new(Default::default());
 }
 
 fn install_key_hook() {
@@ -148,10 +159,11 @@ fn uninstall_mouse_hook() {
 
 extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
-        if handle_event(KeyEvent::new_key_event(
+        let event = KeyEvent::new_key_event(
             unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) },
-            &KEYBOARD_STATE.with(|it| *it.borrow()),
-        )) {
+            &KEYBOARD_STATE.with(|state| *state.borrow()),
+        );
+        if handle_event(event) {
             return LRESULT(1);
         }
     }
@@ -163,11 +175,7 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
     let msg = w_param.0 as u32;
     let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
 
-    if handle_mouse_motion(msg, input) {
-        return LRESULT(1);
-    }
-    
-    if handle_mouse_button(msg, input) {
+    if handle_mouse_motion(msg, input) || handle_mouse_button(msg, input) {
         return LRESULT(1);
     }
 
@@ -209,14 +217,14 @@ fn apply_transform(event: &KeyEvent) -> bool {
 }
 
 fn notify_listener(event: KeyEvent) {
-    if !IS_NOTIFY_ENABLED.with_borrow(|enabled| *enabled) {
-        return;
-    }
+    NOTIFY.with_borrow(|notify| {
+        if !notify.is_enabled {
+            return;
+        }
 
-    NOTIFY_TARGET.with_borrow(|target| {
-        if let Some(hwnd) = target {
+        if let Some(hwnd) = notify.target {
             let l_param = LPARAM(&event as *const KeyEvent as isize);
-            unsafe { SendMessageW(*hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l_param)) };
+            unsafe { SendMessageW(hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l_param)) };
         }
     })
 }
@@ -229,8 +237,8 @@ fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
     let keyboard_state = KEYBOARD_STATE.with_borrow(|state| *state);
     match KeyEvent::new_mouse_event(msg, input, &keyboard_state) {
         Ok(event) => handle_event(event),
-        Err(error) => {
-            warn!("Failed to build event: {}", error);
+        Err(e) => {
+            warn!("Failed to build event: {}", e);
             false
         }
     }
@@ -251,5 +259,12 @@ fn handle_mouse_motion(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
         KeyEvent::new_mouse_move_events(input, dx, dy, &keyboard_state)
     });
 
-    handle_event(x_event) & handle_event(y_event)
+    let mut handled = false;
+    if let Some(event) = x_event {
+        handled |= handle_event(event)
+    }
+    if let Some(event) = y_event {
+        handled |= handle_event(event)
+    }
+    handled
 }

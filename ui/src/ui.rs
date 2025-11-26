@@ -11,7 +11,6 @@ use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::win_watch::WinWatcher;
 use crate::{r_snd, rs, ui_warn};
-use keympostor::event;
 use keympostor::event::KeyEvent;
 use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
 use keympostor::layout::Layouts;

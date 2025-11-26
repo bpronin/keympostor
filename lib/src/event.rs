@@ -15,7 +15,7 @@ use std::rc::Rc;
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP, LLMHF_INJECTED,
     LLMHF_LOWER_IL_INJECTED, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN,
-    WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP,
+    WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP,
     WM_XBUTTONDOWN, WM_XBUTTONUP,
 };
 
@@ -83,7 +83,7 @@ impl KeyEvent {
         dx: i32,
         dy: i32,
         keyboard_state: &KeyboardState,
-    ) -> (KeyEvent, KeyEvent) {
+    ) -> (Option<KeyEvent>, Option<KeyEvent>) {
         (
             Self::mouse_move_event(&KEY_MOUSE_X, dx, input, keyboard_state),
             Self::mouse_move_event(&KEY_MOUSE_Y, dy, input, keyboard_state),
@@ -95,16 +95,20 @@ impl KeyEvent {
         delta: i32,
         input: MSLLHOOKSTRUCT,
         keyboard_state: &KeyboardState,
-    ) -> KeyEvent {
-        Self::mouse_event(
-            KeyAction {
-                key,
-                transition: KeyTransition::from_bool(delta > 0),
-            },
-            Some(delta.abs() as u32),
-            input,
-            keyboard_state,
-        )
+    ) -> Option<KeyEvent> {
+        if delta == 0 {
+            None
+        } else {
+            Some(Self::mouse_event(
+                KeyAction {
+                    key,
+                    transition: KeyTransition::from_bool(delta > 0),
+                },
+                Some(delta.abs() as u32),
+                input,
+                keyboard_state,
+            ))
+        }
     }
 
     fn wheel_event(
@@ -172,9 +176,14 @@ impl Display for KeyEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[{}] {} T:{:09} {} {}",
+            "[{}] {} {} T:{:09} {} {}",
             self.modifiers,
             self.action,
+            if let Some(d) = self.distance {
+                d.to_string()
+            } else {
+                "".to_string()
+            },
             self.time,
             if self.is_injected { "INJ" } else { "" },
             if self.is_private { "PRV" } else { "" },
@@ -206,7 +215,7 @@ mod tests {
 
     #[test]
     fn test_key_event_display() {
-        let mut keyboard_state = KeyboardState::new();
+        let mut keyboard_state = KeyboardState::default();
         keyboard_state.set(VK_LSHIFT.0 as u8, true);
         let event = key_event!("A↓", &keyboard_state);
 
