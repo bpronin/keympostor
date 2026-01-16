@@ -4,19 +4,22 @@ use crate::res::res_ids::{
 };
 use crate::rs;
 use crate::settings::AppSettings;
-use crate::ui::RESOURCES;
 use crate::ui::utils::get_list_view_column_width;
 use crate::ui::utils::scroll_list_view_to_end;
+use crate::ui::RESOURCES;
 use keympostor::event::KeyEvent;
 use keympostor::ife;
 use keympostor::modifiers::{
     KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_RALT, KM_RCTRL, KM_RSHIFT, KM_RWIN,
 };
 use keympostor::trigger::KeyTrigger;
+use log::error;
 use native_windows_gui::{
-    ControlHandle, InsertListViewColumn, ListView, ListViewColumnFlags, ListViewExFlags,
-    ListViewStyle, NwgError, Tab,
+    unbind_raw_event_handler, ControlHandle, InsertListViewColumn, ListView,
+    ListViewColumnFlags, ListViewStyle, NwgError, RawEventHandler,
+    Tab,
 };
+use std::cell::RefCell;
 use std::collections::HashMap;
 
 const MAX_LOG_ITEMS: usize = 256;
@@ -24,6 +27,16 @@ const MAX_LOG_ITEMS: usize = 256;
 #[derive(Default)]
 pub(crate) struct LogView {
     list: ListView,
+    raw_event_handler: RefCell<Option<RawEventHandler>>,
+}
+
+impl Drop for LogView {
+    fn drop(&mut self) {
+        if let Some(handler) = self.raw_event_handler.borrow().as_ref() {
+            unbind_raw_event_handler(handler)
+                .unwrap_or_else(|e| error!("Failed to unbind raw event handler: {}", e));
+        }
+    }
 }
 
 impl LogView {
@@ -31,7 +44,7 @@ impl LogView {
         ListView::builder()
             .parent(parent)
             .list_style(ListViewStyle::Detailed)
-            .ex_flags(ListViewExFlags::FULL_ROW_SELECT)
+            // .ex_flags(ListViewExFlags::FULL_ROW_SELECT)
             .build(&mut self.list)?;
 
         self.list.set_headers_enabled(true);
@@ -99,6 +112,17 @@ impl LogView {
             text: Some(rs!(IDS_STATUS).into()),
         });
 
+        // self.raw_event_handler.replace(Some(
+        //     bind_raw_event_handler(
+        //         &self.list.handle,
+        //         0x10000,
+        //         move |_hwnd, msg, _w_param, l_param| {
+        //             Self::handle_raw_event(msg, l_param)
+        //         },
+        //     )
+        //     .expect("Failed to bind raw event handler"),
+        // ));
+
         Ok(())
     }
 
@@ -135,7 +159,11 @@ impl LogView {
             None,
             &[
                 KeyTrigger::from(event).to_string(),
-                event.rule.as_ref().map(|r| r.to_string()).unwrap_or("".to_string()),
+                event
+                    .rule
+                    .as_ref()
+                    .map(|r| r.to_string())
+                    .unwrap_or("".to_string()),
                 format!(
                     "{:1} {:1} {:1} {:1} {:1} {:1} {:1} {:1}",
                     ife!(event.modifiers.contains(KM_LSHIFT), "S", "."),
@@ -170,29 +198,35 @@ impl LogView {
         self.list.clear()
     }
 
-    // pub(crate) fn handle_raw_event(&self, msg: u32, l_param: isize) {
+    // pub(crate) fn handle_raw_event(msg: u32, l_param: isize) -> Option<isize>{
     //     if msg == WM_NOTIFY {
     //         unsafe {
-    //             debug!("WM_NOTIFY");
     //             let nmhdr = l_param as *mut NMHDR;
     //             if (*nmhdr).code == NM_CUSTOMDRAW {
     //                 let cd = &mut *(l_param as *mut NMLVCUSTOMDRAW);
-    //                 match cd.nmcd.dwDrawStage {
-    //                     CDDS_ITEMPREPAINT => {
-    //                         let index = cd.nmcd.dwItemSpec as usize;
-    //
-    //                         // например, красим чётные строки
-    //                         if index % 2 == 0 {
-    //                             cd.clrTextBk = COLORREF(RGB(240, 240, 255)); // светло-синий фон
-    //                         } else {
-    //                             cd.clrTextBk = COLORREF(RGB(255, 255, 255)); // белый фон
-    //                         }
-    //
-    //                         // Some(CDRF_NEWFONT as isize)
+    //                 let result = match cd.nmcd.dwDrawStage {
+    //                     CDDS_PREPAINT => {
+    //                         CDRF_NOTIFYITEMDRAW
     //                     }
-    //                     _ => {}
-    //                 }
+    //                     CDDS_ITEMPREPAINT => {
+    //                         let index = cd.nmcd.dwItemSpec;
+    //                         if index % 2 == 0 {
+    //                             cd.clrTextBk = COLORREF(RGB(255, 0, 0));
+    //                             CDRF_NEWFONT
+    //                         } else {
+    //                             CDRF_DODEFAULT
+    //                         }
+    //                     }
+    //                     CDDS_SUBITEM | CDDS_ITEMPREPAINT => {
+    //                         CDRF_NEWFONT
+    //                     }
+    //                     _ => CDRF_DODEFAULT
+    //                 };
+    //                 debug!("Custom draw result: {}", result);
+    //                 return Some(result as isize);
     //             }
     //         }
     //     }
+    //     None
+    // }
 }

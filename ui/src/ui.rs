@@ -212,7 +212,6 @@ impl App {
             let param = unsafe { &*(l_param as *const KeyEvent) };
             self.on_key_hook_notify(param);
         }
-        // app.log_view.handle_raw_event(msg, l_param);
     }
 
     fn on_init(&self) {
