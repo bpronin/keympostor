@@ -30,7 +30,7 @@ macro_rules! r_icon {
 }
 
 #[macro_export]
-macro_rules! r_snd {
+macro_rules! r_play_snd {
     ($res_id:ident) => {
         RESOURCES.with(|r| r.play_sound($res_id));
     };
@@ -118,7 +118,7 @@ mod test {
     #[test]
     fn test_r_snd() {
         setup_test_logger();
-        r_snd!(IDR_SWITCH_LAYOUT);
+        r_play_snd!(IDR_SWITCH_LAYOUT);
         thread::sleep(Duration::from_millis(1000));
     }
 }

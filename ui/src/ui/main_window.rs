@@ -123,12 +123,12 @@ impl MainWindow {
             .build(&self.layout)
     }
 
-    pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
+    pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: ControlHandle) {
         self.main_menu.handle_event(app, evt, handle);
         self.tray.handle_event(app, evt, handle);
         self.test_editor.handle_event(evt);
         match evt {
-            Event::OnWindowClose => {
+            nwg::Event::OnWindowClose => {
                 if &handle == &self.window.handle {
                     app.on_window_close()
                 }

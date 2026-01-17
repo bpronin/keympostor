@@ -20,7 +20,7 @@ IDI_ICON_GAME_LOCK_OFF ICON "res/image/GameLockOff.ico"
 
 #define IDR_SWITCH_LAYOUT 101
 
-IDR_SWITCH_LAYOUT WAVE "res/sound/pick.wav"
+IDR_SWITCH_LAYOUT WAVE "res/sound/clack.wav"
 
 /* Strings */
 

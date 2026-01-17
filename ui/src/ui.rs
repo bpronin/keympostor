@@ -10,14 +10,13 @@ use crate::ui::style::display_font;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::win_watch::WinWatcher;
-use crate::{r_snd, rs, ui_warn};
+use crate::{r_play_snd, rs, ui_warn};
 use keympostor::event::KeyEvent;
 use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
 use keympostor::layout::Layouts;
 use keympostor::trigger::KeyTrigger;
 use log::{debug, error};
 use native_windows_gui as nwg;
-use native_windows_gui::{Event, NativeUi};
 use std::cell::RefCell;
 use std::ops::Not;
 use std::rc::Rc;
@@ -156,7 +155,7 @@ impl App {
         self.update_controls();
         self.save_settings();
 
-        r_snd!(IDR_SWITCH_LAYOUT);
+        r_play_snd!(IDR_SWITCH_LAYOUT);
     }
 
     fn update_controls(&self) {
@@ -200,7 +199,7 @@ impl App {
 
     fn handle_event(&self, evt: nwg::Event, handle: nwg::ControlHandle) {
         match evt {
-            Event::OnInit => self.on_init(),
+            nwg::Event::OnInit => self.on_init(),
             _ => {}
         }
         self.win_watcher.handle_event(&self, evt, handle);
@@ -276,7 +275,7 @@ impl App {
     }
 }
 
-impl NativeUi<AppUi> for App {
+impl nwg::NativeUi<AppUi> for App {
     fn build_ui(app: App) -> Result<AppUi, nwg::NwgError> {
         nwg::init().expect("Failed to init Native Windows GUI.");
         nwg::Font::set_global_default(Some(display_font(17)));
