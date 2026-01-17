@@ -2,3 +2,7 @@ name = "default"
 title = "Default layout"
 
 [rules]
+
+[keyboard_lighting]
+en_us= [0x0000FF, 0x0000FF, 0x0000FF, 0x0000FF]
+ru_ru= [0xFF0000, 0xFF0000, 0xFF0000, 0xFF0000]
