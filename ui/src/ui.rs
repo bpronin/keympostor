@@ -1,6 +1,7 @@
+use crate::kb_light::KeyboardLightingControl;
 use crate::profile::{Profile, Profiles};
-use crate::res::RESOURCES;
 use crate::res::res_ids::{IDR_SWITCH_LAYOUT, IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
+use crate::res::RESOURCES;
 use crate::settings::{AppSettings, LAYOUTS_PATH};
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -37,6 +38,7 @@ pub(crate) struct App {
     window: MainWindow,
     key_hook: KeyboardHook,
     win_watcher: WinWatcher,
+    keyboard_lighting: KeyboardLightingControl,
     is_log_enabled: RefCell<bool>,
     profiles: RefCell<Rc<Profiles>>,
     current_profile: RefCell<Option<String>>,
@@ -50,6 +52,10 @@ impl App {
         let settings = AppSettings::load_default();
 
         self.window.apply_settings(&settings);
+
+        self.keyboard_lighting
+            .colors
+            .replace(settings.keyboard_lighting_colors);
 
         self.default_layout.replace(settings.layout);
         self.select_layout(&None);
@@ -151,9 +157,11 @@ impl App {
         );
 
         self.key_hook.apply_rules(&layout.rules);
-        self.window.on_select_layout(layout);
+        self.window.on_select_layout(&layout);
         self.update_controls();
         self.save_settings();
+
+        self.keyboard_lighting.update_colors(&layout);
 
         r_play_snd!(IDR_SWITCH_LAYOUT);
     }

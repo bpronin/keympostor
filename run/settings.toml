@@ -1,7 +1,7 @@
-processing_enabled = true
-logging_enabled = true
+processing_enabled = false
+logging_enabled = false
 layouts_enabled = false
-layout = "game"
+layout = "default"
 
 [main_window]
 position = [822, 138]
@@ -9,12 +9,20 @@ size = [977, 560]
 selected_page = 1
 
 [log_view.columns]
-6 = 108
-2 = 89
-3 = 50
-5 = 50
-8 = 50
 0 = 187
-4 = 50
-1 = 179
+2 = 89
+5 = 50
 7 = 94
+6 = 108
+4 = 50
+3 = 50
+8 = 50
+1 = 179
+
+[keyboard_lighting_colors.default]
+ru_ru = ["#FF0000", "#FF0000", "#FF0000", "#FF0000"]
+en_us = ["#0000FF", "#0000FF", "#0000FF", "#0000FF"]
+
+[keyboard_lighting_colors.game]
+ru_ru = ["#0000FF", "#200000", "#200000", "#200000"]
+en_us = ["#FF0000", "#000020", "#000020", "#000020"]

@@ -23,7 +23,3 @@ title = "Game layout"
 "NUM_ENTER" = "SPACE"
 "NUM_0, NUM_INSERT" = "M"
 "NUM_DOT, NUM_DELETE" = "LEFT_SHIFT"
-
-[keyboard_lighting]
-en_us= [0xFF0000, 0x000020, 0x000020, 0x000020]
-ru_ru= [0x0000FF, 0x200000, 0x200000, 0x200000]

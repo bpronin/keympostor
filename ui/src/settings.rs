@@ -1,3 +1,4 @@
+use crate::kb_light::KeyboardZoneColors;
 use crate::profile::Profiles;
 use keympostor::error::KeyError;
 use keympostor::key_err;
@@ -17,6 +18,7 @@ pub(crate) struct AppSettings {
     pub(crate) log_view: LogViewSettings,
     pub(crate) layout: Option<String>,
     pub(crate) profiles: Option<Profiles>,
+    pub(crate) keyboard_lighting_colors: Option<KeyboardLightingSettings>,
 }
 
 impl Default for AppSettings {
@@ -29,6 +31,7 @@ impl Default for AppSettings {
             log_view: Default::default(),
             layout: None,
             profiles: Default::default(),
+            keyboard_lighting_colors: Default::default(),
         }
     }
 }
@@ -71,6 +74,12 @@ pub(crate) struct LogViewSettings {
     pub(crate) columns: Option<HashMap<usize, isize>>,
 }
 
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+pub(crate) struct KeyboardLightingLangSettings(pub HashMap<String, KeyboardZoneColors>);
+
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+pub(crate) struct KeyboardLightingSettings(pub HashMap<String, KeyboardLightingLangSettings>);
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -100,6 +109,16 @@ pub mod tests {
                 },
             ])),
             log_view: Default::default(),
+            keyboard_lighting_colors: Some(KeyboardLightingSettings(map![
+                "default".to_string() => KeyboardLightingLangSettings(map![
+                    "en_en".to_string() => KeyboardZoneColors{right: 1, center: 2,left: 3, game: 4,},
+                    "ru_ru".to_string() => KeyboardZoneColors{right: 1, center: 2,left: 3, game: 4,},
+                ]),
+                "game".to_string() => KeyboardLightingLangSettings(map![
+                    "en_en".to_string() => KeyboardZoneColors{right: 10, center: 20,left: 30, game: 40,},
+                    "ru_ru".to_string() => KeyboardZoneColors{right: 10, center: 20,left: 30, game: 40,},
+                ]),
+            ])),
         };
 
         assert!(settings.save("test_settings.toml").is_ok());
