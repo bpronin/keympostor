@@ -9,19 +9,19 @@ size = [977, 560]
 selected_page = 1
 
 [log_view.columns]
-0 = 187
-2 = 89
+8 = 50
+3 = 50
+1 = 179
 5 = 50
-7 = 94
+2 = 89
+0 = 187
 6 = 108
 4 = 50
-3 = 50
-8 = 50
-1 = 179
+7 = 94
 
 [keyboard_lighting_colors.default]
-ru_ru = ["#FF0000", "#FF0000", "#FF0000", "#FF0000"]
 en_us = ["#0000FF", "#0000FF", "#0000FF", "#0000FF"]
+ru_ru = ["#FF0000", "#FF0000", "#FF0000", "#FF0000"]
 
 [keyboard_lighting_colors.game]
 ru_ru = ["#0000FF", "#200000", "#200000", "#200000"]
