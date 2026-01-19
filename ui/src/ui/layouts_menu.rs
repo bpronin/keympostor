@@ -1,5 +1,5 @@
 use crate::layout::{Layout, Layouts};
-use crate::res::res_ids::{IDS_AUTO_SWITCH_LAYOUT, IDS_LAYOUT};
+use crate::res::res_ids::{IDS_AUTO_SWITCH_LAYOUT, IDS_LAYOUT, IDS_NO_LAYOUT};
 use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::App;
@@ -39,7 +39,7 @@ impl LayoutsMenu {
         let mut item: MenuItem = MenuItem::default();
         MenuItem::builder()
             .parent(&self.menu)
-            .text("NONE (NOT IMPLEMENTED)")
+            .text(rs!(IDS_NO_LAYOUT))
             .build(&mut item)?;
 
         items.push((item, None));
@@ -66,12 +66,12 @@ impl LayoutsMenu {
     ) {
         self.toggle_auto_switch_layout_item
             .set_checked(is_auto_switch_layout_enabled);
-        
+
         let layout_name = match current_layout {
             None => None,
             Some(l) => Some(l.name.clone()),
         };
-        
+
         for (item, item_layout_name) in self.items.borrow().iter() {
             item.set_checked(item_layout_name == &layout_name);
         }

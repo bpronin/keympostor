@@ -68,17 +68,17 @@ impl App {
     fn save_settings(&self) {
         let mut settings = AppSettings::load_default();
 
-        let current_layout = self.current_layout_name.borrow().to_owned();
+        let layout_name = self.current_layout_name.borrow().to_owned();
         if let Some(profile_name) = self.current_profile_name.borrow().as_ref() {
             settings.profiles.get_or_insert_default().get_or_insert(
                 profile_name,
                 Profile {
                     rule: None,
-                    layout: current_layout.clone(),
+                    layout: layout_name,
                 },
             );
         } else {
-            settings.layout = current_layout;
+            settings.layout = layout_name;
         }
 
         settings.layouts_enabled = self.win_watcher.is_enabled();
