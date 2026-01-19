@@ -64,7 +64,7 @@ BEGIN
     IDS_RULE "Rule"
     IDS_MODIFIERS "Modifiers"
     IDS_TRANSITION "Transition"
-    IDS_AUTO_SWITCH_LAYOUT "Auto switch layout"
+    IDS_AUTO_SWITCH_LAYOUT "Auto switch enabled"
     IDS_KEY "Key"
     IDS_STATUS "Status"
     IDS_TIME "Time"

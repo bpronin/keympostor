@@ -1,10 +1,8 @@
+use crate::res::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
 use crate::res::RESOURCES;
-use crate::res::res_ids::{
-    IDS_AUTO_SWITCH_LAYOUT, IDS_CLEAR_LOG, IDS_ENABLED, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED,
-};
 use crate::rs;
-use crate::ui::App;
 use crate::ui::layouts_menu::LayoutsMenu;
+use crate::ui::App;
 use keympostor::layout::Layouts;
 use log::warn;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};
@@ -13,12 +11,10 @@ use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, Nw
 pub(crate) struct MainMenu {
     menu: Menu,
     layout_menu: LayoutsMenu,
-    toggle_processing_enabled_item: MenuItem,
     toggle_logging_enabled_item: MenuItem,
     clear_log_item: MenuItem,
     separator: MenuSeparator,
     exit_app_item: MenuItem,
-    toggle_auto_switch_layout_item: MenuItem,
 }
 
 impl MainMenu {
@@ -29,16 +25,6 @@ impl MainMenu {
             .build(&mut self.menu)?;
 
         self.layout_menu.build(parent)?;
-
-        MenuItem::builder()
-            .parent(&self.menu)
-            .text(rs!(IDS_ENABLED))
-            .build(&mut self.toggle_processing_enabled_item)?;
-
-        MenuItem::builder()
-            .parent(&self.menu)
-            .text(rs!(IDS_AUTO_SWITCH_LAYOUT))
-            .build(&mut self.toggle_auto_switch_layout_item)?;
 
         MenuSeparator::builder()
             .parent(&self.menu)
@@ -71,13 +57,13 @@ impl MainMenu {
         is_logging_enabled: bool,
         current_layout_name: &Option<String>,
     ) {
-        self.toggle_processing_enabled_item
-            .set_checked(is_processing_enabled);
-        self.toggle_auto_switch_layout_item
-            .set_checked(is_auto_switch_layout_enabled);
         self.toggle_logging_enabled_item
             .set_checked(is_logging_enabled);
-        self.layout_menu.update_ui(current_layout_name);
+        self.layout_menu.update_ui(
+            is_processing_enabled,
+            is_auto_switch_layout_enabled,
+            current_layout_name,
+        );
     }
 
     pub(crate) fn build_layouts_menu(&self, layouts: &Layouts) {
@@ -95,10 +81,6 @@ impl MainMenu {
                     app.on_app_exit();
                 } else if &handle == &self.toggle_logging_enabled_item {
                     app.on_toggle_logging_enabled();
-                } else if &handle == &self.toggle_processing_enabled_item {
-                    app.on_toggle_processing_enabled();
-                } else if &handle == &self.toggle_auto_switch_layout_item {
-                    app.on_toggle_auto_switch_layout();
                 }
             }
             _ => {}
