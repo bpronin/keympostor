@@ -25,7 +25,7 @@ macro_rules! rs {
 #[macro_export]
 macro_rules! r_icon {
     ($res_id:ident) => {
-        &RESOURCES.with(|r| r.icon($res_id))
+        RESOURCES.with(|r| r.icon($res_id))
     };
 }
 

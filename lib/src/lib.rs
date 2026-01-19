@@ -4,7 +4,6 @@ pub mod event;
 pub mod hook;
 mod input;
 pub mod key;
-pub mod layout;
 pub mod modifiers;
 pub mod rules;
 pub mod sc;

@@ -1,5 +1,5 @@
 use crate::ui::style::SMALL_MONO_FONT;
-use keympostor::layout::Layout;
+use crate::layout::Layout;
 use native_windows_gui::{ControlHandle, NwgError, Tab, TextBox};
 
 #[derive(Default)]
@@ -20,13 +20,20 @@ impl LayoutView {
             .build(&mut self.view)
     }
 
-    pub(crate) fn update_ui(&self, layout: &Layout) {
+    pub(crate) fn update_ui(&self, layout: &Option<&Layout>) {
         let mut text = String::new();
-        text.push_str(&format!("{}\r\n", layout.title));
-        text.push_str(&"-".repeat(layout.title.len()));
-        text.push_str("\r\n");
-        for rule in layout.rules.iter() {
-            text.push_str(&format!("{:22} : {}\r\n", rule.trigger, rule.actions));
+        match layout {
+            None => {
+                text.push_str(&format!("{}\r\n", "NONE"));
+            }
+            Some(l) => {
+                text.push_str(&format!("{}\r\n", l.title));
+                text.push_str(&"-".repeat(l.title.len()));
+                text.push_str("\r\n");
+                for rule in l.rules.iter() {
+                    text.push_str(&format!("{:22} : {}\r\n", rule.trigger, rule.actions));
+                }
+            }
         }
 
         self.view.set_text(&text);

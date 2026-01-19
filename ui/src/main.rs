@@ -11,6 +11,7 @@ mod res;
 mod settings;
 mod ui;
 mod win_watch;
+pub mod layout;
 
 fn main() {
     SimpleLogger::new()

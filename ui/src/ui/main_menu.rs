@@ -3,7 +3,7 @@ use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::layouts_menu::LayoutsMenu;
 use crate::ui::App;
-use keympostor::layout::Layouts;
+use crate::layout::{Layout, Layouts};
 use log::warn;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};
 
@@ -52,17 +52,15 @@ impl MainMenu {
 
     pub(crate) fn update_ui(
         &self,
-        is_processing_enabled: bool,
         is_auto_switch_layout_enabled: bool,
         is_logging_enabled: bool,
-        current_layout_name: &Option<String>,
+        current_layout: &Option<&Layout>,
     ) {
         self.toggle_logging_enabled_item
             .set_checked(is_logging_enabled);
         self.layout_menu.update_ui(
-            is_processing_enabled,
             is_auto_switch_layout_enabled,
-            current_layout_name,
+            current_layout,
         );
     }
 

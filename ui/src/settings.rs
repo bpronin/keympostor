@@ -2,6 +2,7 @@ use crate::kb_light::KeyboardZoneColors;
 use crate::profile::Profiles;
 use keympostor::error::KeyError;
 use keympostor::key_err;
+use log::{warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
@@ -11,37 +12,36 @@ pub const LAYOUTS_PATH: &str = "layouts";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct AppSettings {
-    pub(crate) processing_enabled: bool, //todo: rename to `transform_enabled` ?
     pub(crate) logging_enabled: bool,
     pub(crate) layouts_enabled: bool,
     pub(crate) main_window: MainWindowSettings,
     pub(crate) log_view: LogViewSettings,
     pub(crate) layout: Option<String>,
     pub(crate) profiles: Option<Profiles>,
-    pub(crate) keyboard_lighting_colors: Option<KeyboardLightingSettings>,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            processing_enabled: true,
             logging_enabled: false,
             layouts_enabled: false,
             main_window: Default::default(),
             log_view: Default::default(),
             layout: None,
             profiles: Default::default(),
-            keyboard_lighting_colors: Default::default(),
         }
     }
 }
 
 impl AppSettings {
-    pub(crate) fn load(filename: &str) -> Self {
-        fs::read_to_string(filename)
+    pub(crate) fn load(path: &str) -> Self {
+        fs::read_to_string(path)
             .ok()
             .and_then(|text| toml::from_str(&text).ok())
-            .unwrap_or_default()
+            .unwrap_or_else(|| {
+                warn!("Failed to load {path}. Using default values");
+                Self::default()
+            })
     }
 
     pub(crate) fn save(&self, path: &str) -> Result<(), KeyError> {
@@ -74,11 +74,25 @@ pub(crate) struct LogViewSettings {
     pub(crate) columns: Option<HashMap<usize, isize>>,
 }
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct KeyboardLightingLangSettings(pub HashMap<String, KeyboardZoneColors>);
+#[derive(Debug, Default, PartialEq, Deserialize)]
+pub(crate) struct KeyboardLightingSettings {
+    pub(crate) layouts: HashMap<String, KeyboardLightingLangSettings>,
+}
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct KeyboardLightingSettings(pub HashMap<String, KeyboardLightingLangSettings>);
+impl KeyboardLightingSettings {
+    pub(crate) fn load() -> Self {
+        fs::read_to_string("kb_lighting.toml")
+            .ok()
+            .and_then(|text| toml::from_str(&text).ok())
+            .unwrap_or_else(|| {
+                warn!("Failed to load kb_lighting.toml. Using default values");
+                Self::default()
+            })
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Deserialize)]
+pub(crate) struct KeyboardLightingLangSettings(pub HashMap<String, KeyboardZoneColors>);
 
 #[cfg(test)]
 pub mod tests {
@@ -89,7 +103,6 @@ pub mod tests {
     #[test]
     fn test_save_load_settings() {
         let settings = AppSettings {
-            processing_enabled: false,
             logging_enabled: false,
             layouts_enabled: true,
             layout: Some("test-layout".to_string()),
@@ -109,16 +122,16 @@ pub mod tests {
                 },
             ])),
             log_view: Default::default(),
-            keyboard_lighting_colors: Some(KeyboardLightingSettings(map![
-                "default".to_string() => KeyboardLightingLangSettings(map![
-                    "en_en".to_string() => KeyboardZoneColors{right: 1, center: 2,left: 3, game: 4,},
-                    "ru_ru".to_string() => KeyboardZoneColors{right: 1, center: 2,left: 3, game: 4,},
-                ]),
-                "game".to_string() => KeyboardLightingLangSettings(map![
-                    "en_en".to_string() => KeyboardZoneColors{right: 10, center: 20,left: 30, game: 40,},
-                    "ru_ru".to_string() => KeyboardZoneColors{right: 10, center: 20,left: 30, game: 40,},
-                ]),
-            ])),
+            // keyboard_lighting_colors: Some(KeyboardLightingSettings(map![
+            //     "default".to_string() => KeyboardLightingLangSettings(map![
+            //         "en_en".to_string() => KeyboardZoneColors{right: 1, center: 2,left: 3, game: 4,},
+            //         "ru_ru".to_string() => KeyboardZoneColors{right: 1, center: 2,left: 3, game: 4,},
+            //     ]),
+            //     "game".to_string() => KeyboardLightingLangSettings(map![
+            //         "en_en".to_string() => KeyboardZoneColors{right: 10, center: 20,left: 30, game: 40,},
+            //         "ru_ru".to_string() => KeyboardZoneColors{right: 10, center: 20,left: 30, game: 40,},
+            //     ]),
+            // ])),
         };
 
         assert!(settings.save("test_settings.toml").is_ok());

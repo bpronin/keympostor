@@ -1,20 +1,20 @@
-use crate::res::RESOURCES;
+use log::debug;
 use crate::res::res_ids::{
-    IDI_ICON_APP, IDI_ICON_GAME_LOCK_OFF, IDI_ICON_GAME_LOCK_ON, IDS_ENABLED, IDS_EXIT, IDS_OPEN,
-    IDS_TRAY_TIP,
+    IDI_ICON_APP, IDS_EXIT, IDS_OPEN, IDS_TRAY_TIP,
 };
+use crate::res::RESOURCES;
 use crate::ui::App;
 use crate::{r_icon, rs};
 use native_windows_gui::{
-    ControlHandle, Event, GlobalCursor, Menu, MenuItem, MenuSeparator, MousePressEvent, NwgError,
-    TrayNotification, Window,
+    ControlHandle, Event, GlobalCursor, Icon, Menu, MenuItem, MenuSeparator, MousePressEvent,
+    NwgError, TrayNotification, Window,
 };
+use crate::layout::Layout;
 
 #[derive(Default)]
 pub(crate) struct Tray {
     notification: TrayNotification,
     menu: Menu,
-    toggle_processing_enabled_item: MenuItem,
     open_app_item: MenuItem,
     exit_app_item: MenuItem,
     separator: MenuSeparator,
@@ -24,7 +24,7 @@ impl Tray {
     pub(crate) fn build(&mut self, parent: &Window) -> Result<(), NwgError> {
         TrayNotification::builder()
             .parent(parent)
-            .icon(Some(r_icon!(IDI_ICON_APP)))
+            .icon(Some(&r_icon!(IDI_ICON_APP)))
             .tip(Some(rs!(IDS_TRAY_TIP)))
             .build(&mut self.notification)?;
 
@@ -32,11 +32,6 @@ impl Tray {
             .popup(true)
             .parent(parent)
             .build(&mut self.menu)?;
-
-        MenuItem::builder()
-            .parent(&self.menu)
-            .text(rs!(IDS_ENABLED))
-            .build(&mut self.toggle_processing_enabled_item)?;
 
         MenuItem::builder()
             .text(rs!(IDS_OPEN))
@@ -53,15 +48,24 @@ impl Tray {
             .build(&mut self.exit_app_item)
     }
 
-    pub(crate) fn update_ui(&self, is_processing_enabled: bool) {
-        self.toggle_processing_enabled_item
-            .set_checked(is_processing_enabled);
+    pub(crate) fn update_ui(&self, layout: &Option<&Layout>) {
+        let mut icon = Icon::default();
 
-        if is_processing_enabled {
-            self.notification.set_icon(r_icon!(IDI_ICON_GAME_LOCK_ON));
-        } else {
-            self.notification.set_icon(r_icon!(IDI_ICON_GAME_LOCK_OFF));
-        }
+        match layout {
+            None => {
+                icon = r_icon!(IDI_ICON_APP)
+            }
+            Some(l) => {
+                Icon::builder()
+                    .source_file(l.icon.as_deref())
+                    .strict(true)
+                    .size(Some((16, 16)))
+                    .build(&mut icon)
+                    .expect("Unable to load layout icon");
+            }
+        };
+
+        self.notification.set_icon(&icon);
     }
 
     fn on_show_menu(&self) {
@@ -84,8 +88,6 @@ impl Tray {
             Event::OnMenuItemSelected => {
                 if &handle == &self.open_app_item {
                     app.on_show_main_window();
-                } else if &handle == &self.toggle_processing_enabled_item {
-                    app.on_toggle_processing_enabled();
                 } else if &handle == &self.exit_app_item {
                     app.on_app_exit();
                 }

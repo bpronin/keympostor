@@ -1,31 +1,31 @@
 use crate::settings::KeyboardLightingSettings;
-use keympostor::layout::Layout;
+use crate::layout::Layout;
 use libloading::os::windows::{Library, LOAD_WITH_ALTERED_SEARCH_PATH};
 use log::debug;
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
 use std::sync::LazyLock;
 use windows::Win32::Globalization::GetLocaleInfoW;
 use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardLayout;
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
 
+static SETTINGS: LazyLock<KeyboardLightingSettings> =
+    LazyLock::new(|| KeyboardLightingSettings::load());
+
 #[derive(Default)]
-pub struct KeyboardLightingControl {
-    pub(crate) colors: RefCell<Option<KeyboardLightingSettings>>,
-}
+pub struct KeyboardLightingControl {}
 
 impl KeyboardLightingControl {
-    pub(crate) fn update_colors(&self, layout: &Layout) {
-        if let Some(settings) = self.colors.borrow().as_ref() {
-            if let Some(lang_settings) = &settings.0.get(&layout.name) {
-                let lang = get_current_keyboard_locale();
-                if let Some(colors) = &lang_settings.0.get(&lang) {
-                    debug!(
-                        "Updating keyboard colors for: {}, lang: {}",
-                        layout.name, lang
-                    );
-                    set_colors(colors);
-                }
+    pub(crate) fn update_colors(&self, layout: &Option<&Layout>) {
+        let layout_name = match layout {
+            None => "none",
+            Some(l) => &l.name,
+        };
+
+        if let Some(layout_settings) = SETTINGS.layouts.get(layout_name) {
+            let lang = get_current_keyboard_locale();
+            if let Some(land_settings) = &layout_settings.0.get(&lang) {
+                debug!("Updating keyboard colors for: {layout_name}, lang: {lang}");
+                set_colors(land_settings);
             }
         }
     }

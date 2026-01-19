@@ -7,14 +7,8 @@
 /* Icons */
 
 #define IDI_ICON_APP 1001
-#define IDI_ICON_GAME_LOCK_ON 1002
-#define IDI_ICON_GAME_LOCK_OFF 1003
-//#define IDI_ICON_NUM_LOCK 1004
 
 IDI_ICON_APP ICON "res/image/app.ico"
-IDI_ICON_GAME_LOCK_ON ICON "res/image/GameLockOn.ico"
-IDI_ICON_GAME_LOCK_OFF ICON "res/image/GameLockOff.ico"
-//IDI_ICON_NUM_LOCK ICON "res/image/NumLock.ico"
 
 /* Sounds */
 

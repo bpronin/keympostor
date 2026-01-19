@@ -4,7 +4,7 @@ use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::{r_icon, rs};
 use keympostor::event::KeyEvent;
-use keympostor::layout::Layout;
+use crate::layout::Layout;
 use native_windows_gui::stretch::geometry::{Rect, Size};
 use native_windows_gui::stretch::style::Dimension::Points as PT;
 use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
@@ -33,7 +33,7 @@ impl MainWindow {
     pub(crate) fn build(&mut self) -> Result<(), NwgError> {
         Window::builder()
             .size((700, 300))
-            .icon(Some(r_icon!(IDI_ICON_APP)))
+            .icon(Some(&r_icon!(IDI_ICON_APP)))
             .flags(WindowFlags::MAIN_WINDOW)
             .title(rs!(IDS_APP_TITLE))
             .build(&mut self.window)?;
@@ -143,19 +143,17 @@ impl MainWindow {
 
     pub(crate) fn update_ui(
         &self,
-        is_processing_enabled: bool,
         is_auto_switch_layout_enabled: bool,
         is_logging_enabled: bool,
-        current_layout_name: &Option<String>,
+        current_layout: &Option<&Layout>,
     ) {
         self.main_menu.update_ui(
-            is_processing_enabled,
             is_auto_switch_layout_enabled,
             is_logging_enabled,
-            current_layout_name,
+            current_layout,
         );
 
-        self.tray.update_ui(is_processing_enabled);
+        self.tray.update_ui(current_layout);
     }
 
     pub(crate) fn apply_settings(&self, settings: &AppSettings) {
@@ -198,7 +196,7 @@ impl MainWindow {
         self.main_menu.build_layouts_menu(layouts);
     }
 
-    pub(crate) fn on_select_layout(&self, layout: &Layout) {
+    pub(crate) fn on_select_layout(&self, layout: &Option<&Layout>) {
         self.layout_view.update_ui(layout);
     }
 

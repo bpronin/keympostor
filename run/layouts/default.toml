@@ -1,5 +1,9 @@
 name = "default"
 title = "Default layout"
+icon = "image\\default.ico"
+
+#[sound]
+#default = "sound\\clack.wav"
 
 [rules]
 

@@ -1,0 +1,11 @@
+[layouts.none]
+ru_ru = ["#FFFF00", "#FFFF00", "#FFFF00", "#FFFF00"]
+en_us = ["#FFFF00", "#FFFF00", "#FFFF00", "#FFFF00"]
+
+[layouts.default]
+en_us = ["#0000FF", "#0000FF", "#0000FF", "#0000FF"]
+ru_ru = ["#FF0000", "#FF0000", "#FF0000", "#FF0000"]
+
+[layouts.game]
+en_us = ["#FF0000", "#000020", "#000020", "#000020"]
+ru_ru = ["#0000FF", "#200000", "#200000", "#200000"]

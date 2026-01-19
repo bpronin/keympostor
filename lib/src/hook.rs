@@ -7,7 +7,7 @@ use log::{debug, warn};
 use std::cell::RefCell;
 use std::rc::Rc;
 use windows::Win32::Foundation::*;
-use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, SendInput};
+use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
 
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
@@ -22,8 +22,15 @@ impl KeyboardHook {
         NOTIFY.with_borrow_mut(|state| state.target = owner);
     }
 
-    pub fn apply_rules(&self, rules: &KeyTransformRules) {
-        TRANSFOFM_MAP.replace(Some(KeyTransformMap::new(rules)));
+    pub fn apply_rules(&self, rules: Option<&KeyTransformRules>) {
+        match rules {
+            Some(rules) => {
+                TRANSFOFM_MAP.replace(Some(KeyTransformMap::new(rules)));
+            }
+            None => {
+                TRANSFOFM_MAP.replace(None);
+            }
+        }
     }
 
     pub fn is_enabled(&self) -> bool {
