@@ -6,6 +6,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::Path;
+use std::rc::Rc;
 use std::slice::Iter;
 use std::str::FromStr;
 

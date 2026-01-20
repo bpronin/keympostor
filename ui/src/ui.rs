@@ -137,7 +137,7 @@ impl App {
         }
 
         debug!(
-            "Selected layout: {:?} for: {:?}",
+            "Selected layout: {:?} for profile: {:?}",
             self.current_layout_name.borrow(),
             self.current_profile_name.borrow(),
         );
