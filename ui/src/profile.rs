@@ -1,7 +1,7 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::collections::hash_map::Iter;
+use std::collections::HashMap;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Profile {
@@ -19,18 +19,18 @@ impl Profile {
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub struct Profiles(pub HashMap<String, Profile>);
+pub(crate) struct Profiles(pub(crate) HashMap<String, Profile>);
 
 impl Profiles {
-    pub fn get(&self, name: &str) -> Option<&Profile> {
+    pub(crate) fn get(&self, name: &str) -> Option<&Profile> {
         self.0.get(name)
     }
 
-    pub fn get_or_insert(&mut self, name: &str, default: Profile) -> &Profile {
+    pub(crate) fn get_or_insert(&mut self, name: &str, default: Profile) -> &Profile {
         self.0.entry(name.to_string()).or_insert_with(|| default)
     }
 
-    pub fn iter(&self) -> Iter<'_, String, Profile> {
+    pub(crate) fn iter(&self) -> Iter<'_, String, Profile> {
         self.0.iter()
     }
 }

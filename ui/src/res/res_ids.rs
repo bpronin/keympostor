@@ -4,7 +4,6 @@ pub(crate) const IDI_ICON_APP: usize = 1001;
 pub(crate) const IDR_SWITCH_LAYOUT: usize = 101;
 pub(crate) const IDS_APP_TITLE: usize = 1001;
 pub(crate) const IDS_CLEAR_LOG: usize = 1002;
-pub(crate) const IDS_ENABLED: usize = 1003;
 pub(crate) const IDS_EXIT: usize = 1004;
 pub(crate) const IDS_FILE: usize = 1005;
 pub(crate) const IDS_NO_PROFILE: usize = 1006;

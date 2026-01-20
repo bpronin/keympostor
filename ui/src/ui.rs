@@ -1,9 +1,9 @@
 use crate::kb_light::KeyboardLightingControl;
-use crate::layout::{Layout, Layouts};
+use crate::layout::Layouts;
 use crate::profile::{Profile, Profiles};
 use crate::res::res_ids::{IDR_SWITCH_LAYOUT, IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
 use crate::res::RESOURCES;
-use crate::settings::{AppSettings, LAYOUTS_PATH};
+use crate::settings::AppSettings;
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
 use crate::ui::main_menu::MainMenu;
@@ -12,13 +12,13 @@ use crate::ui::style::display_font;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::win_watch::WinWatcher;
-use crate::{r_play_snd, rs, ui_warn};
+use crate::{r_play_snd, rs};
 use keympostor::event::KeyEvent;
 use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
 use keympostor::trigger::KeyTrigger;
 use log::{debug, error};
 use native_windows_gui as nwg;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::ops::Not;
 use std::rc::Rc;
 use utils::{get_window_size, hwnd, set_window_size, try_hwnd};
@@ -41,15 +41,14 @@ pub(crate) struct App {
     keyboard_lighting: KeyboardLightingControl,
     is_log_enabled: RefCell<bool>,
     profiles: RefCell<Rc<Profiles>>,
-    layouts: RefCell<Rc<Layouts>>,
     current_profile_name: RefCell<Option<String>>,
+    layouts: RefCell<Layouts>,
     current_layout_name: RefCell<Option<String>>,
 }
 
 impl App {
     fn load_settings(&self) {
         let settings = AppSettings::load_default();
-
         self.window.apply_settings(&settings);
 
         self.select_layout(&None);
@@ -57,9 +56,10 @@ impl App {
         self.is_log_enabled.replace(settings.logging_enabled);
         self.apply_log_enabled();
 
-        self.profiles
-            .replace(Rc::new(settings.profiles.unwrap_or_default()));
-        self.win_watcher.set_profiles(&self.profiles.borrow());
+        let profiles = Rc::new(settings.profiles.unwrap_or_default());
+        self.profiles.replace(Rc::clone(&profiles));
+        self.win_watcher.set_profiles(profiles);
+
         self.win_watcher.set_enabled(settings.layouts_enabled);
 
         debug!("Loaded settings");
@@ -86,22 +86,13 @@ impl App {
 
         self.window.update_settings(&mut settings);
 
-        settings.save_default().unwrap_or_else(|e| {
-            ui_warn!("{}", e);
-        });
+        settings.save_default();
 
         debug!("Saved settings");
     }
 
     fn load_layouts(&self) {
-        match Layouts::load(LAYOUTS_PATH) {
-            Ok(layouts) => {
-                self.layouts.replace(Rc::new(layouts));
-            }
-            Err(e) => {
-                ui_warn!("Unable to load layouts. {}", e);
-            }
-        }
+        self.layouts.replace(Layouts::load_default());
         self.window.on_load_layouts(&self.layouts.borrow());
     }
 
@@ -126,7 +117,7 @@ impl App {
         debug!("Selecting layout: {:?}", layout_name);
 
         let layouts = self.layouts.borrow();
-        let current_layout = layouts.try_get(layout_name);
+        let current_layout = layouts.get(layout_name);
 
         if let Some(l) = current_layout {
             self.key_hook.apply_rules(Some(&l.rules));
@@ -153,8 +144,7 @@ impl App {
 
     fn update_controls(&self) {
         let layouts = self.layouts.borrow();
-        let current_layout = layouts
-            .try_get(&self.current_layout_name.borrow().as_ref());
+        let current_layout = layouts.get(&self.current_layout_name.borrow().as_ref());
 
         self.update_title();
         self.window.update_ui(

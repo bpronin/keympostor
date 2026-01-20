@@ -1,7 +1,5 @@
-use log::debug;
-use crate::res::res_ids::{
-    IDI_ICON_APP, IDS_EXIT, IDS_OPEN, IDS_TRAY_TIP,
-};
+use crate::layout::Layout;
+use crate::res::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_OPEN, IDS_TRAY_TIP};
 use crate::res::RESOURCES;
 use crate::ui::App;
 use crate::{r_icon, rs};
@@ -9,7 +7,6 @@ use native_windows_gui::{
     ControlHandle, Event, GlobalCursor, Icon, Menu, MenuItem, MenuSeparator, MousePressEvent,
     NwgError, TrayNotification, Window,
 };
-use crate::layout::Layout;
 
 #[derive(Default)]
 pub(crate) struct Tray {
@@ -52,9 +49,7 @@ impl Tray {
         let mut icon = Icon::default();
 
         match layout {
-            None => {
-                icon = r_icon!(IDI_ICON_APP)
-            }
+            None => icon = r_icon!(IDI_ICON_APP),
             Some(l) => {
                 Icon::builder()
                     .source_file(l.icon.as_deref())

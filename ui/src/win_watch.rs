@@ -1,19 +1,18 @@
 use crate::profile::Profiles;
 use crate::ui::App;
-use error::Error;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
 use std::cell::RefCell;
-use std::error;
+use std::error::Error;
 use std::rc::Rc;
-use windows::Win32::UI::WindowsAndMessaging::{KillTimer, SetTimer};
 use windows::core::PWSTR;
+use windows::Win32::UI::WindowsAndMessaging::{KillTimer, SetTimer};
 use windows::{
     Win32::Foundation::{CloseHandle, HWND, MAX_PATH},
     Win32::System::Threading::{
-        OpenProcess, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION,
-        QueryFullProcessImageNameW,
+        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+        PROCESS_QUERY_LIMITED_INFORMATION,
     },
     Win32::UI::WindowsAndMessaging::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
@@ -35,8 +34,8 @@ impl WinWatcher {
         self.owner.replace(owner);
     }
 
-    pub(crate) fn set_profiles(&self, profiles: &Rc<Profiles>) {
-        self.detector.borrow_mut().profiles = Rc::clone(profiles);
+    pub(crate) fn set_profiles(&self, profiles: Rc<Profiles>) {
+        self.detector.borrow_mut().profiles = profiles;
     }
 
     pub(crate) fn is_enabled(&self) -> bool {
@@ -187,7 +186,8 @@ fn get_window_title(hwnd: HWND) -> Result<String, Box<dyn Error>> {
             return Err("Failed to get window title".into());
         }
 
-        Ok(String::from_utf16_lossy(&buffer[..bytes_read as usize]))
+        let result = String::from_utf16_lossy(&buffer[..bytes_read as usize]);
+        Ok(result)
     }
 }
 

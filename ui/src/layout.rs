@@ -1,17 +1,16 @@
-use keympostor::error::KeyError;
-use keympostor::key_err;
 use keympostor::rules::KeyTransformRules;
+use log::warn;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::Path;
-use std::rc::Rc;
 use std::slice::Iter;
-use std::str::FromStr;
+
+const LAYOUTS_PATH: &str = "layouts";
 
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Layout {
+pub(crate) struct Layout {
     pub name: String,
     pub title: String,
     pub icon: Option<String>,
@@ -20,9 +19,10 @@ pub struct Layout {
 }
 
 impl Layout {
-    pub fn load(path: &str) -> Result<Self, KeyError> {
-        let text = fs::read_to_string(&path).or(key_err!("Unable to read `{path}` file"))?;
-        toml::from_str(&text).or(key_err!("Unable to parse `{path}` file"))
+    pub(crate) fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let text = fs::read_to_string(path)?;
+        let this = toml::from_str(&text)?;
+        Ok(this)
     }
 }
 
@@ -33,41 +33,38 @@ impl Display for Layout {
 }
 
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
-pub struct Layouts(Vec<Layout>);
+pub(crate) struct Layouts(Vec<Layout>);
 
 impl Layouts {
-    pub fn load(path: &str) -> Result<Self, Box<dyn Error>> {
+    pub(crate) fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let mut items = vec![];
-        for entry in fs::read_dir(Path::new(path))? {
+
+        for entry in fs::read_dir(path)? {
             let path = entry?.path();
             if path.is_file() {
-                let filename = path.to_str().unwrap();
-                if let Ok(layout) = Layout::load(filename) {
-                    items.push(layout);
-                } else {
-                    return Err(format!("Corrupted layout: {}", filename))?;
-                }
+                let layout = Layout::load(path)?;
+                items.push(layout);
             }
         }
+
         Ok(Self(items))
     }
 
-    pub fn try_get(&self, name: &Option<&String>) -> Option<&Layout> {
+    pub(crate) fn load_default() -> Self {
+        Self::load(LAYOUTS_PATH).unwrap_or_else(|e| {
+            warn!("Failed to load layouts: {}", e);
+            Self::default()
+        })
+    }
+
+    pub(crate) fn get(&self, name: &Option<&String>) -> Option<&Layout> {
         match name {
             None => None,
-            Some(n) => self.get(n),
+            Some(n) => self.0.iter().filter(|l| l.name == **n).next(),
         }
     }
 
-    fn get(&self, name: &str) -> Option<&Layout> {
-        self.0.iter().filter(|p| p.name == name).next()
-    }
-
-    pub fn first(&self) -> &Layout {
-        &self.0[0]
-    }
-
-    pub fn iter(&self) -> Iter<'_, Layout> {
+    pub(crate) fn iter(&self) -> Iter<'_, Layout> {
         self.0.iter()
     }
 }

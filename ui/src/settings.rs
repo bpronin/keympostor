@@ -1,14 +1,13 @@
 use crate::kb_light::KeyboardZoneColors;
 use crate::profile::Profiles;
-use keympostor::error::KeyError;
-use keympostor::key_err;
-use log::{warn};
+use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::error::Error;
 use std::fs;
+use std::path::Path;
 
 const SETTINGS_FILE: &str = "settings.toml";
-pub const LAYOUTS_PATH: &str = "layouts";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct AppSettings {
@@ -34,31 +33,27 @@ impl Default for AppSettings {
 }
 
 impl AppSettings {
-    pub(crate) fn load(path: &str) -> Self {
-        fs::read_to_string(path)
-            .ok()
-            .and_then(|text| toml::from_str(&text).ok())
-            .unwrap_or_else(|| {
-                warn!("Failed to load {path}. Using default values");
-                Self::default()
-            })
+    fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let text = fs::read_to_string(path)?;
+        let this = toml::from_str(&text)?;
+        Ok(this)
     }
 
-    pub(crate) fn save(&self, path: &str) -> Result<(), KeyError> {
-        fs::write(
-            path,
-            toml::to_string(self) /* dont want `to_string_pretty` */
-                .or(key_err!("Error serializing `{path}`"))?,
-        )
-        .or(key_err!("Error writing `{path}`"))
+    fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
+        let text = toml::to_string(self)?;
+        fs::write(path, text)?;
+        Ok(())
     }
 
     pub(crate) fn load_default() -> Self {
-        Self::load(SETTINGS_FILE)
+        Self::load(SETTINGS_FILE).unwrap_or_else(|e| {
+            warn!("Failed to load settings: {}", e);
+            Self::default()
+        })
     }
 
-    pub(crate) fn save_default(&self) -> Result<(), KeyError> {
-        self.save(SETTINGS_FILE)
+    pub(crate) fn save_default(&self) {
+        self.save(SETTINGS_FILE).expect("Failed to save settings");
     }
 }
 
@@ -80,19 +75,22 @@ pub(crate) struct KeyboardLightingSettings {
 }
 
 impl KeyboardLightingSettings {
-    pub(crate) fn load() -> Self {
-        fs::read_to_string("kb_lighting.toml")
-            .ok()
-            .and_then(|text| toml::from_str(&text).ok())
-            .unwrap_or_else(|| {
-                warn!("Failed to load kb_lighting.toml. Using default values");
-                Self::default()
-            })
+    fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let text = fs::read_to_string(path)?;
+        let this = toml::from_str(&text)?;
+        Ok(this)
+    }
+
+    pub(crate) fn load_default() -> Self {
+        Self::load("kb_lighting.toml").unwrap_or_else(|e| {
+            warn!("Failed to load kb_lighting.toml: {}", e);
+            Self::default()
+        })
     }
 }
 
 #[derive(Debug, Default, PartialEq, Deserialize)]
-pub(crate) struct KeyboardLightingLangSettings(pub HashMap<String, KeyboardZoneColors>);
+pub(crate) struct KeyboardLightingLangSettings(pub(crate) HashMap<String, KeyboardZoneColors>);
 
 #[cfg(test)]
 pub mod tests {
@@ -135,8 +133,8 @@ pub mod tests {
         };
 
         assert!(settings.save("test_settings.toml").is_ok());
-        let loaded = AppSettings::load("test_settings.toml");
+
+        let loaded = AppSettings::load("test_settings.toml").unwrap();
         assert_eq!(settings, loaded);
-        assert_eq!(AppSettings::default(), AppSettings::load(""));
     }
 }

@@ -6,12 +6,12 @@ use native_windows_gui::NativeUi;
 use simple_logger::SimpleLogger;
 
 mod kb_light;
+mod layout;
 mod profile;
 mod res;
 mod settings;
 mod ui;
 mod win_watch;
-pub mod layout;
 
 fn main() {
     SimpleLogger::new()

@@ -20,7 +20,6 @@ IDR_SWITCH_LAYOUT WAVE "res/sound/clack.wav"
 
 #define IDS_APP_TITLE 1001
 #define IDS_CLEAR_LOG 1002
-#define IDS_ENABLED 1003
 #define IDS_EXIT 1004
 #define IDS_FILE 1005
 #define IDS_NO_PROFILE 1006
@@ -45,7 +44,6 @@ STRINGTABLE
 BEGIN
     IDS_APP_TITLE "Keympostor"
     IDS_CLEAR_LOG "Clear log"
-    IDS_ENABLED "Enabled"
     IDS_EXIT "Exit"
     IDS_FILE "File"
     IDS_LOG "Log"

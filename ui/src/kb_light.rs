@@ -9,10 +9,10 @@ use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardLayout;
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
 
 static SETTINGS: LazyLock<KeyboardLightingSettings> =
-    LazyLock::new(|| KeyboardLightingSettings::load());
+    LazyLock::new(|| KeyboardLightingSettings::load_default());
 
 #[derive(Default)]
-pub struct KeyboardLightingControl {}
+pub(crate) struct KeyboardLightingControl {}
 
 impl KeyboardLightingControl {
     pub(crate) fn update_colors(&self, layout: &Option<&Layout>) {
@@ -34,11 +34,11 @@ impl KeyboardLightingControl {
 #[repr(C)]
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(into = "Vec<String>", from = "Vec<String>")]
-pub struct KeyboardZoneColors {
-    pub right: u64,
-    pub center: u64,
-    pub left: u64,
-    pub game: u64,
+pub(crate) struct KeyboardZoneColors {
+    pub(crate) right: u64,
+    pub(crate) center: u64,
+    pub(crate) left: u64,
+    pub(crate) game: u64,
 }
 
 impl Into<Vec<String>> for KeyboardZoneColors {

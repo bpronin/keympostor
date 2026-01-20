@@ -1,19 +1,18 @@
 logging_enabled = false
-layouts_enabled = true
-layout = "game"
+layouts_enabled = false
 
 [main_window]
 position = [822, 138]
 size = [977, 560]
-selected_page = 0
+selected_page = 1
 
 [log_view.columns]
-4 = 50
-1 = 179
-2 = 89
-7 = 94
-5 = 50
 3 = 50
-6 = 108
-0 = 187
+2 = 89
+1 = 179
 8 = 50
+4 = 50
+7 = 94
+0 = 187
+6 = 108
+5 = 50
