@@ -45,10 +45,10 @@ impl Tray {
             .build(&mut self.exit_app_item)
     }
 
-    pub(crate) fn update_ui(&self, layout: &Option<&Layout>) {
+    pub(crate) fn update_ui(&self, current_layout: Option<&Layout>) {
         let mut icon = Icon::default();
 
-        match layout {
+        match current_layout {
             None => icon = r_icon!(IDI_ICON_APP),
             Some(l) => {
                 Icon::builder()

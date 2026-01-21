@@ -73,7 +73,7 @@ impl Resources {
 
     pub(crate) fn play_sound(&self, res_id: usize) {
         unsafe {
-            if PlaySoundW(PCWSTR(res_id as _), None, SND_RESOURCE /*| SND_SYNC*/)
+            if PlaySoundW(PCWSTR(res_id as _), None, SND_RESOURCE | SND_ASYNC)
                 .as_bool()
                 .not()
             {

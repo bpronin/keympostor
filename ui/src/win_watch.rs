@@ -19,8 +19,8 @@ use windows::{
     },
 };
 
-const DETECTOR_TIMER: u32 = 19717;
-const WIN_WATCH_INTERVAL: u32 = 500;
+const TIMER_ID: usize = 19717;
+const WATCH_INTERVAL: u32 = 500;
 
 #[derive(Default)]
 pub(crate) struct WinWatcher {
@@ -39,7 +39,7 @@ impl WinWatcher {
     }
 
     pub(crate) fn is_enabled(&self) -> bool {
-        self.is_enabled.borrow().to_owned()
+        *self.is_enabled.borrow()
     }
 
     pub(crate) fn set_enabled(&self, is_enabled: bool) {
@@ -57,9 +57,9 @@ impl WinWatcher {
 
         unsafe {
             SetTimer(
-                Some(self.owner.borrow().to_owned()),
-                DETECTOR_TIMER as usize,
-                WIN_WATCH_INTERVAL,
+                Some(*self.owner.borrow()),
+                TIMER_ID,
+                WATCH_INTERVAL,
                 None,
             );
         }
@@ -74,8 +74,8 @@ impl WinWatcher {
 
         unsafe {
             KillTimer(
-                Some(self.owner.borrow().to_owned()),
-                DETECTOR_TIMER as usize,
+                Some(*self.owner.borrow()),
+                TIMER_ID,
             )
             .unwrap_or_else(|e| {
                 warn!("Failed to kill timer: {}", e);
@@ -89,7 +89,7 @@ impl WinWatcher {
         match evt {
             Event::OnTimerTick => {
                 if let Some((_, timer_id)) = handle.timer() {
-                    if timer_id == DETECTOR_TIMER {
+                    if timer_id == TIMER_ID as u32{
                         self.invoke_detector(app);
                     }
                 }
@@ -100,7 +100,7 @@ impl WinWatcher {
 
     fn invoke_detector(&self, app: &App) {
         if let Some(profile_name) = self.detector.borrow_mut().detect() {
-            // if unsafe { GetForegroundWindow() } == self.owner.borrow().to_owned(){
+            // if unsafe { GetForegroundWindow() } == *self.owner.borrow(){
             //     debug!("Self window detected, skipping profile switch");
             //     return;
             // }
@@ -116,7 +116,7 @@ struct WindowActivationDetector {
 }
 
 impl WindowActivationDetector {
-    fn detect(&mut self) -> Option<Option<&String>> {
+    fn detect(&mut self) -> Option<Option<&str>> {
         if let Some((hwnd, profile_name)) = detect_active_window(self.profiles.as_ref()) {
             let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
             self.last_hwnd = Some(hwnd);

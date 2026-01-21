@@ -12,7 +12,7 @@ const SETTINGS_FILE: &str = "settings.toml";
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct AppSettings {
     pub(crate) logging_enabled: bool,
-    pub(crate) layouts_enabled: bool,
+    pub(crate) profiles_enabled: bool,
     pub(crate) main_window: MainWindowSettings,
     pub(crate) log_view: LogViewSettings,
     pub(crate) layout: Option<String>,
@@ -23,7 +23,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             logging_enabled: false,
-            layouts_enabled: false,
+            profiles_enabled: false,
             main_window: Default::default(),
             log_view: Default::default(),
             layout: None,
@@ -102,7 +102,7 @@ pub mod tests {
     fn test_save_load_settings() {
         let settings = AppSettings {
             logging_enabled: false,
-            layouts_enabled: true,
+            profiles_enabled: true,
             layout: Some("test-layout".to_string()),
             main_window: MainWindowSettings {
                 position: Some((0, 0)),

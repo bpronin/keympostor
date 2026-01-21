@@ -57,10 +57,10 @@ impl Layouts {
         })
     }
 
-    pub(crate) fn get(&self, name: &Option<&String>) -> Option<&Layout> {
+    pub(crate) fn get(&self, name: Option<&str>) -> Option<&Layout> {
         match name {
             None => None,
-            Some(n) => self.0.iter().filter(|l| l.name == **n).next(),
+            Some(n) => self.0.iter().filter(|l| l.name == *n).next(),
         }
     }
 

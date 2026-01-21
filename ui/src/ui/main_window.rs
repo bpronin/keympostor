@@ -1,10 +1,10 @@
 use super::*;
-use crate::res::RESOURCES;
+use crate::layout::Layout;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
+use crate::res::RESOURCES;
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::{r_icon, rs};
 use keympostor::event::KeyEvent;
-use crate::layout::Layout;
 use native_windows_gui::stretch::geometry::{Rect, Size};
 use native_windows_gui::stretch::style::Dimension::Points as PT;
 use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
@@ -145,14 +145,13 @@ impl MainWindow {
         &self,
         is_auto_switch_layout_enabled: bool,
         is_logging_enabled: bool,
-        current_layout: &Option<&Layout>,
+        current_layout: Option<&Layout>,
     ) {
         self.main_menu.update_ui(
             is_auto_switch_layout_enabled,
             is_logging_enabled,
             current_layout,
         );
-
         self.tray.update_ui(current_layout);
     }
 
@@ -196,7 +195,7 @@ impl MainWindow {
         self.main_menu.build_layouts_menu(layouts);
     }
 
-    pub(crate) fn on_select_layout(&self, layout: &Option<&Layout>) {
+    pub(crate) fn on_select_layout(&self, layout: Option<&Layout>) {
         self.layout_view.update_ui(layout);
     }
 

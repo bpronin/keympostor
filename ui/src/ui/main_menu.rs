@@ -1,3 +1,4 @@
+use std::cell::Ref;
 use crate::res::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
 use crate::res::RESOURCES;
 use crate::rs;
@@ -54,7 +55,7 @@ impl MainMenu {
         &self,
         is_auto_switch_layout_enabled: bool,
         is_logging_enabled: bool,
-        current_layout: &Option<&Layout>,
+        current_layout: Option<&Layout>,
     ) {
         self.toggle_logging_enabled_item
             .set_checked(is_logging_enabled);

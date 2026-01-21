@@ -12,6 +12,7 @@ mod res;
 mod settings;
 mod ui;
 mod win_watch;
+mod kb_watch;
 
 fn main() {
     SimpleLogger::new()

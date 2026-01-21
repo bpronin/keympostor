@@ -1,5 +1,6 @@
-use crate::kb_light::KeyboardLightingControl;
-use crate::layout::Layouts;
+use crate::kb_light::{get_current_keyboard_layout, update_keyboard_lighting};
+use crate::kb_watch::KeyboardLayoutWatcher;
+use crate::layout::{Layout, Layouts};
 use crate::profile::{Profile, Profiles};
 use crate::res::res_ids::{IDR_SWITCH_LAYOUT, IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
 use crate::res::RESOURCES;
@@ -18,7 +19,7 @@ use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
 use keympostor::trigger::KeyTrigger;
 use log::{debug, error};
 use native_windows_gui as nwg;
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 use std::ops::Not;
 use std::rc::Rc;
 use utils::{get_window_size, hwnd, set_window_size, try_hwnd};
@@ -38,12 +39,12 @@ pub(crate) struct App {
     window: MainWindow,
     key_hook: KeyboardHook,
     win_watcher: WinWatcher,
-    keyboard_lighting: KeyboardLightingControl,
+    keyboard_layout_watcher: KeyboardLayoutWatcher,
     is_log_enabled: RefCell<bool>,
     profiles: RefCell<Rc<Profiles>>,
     current_profile_name: RefCell<Option<String>>,
     layouts: RefCell<Layouts>,
-    current_layout_name: RefCell<Option<String>>,
+    pub(crate) current_layout_name: RefCell<Option<String>>,
 }
 
 impl App {
@@ -51,37 +52,42 @@ impl App {
         let settings = AppSettings::load_default();
         self.window.apply_settings(&settings);
 
-        self.select_layout(&None);
+        self.select_layout(None);
 
         self.is_log_enabled.replace(settings.logging_enabled);
         self.apply_log_enabled();
 
         let profiles = Rc::new(settings.profiles.unwrap_or_default());
         self.profiles.replace(Rc::clone(&profiles));
+        
         self.win_watcher.set_profiles(profiles);
-
-        self.win_watcher.set_enabled(settings.layouts_enabled);
+        self.win_watcher.set_enabled(settings.profiles_enabled);
 
         debug!("Loaded settings");
     }
 
     fn save_settings(&self) {
         let mut settings = AppSettings::load_default();
-
-        let layout_name = self.current_layout_name.borrow().to_owned();
-        if let Some(profile_name) = self.current_profile_name.borrow().as_ref() {
-            settings.profiles.get_or_insert_default().get_or_insert(
-                profile_name,
-                Profile {
-                    rule: None,
-                    layout: layout_name,
-                },
-            );
-        } else {
-            settings.layout = layout_name;
+        
+        let profile_name = self.current_profile_name.borrow();
+        let layout_name = self.current_layout_name.borrow();
+        
+        match profile_name.as_deref() {
+            Some(name) => {
+                settings.profiles.get_or_insert_default().get_or_insert(
+                    name,
+                    Profile {
+                        rule: None,
+                        layout: layout_name.clone(),
+                    },
+                );
+            }
+            None => {
+                settings.layout = layout_name.clone();
+            }
         }
 
-        settings.layouts_enabled = self.win_watcher.is_enabled();
+        settings.profiles_enabled = self.win_watcher.is_enabled();
         settings.logging_enabled = self.is_log_enabled.borrow().to_owned();
 
         self.window.update_settings(&mut settings);
@@ -96,35 +102,40 @@ impl App {
         self.window.on_load_layouts(&self.layouts.borrow());
     }
 
-    pub(crate) fn select_profile(&self, profile_name: Option<&String>) {
-        self.current_profile_name.replace(profile_name.cloned());
+    pub(crate) fn select_profile(&self, profile_name: Option<&str>) {
+        let profiles = self.profiles.borrow();
+        let current_profile = match profile_name {
+            Some(name) => {
+                self.current_profile_name.replace(Some(name.into()));
+                profiles.get(name)
+            }
+            None => {
+                self.current_profile_name.replace(None);
+                None
+            }
+        };
 
         debug!("Selected profile: {:?}", self.current_profile_name.borrow());
 
-        let profiles = self.profiles.borrow();
-        let profile = match self.current_profile_name.borrow().as_ref() {
-            Some(n) => profiles.get(n),
+        let layout = match current_profile {
+            Some(profile) => profile.layout.as_deref(),
             None => None,
         };
-
-        match profile {
-            Some(p) => self.select_layout(&p.layout.as_ref()),
-            None => self.select_layout(&None),
-        }
+        self.select_layout(layout)
     }
 
-    fn select_layout(&self, layout_name: &Option<&String>) {
-        debug!("Selecting layout: {:?}", layout_name);
-
+    fn select_layout(&self, layout_name: Option<&str>) {
         let layouts = self.layouts.borrow();
         let current_layout = layouts.get(layout_name);
-
-        if let Some(l) = current_layout {
-            self.key_hook.apply_rules(Some(&l.rules));
-            self.current_layout_name.replace(Some(l.name.clone()));
-        } else {
-            self.key_hook.apply_rules(None);
-            self.current_layout_name.replace(None);
+        match current_layout {
+            Some(layout) => {
+                self.key_hook.apply_rules(Some(&layout.rules));
+                self.current_layout_name.replace(Some(layout.name.clone()));
+            }
+            None => {
+                self.key_hook.apply_rules(None);
+                self.current_layout_name.replace(None);
+            }
         }
 
         debug!(
@@ -133,34 +144,41 @@ impl App {
             self.current_profile_name.borrow(),
         );
 
-        self.window.on_select_layout(&current_layout);
+        self.window.on_select_layout(current_layout);
         self.update_controls();
         self.save_settings();
 
-        self.keyboard_lighting.update_colors(&current_layout);
+        update_keyboard_lighting(layout_name, get_current_keyboard_layout());
 
         r_play_snd!(IDR_SWITCH_LAYOUT);
     }
 
+    pub(crate) fn current_layout(&self) -> Option<Ref<'_, Layout>> {
+        let name = self.current_layout_name.borrow();
+        Ref::filter_map(self.layouts.borrow(), |layouts| {
+            layouts.get(name.as_deref())
+        })
+        .ok()
+    }
+
     fn update_controls(&self) {
-        let layouts = self.layouts.borrow();
-        let current_layout = layouts.get(&self.current_layout_name.borrow().as_ref());
+        let layout = self.current_layout();
 
         self.update_title();
         self.window.update_ui(
             self.win_watcher.is_enabled(),
             self.is_log_enabled.borrow().to_owned(),
-            &current_layout,
+            layout.as_deref(),
         );
     }
 
     fn update_title(&self) {
         let mut title = rs!(IDS_APP_TITLE).to_string();
-        match self.current_profile_name.borrow().as_ref() {
+        match self.current_profile_name.borrow().as_deref() {
             Some(profile) => title = format!("{} - {}", title, profile),
             None => title = format!("{} - {}", title, rs!(IDS_NO_PROFILE)),
         };
-        match self.current_layout_name.borrow().as_ref() {
+        match self.current_layout_name.borrow().as_deref() {
             Some(layout) => title = format!("{} - {}", title, layout),
             None => title = format!("{} - {}", title, rs!(IDS_NO_LAYOUT)),
         };
@@ -189,6 +207,8 @@ impl App {
             _ => {}
         }
         self.win_watcher.handle_event(&self, evt, handle);
+        self.keyboard_layout_watcher
+            .handle_event(&self, evt, handle);
         self.window.handle_event(&self, evt, handle);
     }
 
@@ -201,6 +221,11 @@ impl App {
 
     fn on_init(&self) {
         self.win_watcher.init(hwnd(self.window.handle()));
+
+        self.keyboard_layout_watcher
+            .init(hwnd(self.window.handle()));
+        self.keyboard_layout_watcher.start();
+
         self.key_hook.init(try_hwnd(self.window.handle()));
         self.key_hook.set_enabled(true);
 
@@ -235,6 +260,7 @@ impl App {
 
     fn on_app_exit(&self) {
         self.save_settings();
+        self.keyboard_layout_watcher.stop();
         self.win_watcher.stop();
         nwg::stop_thread_dispatch();
     }

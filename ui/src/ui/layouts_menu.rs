@@ -4,7 +4,7 @@ use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::App;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};
-use std::cell::RefCell;
+use std::cell::{Ref, RefCell};
 
 #[derive(Default)]
 pub(crate) struct LayoutsMenu {
@@ -62,7 +62,7 @@ impl LayoutsMenu {
     pub(crate) fn update_ui(
         &self,
         is_auto_switch_layout_enabled: bool,
-        current_layout: &Option<&Layout>,
+        current_layout: Option<&Layout>,
     ) {
         self.toggle_auto_switch_layout_item
             .set_checked(is_auto_switch_layout_enabled);
@@ -85,7 +85,7 @@ impl LayoutsMenu {
                 } else {
                     for (item, layout_name) in self.items.borrow().iter() {
                         if item.handle == handle {
-                            app.select_layout(&layout_name.as_ref());
+                            app.select_layout(layout_name.as_deref());
                             break;
                         }
                     }

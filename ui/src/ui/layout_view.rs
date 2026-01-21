@@ -20,7 +20,7 @@ impl LayoutView {
             .build(&mut self.view)
     }
 
-    pub(crate) fn update_ui(&self, layout: &Option<&Layout>) {
+    pub(crate) fn update_ui(&self, layout: Option<&Layout>) {
         let mut text = String::new();
         match layout {
             None => {
