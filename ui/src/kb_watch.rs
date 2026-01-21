@@ -12,19 +12,19 @@ const WATCH_INTERVAL: u32 = 500;
 
 #[derive(Default)]
 pub(crate) struct KeyboardLayoutWatcher {
-    owner: RefCell<HWND>,
+    owner: RefCell<Option<HWND>>,
     last_layout: RefCell<HKL>,
 }
 
 impl KeyboardLayoutWatcher {
-    pub(crate) fn init(&self, owner: HWND) {
+    pub(crate) fn init(&self, owner: Option<HWND>) {
         self.owner.replace(owner);
         self.last_layout.replace(get_current_keyboard_layout());
     }
 
     pub(crate) fn start(&self) {
         unsafe {
-            SetTimer(Some(*self.owner.borrow()), TIMER_ID, WATCH_INTERVAL, None);
+            SetTimer(*self.owner.borrow(), TIMER_ID, WATCH_INTERVAL, None);
         }
 
         debug!("Keyboard layout watch started");
@@ -32,7 +32,7 @@ impl KeyboardLayoutWatcher {
 
     pub(crate) fn stop(&self) {
         unsafe {
-            KillTimer(Some(*self.owner.borrow()), TIMER_ID).unwrap_or_else(|e| {
+            KillTimer(*self.owner.borrow(), TIMER_ID).unwrap_or_else(|e| {
                 warn!("Failed to kill timer: {}", e);
             });
         }
@@ -63,12 +63,8 @@ impl KeyboardLayoutWatcher {
 
         debug!("Keyboard layout changed to {:?}", keyboard_layout);
 
-        let transform_layout = app.current_layout.borrow();
-        let transform_layout_name = match transform_layout.as_ref() {
-            None => None,
-            Some(layout) => Some(layout.name.as_str()),
-        };
+        let transform_layout = app.current_layout_id.borrow();
 
-        update_keyboard_lighting(transform_layout_name, keyboard_layout);
+        update_keyboard_lighting(transform_layout.as_deref(), keyboard_layout);
     }
 }

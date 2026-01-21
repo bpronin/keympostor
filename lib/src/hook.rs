@@ -3,7 +3,7 @@ use crate::input;
 use crate::rules::KeyTransformRules;
 use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
-use log::{debug, warn};
+use log::{debug, trace, warn};
 use std::cell::RefCell;
 use std::rc::Rc;
 use windows::Win32::Foundation::*;
@@ -200,7 +200,7 @@ fn handle_event(mut event: KeyEvent) -> bool {
             }
         });
 
-        debug!("Processing event: {}", event);
+        trace!("Processing event: {}", event);
     } else {
         debug!("Ignoring event: {}", event);
     };

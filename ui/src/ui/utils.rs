@@ -1,6 +1,4 @@
-use native_windows_gui::{
-    ControlHandle, ListView,
-};
+use native_windows_gui::{ControlHandle, ListView, Window};
 use std::mem;
 use windows::Win32::Foundation::{HWND, RECT, WPARAM};
 use windows::Win32::UI::Controls::{LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH};
@@ -9,28 +7,28 @@ use windows::Win32::UI::WindowsAndMessaging::{
     SWP_NOOWNERZORDER, SWP_NOZORDER,
 };
 
-pub fn hwnd(handle: ControlHandle) -> HWND {
-    try_hwnd(handle).expect("Failed to get HWND from control handle.")
-}
-
 pub fn try_hwnd(handle: ControlHandle) -> Option<HWND> {
     handle.hwnd().map(|h| HWND(h as _))
 }
 
+fn hwnd(handle: ControlHandle) -> HWND {
+    try_hwnd(handle).expect("Failed to get HWND from control handle.")
+}
+
 /// workaround for nwg bug
-pub fn get_window_size(handle: ControlHandle) -> (u32, u32) {
+pub fn get_window_size(window: &Window) -> (u32, u32) {
     unsafe {
         let mut r: RECT = mem::zeroed();
-        GetWindowRect(hwnd(handle), &mut r).unwrap();
+        GetWindowRect(hwnd(window.handle), &mut r).unwrap();
         ((r.right - r.left) as u32, (r.bottom - r.top) as u32)
     }
 }
 
 /// workaround for nwg bug
-pub fn set_window_size(handle: ControlHandle, size: (u32, u32)) {
+pub fn set_window_size(window: &Window, size: (u32, u32)) {
     unsafe {
         SetWindowPos(
-            hwnd(handle),
+            hwnd(window.handle),
             None,
             0,
             0,
@@ -58,9 +56,13 @@ pub fn get_list_view_column_width(view: &ListView, index: usize) -> isize {
 pub fn scroll_list_view_to_end(view: &ListView) {
     let len = view.len();
     if len > 0 {
-        let hwnd = hwnd(view.handle);
         unsafe {
-            SendMessageW(hwnd, LVM_ENSUREVISIBLE, Some(WPARAM(len - 1)), None);
+            SendMessageW(
+                hwnd(view.handle),
+                LVM_ENSUREVISIBLE,
+                Some(WPARAM(len - 1)),
+                None,
+            );
         }
     }
 }
@@ -74,9 +76,9 @@ pub fn scroll_list_view_to_end(view: &ListView) {
 //     });
 // }
 
-#[macro_export]
-macro_rules! ui_warn {
-    ($($arg:tt)*) => {
-        crate::ui::utils::warn(&format!($($arg)*));
-    }
-}
+// #[macro_export]
+// macro_rules! ui_warn {
+//     ($($arg:tt)*) => {
+//         crate::ui::utils::warn(&format!($($arg)*));
+//     }
+// }

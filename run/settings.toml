@@ -2,17 +2,17 @@ logging_enabled = true
 profiles_enabled = false
 
 [main_window]
-position = [594, 161]
+position = [1059, 184]
 size = [716, 457]
 selected_page = 0
 
 [log_view.columns]
 5 = 50
-2 = 50
-0 = 300
 7 = 50
 8 = 50
-6 = 50
-1 = 500
 3 = 50
 4 = 50
+0 = 300
+6 = 50
+1 = 500
+2 = 50

@@ -130,7 +130,7 @@ impl MainWindow {
         match evt {
             nwg::Event::OnWindowClose => {
                 if &handle == &self.window.handle {
-                    app.on_window_close()
+                    app.on_window_close();
                 }
             }
             _ => {}
@@ -157,10 +157,10 @@ impl MainWindow {
 
     pub(crate) fn apply_settings(&self, settings: &AppSettings) {
         if let Some(position) = settings.main_window.position {
-            self.window.set_position(position.0, position.1)
+            self.window.set_position(position.0, position.1);
         }
         if let Some(size) = settings.main_window.size {
-            set_window_size(self.window.handle, size);
+            set_window_size(&self.window, size);
         }
         if let Some(page) = settings.main_window.selected_page {
             self.tab_container.set_selected_tab(page);
@@ -170,9 +170,13 @@ impl MainWindow {
 
     pub(crate) fn update_settings(&self, settings: &mut AppSettings) {
         settings.main_window.position = Some(self.window.position());
-        settings.main_window.size = Some(get_window_size(self.window.handle));
+        settings.main_window.size = Some(get_window_size(&self.window));
         settings.main_window.selected_page = Some(self.tab_container.selected_tab());
         self.log_view.update_settings(settings);
+    }
+
+    pub(crate) fn set_layouts(&self, layouts: &Layouts) {
+        self.main_menu.build_layouts_menu(layouts);
     }
 
     pub(crate) fn set_title(&self, title: &str) {
@@ -189,10 +193,6 @@ impl MainWindow {
 
     pub(crate) fn clear_log(&self) {
         self.log_view.clear()
-    }
-
-    pub(crate) fn on_load_layouts(&self, layouts: &Layouts) {
-        self.main_menu.build_layouts_menu(layouts);
     }
 
     pub(crate) fn on_select_layout(&self, layout: Option<&Layout>) {

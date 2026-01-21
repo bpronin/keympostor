@@ -24,13 +24,13 @@ const WATCH_INTERVAL: u32 = 500;
 
 #[derive(Default)]
 pub(crate) struct WinWatcher {
-    owner: RefCell<HWND>,
+    owner: RefCell<Option<HWND>>,
     is_enabled: RefCell<bool>,
     detector: RefCell<WindowActivationDetector>,
 }
 
 impl WinWatcher {
-    pub(crate) fn init(&self, owner: HWND) {
+    pub(crate) fn init(&self, owner: Option<HWND>) {
         self.owner.replace(owner);
     }
 
@@ -56,12 +56,7 @@ impl WinWatcher {
         }
 
         unsafe {
-            SetTimer(
-                Some(*self.owner.borrow()),
-                TIMER_ID,
-                WATCH_INTERVAL,
-                None,
-            );
+            SetTimer(*self.owner.borrow(), TIMER_ID, WATCH_INTERVAL, None);
         }
 
         debug!("Profile auto-switch enabled");
@@ -73,11 +68,7 @@ impl WinWatcher {
         }
 
         unsafe {
-            KillTimer(
-                Some(*self.owner.borrow()),
-                TIMER_ID,
-            )
-            .unwrap_or_else(|e| {
+            KillTimer(*self.owner.borrow(), TIMER_ID).unwrap_or_else(|e| {
                 warn!("Failed to kill timer: {}", e);
             });
         }
@@ -89,7 +80,7 @@ impl WinWatcher {
         match evt {
             Event::OnTimerTick => {
                 if let Some((_, timer_id)) = handle.timer() {
-                    if timer_id == TIMER_ID as u32{
+                    if timer_id == TIMER_ID as u32 {
                         self.invoke_detector(app);
                     }
                 }
