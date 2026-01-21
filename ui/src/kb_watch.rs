@@ -54,15 +54,21 @@ impl KeyboardLayoutWatcher {
     }
 
     fn on_keyboard_layout_change(&self, app: &App) {
-        let current_layout = get_current_keyboard_layout();
-        if current_layout == *self.last_layout.borrow() {
+        let keyboard_layout = get_current_keyboard_layout();
+        if keyboard_layout == *self.last_layout.borrow() {
             return;
         }
 
-        self.last_layout.replace(current_layout);
-        debug!("Keyboard layout changed to {:?}", current_layout);
+        self.last_layout.replace(keyboard_layout);
 
-        let layout_name = app.current_layout_name.borrow();
-        update_keyboard_lighting(layout_name.as_deref(), current_layout);
+        debug!("Keyboard layout changed to {:?}", keyboard_layout);
+
+        let transform_layout = app.current_layout.borrow();
+        let transform_layout_name = match transform_layout.as_ref() {
+            None => None,
+            Some(layout) => Some(layout.name.as_str()),
+        };
+
+        update_keyboard_lighting(transform_layout_name, keyboard_layout);
     }
 }

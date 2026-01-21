@@ -1,10 +1,9 @@
-use std::cell::Ref;
+use crate::layout::{Layout, Layouts};
 use crate::res::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
 use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::layouts_menu::LayoutsMenu;
 use crate::ui::App;
-use crate::layout::{Layout, Layouts};
 use log::warn;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};
 
@@ -59,10 +58,8 @@ impl MainMenu {
     ) {
         self.toggle_logging_enabled_item
             .set_checked(is_logging_enabled);
-        self.layout_menu.update_ui(
-            is_auto_switch_layout_enabled,
-            current_layout,
-        );
+        self.layout_menu
+            .update_ui(is_auto_switch_layout_enabled, current_layout);
     }
 
     pub(crate) fn build_layouts_menu(&self, layouts: &Layouts) {

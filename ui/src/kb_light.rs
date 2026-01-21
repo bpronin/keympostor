@@ -1,5 +1,4 @@
-use crate::layout::Layout;
-use crate::settings::{KeyboardLightingLangSettings, KeyboardLightingSettings};
+use crate::settings::KeyboardLightingSettings;
 use libloading::os::windows::{Library, LOAD_WITH_ALTERED_SEARCH_PATH};
 use log::debug;
 use serde::{Deserialize, Serialize};

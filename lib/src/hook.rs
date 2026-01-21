@@ -34,7 +34,7 @@ impl KeyboardHook {
     }
 
     pub fn is_enabled(&self) -> bool {
-        self.is_enabled.borrow().to_owned()
+        *self.is_enabled.borrow()
     }
 
     pub fn set_enabled(&self, enabled: bool) {

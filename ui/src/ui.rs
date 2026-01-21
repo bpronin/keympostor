@@ -19,7 +19,7 @@ use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
 use keympostor::trigger::KeyTrigger;
 use log::{debug, error};
 use native_windows_gui as nwg;
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 use std::ops::Not;
 use std::rc::Rc;
 use utils::{get_window_size, hwnd, set_window_size, try_hwnd};
@@ -43,8 +43,8 @@ pub(crate) struct App {
     is_log_enabled: RefCell<bool>,
     profiles: RefCell<Rc<Profiles>>,
     current_profile_name: RefCell<Option<String>>,
-    layouts: RefCell<Layouts>,
-    pub(crate) current_layout_name: RefCell<Option<String>>,
+    // layouts: RefCell<Layouts>,
+    pub(crate) current_layout: RefCell<Option<Layout>>,
 }
 
 impl App {
@@ -59,7 +59,7 @@ impl App {
 
         let profiles = Rc::new(settings.profiles.unwrap_or_default());
         self.profiles.replace(Rc::clone(&profiles));
-        
+
         self.win_watcher.set_profiles(profiles);
         self.win_watcher.set_enabled(settings.profiles_enabled);
 
@@ -68,38 +68,44 @@ impl App {
 
     fn save_settings(&self) {
         let mut settings = AppSettings::load_default();
-        
+
+        let layout = self.current_layout.borrow();
+        let layout_name = match layout.as_ref() {
+            None => None,
+            Some(layout) => Some(layout.name.clone()),
+        };
+
         let profile_name = self.current_profile_name.borrow();
-        let layout_name = self.current_layout_name.borrow();
-        
         match profile_name.as_deref() {
+            None => {
+                settings.layout = layout_name;
+            }
             Some(name) => {
                 settings.profiles.get_or_insert_default().get_or_insert(
                     name,
                     Profile {
                         rule: None,
-                        layout: layout_name.clone(),
+                        layout: layout_name,
                     },
                 );
-            }
-            None => {
-                settings.layout = layout_name.clone();
             }
         }
 
         settings.profiles_enabled = self.win_watcher.is_enabled();
-        settings.logging_enabled = self.is_log_enabled.borrow().to_owned();
+        settings.logging_enabled = *self.is_log_enabled.borrow();
 
         self.window.update_settings(&mut settings);
 
         settings.save_default();
 
-        debug!("Saved settings");
+        debug!("Settings saved");
     }
 
     fn load_layouts(&self) {
-        self.layouts.replace(Layouts::load_default());
-        self.window.on_load_layouts(&self.layouts.borrow());
+        // self.layouts.replace(Layouts::load_default());
+        // self.window.on_load_layouts(&self.layouts.borrow());
+        let layouts = Layouts::load_default();
+        self.window.on_load_layouts(&layouts);
     }
 
     pub(crate) fn select_profile(&self, profile_name: Option<&str>) {
@@ -125,22 +131,21 @@ impl App {
     }
 
     fn select_layout(&self, layout_name: Option<&str>) {
-        let layouts = self.layouts.borrow();
+        // let layouts = self.layouts.borrow();
+        let layouts = Layouts::load_default();
         let current_layout = layouts.get(layout_name);
         match current_layout {
             Some(layout) => {
                 self.key_hook.apply_rules(Some(&layout.rules));
-                self.current_layout_name.replace(Some(layout.name.clone()));
             }
             None => {
                 self.key_hook.apply_rules(None);
-                self.current_layout_name.replace(None);
             }
         }
 
         debug!(
             "Selected layout: {:?} for profile: {:?}",
-            self.current_layout_name.borrow(),
+            self.current_layout.borrow(),
             self.current_profile_name.borrow(),
         );
 
@@ -153,22 +158,20 @@ impl App {
         r_play_snd!(IDR_SWITCH_LAYOUT);
     }
 
-    pub(crate) fn current_layout(&self) -> Option<Ref<'_, Layout>> {
-        let name = self.current_layout_name.borrow();
-        Ref::filter_map(self.layouts.borrow(), |layouts| {
-            layouts.get(name.as_deref())
-        })
-        .ok()
-    }
+    // pub(crate) fn current_layout(&self) -> Option<Ref<'_, Layout>> {
+    //     let name = self.current_layout_name.borrow();
+    //     Ref::filter_map(self.layouts.borrow(), |layouts| {
+    //         layouts.get(name.as_deref())
+    //     })
+    //     .ok()
+    // }
 
     fn update_controls(&self) {
-        let layout = self.current_layout();
-
         self.update_title();
         self.window.update_ui(
             self.win_watcher.is_enabled(),
-            self.is_log_enabled.borrow().to_owned(),
-            layout.as_deref(),
+            *self.is_log_enabled.borrow(),
+            self.current_layout.borrow().as_ref(),
         );
     }
 
@@ -178,8 +181,8 @@ impl App {
             Some(profile) => title = format!("{} - {}", title, profile),
             None => title = format!("{} - {}", title, rs!(IDS_NO_PROFILE)),
         };
-        match self.current_layout_name.borrow().as_deref() {
-            Some(layout) => title = format!("{} - {}", title, layout),
+        match self.current_layout.borrow().as_ref() {
+            Some(layout) => title = format!("{} - {}", title, layout.name),
             None => title = format!("{} - {}", title, rs!(IDS_NO_LAYOUT)),
         };
 
@@ -198,7 +201,7 @@ impl App {
 
     fn apply_log_enabled(&self) {
         self.key_hook
-            .set_notify_enabled(self.is_log_enabled.borrow().to_owned());
+            .set_notify_enabled(*self.is_log_enabled.borrow());
     }
 
     fn handle_event(&self, evt: nwg::Event, handle: nwg::ControlHandle) {

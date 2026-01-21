@@ -4,7 +4,7 @@ use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::App;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};
-use std::cell::{Ref, RefCell};
+use std::cell::RefCell;
 
 #[derive(Default)]
 pub(crate) struct LayoutsMenu {
