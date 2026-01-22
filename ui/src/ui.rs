@@ -50,20 +50,19 @@ pub(crate) struct App {
 impl App {
     fn load_settings(&self) {
         let settings = AppSettings::load_default();
-        self.window.apply_settings(&settings);
 
-        self.select_layout(None);
-
-        self.is_log_enabled.replace(settings.logging_enabled);
-        self.apply_log_enabled();
+        self.window.apply_settings(&settings.main_window);
 
         let profiles = Rc::new(settings.profiles.unwrap_or_default());
         self.profiles.replace(Rc::clone(&profiles));
 
+        self.select_layout(settings.transform_layout.as_deref());
+
         self.win_watcher.set_profiles(profiles);
         self.win_watcher.set_enabled(settings.profiles_enabled);
 
-        debug!("Loaded settings");
+        self.is_log_enabled.replace(settings.logging_enabled);
+        self.apply_log_enabled();
     }
 
     fn save_settings(&self) {
@@ -73,7 +72,7 @@ impl App {
 
         match profile_name.as_deref() {
             None => {
-                settings.layout = layout_name.clone();
+                settings.transform_layout = layout_name.clone();
             }
             Some(name) => {
                 settings.profiles.get_or_insert_default().get_or_insert(
@@ -89,11 +88,9 @@ impl App {
         settings.profiles_enabled = self.win_watcher.is_enabled();
         settings.logging_enabled = *self.is_log_enabled.borrow();
 
-        self.window.update_settings(&mut settings);
+        self.window.update_settings(&mut settings.main_window);
 
         settings.save_default();
-
-        debug!("Settings saved");
     }
 
     pub(crate) fn select_profile(&self, profile_name: Option<&str>) {
@@ -140,7 +137,6 @@ impl App {
 
         self.window.on_select_layout(current_layout);
         self.update_controls();
-        self.save_settings();
 
         update_keyboard_lighting(layout_name, get_current_keyboard_layout());
 
@@ -148,14 +144,11 @@ impl App {
     }
 
     // pub(crate) fn current_layout(&self) -> Option<&Layout> {
-    //     // let name = self.current_layout_name.borrow();
-    //     // Ref::filter_map(self.layouts.borrow(), |layouts| {
-    //     //     layouts.get(name.as_deref())
-    //     // })
-    //     // .ok()
-    //     let layouts = self.layouts.borrow();
-    //     let name = self.current_layout_id.borrow();
-    //     layouts.get(name.as_deref())
+    //     let name = self.current_layout_name.borrow();
+    //     Ref::filter_map(self.layouts.borrow(), |layouts| {
+    //         layouts.get(name.as_deref())
+    //     })
+    //     .ok()
     // }
 
     fn update_controls(&self) {
@@ -221,23 +214,27 @@ impl App {
 
     fn on_init(&self) {
         let window_hwnd = try_hwnd(self.window.handle());
-
         self.win_watcher.init(window_hwnd);
-
         self.keyboard_layout_watcher.init(window_hwnd);
-        self.keyboard_layout_watcher.start();
-
         self.key_hook.init(window_hwnd);
-        self.key_hook.set_enabled(true);
 
         self.layouts.replace(Layouts::load_default());
         self.window.set_layouts(&self.layouts.borrow());
 
         self.load_settings();
+
+        self.key_hook.set_enabled(true);
+        self.keyboard_layout_watcher.start();
+
         self.update_controls();
 
         #[cfg(feature = "debug")]
         self.window.set_visible(true);
+    }
+
+    fn on_select_layout(&self, layout_name: Option<&str>) {
+        self.select_layout(layout_name);
+        self.save_settings();
     }
 
     fn on_toggle_logging_enabled(&self) {

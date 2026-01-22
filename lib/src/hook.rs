@@ -40,7 +40,7 @@ impl KeyboardHook {
     pub fn set_enabled(&self, enabled: bool) {
         if enabled {
             install_key_hook();
-            install_mouse_hook();
+            // install_mouse_hook();
         } else {
             uninstall_key_hook();
             uninstall_mouse_hook();

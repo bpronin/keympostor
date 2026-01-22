@@ -1,18 +1,19 @@
 logging_enabled = true
-profiles_enabled = false
+profiles_enabled = true
+transform_layout = "default"
 
 [main_window]
-position = [1059, 184]
-size = [716, 457]
-selected_page = 0
+position = [566, 209]
+size = [716, 475]
+selected_page = 1
 
-[log_view.columns]
-5 = 50
-7 = 50
-8 = 50
-3 = 50
-4 = 50
+[main_window.log_view.columns]
+2 = 50
 0 = 300
+4 = 50
 6 = 50
 1 = 500
-2 = 50
+5 = 50
+8 = 50
+7 = 50
+3 = 50

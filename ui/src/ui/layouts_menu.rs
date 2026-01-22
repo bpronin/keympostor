@@ -85,7 +85,7 @@ impl LayoutsMenu {
                 } else {
                     for (item, layout_name) in self.items.borrow().iter() {
                         if item.handle == handle {
-                            app.select_layout(layout_name.as_deref());
+                            app.on_select_layout(layout_name.as_deref());
                             break;
                         }
                     }

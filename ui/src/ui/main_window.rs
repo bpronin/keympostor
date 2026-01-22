@@ -11,6 +11,7 @@ use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
 use native_windows_gui::{
     ControlHandle, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags,
 };
+use crate::settings::MainWindowSettings;
 
 #[derive(Default)]
 pub(crate) struct MainWindow {
@@ -155,23 +156,23 @@ impl MainWindow {
         self.tray.update_ui(current_layout);
     }
 
-    pub(crate) fn apply_settings(&self, settings: &AppSettings) {
-        if let Some(position) = settings.main_window.position {
+    pub(crate) fn apply_settings(&self, settings: &MainWindowSettings) {
+        if let Some(position) = settings.position {
             self.window.set_position(position.0, position.1);
         }
-        if let Some(size) = settings.main_window.size {
+        if let Some(size) = settings.size {
             set_window_size(&self.window, size);
         }
-        if let Some(page) = settings.main_window.selected_page {
+        if let Some(page) = settings.selected_page {
             self.tab_container.set_selected_tab(page);
         }
         self.log_view.apply_settings(settings);
     }
 
-    pub(crate) fn update_settings(&self, settings: &mut AppSettings) {
-        settings.main_window.position = Some(self.window.position());
-        settings.main_window.size = Some(get_window_size(&self.window));
-        settings.main_window.selected_page = Some(self.tab_container.selected_tab());
+    pub(crate) fn update_settings(&self, settings: &mut MainWindowSettings) {
+        settings.position = Some(self.window.position());
+        settings.size = Some(get_window_size(&self.window));
+        settings.selected_page = Some(self.tab_container.selected_tab());
         self.log_view.update_settings(settings);
     }
 

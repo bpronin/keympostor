@@ -3,7 +3,7 @@ use crate::res::res_ids::{
     IDS_TRANSITION, IDS_VIRTUAL_KEY,
 };
 use crate::rs;
-use crate::settings::AppSettings;
+use crate::settings::{MainWindowSettings};
 use crate::ui::utils::get_list_view_column_width;
 use crate::ui::utils::scroll_list_view_to_end;
 use crate::ui::RESOURCES;
@@ -130,7 +130,7 @@ impl LogView {
         &self.list
     }
 
-    pub(crate) fn apply_settings(&self, settings: &AppSettings) {
+    pub(crate) fn apply_settings(&self, settings: &MainWindowSettings) {
         if let Some(columns) = &settings.log_view.columns {
             for i in 0..self.list.column_len() {
                 if let Some(w) = columns.get(&i) {
@@ -140,7 +140,7 @@ impl LogView {
         }
     }
 
-    pub(crate) fn update_settings(&self, settings: &mut AppSettings) {
+    pub(crate) fn update_settings(&self, settings: &mut MainWindowSettings) {
         let mut map = HashMap::new();
         for i in 0..self.list.column_len() {
             map.insert(i, get_list_view_column_width(&self.list, i));
