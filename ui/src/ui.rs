@@ -43,8 +43,8 @@ pub(crate) struct App {
     is_log_enabled: RefCell<bool>,
     profiles: RefCell<Rc<Profiles>>,
     layouts: RefCell<Layouts>,
-    current_profile_id: RefCell<Option<String>>,
-    pub(crate) current_layout_id: RefCell<Option<String>>,
+    current_profile_name: RefCell<Option<String>>,
+    pub(crate) current_layout_name: RefCell<Option<String>>,
 }
 
 impl App {
@@ -67,8 +67,8 @@ impl App {
 
     fn save_settings(&self) {
         let mut settings = AppSettings::load_default();
-        let layout_name = self.current_layout_id.borrow();
-        let profile_name = self.current_profile_id.borrow();
+        let layout_name = self.current_layout_name.borrow();
+        let profile_name = self.current_profile_name.borrow();
 
         match profile_name.as_deref() {
             None => {
@@ -97,16 +97,16 @@ impl App {
         let profiles = self.profiles.borrow();
         let current_profile = match profile_name {
             None => {
-                self.current_profile_id.replace(None);
+                self.current_profile_name.replace(None);
                 None
             }
             Some(name) => {
-                self.current_profile_id.replace(Some(name.into()));
+                self.current_profile_name.replace(Some(name.into()));
                 profiles.get(name)
             }
         };
 
-        debug!("Selected profile: {:?}", self.current_profile_id.borrow());
+        debug!("Selected profile: {:?}", self.current_profile_name.borrow());
 
         let layout = match current_profile {
             None => None,
@@ -121,18 +121,18 @@ impl App {
         match current_layout {
             None => {
                 self.key_hook.apply_rules(None);
-                self.current_layout_id.replace(None);
+                self.current_layout_name.replace(None);
             }
             Some(layout) => {
                 self.key_hook.apply_rules(Some(&layout.rules));
-                self.current_layout_id.replace(Some(layout.name.clone()));
+                self.current_layout_name.replace(Some(layout.name.clone()));
             }
         }
 
         debug!(
             "Selected layout: {:?} for profile: {:?}",
-            self.current_layout_id.borrow(),
-            self.current_profile_id.borrow(),
+            self.current_layout_name.borrow(),
+            self.current_profile_name.borrow(),
         );
 
         self.window.on_select_layout(current_layout);
@@ -153,7 +153,7 @@ impl App {
 
     fn update_controls(&self) {
         let layouts = self.layouts.borrow();
-        let layout = layouts.get(self.current_layout_id.borrow().as_deref());
+        let layout = layouts.get(self.current_layout_name.borrow().as_deref());
 
         self.update_title();
         self.window.update_ui(
@@ -166,12 +166,12 @@ impl App {
     fn update_title(&self) {
         let mut title = rs!(IDS_APP_TITLE).to_string();
 
-        match self.current_profile_id.borrow().as_deref() {
+        match self.current_profile_name.borrow().as_deref() {
             Some(name) => title = format!("{} - {}", title, name),
             None => title = format!("{} - {}", title, rs!(IDS_NO_PROFILE)),
         };
 
-        match self.current_layout_id.borrow().as_deref() {
+        match self.current_layout_name.borrow().as_deref() {
             Some(name) => title = format!("{} - {}", title, name),
             None => title = format!("{} - {}", title, rs!(IDS_NO_LAYOUT)),
         };

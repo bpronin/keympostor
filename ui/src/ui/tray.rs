@@ -1,3 +1,4 @@
+use log::warn;
 use crate::layout::Layout;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_OPEN, IDS_TRAY_TIP};
 use crate::res::RESOURCES;
@@ -46,18 +47,17 @@ impl Tray {
     }
 
     pub(crate) fn update_ui(&self, current_layout: Option<&Layout>) {
-        let mut icon = Icon::default();
+        let mut icon = r_icon!(IDI_ICON_APP);
 
-        match current_layout {
-            None => icon = r_icon!(IDI_ICON_APP),
-            Some(l) => {
-                Icon::builder()
-                    .source_file(l.icon.as_deref())
-                    .strict(true)
-                    .size(Some((16, 16)))
-                    .build(&mut icon)
-                    .expect("Unable to load layout icon");
-            }
+        if let Some(layout) = current_layout {
+            Icon::builder()
+                .source_file(layout.icon.as_deref())
+                .strict(true)
+                .size(Some((16, 16)))
+                .build(&mut icon)
+                .unwrap_or_else(|e| {
+                    warn!("Failed to load layout icon: {:?}", e);
+                })
         };
 
         self.notification.set_icon(&icon);
