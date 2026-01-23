@@ -13,13 +13,13 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
 
 #[derive(Debug, Default)]
-pub struct KeyboardHook {
-    is_enabled: RefCell<bool>,
-}
+pub struct KeyboardHook {}
 
 impl KeyboardHook {
-    pub fn init(&self, owner: Option<HWND>) {
+    pub fn install(&self, owner: Option<HWND>) {
         NOTIFY.with_borrow_mut(|state| state.target = owner);
+        install_keyboard_hook();
+        install_mouse_hook();
     }
 
     pub fn apply_rules(&self, rules: Option<&KeyTransformRules>) {
@@ -32,48 +32,18 @@ impl KeyboardHook {
             }
         }
     }
-
-    pub fn is_enabled(&self) -> bool {
-        *self.is_enabled.borrow()
-    }
-
-    pub fn set_enabled(&self, enabled: bool) {
-        if enabled {
-            install_key_hook();
-            // install_mouse_hook();
-        } else {
-            uninstall_key_hook();
-            uninstall_mouse_hook();
-        }
-        self.is_enabled.replace(enabled);
-    }
-
-    pub fn is_notify_enabled(&self) -> bool {
-        NOTIFY.with_borrow(|notify| notify.is_enabled)
-    }
-
-    pub fn set_notify_enabled(&self, enabled: bool) {
-        NOTIFY.with_borrow_mut(|notify| {
-            notify.is_enabled = enabled;
-            if notify.is_enabled {
-                debug!("Hooks notifications enabled");
-            } else {
-                debug!("Hooks notifications disabled");
-            }
-        });
-    }
 }
 
 impl Drop for KeyboardHook {
     fn drop(&mut self) {
-        self.set_enabled(false);
+        uninstall_key_hook();
+        uninstall_mouse_hook();
     }
 }
 
 #[derive(Default)]
 struct NotifyState {
     target: Option<HWND>,
-    is_enabled: bool,
 }
 
 impl Drop for NotifyState {
@@ -91,7 +61,7 @@ thread_local! {
     static NOTIFY: RefCell<NotifyState> = RefCell::new(Default::default());
 }
 
-fn install_key_hook() {
+fn install_keyboard_hook() {
     KEY_HOOK.with_borrow_mut(|hook| {
         if hook.is_some() {
             warn!("Keyboard hook already installed");
@@ -202,7 +172,7 @@ fn handle_event(mut event: KeyEvent) -> bool {
 
         trace!("Processing event: {}", event);
     } else {
-        debug!("Ignoring event: {}", event);
+        trace!("Ignoring event: {}", event);
     };
 
     let transformed = apply_transform(&event);
@@ -224,9 +194,9 @@ fn apply_transform(event: &KeyEvent) -> bool {
 
 fn notify_listener(event: KeyEvent) {
     NOTIFY.with_borrow(|notify| {
-        if !notify.is_enabled {
-            return;
-        }
+        // if !notify.is_enabled {
+        //     return;
+        // }
 
         if let Some(hwnd) = notify.target {
             let l_param = LPARAM(&event as *const KeyEvent as isize);

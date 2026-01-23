@@ -1,19 +1,19 @@
 logging_enabled = true
 profiles_enabled = true
-transform_layout = "game2"
+transform_layout = "game"
 
 [main_window]
-position = [566, 209]
-size = [716, 662]
-selected_page = 1
+position = [608, 232]
+size = [716, 428]
+selected_page = 0
 
 [main_window.log_view.columns]
-2 = 50
-7 = 50
-3 = 50
-8 = 50
-1 = 500
 6 = 50
+7 = 50
 0 = 300
 5 = 50
+8 = 50
+2 = 50
+1 = 500
 4 = 50
+3 = 50

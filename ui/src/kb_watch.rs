@@ -17,12 +17,10 @@ pub(crate) struct KeyboardLayoutWatcher {
 }
 
 impl KeyboardLayoutWatcher {
-    pub(crate) fn init(&self, owner: Option<HWND>) {
+    pub(crate) fn start(&self, owner: Option<HWND>) {
         self.owner.replace(owner);
         self.last_layout.replace(get_current_keyboard_layout());
-    }
 
-    pub(crate) fn start(&self) {
         unsafe {
             SetTimer(*self.owner.borrow(), TIMER_ID, WATCH_INTERVAL, None);
         }

@@ -13,10 +13,6 @@ use keympostor::trigger::KeyTrigger;
 
 type Group = FxHashMap<KeyModifiers, KeyTransformRule>;
 
-//type TheMap = HashMap<KeyAction, Group>;
-type TheMap = FxHashMap<KeyAction, Group>;
-// type TheMap = HashMap<KeyAction, Group, ahash::RandomState>;
-
 trait KeyTransformMap {
     fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule>;
     fn put(&mut self, rule: KeyTransformRule);
@@ -24,7 +20,7 @@ trait KeyTransformMap {
 
 #[derive(Debug, Default)]
 pub struct KeyTransformHashMap {
-    map: TheMap,
+    map: FxHashMap<KeyAction, Group>,
 }
 
 impl KeyTransformMap for KeyTransformHashMap {

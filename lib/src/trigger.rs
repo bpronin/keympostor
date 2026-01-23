@@ -4,7 +4,7 @@ use crate::event::KeyEvent;
 use crate::modifiers::KeyModifiers;
 use crate::modifiers::KeyModifiers::{All, Any};
 use crate::{deserialize_from_string, key_err, serialize_to_string};
-use serde::{Deserialize, Serialize, de};
+use serde::{de, Deserialize, Serialize};
 use serde::{Deserializer, Serializer};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
@@ -97,24 +97,24 @@ impl<'de> Deserialize<'de> for KeyTrigger {
     deserialize_from_string!();
 }
 
+#[macro_export]
+macro_rules! key_trigger {
+    ($text:literal) => {
+        $text.parse::<KeyTrigger>().unwrap()
+    };
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::modifiers::KM_LSHIFT;
-    use crate::modifiers::KM_NONE;
     use crate::modifiers::KeyModifiers::{All, Any};
     use crate::modifiers::ModifierKeys;
+    use crate::modifiers::KM_LSHIFT;
+    use crate::modifiers::KM_NONE;
     use crate::trigger::KeyAction;
     use crate::trigger::KeyTrigger;
     use crate::utils::test::SerdeWrapper;
     use crate::{key_action, key_mod};
     use std::str::FromStr;
-
-    #[macro_export]
-    macro_rules! key_trigger {
-        ($text:literal) => {
-            $text.parse::<KeyTrigger>().unwrap()
-        };
-    }
 
     #[test]
     fn test_key_trigger_display() {

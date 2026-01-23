@@ -2,6 +2,8 @@ use crate::action::KeyAction;
 use fmt::Display;
 use std::fmt;
 
+//TODO: benchmark it against [u8; 256]
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct KeyboardState([u128; 2]);
 

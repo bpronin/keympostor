@@ -16,8 +16,10 @@ use crate::win_watch::WinWatcher;
 use crate::{r_play_snd, rs};
 use keympostor::event::KeyEvent;
 use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
+use keympostor::key::{KEY_F3, KEY_FN_LAUNCH_APP1, KEY_FN_LAUNCH_APP2};
 use keympostor::trigger::KeyTrigger;
-use log::{debug, error};
+use keympostor::{ key_trigger};
+use log::{debug, error, info};
 use native_windows_gui as nwg;
 use std::cell::RefCell;
 use std::ops::Not;
@@ -62,7 +64,6 @@ impl App {
         self.win_watcher.set_enabled(settings.profiles_enabled);
 
         self.is_log_enabled.replace(settings.logging_enabled);
-        self.apply_log_enabled();
     }
 
     fn save_settings(&self) {
@@ -184,14 +185,8 @@ impl App {
     }
 
     fn show_window(&self, show: bool) {
-        self.apply_log_enabled();
         self.update_controls();
         self.window.set_visible(show);
-    }
-
-    fn apply_log_enabled(&self) {
-        self.key_hook
-            .set_notify_enabled(*self.is_log_enabled.borrow());
     }
 
     fn handle_event(&self, evt: nwg::Event, handle: nwg::ControlHandle) {
@@ -213,18 +208,15 @@ impl App {
     }
 
     fn on_init(&self) {
-        let window_hwnd = try_hwnd(self.window.handle());
-        self.win_watcher.init(window_hwnd);
-        self.keyboard_layout_watcher.init(window_hwnd);
-        self.key_hook.init(window_hwnd);
-
         self.layouts.replace(Layouts::load_default());
         self.window.set_layouts(&self.layouts.borrow());
 
         self.load_settings();
 
-        self.key_hook.set_enabled(true);
-        self.keyboard_layout_watcher.start();
+        let window_hwnd = try_hwnd(self.window.handle());
+        self.key_hook.install(window_hwnd);
+        self.win_watcher.init(window_hwnd);
+        self.keyboard_layout_watcher.start(window_hwnd);
 
         self.update_controls();
 
@@ -239,7 +231,6 @@ impl App {
 
     fn on_toggle_logging_enabled(&self) {
         self.is_log_enabled.replace_with(|v| v.not());
-        self.apply_log_enabled();
         self.update_controls();
         self.save_settings();
     }
@@ -252,7 +243,6 @@ impl App {
     }
 
     fn on_window_close(&self) {
-        self.key_hook.set_notify_enabled(false); /* temporarily disable logging while closed */
         self.update_controls();
         #[cfg(feature = "debug")]
         self.on_app_exit()
@@ -278,7 +268,14 @@ impl App {
     }
 
     fn on_key_hook_notify(&self, event: &KeyEvent) {
-        self.window.on_key_hook_notify(event);
+        // let toggle_layout_key = key_trigger!("[CTRL+ALT+SHIFT] F3^");
+        // if event.action == toggle_layout_key.action {
+        //     info!("TOGGLE LAYOUT");
+        // }
+
+        if *self.is_log_enabled.borrow() {
+            self.window.on_key_hook_notify(event);
+        }
     }
 }
 

@@ -1,11 +1,11 @@
 use crate::error::KeyError;
-use crate::key::{Key, key_by_name};
+use crate::key::{key_by_name, Key};
 use crate::transition::KeyTransition;
 use crate::transition::KeyTransition::{Down, Up};
 use crate::{deserialize_from_string, key_err, serialize_to_string, write_joined};
 use serde::Deserializer;
 use serde::Serializer;
-use serde::{Deserialize, Serialize, de};
+use serde::{de, Deserialize, Serialize};
 use slice::Iter;
 use std::fmt::{Debug, Display, Formatter};
 use std::hash::Hash;
@@ -157,6 +157,20 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
     deserialize_from_string!();
 }
 
+#[macro_export]
+macro_rules! key_action {
+    ($text:literal) => {
+        $text.parse::<KeyAction>().unwrap()
+    };
+}
+
+#[macro_export]
+macro_rules! key_action_seq {
+    ($text:literal) => {
+        $text.parse::<KeyActionSequence>().unwrap()
+    };
+}
+
 #[cfg(test)]
 mod tests {
     use crate::action::KeyAction;
@@ -166,20 +180,6 @@ mod tests {
     use crate::transition::KeyTransition::{Down, Up};
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
-
-    #[macro_export]
-    macro_rules! key_action {
-        ($text:literal) => {
-            $text.parse::<KeyAction>().unwrap()
-        };
-    }
-
-    #[macro_export]
-    macro_rules! key_action_seq {
-        ($text:literal) => {
-            $text.parse::<KeyActionSequence>().unwrap()
-        };
-    }
 
     // Key action
 
