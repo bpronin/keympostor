@@ -18,7 +18,7 @@ use keympostor::event::KeyEvent;
 use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
 use keympostor::modifiers::KeyModifiers::All;
 use keympostor::trigger::KeyTrigger;
-use log::{debug, error, info};
+use log::{debug, error};
 use native_windows_gui as nwg;
 use std::cell::RefCell;
 use std::ops::Not;
@@ -119,7 +119,7 @@ impl App {
 
     fn select_layout(&self, layout_name: Option<&str>) {
         let layouts = self.layouts.borrow();
-        let current_layout = layouts.get(layout_name);
+        let current_layout = layouts.find(layout_name);
         match current_layout {
             None => {
                 self.key_hook.apply_rules(None);
@@ -145,9 +145,23 @@ impl App {
         r_play_snd!(IDR_SWITCH_LAYOUT);
     }
 
+    fn select_next_layout(&self) {
+        debug!("Selecting next layout");
+
+        // let layouts = self.layouts.borrow();
+        // let current = layouts.index_of(self.current_layout_name.borrow().as_deref());
+        //
+        // debug!("Current layout index: {:?}", current);
+        // match current {
+        //     None => {}
+        //     Some(i) => {}
+        // }
+        //
+    }
+
     fn update_controls(&self) {
         let layouts = self.layouts.borrow();
-        let layout = layouts.get(self.current_layout_name.borrow().as_deref());
+        let layout = layouts.find(self.current_layout_name.borrow().as_deref());
 
         self.update_title();
         self.window.update_ui(
@@ -263,7 +277,7 @@ impl App {
     fn on_key_hook_notify(&self, event: &KeyEvent) {
         if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
             if event.action == key.action && All(event.modifiers) == key.modifiers {
-                info!("TOGGLE LAYOUT");
+                self.select_next_layout();
             }
         }
 

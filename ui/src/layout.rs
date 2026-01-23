@@ -57,15 +57,31 @@ impl Layouts {
         })
     }
 
-    pub(crate) fn get(&self, name: Option<&str>) -> Option<&Layout> {
+    pub(crate) fn find(&self, name: Option<&str>) -> Option<&Layout> {
         match name {
             None => None,
             Some(n) => self.0.iter().filter(|l| l.name == *n).next(),
         }
     }
 
+    pub(crate) fn get(&self, index: Option<usize>) -> Option<&Layout> {
+        index.and_then(|i| self.0.get(i))
+    }
+
+    pub(crate) fn index_of(&self, name: Option<&str>) -> Option<usize> {
+        if let Some(n) = name {
+            self.0.iter().position(|l| l.name == *n)
+        } else {
+            None
+        }
+    }
+
     pub(crate) fn iter(&self) -> Iter<'_, Layout> {
         self.0.iter()
+    }
+
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
     }
 }
 

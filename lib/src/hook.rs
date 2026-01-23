@@ -1,6 +1,5 @@
 use crate::event::KeyEvent;
 use crate::input;
-use crate::key::KEY_UNASSIGNED;
 use crate::rules::KeyTransformRules;
 use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;

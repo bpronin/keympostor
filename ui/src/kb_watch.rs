@@ -20,7 +20,6 @@ impl KeyboardLayoutWatcher {
     pub(crate) fn start(&self, owner: Option<HWND>) {
         self.owner.replace(owner);
         self.last_layout.replace(get_current_keyboard_layout());
-
         unsafe {
             SetTimer(*self.owner.borrow(), TIMER_ID, WATCH_INTERVAL, None);
         }
