@@ -4,7 +4,7 @@ use crate::trigger::KeyTrigger;
 use crate::{key_err, write_joined};
 use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::slice::Iter;
@@ -167,6 +167,19 @@ impl<'de> Visitor<'de> for KeyTransformRuleVisitor {
         Ok(KeyTransformRules(items))
     }
 }
+#[macro_export]
+macro_rules! key_rule {
+    ($text:literal) => {
+        KeyTransformRule::from_str($text).unwrap()
+    };
+}
+
+#[macro_export]
+macro_rules! key_rules {
+    ($text:literal) => {
+        KeyTransformRules::from_str($text).unwrap()
+    };
+}
 
 #[cfg(test)]
 pub mod tests {
@@ -176,20 +189,6 @@ pub mod tests {
     use crate::trigger::KeyTrigger;
     use crate::{key_action_seq, key_trigger};
     use std::str::FromStr;
-
-    #[macro_export]
-    macro_rules! key_rule {
-        ($text:literal) => {
-            $text.parse::<KeyTransformRule>().unwrap()
-        };
-    }
-
-    #[macro_export]
-    macro_rules! key_rules {
-        ($text:literal) => {
-            $text.parse::<KeyTransformRules>().unwrap()
-        };
-    }
 
     // Transform rule
 

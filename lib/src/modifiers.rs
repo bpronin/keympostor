@@ -1,7 +1,7 @@
 use crate::error::KeyError;
 use crate::key::{
-    KEY_CTRL, KEY_LEFT_ALT, KEY_LEFT_CTRL, KEY_LEFT_SHIFT, KEY_LEFT_WIN, KEY_RIGHT_ALT,
-    KEY_RIGHT_CTRL, KEY_RIGHT_SHIFT, KEY_RIGHT_WIN, KEY_SHIFT,
+    KEY_LEFT_ALT, KEY_LEFT_CTRL, KEY_LEFT_SHIFT, KEY_LEFT_WIN, KEY_RIGHT_ALT, KEY_RIGHT_CTRL,
+    KEY_RIGHT_SHIFT, KEY_RIGHT_WIN, KEY_SHIFT,
 };
 use crate::modifiers::KeyModifiers::All;
 use crate::state::KeyboardState;
@@ -123,8 +123,6 @@ impl FromStr for ModifierKeys {
                     KM_LCTRL
                 } else if KEY_RIGHT_CTRL.name == p {
                     KM_RCTRL
-                } else if KEY_CTRL.name == p {
-                    KM_LCTRL | KM_RCTRL
                 } else if KEY_LEFT_ALT.name == p {
                     KM_LALT
                 } else if KEY_RIGHT_ALT.name == p {
@@ -133,10 +131,13 @@ impl FromStr for ModifierKeys {
                     KM_LWIN
                 } else if KEY_RIGHT_WIN.name == p {
                     KM_RWIN
-                } else if "ALT" == p {
-                    KM_LALT | KM_RALT
-                } else if "WIN" == p {
-                    KM_LWIN | KM_RWIN
+                    // todo: this expands key into LEFT+RIGHT but must be LEFT|RIGHT
+                    // } else if KEY_CTRL.name == p {
+                    //     KM_LCTRL | KM_RCTRL
+                    // } else if "ALT" == p {
+                    //     KM_LALT | KM_RALT
+                    // } else if "WIN" == p {
+                    //     KM_LWIN | KM_RWIN
                 } else {
                     KM_NONE
                 }

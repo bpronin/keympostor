@@ -1,10 +1,10 @@
-use std::rc::Rc;
 use crate::action::KeyAction;
 use crate::event::KeyEvent;
 use crate::modifiers::KeyModifiers;
 use crate::modifiers::KeyModifiers::{All, Any};
 use crate::rules::{KeyTransformRule, KeyTransformRules};
 use fxhash::FxHashMap;
+use std::rc::Rc;
 
 #[derive(Debug, Default)]
 pub(crate) struct KeyTransformMap {
@@ -43,6 +43,7 @@ mod tests {
     use crate::transform::KeyEvent;
     use crate::transform::KeyTransformMap;
     use crate::{assert_none, key_action, key_event, key_rule};
+    use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LMENU, VK_LSHIFT};
 
     static KS_ALL_UP: KeyboardState = KeyboardState::new();
@@ -112,10 +113,22 @@ mod tests {
         map.put(key_rule!("A↓ : B↓"));
 
         let expected = &key_rule!("A↓ : B↓");
-        assert_eq!(expected, map.get(&key_event!("A↓", &KS_ALL_UP)).unwrap().as_ref());
-        assert_eq!(expected, map.get(&key_event!("A↓", &KS_LSHIFT)).unwrap().as_ref());
-        assert_eq!(expected, map.get(&key_event!("A↓", &KS_LCTRL)).unwrap().as_ref());
-        assert_eq!(expected, map.get(&key_event!("A↓", &KS_LALT)).unwrap().as_ref());
+        assert_eq!(
+            expected,
+            map.get(&key_event!("A↓", &KS_ALL_UP)).unwrap().as_ref()
+        );
+        assert_eq!(
+            expected,
+            map.get(&key_event!("A↓", &KS_LSHIFT)).unwrap().as_ref()
+        );
+        assert_eq!(
+            expected,
+            map.get(&key_event!("A↓", &KS_LCTRL)).unwrap().as_ref()
+        );
+        assert_eq!(
+            expected,
+            map.get(&key_event!("A↓", &KS_LALT)).unwrap().as_ref()
+        );
         assert_eq!(
             expected,
             map.get(&key_event!("A↓", &KS_LCTRL_LALT)).unwrap().as_ref()

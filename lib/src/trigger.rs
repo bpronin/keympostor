@@ -100,7 +100,7 @@ impl<'de> Deserialize<'de> for KeyTrigger {
 #[macro_export]
 macro_rules! key_trigger {
     ($text:literal) => {
-        $text.parse::<KeyTrigger>().unwrap()
+        KeyTrigger::from_str($text).unwrap()
     };
 }
 

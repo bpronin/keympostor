@@ -2,6 +2,7 @@ use super::*;
 use crate::layout::Layout;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::res::RESOURCES;
+use crate::settings::MainWindowSettings;
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::{r_icon, rs};
 use keympostor::event::KeyEvent;
@@ -11,7 +12,6 @@ use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
 use native_windows_gui::{
     ControlHandle, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags,
 };
-use crate::settings::MainWindowSettings;
 
 #[derive(Default)]
 pub(crate) struct MainWindow {
@@ -75,7 +75,6 @@ impl MainWindow {
         /* Log tab */
         FlexboxLayout::builder()
             .parent(&self.tab_container)
-            // .padding(TAB_PADDING)
             .child(self.log_view.view())
             .child_margin(Rect {
                 start: PT(4.0),
@@ -88,7 +87,6 @@ impl MainWindow {
         /* Layout tab layout */
         FlexboxLayout::builder()
             .parent(&self.tab_container)
-            // .padding(TAB_PADDING)
             .child(self.layout_view.view())
             .child_margin(Rect {
                 start: PT(4.0),
@@ -102,21 +100,17 @@ impl MainWindow {
         FlexboxLayout::builder()
             .parent(&self.window)
             .flex_direction(FlexDirection::Column)
-            // .padding(PADDING)
             /* Tabs */
             .child(&self.tab_container)
-            // .child_margin(MARGIN)
             .child_flex_grow(1.0)
             /* Test label */
             .child(&self.key_event_label)
-            // .child_margin(MARGIN_2)
             .child_size(Size {
                 width: D::Auto,
                 height: D::Points(24.0),
             })
             /* Test editor */
             .child(self.test_editor.editor())
-            // .child_margin(MARGIN_2)
             .child_size(Size {
                 width: D::Auto,
                 height: D::Points(40.0),

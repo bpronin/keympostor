@@ -7,7 +7,8 @@ icon = "image\\game.ico"
 
 [rules]
 "INSERT" = "ESC"
-#"LAUNCH_APP2, FN_LAUNCH_APP2" = "F3"
+#"LAUNCH_APP2, FN_LAUNCH_APP2" = ""
+"FN_LAUNCH_APP2" = ""
 "BROWSER_SEARCH" = "F4"
 "[]BACKSPACE" = "F5"
 "NUM_LOCK" = "1"

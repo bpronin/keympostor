@@ -160,14 +160,14 @@ impl<'de> Deserialize<'de> for KeyActionSequence {
 #[macro_export]
 macro_rules! key_action {
     ($text:literal) => {
-        $text.parse::<KeyAction>().unwrap()
+        KeyAction::from_str($text).unwrap()
     };
 }
 
 #[macro_export]
 macro_rules! key_action_seq {
     ($text:literal) => {
-        $text.parse::<KeyActionSequence>().unwrap()
+        KeyActionSequence::from_str($text).unwrap()
     };
 }
 

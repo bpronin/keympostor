@@ -1,11 +1,14 @@
 use crate::kb_light::KeyboardZoneColors;
 use crate::profile::Profiles;
+use keympostor::key_trigger;
+use keympostor::trigger::KeyTrigger;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
+use std::str::FromStr;
 
 const SETTINGS_FILE: &str = "settings.toml";
 
@@ -16,6 +19,7 @@ pub(crate) struct AppSettings {
     pub(crate) main_window: MainWindowSettings,
     pub(crate) transform_layout: Option<String>,
     pub(crate) profiles: Option<Profiles>,
+    pub(crate) toggle_layout_hot_key: Option<KeyTrigger>,
 }
 
 impl Default for AppSettings {
@@ -26,6 +30,7 @@ impl Default for AppSettings {
             main_window: Default::default(),
             transform_layout: None,
             profiles: Default::default(),
+            toggle_layout_hot_key: Some(key_trigger!("[]FN_LAUNCH_APP2^")),
         }
     }
 }
@@ -108,6 +113,7 @@ pub mod tests {
         let settings = AppSettings {
             logging_enabled: false,
             profiles_enabled: true,
+            toggle_layout_hot_key: None,
             transform_layout: Some("test-layout".to_string()),
             main_window: MainWindowSettings {
                 position: Some((0, 0)),

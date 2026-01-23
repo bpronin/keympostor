@@ -3,7 +3,7 @@ use crate::sc::ScanCode;
 use crate::vk::VirtualKey;
 use crate::{deserialize_from_string, serialize_to_string};
 use phf::phf_map;
-use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
@@ -490,6 +490,7 @@ pub(crate) static CODE_TO_KEY_MAP: phf::Map<u32, Key> = phf_map! {
 };
 
 pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
+    "" => KEY_UNASSIGNED,
     "0" => KEY_0,
     "<00>" => KEY_00,
     "1" => KEY_1,
@@ -700,7 +701,7 @@ pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
 
 #[cfg(test)]
 mod tests {
-    use crate::key::{CODE_TO_KEY_MAP, Key, NAME_TO_KEY_MAP, key_by_name, key_code};
+    use crate::key::{key_by_name, key_code, Key, CODE_TO_KEY_MAP, NAME_TO_KEY_MAP};
     use crate::sc::ScanCode;
     use crate::utils::test::SerdeWrapper;
     use crate::vk::VirtualKey;

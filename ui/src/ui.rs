@@ -16,9 +16,8 @@ use crate::win_watch::WinWatcher;
 use crate::{r_play_snd, rs};
 use keympostor::event::KeyEvent;
 use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
-use keympostor::key::{KEY_F3, KEY_FN_LAUNCH_APP1, KEY_FN_LAUNCH_APP2};
+use keympostor::modifiers::KeyModifiers::All;
 use keympostor::trigger::KeyTrigger;
-use keympostor::{ key_trigger};
 use log::{debug, error, info};
 use native_windows_gui as nwg;
 use std::cell::RefCell;
@@ -47,6 +46,7 @@ pub(crate) struct App {
     layouts: RefCell<Layouts>,
     current_profile_name: RefCell<Option<String>>,
     pub(crate) current_layout_name: RefCell<Option<String>>,
+    toggle_layout_hot_key: RefCell<Option<KeyTrigger>>,
 }
 
 impl App {
@@ -54,16 +54,17 @@ impl App {
         let settings = AppSettings::load_default();
 
         self.window.apply_settings(&settings.main_window);
-
         let profiles = Rc::new(settings.profiles.unwrap_or_default());
+
         self.profiles.replace(Rc::clone(&profiles));
 
         self.select_layout(settings.transform_layout.as_deref());
-
         self.win_watcher.set_profiles(profiles);
-        self.win_watcher.set_enabled(settings.profiles_enabled);
 
+        self.win_watcher.set_enabled(settings.profiles_enabled);
         self.is_log_enabled.replace(settings.logging_enabled);
+        self.toggle_layout_hot_key
+            .replace(settings.toggle_layout_hot_key);
     }
 
     fn save_settings(&self) {
@@ -143,14 +144,6 @@ impl App {
 
         r_play_snd!(IDR_SWITCH_LAYOUT);
     }
-
-    // pub(crate) fn current_layout(&self) -> Option<&Layout> {
-    //     let name = self.current_layout_name.borrow();
-    //     Ref::filter_map(self.layouts.borrow(), |layouts| {
-    //         layouts.get(name.as_deref())
-    //     })
-    //     .ok()
-    // }
 
     fn update_controls(&self) {
         let layouts = self.layouts.borrow();
@@ -268,10 +261,11 @@ impl App {
     }
 
     fn on_key_hook_notify(&self, event: &KeyEvent) {
-        // let toggle_layout_key = key_trigger!("[CTRL+ALT+SHIFT] F3^");
-        // if event.action == toggle_layout_key.action {
-        //     info!("TOGGLE LAYOUT");
-        // }
+        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
+            if event.action == key.action && All(event.modifiers) == key.modifiers {
+                info!("TOGGLE LAYOUT");
+            }
+        }
 
         if *self.is_log_enabled.borrow() {
             self.window.on_key_hook_notify(event);
