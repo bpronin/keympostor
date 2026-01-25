@@ -1,14 +1,15 @@
-use crate::kb_light::KeyboardZoneColors;
 use crate::profile::Profiles;
 use keympostor::key_trigger;
 use keympostor::trigger::KeyTrigger;
 use log::{debug, warn};
-use serde::{Deserialize, Serialize};
+use lomen_core::color::ZoneColors;
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
+use crate::kb_light::KeyboardZoneColors;
 
 const SETTINGS_FILE: &str = "settings.toml";
 
@@ -48,16 +49,16 @@ impl AppSettings {
         Ok(())
     }
 
-    pub(crate) fn load_default() -> Self {
+    pub(crate) fn load_default() -> Result<Self, Box<dyn Error>> {
         Self::load(SETTINGS_FILE)
-            .and_then(|settings| {
-                debug!("Settings loaded");
-                Ok(settings)
-            })
-            .unwrap_or_else(|e| {
-                warn!("Failed to load settings: `{}`. Using defaults.", e);
-                Self::default()
-            })
+            // .and_then(|settings| {
+            //     debug!("Settings loaded");
+            //     Ok(settings)
+            // })
+            // .unwrap_or_else(|e| {
+            //     warn!("Failed to load settings: `{}`. Using defaults.", e);
+            //     Self::default()
+            // })
     }
 
     pub(crate) fn save_default(&self) {

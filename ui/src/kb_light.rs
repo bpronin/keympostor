@@ -1,7 +1,9 @@
 use crate::settings::KeyboardLightingSettings;
-use libloading::os::windows::{Library, LOAD_WITH_ALTERED_SEARCH_PATH};
 use log::debug;
+use lomen_core::color::{Color, ZoneColors};
+use lomen_core::light_control::*;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use std::sync::LazyLock;
 use windows::Win32::Globalization::GetLocaleInfoW;
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardLayout, HKL};
@@ -10,7 +12,6 @@ use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThre
 pub(crate) static KEYBOARD_LIGHTING_SETTINGS: LazyLock<KeyboardLightingSettings> =
     LazyLock::new(|| KeyboardLightingSettings::load_default());
 
-#[repr(C)]
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(into = "Vec<String>", from = "Vec<String>")]
 pub(crate) struct KeyboardZoneColors {
@@ -18,6 +19,18 @@ pub(crate) struct KeyboardZoneColors {
     pub(crate) center: u64,
     pub(crate) left: u64,
     pub(crate) game: u64,
+}
+
+impl Display for KeyboardZoneColors {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(
+            &format!(
+                "[#{:0X}, #{:0X}, #{:0X}, #{:0X}]",
+                self.right, self.center, self.left, self.game
+            ),
+            f,
+        )
+    }
 }
 
 impl Into<Vec<String>> for KeyboardZoneColors {
@@ -53,16 +66,20 @@ pub(crate) fn get_current_keyboard_layout() -> HKL {
     unsafe { GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), None)) }
 }
 
-pub(crate) fn update_keyboard_lighting(layout_name: Option<&str>, keyboard_layout: HKL) {
-    update_keyboard_lighting2(layout_name.unwrap_or("none"), keyboard_layout);
-}
-
-fn update_keyboard_lighting2(layout_name: &str, keyboard_layout: HKL) {
-    if let Some(layout_settings) = KEYBOARD_LIGHTING_SETTINGS.layouts.get(layout_name) {
+pub(crate) fn set_keyboard_lighting(layout_name: Option<&str>, keyboard_layout: HKL) {
+    let name = layout_name.unwrap_or("none");
+    if let Some(layout_settings) = KEYBOARD_LIGHTING_SETTINGS.layouts.get(name) {
         let lang = get_keyboard_locale(keyboard_layout);
-        if let Some(land_settings) = &layout_settings.0.get(&lang) {
-            debug!("Updating keyboard colors for: {layout_name}, lang: {lang}");
-            set_colors(land_settings);
+        if let Some(colors) = layout_settings.0.get(&lang) {
+            debug!("Updating keyboard colors for: {name}, lang: {lang}, colors : {colors}");
+
+            set_colors(&ZoneColors::from([
+                colors.right,
+                colors.center,
+                colors.left,
+                colors.game,
+            ]))
+            .ok();
         }
     }
 }
@@ -85,21 +102,4 @@ fn get_keyboard_locale(keyboard_layout: HKL) -> String {
         get_locale_info(lang_id, 0x5A)
     )
     .to_lowercase()
-}
-
-static DLL: LazyLock<Option<Library>> = LazyLock::new(|| unsafe {
-    Library::load_with_flags("lomen.dll", LOAD_WITH_ALTERED_SEARCH_PATH)
-        .inspect_err(|e| debug!("Failed to load lomen.dll: {e}. Keyboard lighting disabled."))
-        .ok()
-});
-
-type FnSetColors = extern "stdcall" fn(*const KeyboardZoneColors);
-
-fn set_colors(colors: &KeyboardZoneColors) {
-    if let Some(lib) = DLL.as_ref() {
-        unsafe {
-            let fun = lib.get::<FnSetColors>(b"set_colors\0").unwrap();
-            fun(colors);
-        }
-    }
 }

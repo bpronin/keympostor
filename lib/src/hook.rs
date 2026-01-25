@@ -17,9 +17,9 @@ pub struct KeyboardHook {}
 
 impl KeyboardHook {
     pub fn install(&self, owner: Option<HWND>) {
-        NOTIFY.with_borrow_mut(|state| state.target = owner);
+        NOTIFY.with_borrow_mut(|state| state.keyboard_receiver = owner);
         install_keyboard_hook();
-        install_mouse_hook();
+        // install_mouse_hook();
     }
 
     pub fn apply_rules(&self, rules: Option<&KeyTransformRules>) {
@@ -43,12 +43,12 @@ impl Drop for KeyboardHook {
 
 #[derive(Default)]
 struct NotifyState {
-    target: Option<HWND>,
+    keyboard_receiver: Option<HWND>,
 }
 
 impl Drop for NotifyState {
     fn drop(&mut self) {
-        self.target = None;
+        self.keyboard_receiver = None;
     }
 }
 
@@ -198,7 +198,7 @@ fn notify_listener(event: KeyEvent) {
         //     return;
         // }
 
-        if let Some(hwnd) = notify.target {
+        if let Some(hwnd) = notify.keyboard_receiver {
             let l_param = LPARAM(&event as *const KeyEvent as isize);
             unsafe { SendMessageW(hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l_param)) };
         }

@@ -167,6 +167,7 @@ impl<'de> Visitor<'de> for KeyTransformRuleVisitor {
         Ok(KeyTransformRules(items))
     }
 }
+
 #[macro_export]
 macro_rules! key_rule {
     ($text:literal) => {

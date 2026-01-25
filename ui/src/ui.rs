@@ -1,4 +1,4 @@
-use crate::kb_light::{get_current_keyboard_layout, update_keyboard_lighting};
+use crate::kb_light::{get_current_keyboard_layout, set_keyboard_lighting};
 use crate::kb_watch::KeyboardLayoutWatcher;
 use crate::layout::Layouts;
 use crate::profile::{Profile, Profiles};
@@ -12,18 +12,23 @@ use crate::ui::main_window::MainWindow;
 use crate::ui::style::display_font;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
+use crate::ui::utils::warn_message;
 use crate::win_watch::WinWatcher;
 use crate::{r_play_snd, rs};
 use keympostor::event::KeyEvent;
 use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
+use keympostor::key::KEY_F1;
 use keympostor::modifiers::KeyModifiers::All;
 use keympostor::trigger::KeyTrigger;
 use log::{debug, error};
 use native_windows_gui as nwg;
+use native_windows_gui::EventData::OnKey;
 use std::cell::RefCell;
+use std::error::Error;
 use std::ops::Not;
 use std::rc::Rc;
 use utils::{get_window_size, set_window_size, try_hwnd};
+use windows::Win32::UI::Input::KeyboardAndMouse::VK_F1;
 
 mod layout_view;
 mod layouts_menu;
@@ -51,7 +56,10 @@ pub(crate) struct App {
 
 impl App {
     fn load_settings(&self) {
-        let settings = AppSettings::load_default();
+        let settings = AppSettings::load_default().unwrap_or_else(|e| {
+            warn_message(&format!("Failed to load settings: `{}`", e));
+            AppSettings::default()
+        });
 
         self.window.apply_settings(&settings.main_window);
         let profiles = Rc::new(settings.profiles.unwrap_or_default());
@@ -68,7 +76,7 @@ impl App {
     }
 
     fn save_settings(&self) {
-        let mut settings = AppSettings::load_default();
+        let mut settings = AppSettings::load_default().unwrap_or_default();
         let layout_name = self.current_layout_name.borrow();
         let profile_name = self.current_profile_name.borrow();
 
@@ -93,6 +101,15 @@ impl App {
         self.window.update_settings(&mut settings.main_window);
 
         settings.save_default();
+    }
+
+    fn load_layouts(&self) {
+        let layouts = Layouts::load_default().unwrap_or_else(|e| {
+            warn_message(&format!("Failed to load layouts: {}", e));
+            Layouts::default()
+        });
+        self.layouts.replace(layouts);
+        self.window.set_layouts(&self.layouts.borrow());
     }
 
     pub(crate) fn select_profile(&self, profile_name: Option<&str>) {
@@ -140,23 +157,22 @@ impl App {
         self.window.on_select_layout(current_layout);
         self.update_controls();
 
-        update_keyboard_lighting(layout_name, get_current_keyboard_layout());
+        set_keyboard_lighting(layout_name, get_current_keyboard_layout());
 
         r_play_snd!(IDR_SWITCH_LAYOUT);
     }
 
     fn select_next_layout(&self) {
-        debug!("Selecting next layout");
+        let layouts = self.layouts.borrow();
+        let next_name = {
+            let current_name = self.current_layout_name.borrow();
+            let next_layout = layouts.cyclic_next(current_name.as_deref());
+            next_layout.and_then(|l| Some(l.name.as_str()))
+        };
 
-        // let layouts = self.layouts.borrow();
-        // let current = layouts.index_of(self.current_layout_name.borrow().as_deref());
-        //
-        // debug!("Current layout index: {:?}", current);
-        // match current {
-        //     None => {}
-        //     Some(i) => {}
-        // }
-        //
+        debug!("Next layout: {:?}", next_name);
+
+        self.select_layout(next_name);
     }
 
     fn update_controls(&self) {
@@ -215,9 +231,7 @@ impl App {
     }
 
     fn on_init(&self) {
-        self.layouts.replace(Layouts::load_default());
-        self.window.set_layouts(&self.layouts.borrow());
-
+        self.load_layouts();
         self.load_settings();
 
         let window_hwnd = try_hwnd(self.window.handle());
@@ -275,11 +289,11 @@ impl App {
     }
 
     fn on_key_hook_notify(&self, event: &KeyEvent) {
-        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
-            if event.action == key.action && All(event.modifiers) == key.modifiers {
-                self.select_next_layout();
-            }
-        }
+        // if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
+        //     if event.action == key.action && All(event.modifiers) == key.modifiers {
+        //         self.select_next_layout();
+        //     }
+        // }
 
         if *self.is_log_enabled.borrow() {
             self.window.on_key_hook_notify(event);
@@ -344,7 +358,6 @@ impl AppUi {
 
     pub(crate) fn run(&self) {
         self.setup_event_handlers();
-        // self.app.run();
         nwg::dispatch_thread_events();
     }
 }

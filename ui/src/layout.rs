@@ -50,43 +50,33 @@ impl Layouts {
         Ok(Self(items))
     }
 
-    pub(crate) fn load_default() -> Self {
-        Self::load(LAYOUTS_PATH).unwrap_or_else(|e| {
-            warn!("Failed to load layouts: {}", e);
-            Self::default()
-        })
+    pub(crate) fn load_default() -> Result<Layouts, Box<dyn Error>> {
+        Self::load(LAYOUTS_PATH)
     }
 
     pub(crate) fn find(&self, name: Option<&str>) -> Option<&Layout> {
+        name.and_then(|n| self.0.iter().find(|l| l.name == *n))
+    }
+
+    pub(crate) fn cyclic_next(&self, name: Option<&str>) -> Option<&Layout> {
         match name {
-            None => None,
-            Some(n) => self.0.iter().filter(|l| l.name == *n).next(),
-        }
-    }
-
-    pub(crate) fn get(&self, index: Option<usize>) -> Option<&Layout> {
-        index.and_then(|i| self.0.get(i))
-    }
-
-    pub(crate) fn index_of(&self, name: Option<&str>) -> Option<usize> {
-        if let Some(n) = name {
-            self.0.iter().position(|l| l.name == *n)
-        } else {
-            None
+            None => self.0.get(0),
+            Some(n) => {
+                let mut iter = self.0.iter();
+                iter.find(|l| l.name == *n);
+                iter.next()
+            }
         }
     }
 
     pub(crate) fn iter(&self) -> Iter<'_, Layout> {
         self.0.iter()
     }
-
-    pub(crate) fn len(&self) -> usize {
-        self.0.len()
-    }
 }
 
 #[cfg(test)]
 pub mod tests {
+    use native_windows_gui::OemCursor::No;
     use crate::layout::{Layout, Layouts};
     use keympostor::rules::KeyTransformRules;
 
@@ -184,5 +174,82 @@ pub mod tests {
     fn test_layouts_load() {
         let result = Layouts::load("etc/test_data/layouts/");
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_layouts_find() {
+        let layouts = Layouts (
+            vec![
+                Layout {
+                    name: "layout_1".to_string(),
+                    ..Default::default()
+                },
+                Layout {
+                    name: "layout_2".to_string(),
+                    ..Default::default()
+                },
+                Layout {
+                    name: "layout_3".to_string(),
+                    ..Default::default()
+                },
+            ],
+        );
+
+        assert_eq!(
+            Some(&Layout {
+                name: "layout_2".to_string(),
+                ..Default::default()
+            }),
+            layouts.find(Some("layout_2"))
+        );
+        assert_eq!(None, layouts.find(Some("layout_4")));
+        assert_eq!(None, layouts.find(None));
+    }
+
+    #[test]
+    fn test_layouts_cyclic_next() {
+        let layouts = Layouts (
+            vec![
+                Layout {
+                    name: "layout_1".to_string(),
+                    ..Default::default()
+                },
+                Layout {
+                    name: "layout_2".to_string(),
+                    ..Default::default()
+                },
+                Layout {
+                    name: "layout_3".to_string(),
+                    ..Default::default()
+                },
+            ],
+        );
+
+        assert_eq!(
+            Some(&Layout {
+                name: "layout_3".to_string(),
+                ..Default::default()
+            }),
+            layouts.cyclic_next(Some("layout_2"))
+        );
+
+        assert_eq!(
+            Some(&Layout {
+                name: "layout_1".to_string(),
+                ..Default::default()
+            }),
+            layouts.cyclic_next(None)
+        );
+
+        assert_eq!(
+            None,
+            layouts.cyclic_next(Some("layout_3"))
+        );
+
+        assert_eq!(
+            None,
+            layouts.cyclic_next(Some("layout_4"))
+        );
+
     }
 }

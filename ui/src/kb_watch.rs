@@ -1,4 +1,4 @@
-use crate::kb_light::{get_current_keyboard_layout, update_keyboard_lighting};
+use crate::kb_light::{get_current_keyboard_layout, set_keyboard_lighting};
 use crate::ui::App;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
@@ -61,7 +61,6 @@ impl KeyboardLayoutWatcher {
         debug!("Keyboard layout changed to {:?}", keyboard_layout);
 
         let transform_layout = app.current_layout_name.borrow();
-
-        update_keyboard_lighting(transform_layout.as_deref(), keyboard_layout);
+        set_keyboard_lighting(transform_layout.as_deref(), keyboard_layout);
     }
 }

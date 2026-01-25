@@ -16,7 +16,7 @@ mod win_watch;
 
 fn main() {
     SimpleLogger::new()
-        .with_level(LevelFilter::Trace)
+        .with_level(LevelFilter::Debug)
         .init()
         .expect("Failed to initialize logger.");
 

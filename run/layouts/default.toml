@@ -6,4 +6,5 @@ icon = "image\\default.ico"
 #default = "sound\\clack.wav"
 
 [rules]
-
+"F1" = "LEFT_CTRL > V"
+"F2" = "LEFT_CTRL > C"

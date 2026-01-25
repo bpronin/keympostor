@@ -1,4 +1,5 @@
-use native_windows_gui::{ControlHandle, ListView, Window};
+use crate::ui::RESOURCES;
+use native_windows_gui::{message, ControlHandle, ListView, MessageButtons, MessageIcons, MessageParams, Window};
 use std::mem;
 use windows::Win32::Foundation::{HWND, RECT, WPARAM};
 use windows::Win32::UI::Controls::{LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH};
@@ -6,6 +7,8 @@ use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowRect, SendMessageW, SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
     SWP_NOOWNERZORDER, SWP_NOZORDER,
 };
+use crate::res::res_ids::IDS_APP_TITLE;
+use crate::rs;
 
 pub fn try_hwnd(handle: ControlHandle) -> Option<HWND> {
     handle.hwnd().map(|h| HWND(h as _))
@@ -67,14 +70,14 @@ pub fn scroll_list_view_to_end(view: &ListView) {
     }
 }
 
-// pub(crate) fn warn(text: &str) {
-//     message(&MessageParams {
-//         title: rs!(IDS_APP_TITLE),
-//         content: text,
-//         buttons: MessageButtons::Ok,
-//         icons: MessageIcons::Warning,
-//     });
-// }
+pub(crate) fn warn_message(text: &str) {
+    message(&MessageParams {
+        title: rs!(IDS_APP_TITLE),
+        content: text,
+        buttons: MessageButtons::Ok,
+        icons: MessageIcons::Warning,
+    });
+}
 
 // #[macro_export]
 // macro_rules! ui_warn {
