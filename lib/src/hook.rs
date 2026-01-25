@@ -19,7 +19,11 @@ impl KeyboardHook {
     pub fn install(&self, owner: Option<HWND>) {
         NOTIFY.with_borrow_mut(|state| state.keyboard_receiver = owner);
         install_keyboard_hook();
-        // install_mouse_hook();
+
+        #[cfg(feature = "no_mouse")]
+        warn!("Mouse hook is disabled by feature flag");
+        #[cfg(not(feature = "no_mouse"))]
+        install_mouse_hook();
     }
 
     pub fn apply_rules(&self, rules: Option<&KeyTransformRules>) {
@@ -37,6 +41,8 @@ impl KeyboardHook {
 impl Drop for KeyboardHook {
     fn drop(&mut self) {
         uninstall_key_hook();
+
+        #[cfg(not(feature = "no_mouse"))]
         uninstall_mouse_hook();
     }
 }
@@ -194,10 +200,6 @@ fn apply_transform(event: &KeyEvent) -> bool {
 
 fn notify_listener(event: KeyEvent) {
     NOTIFY.with_borrow(|notify| {
-        // if !notify.is_enabled {
-        //     return;
-        // }
-
         if let Some(hwnd) = notify.keyboard_receiver {
             let l_param = LPARAM(&event as *const KeyEvent as isize);
             unsafe { SendMessageW(hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l_param)) };

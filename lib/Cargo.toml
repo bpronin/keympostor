@@ -18,6 +18,9 @@ simple_logger = "5.1.0"
 phf = { version = "0.13.1", features = ["macros"] }
 lomen-lib = { version = "0.1.0", path = "../../lomen/lomen-lib" }
 
+[features]
+no_mouse = []
+
 [dev-dependencies]
 criterion = "0.7.0"
 
