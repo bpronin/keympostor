@@ -455,10 +455,8 @@ dependencies = [
  "criterion",
  "fxhash",
  "log",
- "lomen-lib",
  "phf",
  "serde",
- "simple_logger",
  "toml",
  "windows",
 ]
@@ -468,16 +466,6 @@ name = "libc"
 version = "0.2.177"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2874a2af47a2325c2001a6e6fad9b16a53b802102b528163885171cf92b15976"
-
-[[package]]
-name = "libloading"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "754ca22de805bb5744484a5b151a9e1a8e837d5dc232c2d7d8c2e3492edc8b60"
-dependencies = [
- "cfg-if",
- "windows-link",
-]
 
 [[package]]
 name = "libm"
@@ -496,13 +484,6 @@ name = "lomen-core"
 version = "0.1.0"
 dependencies = [
  "wmi",
-]
-
-[[package]]
-name = "lomen-lib"
-version = "0.1.0"
-dependencies = [
- "lomen-core",
 ]
 
 [[package]]
@@ -975,7 +956,6 @@ version = "0.1.0"
 dependencies = [
  "embed-resource",
  "lib",
- "libloading",
  "log",
  "lomen-core",
  "native-windows-gui",

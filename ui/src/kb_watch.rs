@@ -30,7 +30,9 @@ impl KeyboardLayoutWatcher {
     pub(crate) fn stop(&self) {
         unsafe {
             KillTimer(*self.owner.borrow(), TIMER_ID).unwrap_or_else(|e| {
-                warn!("Failed to kill timer: {}", e);
+                if e.code().is_err() {
+                    warn!("Failed to kill timer: {}", e);
+                }
             });
         }
 

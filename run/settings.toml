@@ -1,7 +1,7 @@
 logging_enabled = true
 profiles_enabled = true
-transform_layout = "default"
-toggle_layout_hot_key = "[] F1↑"
+transform_layout = "game"
+toggle_layout_hot_key = "[] Z↑"
 
 [main_window]
 position = [983, 147]
@@ -9,12 +9,12 @@ size = [716, 428]
 selected_page = 1
 
 [main_window.log_view.columns]
+6 = 50
+3 = 50
 8 = 50
 2 = 50
-6 = 50
 7 = 50
-4 = 50
-0 = 300
 5 = 50
+0 = 300
 1 = 500
-3 = 50
+4 = 50
