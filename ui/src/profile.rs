@@ -22,8 +22,8 @@ impl Profile {
 pub(crate) struct Profiles(pub(crate) HashMap<String, Profile>);
 
 impl Profiles {
-    pub(crate) fn get(&self, name: &str) -> Option<&Profile> {
-        self.0.get(name)
+    pub(crate) fn get(&self, name: Option<&str>) -> Option<&Profile> {
+        name.and_then(|n| self.0.get(n))
     }
 
     pub(crate) fn get_or_insert(&mut self, name: &str, default: Profile) -> &Profile {

@@ -2,8 +2,10 @@ name = "default"
 title = "Default layout"
 icon = "image\\default.ico"
 
-#[sound]
-#default = "sound\\clack.wav"
+[sound]
+default = "sound\\clack.wav"
+ru_ru = "sound\\clack.wav"
+en_us = "sound\\clack.wav"
 
 [rules]
 "F1" = "LEFT_CTRL > V"

@@ -1,6 +1,6 @@
 logging_enabled = true
 profiles_enabled = true
-transform_layout = "game"
+transform_layout = "default"
 toggle_layout_hot_key = "[] FN_LAUNCH_APP2↑"
 
 [main_window]
@@ -9,12 +9,12 @@ size = [716, 428]
 selected_page = 0
 
 [main_window.log_view.columns]
-1 = 500
 2 = 50
-3 = 50
+1 = 500
 5 = 50
-6 = 50
 7 = 50
-4 = 50
 8 = 50
+6 = 50
+4 = 50
+3 = 50
 0 = 300

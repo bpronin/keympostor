@@ -188,7 +188,7 @@ impl MainWindow {
         self.log_view.clear()
     }
 
-    pub(crate) fn on_select_layout(&self, layout: Option<&Layout>) {
+    pub(crate) fn on_layout_changed(&self, layout: Option<&Layout>) {
         self.layout_view.update_ui(layout);
     }
 

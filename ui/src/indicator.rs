@@ -1,3 +1,7 @@
+use crate::layout::Layout;
+use crate::r_play_snd;
+use crate::res::res_ids::IDR_SWITCH_LAYOUT;
+use crate::res::RESOURCES;
 use crate::settings::KeyboardLightingSettings;
 use log::{debug, error};
 use lomen_core::color::ZoneColors;
@@ -63,28 +67,6 @@ impl From<Vec<String>> for KeyboardZoneColors {
     }
 }
 
-pub(crate) fn get_current_keyboard_layout() -> HKL {
-    unsafe { GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), None)) }
-}
-
-pub(crate) fn set_keyboard_lighting(layout_name: Option<&str>, keyboard_layout: HKL) {
-    let name = layout_name.unwrap_or("none");
-    if let Some(layout_settings) = KEYBOARD_LIGHTING_SETTINGS.layouts.get(name) {
-        let lang = get_keyboard_locale(keyboard_layout);
-        if let Some(colors) = layout_settings.0.get(&lang) {
-            debug!("Updating keyboard colors for: {name}, lang: {lang}, colors : {colors}");
-
-            set_colors(&ZoneColors::from([
-                colors.right,
-                colors.center,
-                colors.left,
-                colors.game,
-            ]))
-            .unwrap_or_else(|e| error!("Failed to set keyboard colors: {e}"));
-        }
-    }
-}
-
 fn get_locale_info(lang_id: u32, lc_type: u32) -> String {
     unsafe {
         let buffer_size = GetLocaleInfoW(lang_id, lc_type, None) as usize;
@@ -103,4 +85,44 @@ fn get_keyboard_locale(keyboard_layout: HKL) -> String {
         get_locale_info(lang_id, 0x5A)
     )
     .to_lowercase()
+}
+
+fn set_layout_lighting(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
+    let name = match transform_layout {
+        None => "none",
+        Some(l) => l.name.as_str(),
+    };
+    
+    if let Some(layout_settings) = KEYBOARD_LIGHTING_SETTINGS.layouts.get(name) {
+        let lang = get_keyboard_locale(keyboard_layout);
+        if let Some(colors) = layout_settings.0.get(&lang) {
+            debug!("Updating keyboard colors for: {name}, lang: {lang}, colors : {colors}");
+
+            set_colors(&ZoneColors::from([
+                colors.right,
+                colors.center,
+                colors.left,
+                colors.game,
+            ]))
+            .unwrap_or_else(|e| error!("Failed to set keyboard colors: {e}"));
+        }
+    }
+}
+
+fn play_layout_sound(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
+    if let Some(l) = transform_layout {
+        debug!(
+            "Playing layout sound: {:?} {:?}",
+            l, keyboard_layout
+        );
+    }
+}
+
+pub(crate) fn get_current_keyboard_layout() -> HKL {
+    unsafe { GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), None)) }
+}
+
+pub(crate) fn on_layout_changed(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
+    play_layout_sound(transform_layout, keyboard_layout);
+    set_layout_lighting(transform_layout, keyboard_layout);
 }

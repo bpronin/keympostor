@@ -5,7 +5,7 @@ use log::LevelFilter;
 use native_windows_gui::NativeUi;
 use simple_logger::SimpleLogger;
 
-mod kb_light;
+mod indicator;
 mod kb_watch;
 mod layout;
 mod profile;

@@ -1,5 +1,6 @@
 use keympostor::rules::KeyTransformRules;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs;
@@ -10,11 +11,11 @@ const LAYOUTS_PATH: &str = "layouts";
 
 #[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Layout {
-    pub name: String,
-    pub title: String,
-    pub icon: Option<String>,
-    pub sound: Option<String>,
-    pub rules: KeyTransformRules,
+    pub(crate) name: String,
+    pub(crate) rules: KeyTransformRules,
+    pub(crate) title: String,
+    pub(crate) icon: Option<String>,
+    pub(crate) sound: Option<HashMap<String, String>>,
 }
 
 impl Layout {

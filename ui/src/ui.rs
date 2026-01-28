@@ -1,9 +1,9 @@
-use crate::kb_light::{get_current_keyboard_layout, set_keyboard_lighting};
+use crate::indicator::get_current_keyboard_layout;
 use crate::kb_watch::KeyboardLayoutWatcher;
-use crate::layout::Layouts;
+use crate::layout::{Layout, Layouts};
 use crate::profile::{Profile, Profiles};
-use crate::res::res_ids::{IDR_SWITCH_LAYOUT, IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
 use crate::res::RESOURCES;
+use crate::res::res_ids::{IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
 use crate::settings::AppSettings;
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -14,7 +14,7 @@ use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::ui::utils::warn_message;
 use crate::win_watch::WinWatcher;
-use crate::{r_play_snd, rs};
+use crate::{indicator, r_play_snd, rs};
 use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
 use keympostor::notify::WM_KEY_HOOK_NOTIFY;
@@ -25,6 +25,7 @@ use std::cell::RefCell;
 use std::ops::Not;
 use std::rc::Rc;
 use utils::{get_window_size, set_window_size, try_hwnd};
+use windows::Win32::UI::Input::KeyboardAndMouse::HKL;
 
 mod layout_view;
 mod layouts_menu;
@@ -108,62 +109,53 @@ impl App {
         self.window.set_layouts(&self.layouts.borrow());
     }
 
-    pub(crate) fn select_profile(&self, profile_name: Option<&str>) {
-        let profiles = self.profiles.borrow();
-        let current_profile = match profile_name {
-            None => {
-                self.current_profile_name.replace(None);
-                None
-            }
-            Some(name) => {
-                self.current_profile_name.replace(Some(name.into()));
-                profiles.get(name)
-            }
-        };
+    pub(crate) fn with_current_profile<F>(&self, action: F)
+    where
+        F: FnOnce(Option<&Profile>),
+    {
+        let list = self.profiles.borrow();
+        let name = self.current_profile_name.borrow();
+        action(list.get(name.as_deref()));
+    }
+
+    pub(crate) fn with_current_layout<F>(&self, action: F)
+    where
+        F: FnOnce(Option<&Layout>),
+    {
+        let list = self.layouts.borrow();
+        let name = self.current_layout_name.borrow();
+        action(list.find(name.as_deref()));
+    }
+
+    pub(crate) fn select_profile(&self, name: Option<&str>) {
+        self.current_profile_name.replace(name.map(Into::into));
+
+        self.with_current_profile(|profile| {
+            let layout_name = profile.and_then(|p| p.layout.as_deref());
+            self.select_layout(layout_name)
+        });
 
         debug!("Selected profile: {:?}", self.current_profile_name.borrow());
-
-        let layout = match current_profile {
-            None => None,
-            Some(profile) => profile.layout.as_deref(),
-        };
-        self.select_layout(layout)
     }
 
-    fn select_layout(&self, layout_name: Option<&str>) {
-        let layouts = self.layouts.borrow();
-        let current_layout = layouts.find(layout_name);
-        match current_layout {
-            None => {
-                self.key_hook.apply_rules(None);
-                self.current_layout_name.replace(None);
-            }
-            Some(layout) => {
-                self.key_hook.apply_rules(Some(&layout.rules));
-                self.current_layout_name.replace(Some(layout.name.clone()));
-            }
-        }
-
-        debug!(
-            "Selected layout: {:?} for profile: {:?}",
-            self.current_layout_name.borrow(),
-            self.current_profile_name.borrow(),
-        );
-
-        self.window.on_select_layout(current_layout);
+    pub(crate) fn select_layout(&self, name: Option<&str>) {
+        self.current_layout_name.replace(name.map(Into::into));
+        self.with_current_layout(|layout| {
+            self.key_hook.apply_rules(layout.map(|l| &l.rules));
+            self.window.on_layout_changed(layout);
+            indicator::on_layout_changed(layout, get_current_keyboard_layout());
+        });
         self.update_controls();
 
-        set_keyboard_lighting(layout_name, get_current_keyboard_layout());
-
-        r_play_snd!(IDR_SWITCH_LAYOUT);
+        debug!("Selected layout: {:?}", self.current_layout_name.borrow(),);
     }
 
-    fn select_next_layout(&self) {
+    pub(crate) fn select_next_layout(&self) {
         let layouts = self.layouts.borrow();
+        let current = self.current_layout_name.borrow();
         let next_name = {
-            let current_name = self.current_layout_name.borrow();
-            let next_layout = layouts.cyclic_next(current_name.as_deref());
-            next_layout.and_then(|l| Some(l.name.as_str()))
+            let next = layouts.cyclic_next(current.as_deref());
+            next.and_then(|l| Some(l.name.as_str()))
         };
 
         debug!("Next layout: {:?}", next_name);
@@ -291,7 +283,7 @@ impl App {
             }
         }
 
-        if self.is_log_enabled.borrow().eq(&true) {
+        if *self.is_log_enabled.borrow() {
             self.window.on_key_hook_notify(event);
         }
     }

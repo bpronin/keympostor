@@ -1,3 +1,4 @@
+use crate::indicator::KeyboardZoneColors;
 use crate::profile::Profiles;
 use keympostor::key_trigger;
 use keympostor::trigger::KeyTrigger;
@@ -8,7 +9,6 @@ use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::str::FromStr;
-use crate::kb_light::KeyboardZoneColors;
 
 const SETTINGS_FILE: &str = "settings.toml";
 
@@ -84,7 +84,7 @@ impl KeyboardLightingSettings {
     }
 
     pub(crate) fn load_default() -> Self {
-        Self::load("kb_lighting.toml").unwrap_or_else(|e| {
+        Self::load("indication.toml").unwrap_or_else(|e| {
             warn!("Failed to load kb_lighting.toml: {}", e);
             Self::default()
         })
