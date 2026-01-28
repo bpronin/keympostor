@@ -11,7 +11,7 @@ impl KeyboardState {
     pub(crate) const fn new() -> Self {
         Self([0u128; 2])
     }
-    
+
     pub(crate) fn update(&mut self, action: KeyAction) {
         self.set(action.key.vk.0, action.transition.into_bool())
     }

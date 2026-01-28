@@ -9,7 +9,7 @@ use keympostor::event::KeyEvent;
 use native_windows_gui::stretch::geometry::{Rect, Size};
 use native_windows_gui::stretch::style::Dimension::Points as PT;
 use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
-use native_windows_gui::{ControlHandle, Event, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags};
+use native_windows_gui::{ControlHandle, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags};
 
 #[derive(Default)]
 pub(crate) struct MainWindow {
@@ -195,6 +195,6 @@ impl MainWindow {
     pub(crate) fn on_key_hook_notify(&self, event: &KeyEvent) {
         self.log_view.append(event);
         self.key_event_label
-            .set_text(KeyTrigger::from(event).to_string().as_str());
+            .set_text(event.as_trigger().to_string().as_str());
     }
 }

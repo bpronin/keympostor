@@ -1,10 +1,11 @@
 use crate::settings::KeyboardLightingSettings;
-use log::debug;
-use lomen_core::color::{Color, ZoneColors};
+use log::{debug, error};
+use lomen_core::color::ZoneColors;
 use lomen_core::light_control::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::sync::LazyLock;
+use std::thread;
 use windows::Win32::Globalization::GetLocaleInfoW;
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardLayout, HKL};
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
@@ -79,7 +80,7 @@ pub(crate) fn set_keyboard_lighting(layout_name: Option<&str>, keyboard_layout: 
                 colors.left,
                 colors.game,
             ]))
-            .ok();
+            .unwrap_or_else(|e| error!("Failed to set keyboard colors: {e}"));
         }
     }
 }

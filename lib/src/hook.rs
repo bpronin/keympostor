@@ -1,5 +1,5 @@
 use crate::event::KeyEvent;
-use crate::input;
+use crate::{input, notify};
 use crate::rules::KeyTransformRules;
 use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
@@ -9,15 +9,14 @@ use std::rc::Rc;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
-
-pub const WM_KEY_HOOK_NOTIFY: u32 = 88475;
+use crate::notify::install_notify_listener;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHook {}
 
 impl KeyboardHook {
     pub fn install(&self, owner: Option<HWND>) {
-        NOTIFY.with_borrow_mut(|state| state.keyboard_receiver = owner);
+        install_notify_listener(owner);
         install_keyboard_hook();
 
         #[cfg(feature = "no_mouse")]
@@ -47,24 +46,12 @@ impl Drop for KeyboardHook {
     }
 }
 
-#[derive(Default)]
-struct NotifyState {
-    keyboard_receiver: Option<HWND>,
-}
-
-impl Drop for NotifyState {
-    fn drop(&mut self) {
-        self.keyboard_receiver = None;
-    }
-}
-
 thread_local! {
     static KEY_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
     static MOUSE_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
     static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(KeyboardState::new());
     static LAST_MOUSE_POSITION: RefCell<Option<POINT>> = RefCell::new(None);
     static TRANSFOFM_MAP: RefCell<Option<KeyTransformMap>> = RefCell::new(None);
-    static NOTIFY: RefCell<NotifyState> = RefCell::new(Default::default());
 }
 
 fn install_keyboard_hook() {
@@ -182,29 +169,8 @@ fn handle_event(mut event: KeyEvent) -> bool {
     };
 
     let transformed = apply_transform(&event);
-    notify_listener(event);
+    notify::notify_listener(event);
     transformed
-}
-
-fn apply_transform(event: &KeyEvent) -> bool {
-    if let Some(rule) = &event.rule {
-        debug!("Applying rule: {}", rule);
-
-        let input = input::build_input(&rule.actions);
-        unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
-        true
-    } else {
-        false
-    }
-}
-
-fn notify_listener(event: KeyEvent) {
-    NOTIFY.with_borrow(|notify| {
-        if let Some(hwnd) = notify.keyboard_receiver {
-            let l_param = LPARAM(&event as *const KeyEvent as isize);
-            unsafe { SendMessageW(hwnd, WM_KEY_HOOK_NOTIFY, None, Some(l_param)) };
-        }
-    })
 }
 
 fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
@@ -221,3 +187,16 @@ fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
         }
     }
 }
+
+fn apply_transform(event: &KeyEvent) -> bool {
+    if let Some(rule) = &event.rule {
+        debug!("Applying rule: {}", rule);
+
+        let input = input::build_input(&rule.actions);
+        unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
+        true
+    } else {
+        false
+    }
+}
+

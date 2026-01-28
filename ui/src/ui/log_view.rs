@@ -158,7 +158,7 @@ impl LogView {
         self.list.insert_items_row(
             None,
             &[
-                KeyTrigger::from(event).to_string(),
+                event.as_trigger().to_string(),
                 event
                     .rule
                     .as_ref()

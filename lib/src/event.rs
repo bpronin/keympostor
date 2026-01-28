@@ -5,11 +5,13 @@ use crate::key::{
     KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
 };
 use crate::key_err;
+use crate::modifiers::KeyModifiers::All;
 use crate::modifiers::ModifierKeys;
 use crate::rules::KeyTransformRule;
 use crate::state::KeyboardState;
 use crate::transition::KeyTransition;
 use crate::transition::KeyTransition::{Down, Up};
+use crate::trigger::KeyTrigger;
 use std::fmt::{Display, Formatter};
 use std::rc::Rc;
 use windows::Win32::UI::WindowsAndMessaging::{
@@ -129,6 +131,13 @@ impl KeyEvent {
             is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
             time: input.time,
             rule: None,
+        }
+    }
+
+    pub fn as_trigger(&self) -> KeyTrigger {
+        KeyTrigger {
+            action: self.action,
+            modifiers: All(self.modifiers),
         }
     }
 }

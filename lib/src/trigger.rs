@@ -1,6 +1,5 @@
 use crate::action::KeyAction;
 use crate::error::KeyError;
-use crate::event::KeyEvent;
 use crate::modifiers::KeyModifiers;
 use crate::modifiers::KeyModifiers::{All, Any};
 use crate::{deserialize_from_string, key_err, serialize_to_string};
@@ -13,15 +12,6 @@ use std::str::FromStr;
 pub struct KeyTrigger {
     pub action: KeyAction,
     pub modifiers: KeyModifiers,
-}
-
-impl From<&KeyEvent> for KeyTrigger {
-    fn from(event: &KeyEvent) -> Self {
-        Self {
-            action: event.action,
-            modifiers: All(event.modifiers),
-        }
-    }
 }
 
 impl KeyTrigger {

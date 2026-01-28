@@ -1,5 +1,4 @@
 use keympostor::rules::KeyTransformRules;
-use log::warn;
 use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fmt::{Display, Formatter};
@@ -76,7 +75,6 @@ impl Layouts {
 
 #[cfg(test)]
 pub mod tests {
-    use native_windows_gui::OemCursor::No;
     use crate::layout::{Layout, Layouts};
     use keympostor::rules::KeyTransformRules;
 
@@ -178,22 +176,20 @@ pub mod tests {
 
     #[test]
     fn test_layouts_find() {
-        let layouts = Layouts (
-            vec![
-                Layout {
-                    name: "layout_1".to_string(),
-                    ..Default::default()
-                },
-                Layout {
-                    name: "layout_2".to_string(),
-                    ..Default::default()
-                },
-                Layout {
-                    name: "layout_3".to_string(),
-                    ..Default::default()
-                },
-            ],
-        );
+        let layouts = Layouts(vec![
+            Layout {
+                name: "layout_1".to_string(),
+                ..Default::default()
+            },
+            Layout {
+                name: "layout_2".to_string(),
+                ..Default::default()
+            },
+            Layout {
+                name: "layout_3".to_string(),
+                ..Default::default()
+            },
+        ]);
 
         assert_eq!(
             Some(&Layout {
@@ -208,22 +204,20 @@ pub mod tests {
 
     #[test]
     fn test_layouts_cyclic_next() {
-        let layouts = Layouts (
-            vec![
-                Layout {
-                    name: "layout_1".to_string(),
-                    ..Default::default()
-                },
-                Layout {
-                    name: "layout_2".to_string(),
-                    ..Default::default()
-                },
-                Layout {
-                    name: "layout_3".to_string(),
-                    ..Default::default()
-                },
-            ],
-        );
+        let layouts = Layouts(vec![
+            Layout {
+                name: "layout_1".to_string(),
+                ..Default::default()
+            },
+            Layout {
+                name: "layout_2".to_string(),
+                ..Default::default()
+            },
+            Layout {
+                name: "layout_3".to_string(),
+                ..Default::default()
+            },
+        ]);
 
         assert_eq!(
             Some(&Layout {
@@ -241,15 +235,8 @@ pub mod tests {
             layouts.cyclic_next(None)
         );
 
-        assert_eq!(
-            None,
-            layouts.cyclic_next(Some("layout_3"))
-        );
+        assert_eq!(None, layouts.cyclic_next(Some("layout_3")));
 
-        assert_eq!(
-            None,
-            layouts.cyclic_next(Some("layout_4"))
-        );
-
+        assert_eq!(None, layouts.cyclic_next(Some("layout_4")));
     }
 }

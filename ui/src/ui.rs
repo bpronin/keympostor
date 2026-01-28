@@ -16,19 +16,15 @@ use crate::ui::utils::warn_message;
 use crate::win_watch::WinWatcher;
 use crate::{r_play_snd, rs};
 use keympostor::event::KeyEvent;
-use keympostor::hook::{KeyboardHook, WM_KEY_HOOK_NOTIFY};
-use keympostor::key::KEY_F1;
-use keympostor::modifiers::KeyModifiers::All;
+use keympostor::hook::KeyboardHook;
+use keympostor::notify::WM_KEY_HOOK_NOTIFY;
 use keympostor::trigger::KeyTrigger;
 use log::{debug, error};
 use native_windows_gui as nwg;
-use native_windows_gui::EventData::OnKey;
 use std::cell::RefCell;
-use std::error::Error;
 use std::ops::Not;
 use std::rc::Rc;
 use utils::{get_window_size, set_window_size, try_hwnd};
-use windows::Win32::UI::Input::KeyboardAndMouse::VK_F1;
 
 mod layout_view;
 mod layouts_menu;
@@ -289,13 +285,13 @@ impl App {
     }
 
     fn on_key_hook_notify(&self, event: &KeyEvent) {
-        // if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
-        //     if event.action == key.action && All(event.modifiers) == key.modifiers {
-        //         self.select_next_layout();
-        //     }
-        // }
+        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
+            if &event.as_trigger() == key {
+                self.select_next_layout();
+            }
+        }
 
-        if *self.is_log_enabled.borrow() {
+        if self.is_log_enabled.borrow().eq(&true) {
             self.window.on_key_hook_notify(event);
         }
     }
