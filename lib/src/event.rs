@@ -179,8 +179,7 @@ mod tests {
 
     #[test]
     fn test_key_event_display() {
-        let mut keyboard_state = KeyboardState::new();
-        keyboard_state.set(VK_LSHIFT.0 as u8, true);
+        let keyboard_state = KeyboardState::from_bits(&[VK_LSHIFT.0 as u8]);
         let event = key_event!("A↓", &keyboard_state);
 
         assert_eq!(format!("{}", event), "[LEFT_SHIFT] A↓ T:000000000  ");

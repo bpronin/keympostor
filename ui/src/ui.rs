@@ -14,7 +14,7 @@ use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::ui::utils::warn_message;
 use crate::win_watch::WinWatcher;
-use crate::{indicator, r_play_snd, rs};
+use crate::{indicator, rs};
 use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
 use keympostor::notify::WM_KEY_HOOK_NOTIFY;
@@ -25,7 +25,6 @@ use std::cell::RefCell;
 use std::ops::Not;
 use std::rc::Rc;
 use utils::{get_window_size, set_window_size, try_hwnd};
-use windows::Win32::UI::Input::KeyboardAndMouse::HKL;
 
 mod layout_view;
 mod layouts_menu;

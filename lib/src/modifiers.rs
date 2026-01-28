@@ -27,6 +27,8 @@ pub const KM_RALT: ModifierKeys = ModifierKeys(1 << 5);
 pub const KM_LWIN: ModifierKeys = ModifierKeys(1 << 6);
 pub const KM_RWIN: ModifierKeys = ModifierKeys(1 << 7);
 
+//todo: replace it with KeyboardState to support any key as modifier
+
 //todo: probably change `[A+B] C^` to 'A+B+C^' and get rid of `[]` prefix for modifiers absence ?
 // ok. then what's would be a 'A+B+C' and 'A+B+C*' ?
 
@@ -99,7 +101,7 @@ impl From<&KeyboardState> for ModifierKeys {
         let value = (0..MODIFIER_KEYS.len())
             .filter(|modifier_index| {
                 let vk_code = MODIFIER_KEYS[*modifier_index].0;
-                keyboard_state.get(vk_code as u8)
+                keyboard_state.is_set(vk_code as u8)
             })
             .fold(0, |acc, flag_index| acc | (1 << flag_index));
 
@@ -223,13 +225,15 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_capture() {
-        let mut keys = KeyboardState::new();
+        let keys = KeyboardState::new();
         assert_eq!(KM_NONE, ModifierKeys::from(&keys));
 
-        keys.set(VK_LSHIFT.0 as u8, true);
-        keys.set(VK_RSHIFT.0 as u8, true);
-        keys.set(VK_LCONTROL.0 as u8, true);
-        keys.set(VK_RWIN.0 as u8, true);
+        let keys = KeyboardState::from_bits(&[
+            VK_LSHIFT.0 as u8,
+            VK_RSHIFT.0 as u8,
+            VK_LCONTROL.0 as u8,
+            VK_RWIN.0 as u8,
+        ]);
 
         assert_eq!(
             KM_LSHIFT | KM_RSHIFT | KM_LCTRL | KM_RWIN,

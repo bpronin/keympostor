@@ -15,6 +15,7 @@ toml = "0.9.8"
 fxhash = "0.2"
 log = "0.4"
 phf = { version = "0.13.1", features = ["macros"] }
+base64 = "0.22.1"
 
 [features]
 no_mouse = []

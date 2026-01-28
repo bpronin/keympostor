@@ -29,12 +29,12 @@ macro_rules! r_icon {
     };
 }
 
-#[macro_export]
-macro_rules! r_play_snd {
-    ($res_id:ident) => {
-        RESOURCES.with(|r| r.play_sound($res_id));
-    };
-}
+// #[macro_export]
+// macro_rules! r_play_snd {
+//     ($res_id:ident) => {
+//         RESOURCES.with(|r| r.play_sound($res_id));
+//     };
+// }
 
 thread_local! {
     pub(crate) static RESOURCES: Resources = Resources::new();
