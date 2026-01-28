@@ -36,6 +36,7 @@ impl KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
+    use crate::key::{KEY_LEFT_ALT, KEY_LEFT_CTRL, KEY_LEFT_SHIFT};
     use crate::modifiers::ModifierKeys;
     use crate::rules::KeyTransformRule;
     use crate::state::KeyboardState;
@@ -46,17 +47,16 @@ mod tests {
     use std::ops::Deref;
     use std::str::FromStr;
     use std::sync::LazyLock;
-    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LMENU, VK_LSHIFT};
 
-    static KS_ALL_UP: LazyLock<KeyboardState> = LazyLock::new(|| KeyboardState::new());
-    static KS_LSHIFT: LazyLock<KeyboardState> =
-        LazyLock::new(|| KeyboardState::from_bits(&[VK_LSHIFT.0 as u8]));
-    static KS_LCTRL: LazyLock<KeyboardState> =
-        LazyLock::new(|| KeyboardState::from_bits(&[VK_LCONTROL.0 as u8]));
-    static KS_LALT: LazyLock<KeyboardState> =
-        LazyLock::new(|| KeyboardState::from_bits(&[VK_LMENU.0 as u8]));
-    static KS_LCTRL_LALT: LazyLock<KeyboardState> =
-        LazyLock::new(|| KeyboardState::from_bits(&[VK_LCONTROL.0 as u8, VK_LMENU.0 as u8]));
+    static KS_ALL_UP: LazyLock<KeyboardState> = LazyLock::new(KeyboardState::new);
+    static KS_LEFT_SHIFT: LazyLock<KeyboardState> =
+        LazyLock::new(|| KeyboardState::from_keys(&[KEY_LEFT_SHIFT.vk]));
+    static KS_LEFT_CTRL: LazyLock<KeyboardState> =
+        LazyLock::new(|| KeyboardState::from_keys(&[KEY_LEFT_CTRL.vk]));
+    static KS_LEFT_ALT: LazyLock<KeyboardState> =
+        LazyLock::new(|| KeyboardState::from_keys(&[KEY_LEFT_ALT.vk]));
+    static KS_LEFT_CTRL_ALT: LazyLock<KeyboardState> =
+        LazyLock::new(|| KeyboardState::from_keys(&[KEY_LEFT_CTRL.vk, KEY_LEFT_ALT.vk]));
 
     #[test]
     fn test_put_get_normal() {
@@ -66,23 +66,23 @@ mod tests {
 
         assert_eq!(
             &key_rule!("[LEFT_SHIFT] A↓ : B↓"),
-            map.get(&key_event!("A↓", KS_LSHIFT.deref()))
+            map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref()))
                 .unwrap()
                 .as_ref()
         );
 
         assert_eq!(
             &key_rule!("[LEFT_ALT + LEFT_CTRL]A↓ : C↓"),
-            map.get(&key_event!("A↓", KS_LCTRL_LALT.deref()))
+            map.get(&key_event!("A↓", KS_LEFT_CTRL_ALT.deref()))
                 .unwrap()
                 .as_ref()
         );
 
         assert_none!(map.get(&key_event!("A↓", KS_ALL_UP.deref())));
-        assert_none!(map.get(&key_event!("A↑", KS_LSHIFT.deref())));
-        assert_none!(map.get(&key_event!("LEFT_ALT↓", KS_LALT.deref())));
-        assert_none!(map.get(&key_event!("LEFT_SHIFT↓", KS_LSHIFT.deref())));
-        assert_none!(map.get(&key_event!("LEFT_CTRL↓", KS_LCTRL.deref())));
+        assert_none!(map.get(&key_event!("A↑", KS_LEFT_SHIFT.deref())));
+        assert_none!(map.get(&key_event!("LEFT_ALT↓", KS_LEFT_ALT.deref())));
+        assert_none!(map.get(&key_event!("LEFT_SHIFT↓", KS_LEFT_SHIFT.deref())));
+        assert_none!(map.get(&key_event!("LEFT_CTRL↓", KS_LEFT_CTRL.deref())));
     }
 
     #[test]
@@ -96,10 +96,10 @@ mod tests {
                 .unwrap()
                 .as_ref()
         );
-        assert_none!(map.get(&key_event!("A↓", KS_LSHIFT.deref())));
-        assert_none!(map.get(&key_event!("A↓", KS_LCTRL.deref())));
-        assert_none!(map.get(&key_event!("A↓", KS_LALT.deref())));
-        assert_none!(map.get(&key_event!("A↓", KS_LCTRL_LALT.deref())));
+        assert_none!(map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref())));
+        assert_none!(map.get(&key_event!("A↓", KS_LEFT_CTRL.deref())));
+        assert_none!(map.get(&key_event!("A↓", KS_LEFT_ALT.deref())));
+        assert_none!(map.get(&key_event!("A↓", KS_LEFT_CTRL_ALT.deref())));
     }
 
     #[test]
@@ -116,25 +116,25 @@ mod tests {
         );
         assert_eq!(
             expected,
-            map.get(&key_event!("A↓", KS_LSHIFT.deref()))
+            map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref()))
                 .unwrap()
                 .as_ref()
         );
         assert_eq!(
             expected,
-            map.get(&key_event!("A↓", KS_LCTRL.deref()))
+            map.get(&key_event!("A↓", KS_LEFT_CTRL.deref()))
                 .unwrap()
                 .as_ref()
         );
         assert_eq!(
             expected,
-            map.get(&key_event!("A↓", KS_LALT.deref()))
+            map.get(&key_event!("A↓", KS_LEFT_ALT.deref()))
                 .unwrap()
                 .as_ref()
         );
         assert_eq!(
             expected,
-            map.get(&key_event!("A↓", KS_LCTRL_LALT.deref()))
+            map.get(&key_event!("A↓", KS_LEFT_CTRL_ALT.deref()))
                 .unwrap()
                 .as_ref()
         );
@@ -151,7 +151,7 @@ mod tests {
         assert_eq!(1, map.map.get(&key_action!("A↓")).unwrap().len());
         assert_eq!(
             &key_rule!("[LEFT_SHIFT] A↓ : B↓"),
-            map.get(&key_event!("A↓", KS_LSHIFT.deref()))
+            map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref()))
                 .unwrap()
                 .as_ref()
         );

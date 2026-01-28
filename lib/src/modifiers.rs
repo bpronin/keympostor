@@ -192,6 +192,7 @@ impl FromStr for KeyModifiers {
 
 #[cfg(test)]
 mod tests {
+    use crate::key::{KEY_LEFT_CTRL, KEY_LEFT_SHIFT, KEY_RIGHT_SHIFT, KEY_RIGHT_WIN};
     use crate::modifiers::KeyModifiers::{All, Any};
     use crate::modifiers::{
         KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT,
@@ -200,7 +201,6 @@ mod tests {
     use crate::state::KeyboardState;
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
-    use windows::Win32::UI::Input::KeyboardAndMouse::{VK_LCONTROL, VK_LSHIFT, VK_RSHIFT, VK_RWIN};
 
     #[macro_export]
     macro_rules! key_mod {
@@ -228,11 +228,11 @@ mod tests {
         let keys = KeyboardState::new();
         assert_eq!(KM_NONE, ModifierKeys::from(&keys));
 
-        let keys = KeyboardState::from_bits(&[
-            VK_LSHIFT.0 as u8,
-            VK_RSHIFT.0 as u8,
-            VK_LCONTROL.0 as u8,
-            VK_RWIN.0 as u8,
+        let keys = KeyboardState::from_keys(&[
+            KEY_LEFT_SHIFT.vk,
+            KEY_RIGHT_SHIFT.vk,
+            KEY_LEFT_CTRL.vk,
+            KEY_RIGHT_WIN.vk,
         ]);
 
         assert_eq!(

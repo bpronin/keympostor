@@ -159,9 +159,9 @@ impl Display for KeyEvent {
 #[cfg(test)]
 mod tests {
     use crate::event::KeyEvent;
+    use crate::key::KEY_LEFT_SHIFT;
     use crate::modifiers::ModifierKeys;
     use crate::state::KeyboardState;
-    use windows::Win32::UI::Input::KeyboardAndMouse::VK_LSHIFT;
 
     #[macro_export]
     macro_rules! key_event {
@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_key_event_display() {
-        let keyboard_state = KeyboardState::from_bits(&[VK_LSHIFT.0 as u8]);
+        let keyboard_state = KeyboardState::from_keys(&[KEY_LEFT_SHIFT.vk]);
         let event = key_event!("A↓", &keyboard_state);
 
         assert_eq!(format!("{}", event), "[LEFT_SHIFT] A↓ T:000000000  ");

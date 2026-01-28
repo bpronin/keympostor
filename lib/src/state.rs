@@ -1,34 +1,36 @@
 use crate::action::KeyAction;
-use fmt::Display;
-use serde::Serializer;
+use crate::key::Key;
 use std::fmt;
+use crate::vk::VirtualKey;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct KeyboardState([u64; 4]);  /* [u64; 4] is faster than [u128; 2] on most systems */
+pub struct KeyboardState([u64; 4]);
+
+/* [u64; 4] is faster than [u128; 2] on most systems */
 
 impl KeyboardState {
     pub(crate) fn new() -> Self {
         Self([0u64; 4])
     }
 
-    pub(crate) fn from_bits(bits: &[u8]) -> Self {
+    pub(crate) fn from_keys(keys: &[VirtualKey]) -> Self {
         let mut this = Self::new();
-        bits.iter().for_each(|b| this.set(*b));
+        keys.iter().for_each(|key| this.set_bit(key.0));
         this
     }
 
     pub(crate) fn update(&mut self, action: KeyAction) {
         let index = action.key.vk.0;
         if action.transition.into_bool() {
-            self.set(index);
+            self.set_bit(index);
         } else {
-            self.unset(index);
+            self.clear_bit(index);
         }
     }
 
     #[inline]
     pub(crate) fn is_set(&self, index: u8) -> bool {
-        let (part_index, bit_index) = self.pos(index);
+        let (part_index, bit_index) = self.bit_pos(index);
         unsafe {
             let part = self.0.get_unchecked(part_index);
             (*part >> bit_index) & 1 == 1
@@ -36,9 +38,19 @@ impl KeyboardState {
         // (self.0[part_index] >> bit_index) & 1 == 1 //slower
     }
 
+    pub(crate) fn to_keys(&self) -> Vec<VirtualKey> {
+        let mut result = vec![];
+        for index in 0..255 {
+            if self.is_set(index){
+                result.push(VirtualKey(index))
+            }
+        }
+        result
+    }
+
     #[inline]
-    fn set(&mut self, index: u8) {
-        let (part_index, bit_index) = self.pos(index);
+    fn set_bit(&mut self, index: u8) {
+        let (part_index, bit_index) = self.bit_pos(index);
         unsafe {
             let part = self.0.get_unchecked_mut(part_index);
             *part |= 1u64 << bit_index;
@@ -47,8 +59,8 @@ impl KeyboardState {
     }
 
     #[inline]
-    fn unset(&mut self, index: u8) {
-        let (part_index, bit_index) = self.pos(index);
+    fn clear_bit(&mut self, index: u8) {
+        let (part_index, bit_index) = self.bit_pos(index);
         unsafe {
             let part = self.0.get_unchecked_mut(part_index);
             *part &= !(1u64 << bit_index);
@@ -57,47 +69,85 @@ impl KeyboardState {
     }
 
     #[inline]
-    fn pos(&self, index: u8) -> (usize, u8) {
+    fn bit_pos(&self, index: u8) -> (usize, u8) {
         ((index / 64) as usize, index % 64)
     }
 }
 
-impl Display for KeyboardState {
+impl fmt::Binary for KeyboardState {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, &part) in self.0.iter().enumerate().rev() {
+            if i < 3 {
+                write!(f, "_{:064b}", part)?;
+            } else {
+                write!(f, "{:064b}", part)?;
+            }
+        }
+        Ok(())
+    }
+}
+
+impl fmt::UpperHex for KeyboardState {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "{:016x} {:016x} {:016x} {:016x}",
-            self.0[3], self.0[2], self.0[1], self.0[0]
-        )
+        for (i, &part) in self.0.iter().enumerate().rev() {
+            if i < 3 {
+                write!(f, "_{:016X}", part)?;
+            } else {
+                write!(f, "{:016X}", part)?;
+            }
+        }
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_keyboard_state_display() {
-        let state = KeyboardState::from_bits(&[1, 255]);
-        assert_eq!(
-            "8000000000000000 0000000000000000 0000000000000000 0000000000000002",
-            state.to_string()
-        );
-    }
+    use crate::key::{KEY_0, KEY_END, KEY_F1};
 
     #[test]
     fn test_keyboard_state_get_set_bit() {
         let mut state = KeyboardState::new();
-        state.set(1);
-        state.unset(41);
+        state.set_bit(1);
+        state.clear_bit(41);
 
         assert!(state.is_set(1));
         assert!(!state.is_set(41));
 
-        state.unset(1);
-        state.set(41);
+        state.clear_bit(1);
+        state.set_bit(41);
 
         assert!(!state.is_set(1));
         assert!(state.is_set(41));
+    }
+
+    #[test]
+    fn test_keyboard_state_to_keys() {
+        let state = KeyboardState::from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
+
+        // order is not guaranteed
+        assert_eq!(vec![KEY_END.vk, KEY_0.vk, KEY_F1.vk], state.to_keys()); 
+    }
+
+    #[test]
+    fn test_keyboard_state_hex_format() {
+        let state = KeyboardState::from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
+        
+        println!("{:X}", state);
+        assert_eq!(
+            "0000000000000000_0000000000000000_0001000000000000_0001000800000000",
+            format!("{:X}", state)
+        );
+    }
+
+    #[test]
+    fn test_keyboard_state_bin_format() {
+        let state = KeyboardState::from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
+        
+        println!("{:b}", state);
+        assert_eq!(
+            "0000000000000000000000000000000000000000000000000000000000000000_0000000000000000000000000000000000000000000000000000000000000000_0000000000000001000000000000000000000000000000000000000000000000_0000000000000001000000000000100000000000000000000000000000000000",
+            format!("{:b}", state)
+        );
     }
 }
