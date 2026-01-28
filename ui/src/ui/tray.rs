@@ -1,9 +1,9 @@
-use log::warn;
 use crate::layout::Layout;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_OPEN, IDS_TRAY_TIP};
 use crate::res::RESOURCES;
 use crate::ui::App;
 use crate::{r_icon, rs};
+use log::warn;
 use native_windows_gui::{
     ControlHandle, Event, GlobalCursor, Icon, Menu, MenuItem, MenuSeparator, MousePressEvent,
     NwgError, TrayNotification, Window,

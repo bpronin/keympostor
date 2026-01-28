@@ -3,7 +3,7 @@ use crate::res::res_ids::{
     IDS_TRANSITION, IDS_VIRTUAL_KEY,
 };
 use crate::rs;
-use crate::settings::{MainWindowSettings};
+use crate::settings::MainWindowSettings;
 use crate::ui::utils::get_list_view_column_width;
 use crate::ui::utils::scroll_list_view_to_end;
 use crate::ui::RESOURCES;
@@ -12,12 +12,10 @@ use keympostor::ife;
 use keympostor::modifiers::{
     KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_RALT, KM_RCTRL, KM_RSHIFT, KM_RWIN,
 };
-use keympostor::trigger::KeyTrigger;
 use log::error;
 use native_windows_gui::{
-    unbind_raw_event_handler, ControlHandle, InsertListViewColumn, ListView,
-    ListViewColumnFlags, ListViewStyle, NwgError, RawEventHandler,
-    Tab,
+    unbind_raw_event_handler, ControlHandle, InsertListViewColumn, ListView, ListViewColumnFlags, ListViewStyle,
+    NwgError, RawEventHandler, Tab,
 };
 use std::cell::RefCell;
 use std::collections::HashMap;

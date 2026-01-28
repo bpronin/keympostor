@@ -1,5 +1,5 @@
 use criterion::measurement::WallTime;
-use criterion::{BenchmarkGroup, Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
 use fxhash::FxHashMap;
 use keympostor::action::{KeyAction, KeyActionSequence};
 use keympostor::event::KeyEvent;

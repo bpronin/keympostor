@@ -1,15 +1,19 @@
+use crate::action::KeyAction;
 use crate::event::KeyEvent;
-use crate::{input, notify};
+use crate::key::Key;
+use crate::notify::install_notify_listener;
 use crate::rules::KeyTransformRules;
 use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
+use crate::{input, notify};
+use fxhash::FxHashSet;
 use log::{debug, trace, warn};
 use std::cell::RefCell;
+use std::collections::HashSet;
 use std::rc::Rc;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
-use crate::notify::install_notify_listener;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHook {}
@@ -25,7 +29,7 @@ impl KeyboardHook {
         install_mouse_hook();
     }
 
-    pub fn apply_rules(&self, rules: Option<&KeyTransformRules>) {
+    pub fn set_rules(&self, rules: Option<&KeyTransformRules>) {
         match rules {
             Some(rules) => {
                 TRANSFOFM_MAP.replace(Some(KeyTransformMap::new(rules)));
@@ -34,6 +38,12 @@ impl KeyboardHook {
                 TRANSFOFM_MAP.replace(None);
             }
         }
+    }
+
+    pub fn suppress_keys(&self, keys: &[&Key]) {
+        let mut set: FxHashSet<Key> = FxHashSet::default();
+        set.extend(keys.iter().cloned());
+        SUPPRESSED_KEYS.replace(set);
     }
 }
 
@@ -52,6 +62,7 @@ thread_local! {
     static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(KeyboardState::new());
     static LAST_MOUSE_POSITION: RefCell<Option<POINT>> = RefCell::new(None);
     static TRANSFOFM_MAP: RefCell<Option<KeyTransformMap>> = RefCell::new(None);
+    static SUPPRESSED_KEYS: RefCell<FxHashSet<Key>> = RefCell::new(FxHashSet::default());
 }
 
 fn install_keyboard_hook() {
@@ -154,7 +165,13 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
 fn handle_event(mut event: KeyEvent) -> bool {
     KEYBOARD_STATE.with_borrow_mut(|state| state.update(event.action));
 
-    if !(event.is_injected && event.is_private) {
+    let handled = if SUPPRESSED_KEYS.with_borrow(|set| set.contains(&event.action.key)) {
+        trace!("Event suppressed: {event}");
+        true
+    } else if event.is_injected {
+        trace!("Injected event ignored: {event}");
+        false
+    } else {
         TRANSFOFM_MAP.with_borrow(|transform_map| {
             if let Some(map) = transform_map {
                 if let Some(rule) = map.get(&event) {
@@ -163,14 +180,12 @@ fn handle_event(mut event: KeyEvent) -> bool {
             }
         });
 
-        trace!("Processing event: {}", event);
-    } else {
-        trace!("Ignoring event: {}", event);
+        trace!("Processing event: {event}");
+        apply_transform(&event)
     };
 
-    let transformed = apply_transform(&event);
     notify::notify_listener(event);
-    transformed
+    handled
 }
 
 fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
@@ -199,4 +214,3 @@ fn apply_transform(event: &KeyEvent) -> bool {
         false
     }
 }
-

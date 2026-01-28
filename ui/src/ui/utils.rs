@@ -5,7 +5,6 @@ use native_windows_gui::{
     message, ControlHandle, ListView, MessageButtons, MessageIcons, MessageParams, Window,
 };
 use std::mem;
-use windows::core::{HSTRING, PCWSTR};
 use windows::Win32::Foundation::{HWND, RECT, WPARAM};
 use windows::Win32::UI::Controls::{LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH};
 use windows::Win32::UI::WindowsAndMessaging::{

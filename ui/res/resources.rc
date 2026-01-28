@@ -10,12 +10,6 @@
 
 IDI_ICON_APP ICON "res/image/app.ico"
 
-/* Sounds */
-
-#define IDR_SWITCH_LAYOUT 101
-
-IDR_SWITCH_LAYOUT WAVE "res/sound/clack.wav"
-
 /* Strings */
 
 #define IDS_APP_TITLE 1001

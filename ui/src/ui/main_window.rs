@@ -9,7 +9,9 @@ use keympostor::event::KeyEvent;
 use native_windows_gui::stretch::geometry::{Rect, Size};
 use native_windows_gui::stretch::style::Dimension::Points as PT;
 use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
-use native_windows_gui::{ControlHandle, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags};
+use native_windows_gui::{
+    ControlHandle, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags,
+};
 
 #[derive(Default)]
 pub(crate) struct MainWindow {

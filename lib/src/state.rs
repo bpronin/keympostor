@@ -1,7 +1,6 @@
 use crate::action::KeyAction;
-use crate::key::Key;
-use std::fmt;
 use crate::vk::VirtualKey;
+use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct KeyboardState([u64; 4]);
@@ -41,7 +40,7 @@ impl KeyboardState {
     pub(crate) fn to_keys(&self) -> Vec<VirtualKey> {
         let mut result = vec![];
         for index in 0..255 {
-            if self.is_set(index){
+            if self.is_set(index) {
                 result.push(VirtualKey(index))
             }
         }
@@ -126,13 +125,13 @@ mod tests {
         let state = KeyboardState::from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
 
         // order is not guaranteed
-        assert_eq!(vec![KEY_END.vk, KEY_0.vk, KEY_F1.vk], state.to_keys()); 
+        assert_eq!(vec![KEY_END.vk, KEY_0.vk, KEY_F1.vk], state.to_keys());
     }
 
     #[test]
     fn test_keyboard_state_hex_format() {
         let state = KeyboardState::from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
-        
+
         println!("{:X}", state);
         assert_eq!(
             "0000000000000000_0000000000000000_0001000000000000_0001000800000000",
@@ -143,7 +142,7 @@ mod tests {
     #[test]
     fn test_keyboard_state_bin_format() {
         let state = KeyboardState::from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
-        
+
         println!("{:b}", state);
         assert_eq!(
             "0000000000000000000000000000000000000000000000000000000000000000_0000000000000000000000000000000000000000000000000000000000000000_0000000000000001000000000000000000000000000000000000000000000000_0000000000000001000000000000100000000000000000000000000000000000",

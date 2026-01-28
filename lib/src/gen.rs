@@ -139,21 +139,21 @@ mod tests {
     fn fmt_scancode_name(key_name: &str) -> String {
         "SC_".to_string()
             + &key_name
-            .to_uppercase()
-            .replace(' ', "_")
-            .replace('`', "BACKTICK")
-            .replace('\'', "APOSTROPHE")
-            .replace('/', "SLASH")
-            .replace('\\', "BACKSLASH")
-            .replace('+', "PLUS")
-            .replace('-', "MINUS")
-            .replace('*', "MUL")
-            .replace('=', "EQ")
-            .replace('[', "L_BRACKET")
-            .replace(']', "R_BRACKET")
-            .replace(';', "SEMICOLON")
-            .replace(',', "COMMA")
-            .replace('.', "DOT")
+                .to_uppercase()
+                .replace(' ', "_")
+                .replace('`', "BACKTICK")
+                .replace('\'', "APOSTROPHE")
+                .replace('/', "SLASH")
+                .replace('\\', "BACKSLASH")
+                .replace('+', "PLUS")
+                .replace('-', "MINUS")
+                .replace('*', "MUL")
+                .replace('=', "EQ")
+                .replace('[', "L_BRACKET")
+                .replace(']', "R_BRACKET")
+                .replace(';', "SEMICOLON")
+                .replace(',', "COMMA")
+                .replace('.', "DOT")
     }
 
     fn find_scancode_name(scancode: u8, extended: bool) -> String {
@@ -223,7 +223,7 @@ mod tests {
                 value: vk_code as u8,
                 name: VIRTUAL_KEY_NAMES[vk_code],
             };
-            println!("virtual_key!(0x{:02X}, \"{}\"),", vk.value, vk.name, );
+            println!("virtual_key!(0x{:02X}, \"{}\"),", vk.value, vk.name,);
         }
     }
 

@@ -2,8 +2,8 @@ use crate::indicator::get_current_keyboard_layout;
 use crate::kb_watch::KeyboardLayoutWatcher;
 use crate::layout::{Layout, Layouts};
 use crate::profile::{Profile, Profiles};
-use crate::res::RESOURCES;
 use crate::res::res_ids::{IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
+use crate::res::RESOURCES;
 use crate::settings::AppSettings;
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -69,6 +69,10 @@ impl App {
         self.is_log_enabled.replace(settings.logging_enabled);
         self.toggle_layout_hot_key
             .replace(settings.toggle_layout_hot_key);
+
+        if let Some(hot_key) = self.toggle_layout_hot_key.borrow().as_ref(){
+            self.key_hook.suppress_keys(&[hot_key.action.key]);
+        }
     }
 
     fn save_settings(&self) {
@@ -140,7 +144,7 @@ impl App {
     pub(crate) fn select_layout(&self, name: Option<&str>) {
         self.current_layout_name.replace(name.map(Into::into));
         self.with_current_layout(|layout| {
-            self.key_hook.apply_rules(layout.map(|l| &l.rules));
+            self.key_hook.set_rules(layout.map(|l| &l.rules));
             self.window.on_layout_changed(layout);
             indicator::on_layout_changed(layout, get_current_keyboard_layout());
         });
@@ -151,8 +155,8 @@ impl App {
 
     pub(crate) fn select_next_layout(&self) {
         let layouts = self.layouts.borrow();
-        let current = self.current_layout_name.borrow();
         let next_name = {
+            let current = self.current_layout_name.borrow(); /* must stay exactly inside the block */
             let next = layouts.cyclic_next(current.as_deref());
             next.and_then(|l| Some(l.name.as_str()))
         };

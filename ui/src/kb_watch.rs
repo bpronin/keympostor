@@ -9,7 +9,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::HKL;
 use windows::Win32::UI::WindowsAndMessaging::{KillTimer, SetTimer};
 
 const TIMER_ID: usize = 19718;
-const WATCH_INTERVAL: u32 = 500;
+const WATCH_INTERVAL: u32 = 200;
 
 #[derive(Default)]
 pub(crate) struct KeyboardLayoutWatcher {

@@ -27,12 +27,10 @@ pub(crate) struct KeyboardZoneColors {
 
 impl Display for KeyboardZoneColors {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(
-            &format!(
-                "[#{:0X}, #{:0X}, #{:0X}, #{:0X}]",
-                self.right, self.center, self.left, self.game
-            ),
+        write!(
             f,
+            "[#{:06X}, #{:06X}, #{:06X}, #{:06X}]",
+            self.right, self.center, self.left, self.game
         )
     }
 }

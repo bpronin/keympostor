@@ -1,5 +1,5 @@
-use crate::ui::style::SMALL_MONO_FONT;
 use crate::layout::Layout;
+use crate::ui::style::SMALL_MONO_FONT;
 use native_windows_gui::{ControlHandle, NwgError, Tab, TextBox};
 
 #[derive(Default)]
