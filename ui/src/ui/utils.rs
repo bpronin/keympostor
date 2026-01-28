@@ -1,14 +1,17 @@
+use crate::res::res_ids::IDS_APP_TITLE;
+use crate::rs;
 use crate::ui::RESOURCES;
-use native_windows_gui::{message, ControlHandle, ListView, MessageButtons, MessageIcons, MessageParams, Window};
+use native_windows_gui::{
+    message, ControlHandle, ListView, MessageButtons, MessageIcons, MessageParams, Window,
+};
 use std::mem;
+use windows::core::{HSTRING, PCWSTR};
 use windows::Win32::Foundation::{HWND, RECT, WPARAM};
 use windows::Win32::UI::Controls::{LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH};
 use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowRect, SendMessageW, SetWindowPos, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE,
     SWP_NOOWNERZORDER, SWP_NOZORDER,
 };
-use crate::res::res_ids::IDS_APP_TITLE;
-use crate::rs;
 
 pub fn try_hwnd(handle: ControlHandle) -> Option<HWND> {
     handle.hwnd().map(|h| HWND(h as _))

@@ -5,7 +5,6 @@ use log::LevelFilter;
 use native_windows_gui::NativeUi;
 use simple_logger::SimpleLogger;
 
-mod indicator;
 mod kb_watch;
 mod layout;
 mod profile;
@@ -13,6 +12,7 @@ mod res;
 mod settings;
 mod ui;
 mod win_watch;
+pub mod indicator;
 
 fn main() {
     SimpleLogger::new()

@@ -71,17 +71,6 @@ impl Resources {
             .expect("Unable to read resource string")
     }
 
-    pub(crate) fn play_sound(&self, res_id: usize) {
-        unsafe {
-            if PlaySoundW(PCWSTR(res_id as _), None, SND_RESOURCE | SND_ASYNC)
-                .as_bool()
-                .not()
-            {
-                let error = GetLastError();
-                warn!("Unable to play sound: {}. Error: {:?}", res_id, error);
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -115,10 +104,10 @@ mod test {
         assert_ne!(std::ptr::null_mut(), r_icon!(IDI_ICON_APP).handle);
     }
 
-    #[test]
-    fn test_r_snd() {
-        setup_test_logger();
-        r_play_snd!(IDR_SWITCH_LAYOUT);
-        thread::sleep(Duration::from_millis(1000));
-    }
+    // #[test]
+    // fn test_r_snd() {
+    //     setup_test_logger();
+    //     r_play_snd!(IDR_SWITCH_LAYOUT);
+    //     thread::sleep(Duration::from_millis(1000));
+    // }
 }

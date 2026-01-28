@@ -4,17 +4,17 @@ transform_layout = "default"
 toggle_layout_hot_key = "[] FN_LAUNCH_APP2↑"
 
 [main_window]
-position = [983, 147]
-size = [716, 428]
+position = [335, 147]
+size = [1364, 428]
 selected_page = 0
 
 [main_window.log_view.columns]
-2 = 50
-1 = 500
-5 = 50
-7 = 50
-8 = 50
-6 = 50
-4 = 50
-3 = 50
+4 = 73
 0 = 300
+3 = 79
+8 = 50
+2 = 77
+1 = 500
+5 = 81
+6 = 64
+7 = 50

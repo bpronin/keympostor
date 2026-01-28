@@ -1,16 +1,15 @@
 use crate::layout::Layout;
-use crate::r_play_snd;
-use crate::res::res_ids::IDR_SWITCH_LAYOUT;
-use crate::res::RESOURCES;
 use crate::settings::KeyboardLightingSettings;
-use log::{debug, error};
+use log::{debug, error, warn};
 use lomen_core::color::ZoneColors;
 use lomen_core::light_control::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::sync::LazyLock;
-use std::thread;
+use windows::core::PCWSTR;
+use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Globalization::GetLocaleInfoW;
+use windows::Win32::Media::Audio::{PlaySoundW, SND_ASYNC, SND_FILENAME, SND_NODEFAULT};
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardLayout, HKL};
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
 
@@ -87,12 +86,31 @@ fn get_keyboard_locale(keyboard_layout: HKL) -> String {
     .to_lowercase()
 }
 
+fn play_sound(filename: &str) {
+    unsafe {
+        let w_filename: Vec<u16> = filename.encode_utf16().chain(std::iter::once(0)).collect();
+        let result = PlaySoundW(
+            PCWSTR(w_filename.as_ptr()),
+            None,
+            SND_FILENAME | SND_NODEFAULT | SND_ASYNC,
+        );
+
+        if !result.as_bool() {
+            warn!(
+                "Unable to play sound: `{}` : {:?}",
+                filename,
+                GetLastError()
+            );
+        }
+    }
+}
+
 fn set_layout_lighting(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
     let name = match transform_layout {
         None => "none",
         Some(l) => l.name.as_str(),
     };
-    
+
     if let Some(layout_settings) = KEYBOARD_LIGHTING_SETTINGS.layouts.get(name) {
         let lang = get_keyboard_locale(keyboard_layout);
         if let Some(colors) = layout_settings.0.get(&lang) {
@@ -111,10 +129,14 @@ fn set_layout_lighting(transform_layout: Option<&Layout>, keyboard_layout: HKL) 
 
 fn play_layout_sound(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
     if let Some(l) = transform_layout {
-        debug!(
-            "Playing layout sound: {:?} {:?}",
-            l, keyboard_layout
-        );
+        if let Some(sounds) = &l.sound {
+            let locale = get_keyboard_locale(keyboard_layout);
+            if let Some(sound) = sounds.get(&locale).or_else(|| sounds.get("default")) {
+                play_sound(sound);
+
+                debug!("Playing layout sound: {sound} for locale: {locale}");
+            }
+        };
     }
 }
 

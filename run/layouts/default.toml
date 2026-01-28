@@ -3,10 +3,17 @@ title = "Default layout"
 icon = "image\\default.ico"
 
 [sound]
-default = "sound\\clack.wav"
-ru_ru = "sound\\clack.wav"
+ru_ru = "sound\\tap.wav"
 en_us = "sound\\clack.wav"
 
 [rules]
 "F1" = "LEFT_CTRL > V"
 "F2" = "LEFT_CTRL > C"
+
+# Caps Lock for keyboard layout change
+
+#"[] CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
+
+"[] CAPS_LOCK*" = "LEFT_WIN* > SPACE*"
+#"[LEFT_WIN] CAPS_LOCK*" = "SPACE*"
+"[LEFT_WIN] CAPS_LOCK^" = "SPACE^ → LEFT_WIN^"

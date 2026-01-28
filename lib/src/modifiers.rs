@@ -27,6 +27,9 @@ pub const KM_RALT: ModifierKeys = ModifierKeys(1 << 5);
 pub const KM_LWIN: ModifierKeys = ModifierKeys(1 << 6);
 pub const KM_RWIN: ModifierKeys = ModifierKeys(1 << 7);
 
+//todo: probably change `[A+B] C^` to 'A+B+C^' and get rid of `[]` prefix for modifiers absence ?
+// ok. then what's would be a 'A+B+C' and 'A+B+C*' ?
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Default, Hash)]
 pub struct ModifierKeys(u8);
 
