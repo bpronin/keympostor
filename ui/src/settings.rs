@@ -1,8 +1,7 @@
-use crate::indicator::KeyboardLightingColors;
 use crate::profile::Profiles;
 use keympostor::key_trigger;
 use keympostor::trigger::KeyTrigger;
-use log::{debug, warn};
+use log::debug;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;

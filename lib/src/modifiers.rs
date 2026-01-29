@@ -198,6 +198,7 @@ mod tests {
         KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT,
         KM_RWIN,
     };
+    use crate::state::tests::state_from_keys;
     use crate::state::KeyboardState;
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
@@ -228,7 +229,7 @@ mod tests {
         let keys = KeyboardState::new();
         assert_eq!(KM_NONE, ModifierKeys::from(&keys));
 
-        let keys = KeyboardState::from_keys(&[
+        let keys = state_from_keys(&[
             KEY_LEFT_SHIFT.vk,
             KEY_RIGHT_SHIFT.vk,
             KEY_LEFT_CTRL.vk,

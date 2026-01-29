@@ -1,10 +1,10 @@
 use crate::layout::Layout;
 use log::{debug, error, warn};
-use lomen_core::color::ZoneColors;
+use lomen_core::color::LightingColors;
 use lomen_core::light_control::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use std::sync::{LazyLock, OnceLock};
+use std::sync::OnceLock;
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Globalization::GetLocaleInfoW;
@@ -12,59 +12,27 @@ use windows::Win32::Media::Audio::{PlaySoundW, SND_ASYNC, SND_FILENAME, SND_NODE
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardLayout, HKL};
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
 
-static NO_LAYUOUT_LIGHTING_COLORS: OnceLock<Option<ZoneColors>> = OnceLock::new();
+static NO_LAYOUT_LIGHTING_COLORS: OnceLock<Option<LightingColors>> = OnceLock::new();
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(into = "Vec<String>", from = "Vec<String>")]
-pub(crate) struct KeyboardLightingColors {
-    pub(crate) right: u64,
-    pub(crate) center: u64,
-    pub(crate) left: u64,
-    pub(crate) game: u64,
-}
+pub(crate) struct SerdeLightingColors(LightingColors);
 
-impl Display for KeyboardLightingColors {
+impl Display for SerdeLightingColors {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "[#{:06X}, #{:06X}, #{:06X}, #{:06X}]",
-            self.right, self.center, self.left, self.game
-        )
+        write!(f, "{}", self.0)
     }
 }
 
-impl Into<Vec<String>> for KeyboardLightingColors {
+impl Into<Vec<String>> for SerdeLightingColors {
     fn into(self) -> Vec<String> {
-        let format = |v: u64| format!("#{:06X}", v);
-
-        vec![
-            format(self.right),
-            format(self.center),
-            format(self.left),
-            format(self.game),
-        ]
+        self.0.into()
     }
 }
 
-// impl Into<ZoneColors> for KeyboardLightingColors {
-//     fn into(self) -> ZoneColors {
-//         ZoneColors::from([self.right, self.center, self.left, self.game])
-//     }
-// }
-
-impl From<Vec<String>> for KeyboardLightingColors {
+impl From<Vec<String>> for SerdeLightingColors {
     fn from(value: Vec<String>) -> Self {
-        let parse = |s: &str| {
-            u64::from_str_radix(s.trim_start_matches("#"), 16)
-                .map_err(|e| format!("Hex parse error: {}", e))
-        };
-
-        Self {
-            right: parse(&value[0]).unwrap(),
-            center: parse(&value[1]).unwrap(),
-            left: parse(&value[2]).unwrap(),
-            game: parse(&value[3]).unwrap(),
-        }
+        Self(LightingColors::from(value))
     }
 }
 
@@ -108,24 +76,19 @@ fn play_sound(filename: &str) {
 }
 
 fn set_layout_lighting(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
-    let default_colors = NO_LAYUOUT_LIGHTING_COLORS.get_or_init(|| get_colors().ok());
+    let default_colors = NO_LAYOUT_LIGHTING_COLORS.get_or_init(|| get_colors().ok());
 
     if let Some(layout) = transform_layout {
         if let Some(lighting) = layout.keyboard_lighting.as_ref() {
             let locale = get_keyboard_locale(keyboard_layout);
             if let Some(colors) = lighting.get(&locale) {
                 debug!(
-                    "Set keyboard colors for: {}, lang: {}, colors : {}",
+                    "Set keyboard colors for layout: `{}`, lang: `{}`, colors: {}",
                     layout.name, locale, colors
                 );
 
-                set_colors(&ZoneColors::from([
-                    colors.right,
-                    colors.center,
-                    colors.left,
-                    colors.game,
-                ]))
-                .unwrap_or_else(|e| error!("Failed to set keyboard colors: {e}"));
+                set_colors(&colors.0)
+                    .unwrap_or_else(|e| error!("Failed to set keyboard colors: {e}"));
             }
         }
     } else {

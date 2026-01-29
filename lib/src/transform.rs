@@ -39,6 +39,7 @@ mod tests {
     use crate::key::{KEY_LEFT_ALT, KEY_LEFT_CTRL, KEY_LEFT_SHIFT};
     use crate::modifiers::ModifierKeys;
     use crate::rules::KeyTransformRule;
+    use crate::state::tests::state_from_keys;
     use crate::state::KeyboardState;
     use crate::transform::KeyAction;
     use crate::transform::KeyEvent;
@@ -50,13 +51,13 @@ mod tests {
 
     static KS_ALL_UP: LazyLock<KeyboardState> = LazyLock::new(KeyboardState::new);
     static KS_LEFT_SHIFT: LazyLock<KeyboardState> =
-        LazyLock::new(|| KeyboardState::from_keys(&[KEY_LEFT_SHIFT.vk]));
+        LazyLock::new(|| state_from_keys(&[KEY_LEFT_SHIFT.vk]));
     static KS_LEFT_CTRL: LazyLock<KeyboardState> =
-        LazyLock::new(|| KeyboardState::from_keys(&[KEY_LEFT_CTRL.vk]));
+        LazyLock::new(|| state_from_keys(&[KEY_LEFT_CTRL.vk]));
     static KS_LEFT_ALT: LazyLock<KeyboardState> =
-        LazyLock::new(|| KeyboardState::from_keys(&[KEY_LEFT_ALT.vk]));
+        LazyLock::new(|| state_from_keys(&[KEY_LEFT_ALT.vk]));
     static KS_LEFT_CTRL_ALT: LazyLock<KeyboardState> =
-        LazyLock::new(|| KeyboardState::from_keys(&[KEY_LEFT_CTRL.vk, KEY_LEFT_ALT.vk]));
+        LazyLock::new(|| state_from_keys(&[KEY_LEFT_CTRL.vk, KEY_LEFT_ALT.vk]));
 
     #[test]
     fn test_put_get_normal() {

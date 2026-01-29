@@ -1,5 +1,4 @@
 use crate::action::KeyAction;
-use crate::vk::VirtualKey;
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -10,12 +9,6 @@ pub struct KeyboardState([u64; 4]);
 impl KeyboardState {
     pub(crate) fn new() -> Self {
         Self([0u64; 4])
-    }
-
-    pub(crate) fn from_keys(keys: &[VirtualKey]) -> Self {
-        let mut this = Self::new();
-        keys.iter().for_each(|key| this.set_bit(key.0));
-        this
     }
 
     pub(crate) fn update(&mut self, action: KeyAction) {
@@ -35,16 +28,6 @@ impl KeyboardState {
             (*part >> bit_index) & 1 == 1
         }
         // (self.0[part_index] >> bit_index) & 1 == 1 //slower
-    }
-
-    pub(crate) fn to_keys(&self) -> Vec<VirtualKey> {
-        let mut result = vec![];
-        for index in 0..255 {
-            if self.is_set(index) {
-                result.push(VirtualKey(index))
-            }
-        }
-        result
     }
 
     #[inline]
@@ -99,10 +82,28 @@ impl fmt::UpperHex for KeyboardState {
     }
 }
 
+
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
     use crate::key::{KEY_0, KEY_END, KEY_F1};
+    use crate::vk::VirtualKey;
+
+    pub fn state_from_keys(keys: &[VirtualKey]) -> KeyboardState {
+        let mut this = KeyboardState::new();
+        keys.iter().for_each(|key| this.set_bit(key.0));
+        this
+    }
+
+    pub fn state_to_keys(state: &KeyboardState) -> Vec<VirtualKey> {
+        let mut result = vec![];
+        for index in 0..255 {
+            if state.is_set(index) {
+                result.push(VirtualKey(index))
+            }
+        }
+        result
+    }
 
     #[test]
     fn test_keyboard_state_get_set_bit() {
@@ -122,15 +123,15 @@ mod tests {
 
     #[test]
     fn test_keyboard_state_to_keys() {
-        let state = KeyboardState::from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
+        let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
 
         // order is not guaranteed
-        assert_eq!(vec![KEY_END.vk, KEY_0.vk, KEY_F1.vk], state.to_keys());
+        assert_eq!(vec![KEY_END.vk, KEY_0.vk, KEY_F1.vk], state_to_keys(&state));
     }
 
     #[test]
     fn test_keyboard_state_hex_format() {
-        let state = KeyboardState::from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
+        let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
 
         println!("{:X}", state);
         assert_eq!(
@@ -141,7 +142,7 @@ mod tests {
 
     #[test]
     fn test_keyboard_state_bin_format() {
-        let state = KeyboardState::from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
+        let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
 
         println!("{:b}", state);
         assert_eq!(

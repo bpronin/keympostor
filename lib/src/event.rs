@@ -161,7 +161,7 @@ mod tests {
     use crate::event::KeyEvent;
     use crate::key::KEY_LEFT_SHIFT;
     use crate::modifiers::ModifierKeys;
-    use crate::state::KeyboardState;
+    use crate::state::tests::state_from_keys;
 
     #[macro_export]
     macro_rules! key_event {
@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn test_key_event_display() {
-        let keyboard_state = KeyboardState::from_keys(&[KEY_LEFT_SHIFT.vk]);
+        let keyboard_state = state_from_keys(&[KEY_LEFT_SHIFT.vk]);
         let event = key_event!("A↓", &keyboard_state);
 
         assert_eq!(format!("{}", event), "[LEFT_SHIFT] A↓ T:000000000  ");

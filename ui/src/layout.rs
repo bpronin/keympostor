@@ -1,4 +1,4 @@
-use crate::indicator::KeyboardLightingColors;
+use crate::indicator::SerdeLightingColors;
 use keympostor::rules::KeyTransformRules;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -17,7 +17,7 @@ pub(crate) struct Layout {
     pub(crate) title: String,
     pub(crate) icon: Option<String>,
     pub(crate) sound: Option<HashMap<String, String>>,
-    pub(crate) keyboard_lighting: Option<HashMap<String, KeyboardLightingColors>>,
+    pub(crate) keyboard_lighting: Option<HashMap<String, SerdeLightingColors>>,
 }
 
 impl Layout {
@@ -81,9 +81,8 @@ pub mod tests {
     use crate::layout::{Layout, Layouts};
     use keympostor::rules::KeyTransformRules;
 
-    #[test]
-    fn test_layout_serialize() {
-        let layout = Layout {
+    fn create_test_layout() -> Layout {
+        Layout {
             name: "test".to_string(),
             title: "Test layout".to_string(),
             rules: KeyTransformRules::from(vec![
@@ -95,7 +94,29 @@ pub mod tests {
                     .unwrap(),
             ]),
             ..Default::default()
-        };
+        }
+    }
+
+    fn create_test_layouts() -> Layouts {
+        Layouts(vec![
+            Layout {
+                name: "layout_1".to_string(),
+                ..Default::default()
+            },
+            Layout {
+                name: "layout_2".to_string(),
+                ..Default::default()
+            },
+            Layout {
+                name: "layout_3".to_string(),
+                ..Default::default()
+            },
+        ])
+    }
+
+    #[test]
+    fn test_layout_serialize() {
+        let layout = create_test_layout();
 
         let expected = r#"
             name = "test"
@@ -127,19 +148,7 @@ pub mod tests {
         .unwrap();
 
         /* NOTE: rules deserialized as a sorted map so check the "expected" order */
-        let expected = Layout {
-            name: "test".to_string(),
-            title: "Test layout".to_string(),
-            rules: KeyTransformRules::from(vec![
-                "[LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑"
-                    .parse()
-                    .unwrap(),
-                "[]CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
-                    .parse()
-                    .unwrap(),
-            ]),
-            ..Default::default()
-        };
+        let expected = create_test_layout();
 
         assert_eq!(expected, actual);
     }
@@ -149,19 +158,7 @@ pub mod tests {
         let actual = Layout::load("etc/test_data/layouts/test.toml").unwrap();
 
         /* NOTE: rules deserialized as a sorted map so check the "expected" order */
-        let expected = Layout {
-            name: "test".to_string(),
-            title: "Test layout".to_string(),
-            rules: KeyTransformRules::from(vec![
-                "[LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑"
-                    .parse()
-                    .unwrap(),
-                "[]CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
-                    .parse()
-                    .unwrap(),
-            ]),
-            ..Default::default()
-        };
+        let expected = create_test_layout();
 
         assert_eq!(expected, actual);
     }
@@ -179,20 +176,7 @@ pub mod tests {
 
     #[test]
     fn test_layouts_find() {
-        let layouts = Layouts(vec![
-            Layout {
-                name: "layout_1".to_string(),
-                ..Default::default()
-            },
-            Layout {
-                name: "layout_2".to_string(),
-                ..Default::default()
-            },
-            Layout {
-                name: "layout_3".to_string(),
-                ..Default::default()
-            },
-        ]);
+        let layouts = create_test_layouts();
 
         assert_eq!(
             Some(&Layout {
@@ -207,20 +191,7 @@ pub mod tests {
 
     #[test]
     fn test_layouts_cyclic_next() {
-        let layouts = Layouts(vec![
-            Layout {
-                name: "layout_1".to_string(),
-                ..Default::default()
-            },
-            Layout {
-                name: "layout_2".to_string(),
-                ..Default::default()
-            },
-            Layout {
-                name: "layout_3".to_string(),
-                ..Default::default()
-            },
-        ]);
+        let layouts = create_test_layouts();
 
         assert_eq!(
             Some(&Layout {
