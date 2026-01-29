@@ -59,7 +59,7 @@ impl WinWatcher {
             SetTimer(*self.owner.borrow(), TIMER_ID, WATCH_INTERVAL, None);
         }
 
-        debug!("Profile auto-switch enabled");
+        debug!("Window watch timer started");
     }
 
     pub(crate) fn stop(&self) {
@@ -70,12 +70,12 @@ impl WinWatcher {
         unsafe {
             KillTimer(*self.owner.borrow(), TIMER_ID).unwrap_or_else(|e| {
                 if e.code().is_err() {
-                    warn!("Failed to kill timer: {}", e);
+                    warn!("Failed to kill window watch timer: {}", e);
                 }
             });
         }
 
-        debug!("Profile auto-switch disabled");
+        debug!("Window watch timer stopped");
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {

@@ -5,6 +5,10 @@ icon = "image\\game.ico"
 [sound]
 default = "sound\\tap.wav"
 
+[keyboard_lighting]
+en_us = ["#FF0000", "#000020", "#000020", "#000020"]
+ru_ru = ["#0000FF", "#200000", "#200000", "#200000"]
+
 [rules]
 "INSERT" = "ESC"
 #"LAUNCH_APP2, FN_LAUNCH_APP2" = ""

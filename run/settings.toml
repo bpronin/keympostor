@@ -5,15 +5,15 @@ toggle_layout_hot_key = "[] FN_LAUNCH_APP2↑"
 [main_window]
 position = [335, 147]
 size = [1364, 428]
-selected_page = 0
+selected_page = 1
 
 [main_window.log_view.columns]
 6 = 64
-2 = 77
-1 = 500
 4 = 73
-7 = 50
 8 = 50
-3 = 79
-5 = 81
 0 = 300
+2 = 77
+5 = 81
+3 = 79
+1 = 500
+7 = 50

@@ -1,11 +1,10 @@
 use crate::layout::Layout;
-use crate::settings::KeyboardLightingSettings;
 use log::{debug, error, warn};
 use lomen_core::color::ZoneColors;
 use lomen_core::light_control::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
-use std::sync::LazyLock;
+use std::sync::{LazyLock, OnceLock};
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::GetLastError;
 use windows::Win32::Globalization::GetLocaleInfoW;
@@ -13,19 +12,18 @@ use windows::Win32::Media::Audio::{PlaySoundW, SND_ASYNC, SND_FILENAME, SND_NODE
 use windows::Win32::UI::Input::KeyboardAndMouse::{GetKeyboardLayout, HKL};
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
 
-pub(crate) static KEYBOARD_LIGHTING_SETTINGS: LazyLock<KeyboardLightingSettings> =
-    LazyLock::new(|| KeyboardLightingSettings::load_default());
+static NO_LAYUOUT_LIGHTING_COLORS: OnceLock<Option<ZoneColors>> = OnceLock::new();
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Deserialize)]
 #[serde(into = "Vec<String>", from = "Vec<String>")]
-pub(crate) struct KeyboardZoneColors {
+pub(crate) struct KeyboardLightingColors {
     pub(crate) right: u64,
     pub(crate) center: u64,
     pub(crate) left: u64,
     pub(crate) game: u64,
 }
 
-impl Display for KeyboardZoneColors {
+impl Display for KeyboardLightingColors {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
@@ -35,7 +33,7 @@ impl Display for KeyboardZoneColors {
     }
 }
 
-impl Into<Vec<String>> for KeyboardZoneColors {
+impl Into<Vec<String>> for KeyboardLightingColors {
     fn into(self) -> Vec<String> {
         let format = |v: u64| format!("#{:06X}", v);
 
@@ -48,7 +46,13 @@ impl Into<Vec<String>> for KeyboardZoneColors {
     }
 }
 
-impl From<Vec<String>> for KeyboardZoneColors {
+// impl Into<ZoneColors> for KeyboardLightingColors {
+//     fn into(self) -> ZoneColors {
+//         ZoneColors::from([self.right, self.center, self.left, self.game])
+//     }
+// }
+
+impl From<Vec<String>> for KeyboardLightingColors {
     fn from(value: Vec<String>) -> Self {
         let parse = |s: &str| {
             u64::from_str_radix(s.trim_start_matches("#"), 16)
@@ -104,23 +108,32 @@ fn play_sound(filename: &str) {
 }
 
 fn set_layout_lighting(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
-    let name = match transform_layout {
-        None => "none",
-        Some(l) => l.name.as_str(),
-    };
+    let default_colors = NO_LAYUOUT_LIGHTING_COLORS.get_or_init(|| get_colors().ok());
 
-    if let Some(layout_settings) = KEYBOARD_LIGHTING_SETTINGS.layouts.get(name) {
-        let lang = get_keyboard_locale(keyboard_layout);
-        if let Some(colors) = layout_settings.0.get(&lang) {
-            debug!("Updating keyboard colors for: {name}, lang: {lang}, colors : {colors}");
+    if let Some(layout) = transform_layout {
+        if let Some(lighting) = layout.keyboard_lighting.as_ref() {
+            let locale = get_keyboard_locale(keyboard_layout);
+            if let Some(colors) = lighting.get(&locale) {
+                debug!(
+                    "Set keyboard colors for: {}, lang: {}, colors : {}",
+                    layout.name, locale, colors
+                );
 
-            set_colors(&ZoneColors::from([
-                colors.right,
-                colors.center,
-                colors.left,
-                colors.game,
-            ]))
-            .unwrap_or_else(|e| error!("Failed to set keyboard colors: {e}"));
+                set_colors(&ZoneColors::from([
+                    colors.right,
+                    colors.center,
+                    colors.left,
+                    colors.game,
+                ]))
+                .unwrap_or_else(|e| error!("Failed to set keyboard colors: {e}"));
+            }
+        }
+    } else {
+        if let Some(colors) = default_colors {
+            debug!("Set default keyboard colors: {}", colors);
+
+            set_colors(colors)
+                .unwrap_or_else(|e| error!("Failed to set default keyboard colors: {e}"));
         }
     }
 }

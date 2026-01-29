@@ -1,3 +1,4 @@
+use crate::indicator::KeyboardLightingColors;
 use keympostor::rules::KeyTransformRules;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -9,13 +10,14 @@ use std::slice::Iter;
 
 const LAYOUTS_PATH: &str = "layouts";
 
-#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Layout {
     pub(crate) name: String,
     pub(crate) rules: KeyTransformRules,
     pub(crate) title: String,
     pub(crate) icon: Option<String>,
     pub(crate) sound: Option<HashMap<String, String>>,
+    pub(crate) keyboard_lighting: Option<HashMap<String, KeyboardLightingColors>>,
 }
 
 impl Layout {
@@ -32,7 +34,7 @@ impl Display for Layout {
     }
 }
 
-#[derive(Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Layouts(Vec<Layout>);
 
 impl Layouts {

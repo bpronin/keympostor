@@ -46,7 +46,7 @@ pub(crate) struct App {
     profiles: RefCell<Rc<Profiles>>,
     layouts: RefCell<Layouts>,
     current_profile_name: RefCell<Option<String>>,
-    pub(crate) current_layout_name: RefCell<Option<String>>,
+    current_layout_name: RefCell<Option<String>>,
     toggle_layout_hot_key: RefCell<Option<KeyTrigger>>,
 }
 
@@ -70,8 +70,8 @@ impl App {
         self.toggle_layout_hot_key
             .replace(settings.toggle_layout_hot_key);
 
-        if let Some(hot_key) = self.toggle_layout_hot_key.borrow().as_ref(){
-            self.key_hook.suppress_keys(&[hot_key.action.key]);
+        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref(){
+            self.key_hook.suppress_keys(&[key.action.key]);
         }
     }
 

@@ -1,4 +1,4 @@
-use crate::indicator::KeyboardZoneColors;
+use crate::indicator::KeyboardLightingColors;
 use crate::profile::Profiles;
 use keympostor::key_trigger;
 use keympostor::trigger::KeyTrigger;
@@ -70,29 +70,6 @@ pub(crate) struct MainWindowSettings {
 pub(crate) struct LogViewSettings {
     pub(crate) columns: Option<HashMap<usize, isize>>,
 }
-
-#[derive(Debug, Default, PartialEq, Deserialize)]
-pub(crate) struct KeyboardLightingSettings {
-    pub(crate) layouts: HashMap<String, KeyboardLightingLangSettings>,
-}
-
-impl KeyboardLightingSettings {
-    fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
-        let text = fs::read_to_string(path)?;
-        let this = toml::from_str(&text)?;
-        Ok(this)
-    }
-
-    pub(crate) fn load_default() -> Self {
-        Self::load("indication.toml").unwrap_or_else(|e| {
-            warn!("Failed to load kb_lighting.toml: {}", e);
-            Self::default()
-        })
-    }
-}
-
-#[derive(Debug, Default, PartialEq, Deserialize)]
-pub(crate) struct KeyboardLightingLangSettings(pub(crate) HashMap<String, KeyboardZoneColors>);
 
 #[cfg(test)]
 pub mod tests {

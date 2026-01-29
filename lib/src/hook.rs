@@ -1,4 +1,3 @@
-use crate::action::KeyAction;
 use crate::event::KeyEvent;
 use crate::key::Key;
 use crate::notify::install_notify_listener;
@@ -9,7 +8,6 @@ use crate::{input, notify};
 use fxhash::FxHashSet;
 use log::{debug, trace, warn};
 use std::cell::RefCell;
-use std::collections::HashSet;
 use std::rc::Rc;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
@@ -30,14 +28,10 @@ impl KeyboardHook {
     }
 
     pub fn set_rules(&self, rules: Option<&KeyTransformRules>) {
-        match rules {
-            Some(rules) => {
-                TRANSFOFM_MAP.replace(Some(KeyTransformMap::new(rules)));
-            }
-            None => {
-                TRANSFOFM_MAP.replace(None);
-            }
-        }
+        TRANSFOFM_MAP.replace(match rules {
+            None => None,
+            Some(r) => Some(KeyTransformMap::new(r)),
+        });
     }
 
     pub fn suppress_keys(&self, keys: &[&Key]) {
@@ -168,8 +162,8 @@ fn handle_event(mut event: KeyEvent) -> bool {
     let handled = if SUPPRESSED_KEYS.with_borrow(|set| set.contains(&event.action.key)) {
         trace!("Event suppressed: {event}");
         true
-    } else if event.is_injected {
-        trace!("Injected event ignored: {event}");
+    } else if event.is_private {
+        trace!("Private event ignored: {event}");
         false
     } else {
         TRANSFOFM_MAP.with_borrow(|transform_map| {

@@ -6,6 +6,10 @@ icon = "image\\default.ico"
 ru_ru = "sound\\tap.wav"
 en_us = "sound\\clack.wav"
 
+[keyboard_lighting]
+en_us = ["#0000FF", "#0000FF", "#0000FF", "#0000FF"]
+ru_ru = ["#FF0000", "#FF0000", "#FF0000", "#FF0000"]
+
 [rules]
 "F1" = "LEFT_CTRL > V"
 "F2" = "LEFT_CTRL > C"
