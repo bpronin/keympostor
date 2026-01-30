@@ -12,7 +12,7 @@ path = "src/main.rs"
 lib = { path = "../lib" }
 lomen-core = { path = "../../lomen/lomen-core" }
 native-windows-gui = "1.0.13"
-windows = { version = "0.62.2", features = ["Win32_UI_Controls", "Win32_Graphics_Gdi", "Win32_Media", "Win32_Media_Audio", "Win32_System_LibraryLoader", "Win32_Globalization"] }
+windows = { version = "0.62.2", features = ["Win32_UI_Controls", "Win32_Graphics_Gdi", "Win32_Media", "Win32_Media_Audio", "Win32_System_LibraryLoader", "Win32_Globalization", "Win32_Storage_FileSystem"] }
 log = "0.4.28"
 simple_logger = "5.1.0"
 serde = { version = "1.0.228", features = ["derive"] }

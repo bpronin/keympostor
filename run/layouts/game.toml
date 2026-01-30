@@ -1,6 +1,6 @@
 name = "game"
 title = "Game layout"
-icon = "image\\game.ico"
+icon = "image\\green.ico"
 
 [sound]
 default = "sound\\tap.wav"

@@ -1,5 +1,4 @@
 #![cfg_attr(not(feature = "console"), windows_subsystem = "windows")] /* hides the console window */
-
 use crate::ui::App;
 use log::LevelFilter;
 use native_windows_gui::NativeUi;
@@ -12,6 +11,7 @@ mod profile;
 mod res;
 mod settings;
 mod ui;
+mod util;
 mod win_watch;
 
 fn main() {

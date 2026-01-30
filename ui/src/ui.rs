@@ -1,4 +1,3 @@
-use crate::indicator::get_current_keyboard_layout;
 use crate::kb_watch::KeyboardLayoutWatcher;
 use crate::layout::{Layout, Layouts};
 use crate::profile::{Profile, Profiles};
@@ -13,6 +12,7 @@ use crate::ui::style::display_font;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::ui::utils::warn_message;
+use crate::util::{get_current_keyboard_layout, is_app_running};
 use crate::win_watch::WinWatcher;
 use crate::{indicator, rs};
 use keympostor::event::KeyEvent;
@@ -70,7 +70,7 @@ impl App {
         self.toggle_layout_hot_key
             .replace(settings.toggle_layout_hot_key);
 
-        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref(){
+        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
             self.key_hook.suppress_keys(&[key.action.key]);
         }
     }
@@ -146,7 +146,7 @@ impl App {
         self.with_current_layout(|layout| {
             self.key_hook.set_rules(layout.map(|l| &l.rules));
             self.window.on_layout_changed(layout);
-            indicator::on_layout_changed(layout, get_current_keyboard_layout());
+            indicator::notify_layout_changed(layout, get_current_keyboard_layout());
         });
         self.update_controls();
 
@@ -348,6 +348,10 @@ impl AppUi {
     }
 
     pub(crate) fn run(&self) {
+        if is_app_running() {
+            warn_message("Application is already running");
+            return;
+        }
         self.setup_event_handlers();
         nwg::dispatch_thread_events();
     }
