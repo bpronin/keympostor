@@ -1,4 +1,4 @@
-use crate::layout::Layout;
+use crate::layout::KeyTransformLayout;
 use crate::ui::style::SMALL_MONO_FONT;
 use native_windows_gui::{ControlHandle, NwgError, Tab, TextBox};
 
@@ -20,7 +20,7 @@ impl LayoutView {
             .build(&mut self.view)
     }
 
-    pub(crate) fn update_ui(&self, layout: Option<&Layout>) {
+    pub(crate) fn update_ui(&self, layout: Option<&KeyTransformLayout>) {
         let mut text = String::new();
         match layout {
             None => {

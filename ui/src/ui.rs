@@ -1,8 +1,10 @@
-use crate::kb_watch::KeyboardLayoutWatcher;
-use crate::layout::{Layout, Layouts};
+use crate::indicator::notify_layout_changed;
+use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
+use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
 use crate::profile::{Profile, Profiles};
 use crate::res::res_ids::{IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
 use crate::res::RESOURCES;
+use crate::rs;
 use crate::settings::AppSettings;
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -12,9 +14,8 @@ use crate::ui::style::display_font;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::ui::utils::warn_message;
-use crate::util::{get_current_keyboard_layout, is_app_running};
+use crate::util::is_app_running;
 use crate::win_watch::WinWatcher;
-use crate::{indicator, rs};
 use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
 use keympostor::notify::WM_KEY_HOOK_NOTIFY;
@@ -44,7 +45,7 @@ pub(crate) struct App {
     keyboard_layout_watcher: KeyboardLayoutWatcher,
     is_log_enabled: RefCell<bool>,
     profiles: RefCell<Rc<Profiles>>,
-    layouts: RefCell<Layouts>,
+    layouts: RefCell<KeyTransformLayouts>,
     current_profile_name: RefCell<Option<String>>,
     current_layout_name: RefCell<Option<String>>,
     toggle_layout_hot_key: RefCell<Option<KeyTrigger>>,
@@ -104,9 +105,9 @@ impl App {
     }
 
     fn load_layouts(&self) {
-        let layouts = Layouts::load_default().unwrap_or_else(|e| {
+        let layouts = KeyTransformLayouts::load_default().unwrap_or_else(|e| {
             warn_message(&format!("Failed to load layouts: {}", e));
-            Layouts::default()
+            KeyTransformLayouts::default()
         });
         self.layouts.replace(layouts);
         self.window.set_layouts(&self.layouts.borrow());
@@ -123,7 +124,7 @@ impl App {
 
     pub(crate) fn with_current_layout<F>(&self, action: F)
     where
-        F: FnOnce(Option<&Layout>),
+        F: FnOnce(Option<&KeyTransformLayout>),
     {
         let list = self.layouts.borrow();
         let name = self.current_layout_name.borrow();
@@ -146,7 +147,7 @@ impl App {
         self.with_current_layout(|layout| {
             self.key_hook.set_rules(layout.map(|l| &l.rules));
             self.window.on_layout_changed(layout);
-            indicator::notify_layout_changed(layout, get_current_keyboard_layout());
+            notify_layout_changed(layout, &KeyboardLayoutState::capture());
         });
         self.update_controls();
 

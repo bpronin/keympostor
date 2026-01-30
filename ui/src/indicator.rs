@@ -1,16 +1,12 @@
-use crate::kb_watch;
-use crate::layout::Layout;
-use crate::util::{get_keyboard_locale, play_sound};
-use log::{debug, error, warn};
+use crate::kb_watch::KeyboardLayoutState;
+use crate::layout::KeyTransformLayout;
+use crate::util::play_sound;
+use log::{debug, error};
 use lomen_core::color::LightingColors;
 use lomen_core::light_control::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::sync::OnceLock;
-use windows::core::PCWSTR;
-use windows::Win32::Foundation::GetLastError;
-use windows::Win32::Media::Audio::{PlaySoundW, SND_ASYNC, SND_FILENAME, SND_NODEFAULT};
-use windows::Win32::UI::Input::KeyboardAndMouse::HKL;
 
 static NO_LAYOUT_LIGHTING_COLORS: OnceLock<Option<LightingColors>> = OnceLock::new();
 
@@ -36,25 +32,37 @@ impl From<Vec<String>> for SerdeLightingColors {
     }
 }
 
-fn set_layout_lighting(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
+fn set_layout_keyboard_lighting(
+    transform_layout: Option<&KeyTransformLayout>,
+    keyboard_state: &KeyboardLayoutState,
+) {
     let default_colors = NO_LAYOUT_LIGHTING_COLORS.get_or_init(|| get_colors().ok());
 
     if let Some(layout) = transform_layout {
-        if let Some(lighting) = layout.keyboard_lighting.as_ref() {
-            let locale = get_keyboard_locale(keyboard_layout);
-            if let Some(colors) = lighting.get(&locale) {
-                debug!(
-                    "Set keyboard colors for layout: `{}`, lang: `{}`, colors: {}",
-                    layout.name, locale, colors
-                );
+        if let Some(layout_settings) = layout.keyboard_lighting.as_ref() {
+            let locks = &keyboard_state.locks();
+            if let Some(locks_settings) = layout_settings
+                .get(locks)
+                .or_else(|| layout_settings.get("default"))
+            {
+                let locale = &keyboard_state.locale();
+                if let Some(colors) = locks_settings
+                    .get(locale)
+                    .or_else(|| locks_settings.get("default"))
+                {
+                    debug!(
+                        "Set keyboard lighting for layout: `{}`, locks: `{}`, locale: `{}``",
+                        layout.name, locks, locale
+                    );
 
-                set_colors(&colors.0)
-                    .unwrap_or_else(|e| error!("Failed to set keyboard colors: {e}"));
+                    set_colors(&colors.0)
+                        .unwrap_or_else(|e| error!("Failed to set keyboard lighting: {e}"));
+                }
             }
         }
     } else {
         if let Some(colors) = default_colors {
-            debug!("Set default keyboard colors: {}", colors);
+            debug!("Set default keyboard lighting");
 
             set_colors(colors)
                 .unwrap_or_else(|e| error!("Failed to set default keyboard colors: {e}"));
@@ -62,20 +70,37 @@ fn set_layout_lighting(transform_layout: Option<&Layout>, keyboard_layout: HKL) 
     }
 }
 
-fn play_layout_sound(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
-    if let Some(l) = transform_layout {
-        if let Some(sounds) = &l.sound {
-            let locale = get_keyboard_locale(keyboard_layout);
-            if let Some(sound) = sounds.get(&locale).or_else(|| sounds.get("default")) {
-                play_sound(sound);
-
-                debug!("Playing layout sound: {sound} for locale: {locale}");
+fn play_layout_sound(
+    transform_layout: Option<&KeyTransformLayout>,
+    keyboard_state: &KeyboardLayoutState,
+) {
+    if let Some(layout) = transform_layout {
+        if let Some(layout_settings) = layout.sound.as_ref() {
+            let locks = &keyboard_state.locks();
+            if let Some(locks_settings) = layout_settings
+                .get(locks)
+                .or_else(|| layout_settings.get("default"))
+            {
+                let locale = &keyboard_state.locale();
+                if let Some(sound) = locks_settings
+                    .get(locale)
+                    .or_else(|| locks_settings.get("default"))
+                {
+                    debug!(
+                        "Playing sound for layout: `{}`, locks: `{}`, locale: `{}``",
+                        layout.name, locks, locale
+                    );
+                    play_sound(sound);
+                }
             }
-        };
+        }
     }
 }
 
-pub(crate) fn notify_layout_changed(transform_layout: Option<&Layout>, keyboard_layout: HKL) {
-    play_layout_sound(transform_layout, keyboard_layout);
-    set_layout_lighting(transform_layout, keyboard_layout);
+pub(crate) fn notify_layout_changed(
+    layout: Option<&KeyTransformLayout>,
+    keyboard_state: &KeyboardLayoutState,
+) {
+    play_layout_sound(layout, keyboard_state);
+    set_layout_keyboard_lighting(layout, keyboard_state);
 }

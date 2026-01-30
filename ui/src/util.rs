@@ -2,12 +2,11 @@ use log::warn;
 use std::ptr::null_mut;
 use windows::core::{PCSTR, PCWSTR};
 use windows::Win32::Foundation::{GetLastError, ERROR_ALREADY_EXISTS};
-use windows::Win32::Globalization::GetLocaleInfoW;
 use windows::Win32::Media::Audio::{PlaySoundW, SND_ASYNC, SND_FILENAME, SND_NODEFAULT};
 use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
 use windows::Win32::System::Threading::CreateMutexExA;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetKeyState, GetKeyboardLayout, HKL, VK_NUMLOCK,
+    GetKeyState, GetKeyboardLayout, HKL, VIRTUAL_KEY,
 };
 use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowThreadProcessId};
 
@@ -20,34 +19,11 @@ pub(crate) fn is_app_running() -> bool {
             PCSTR(APP_MUTEX_ID.as_ptr()),
             0,
             SYNCHRONIZE.0,
-        ).unwrap();
+        )
+            .unwrap();
 
         handle.is_invalid() || GetLastError() == ERROR_ALREADY_EXISTS
     }
-}
-
-pub(crate) fn get_keyboard_locale(keyboard_layout: HKL) -> String {
-    let lang_id = (keyboard_layout.0 as u32) & 0xFFFF;
-
-    let get_locale_info = |lc_type: u32| -> String {
-        unsafe {
-            let buffer_size = GetLocaleInfoW(lang_id, lc_type, None) as usize;
-            let mut buffer = vec![0u16; buffer_size];
-            GetLocaleInfoW(lang_id, lc_type, Some(&mut buffer));
-            buffer.set_len(buffer_size - 1); /* remove null terminator */
-            String::from_utf16_lossy(&buffer)
-        }
-    };
-
-    format!("{}_{}", get_locale_info(0x59), get_locale_info(0x5A)).to_lowercase()
-}
-
-pub(crate) fn get_current_keyboard_layout() -> HKL {
-    unsafe { GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), None)) }
-}
-
-pub(crate) fn is_num_lock_on() -> bool {
-    unsafe { (GetKeyState(VK_NUMLOCK.0 as i32) & 1) != 0 }
 }
 
 pub(crate) fn play_sound(filename: &str) {
@@ -66,5 +42,23 @@ pub(crate) fn play_sound(filename: &str) {
                 GetLastError()
             );
         }
+    }
+}
+
+pub(crate) fn get_current_keyboard_layout() -> HKL {
+    unsafe { GetKeyboardLayout(GetWindowThreadProcessId(GetForegroundWindow(), None)) }
+}
+
+pub(crate) fn get_lock_state(vk: VIRTUAL_KEY) -> bool {
+    unsafe { (GetKeyState(vk.0 as i32) & 1) != 0 }
+}
+
+#[cfg(test)]
+pub mod tests {
+    #[macro_export]
+    macro_rules! str {
+        ($str:literal) => {
+            String::from($str)
+        };
     }
 }

@@ -1,5 +1,5 @@
 use super::*;
-use crate::layout::Layout;
+use crate::layout::KeyTransformLayout;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::res::RESOURCES;
 use crate::settings::MainWindowSettings;
@@ -140,7 +140,7 @@ impl MainWindow {
         &self,
         is_auto_switch_layout_enabled: bool,
         is_logging_enabled: bool,
-        current_layout: Option<&Layout>,
+        current_layout: Option<&KeyTransformLayout>,
     ) {
         self.main_menu.update_ui(
             is_auto_switch_layout_enabled,
@@ -170,7 +170,7 @@ impl MainWindow {
         self.log_view.update_settings(settings);
     }
 
-    pub(crate) fn set_layouts(&self, layouts: &Layouts) {
+    pub(crate) fn set_layouts(&self, layouts: &KeyTransformLayouts) {
         self.main_menu.build_layouts_menu(layouts);
     }
 
@@ -190,7 +190,7 @@ impl MainWindow {
         self.log_view.clear()
     }
 
-    pub(crate) fn on_layout_changed(&self, layout: Option<&Layout>) {
+    pub(crate) fn on_layout_changed(&self, layout: Option<&KeyTransformLayout>) {
         self.layout_view.update_ui(layout);
     }
 

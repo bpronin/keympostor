@@ -11,40 +11,47 @@ use std::slice::Iter;
 const LAYOUTS_PATH: &str = "layouts";
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Layout {
+pub(crate) struct KeyTransformLayout {
     pub(crate) name: String,
     pub(crate) rules: KeyTransformRules,
     pub(crate) title: String,
     pub(crate) icon: Option<String>,
-    pub(crate) sound: Option<HashMap<String, String>>,
-    pub(crate) keyboard_lighting: Option<HashMap<String, SerdeLightingColors>>,
+    pub(crate) sound: Option<HashMap<String, HashMap<String, String>>>,
+    pub(crate) keyboard_lighting: Option<HashMap<String, HashMap<String, SerdeLightingColors>>>,
 }
 
-impl Layout {
+impl KeyTransformLayout {
     pub(crate) fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let text = fs::read_to_string(path)?;
         let this = toml::from_str(&text)?;
         Ok(this)
     }
+
+    #[allow(dead_code)]
+    fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
+        let text = toml::to_string(self)?;
+        fs::write(path, text)?;
+        Ok(())
+    }
 }
 
-impl Display for Layout {
+impl Display for KeyTransformLayout {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}\n{}", self.title, self.rules)
     }
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Layouts(Vec<Layout>);
+pub(crate) struct KeyTransformLayouts(Vec<KeyTransformLayout>);
 
-impl Layouts {
+impl KeyTransformLayouts {
     pub(crate) fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let mut items = vec![];
 
         for entry in fs::read_dir(path)? {
             let path = entry?.path();
             if path.is_file() {
-                let layout = Layout::load(path)?;
+                let layout = KeyTransformLayout::load(path)?;
                 items.push(layout);
             }
         }
@@ -52,15 +59,15 @@ impl Layouts {
         Ok(Self(items))
     }
 
-    pub(crate) fn load_default() -> Result<Layouts, Box<dyn Error>> {
+    pub(crate) fn load_default() -> Result<KeyTransformLayouts, Box<dyn Error>> {
         Self::load(LAYOUTS_PATH)
     }
 
-    pub(crate) fn find(&self, name: Option<&str>) -> Option<&Layout> {
+    pub(crate) fn find(&self, name: Option<&str>) -> Option<&KeyTransformLayout> {
         name.and_then(|n| self.0.iter().find(|l| l.name == *n))
     }
 
-    pub(crate) fn cyclic_next(&self, name: Option<&str>) -> Option<&Layout> {
+    pub(crate) fn cyclic_next(&self, name: Option<&str>) -> Option<&KeyTransformLayout> {
         match name {
             None => self.0.get(0),
             Some(n) => {
@@ -71,18 +78,24 @@ impl Layouts {
         }
     }
 
-    pub(crate) fn iter(&self) -> Iter<'_, Layout> {
+    pub(crate) fn iter(&self) -> Iter<'_, KeyTransformLayout> {
         self.0.iter()
     }
 }
 
 #[cfg(test)]
 pub mod tests {
-    use crate::layout::{Layout, Layouts};
+    use crate::indicator::SerdeLightingColors;
+    use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
+    use crate::str;
+    use keympostor::key_rule;
+    use keympostor::rules::KeyTransformRule;
     use keympostor::rules::KeyTransformRules;
+    use std::collections::HashMap;
+    use std::str::FromStr;
 
-    fn create_test_layout() -> Layout {
-        Layout {
+    fn create_test_layout() -> KeyTransformLayout {
+        KeyTransformLayout {
             name: "test".to_string(),
             title: "Test layout".to_string(),
             rules: KeyTransformRules::from(vec![
@@ -97,17 +110,17 @@ pub mod tests {
         }
     }
 
-    fn create_test_layouts() -> Layouts {
-        Layouts(vec![
-            Layout {
+    fn create_test_layouts() -> KeyTransformLayouts {
+        KeyTransformLayouts(vec![
+            KeyTransformLayout {
                 name: "layout_1".to_string(),
                 ..Default::default()
             },
-            Layout {
+            KeyTransformLayout {
                 name: "layout_2".to_string(),
                 ..Default::default()
             },
-            Layout {
+            KeyTransformLayout {
                 name: "layout_3".to_string(),
                 ..Default::default()
             },
@@ -155,22 +168,98 @@ pub mod tests {
 
     #[test]
     fn test_layout_load() {
-        let actual = Layout::load("etc/test_data/layouts/test.toml").unwrap();
+        let expected = KeyTransformLayout {
+            name: str!("sample"),
+            title: str!("Sample layout"),
+            icon: Some(str!("image\\default.ico")),
+            sound: Some(HashMap::from([(
+                str!("default"),
+                HashMap::from([
+                    (str!("default"), str!("sound\\sound1.wav")),
+                    (str!("ru_ru"), str!("sound\\sound2.wav")),
+                ]),
+            )])),
+            keyboard_lighting: Some(HashMap::from([
+                (
+                    str!("default"),
+                    HashMap::from([(
+                        str!("default"),
+                        SerdeLightingColors::from(vec![
+                            str!("#0"),
+                            str!("#0"),
+                            str!("#0"),
+                            str!("#0"),
+                        ]),
+                    )]),
+                ),
+                (
+                    str!("num"),
+                    HashMap::from([
+                        (
+                            str!("default"),
+                            SerdeLightingColors::from(vec![
+                                str!("#F"),
+                                str!("#B"),
+                                str!("#C"),
+                                str!("#D"),
+                            ]),
+                        ),
+                        (
+                            str!("ru_ru"),
+                            SerdeLightingColors::from(vec![
+                                str!("#F"),
+                                str!("#C"),
+                                str!("#B"),
+                                str!("#A"),
+                            ]),
+                        ),
+                    ]),
+                ),
+            ])),
+            rules: KeyTransformRules::from(vec![
+                key_rule!("[LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑"),
+                key_rule!("[]CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
+            ]),
+        };
 
-        /* NOTE: rules deserialized as a sorted map so check the "expected" order */
-        let expected = create_test_layout();
+        let actual = KeyTransformLayout::load("etc/test_data/layouts/test.toml").unwrap();
 
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn test_layout_load_fails() {
-        assert!(Layout::load("test/layouts/bad.toml").is_err());
+        assert!(KeyTransformLayout::load("test/layouts/bad.toml").is_err());
+    }
+
+    #[test]
+    fn test_layout_save() {
+        let layout = KeyTransformLayout {
+            name: str!("Sample layout"),
+            rules: Default::default(),
+            title: str!("Sample layout"),
+            icon: Some(str!("image\\default.ico")),
+            sound: None,
+            keyboard_lighting: Some(HashMap::from([(
+                str!("num"),
+                HashMap::from([(
+                    str!("ru_ru"),
+                    SerdeLightingColors::from(vec![
+                        str!("#AA0000"),
+                        str!("#BB0000"),
+                        str!(""),
+                        str!("#DD0000"),
+                    ]),
+                )]),
+            )])),
+        };
+
+        layout.save("etc/test_data/tmp/saved_layout.toml").unwrap();
     }
 
     #[test]
     fn test_layouts_load() {
-        let result = Layouts::load("etc/test_data/layouts/");
+        let result = KeyTransformLayouts::load("etc/test_data/layouts/");
         assert!(result.is_err());
     }
 
@@ -179,7 +268,7 @@ pub mod tests {
         let layouts = create_test_layouts();
 
         assert_eq!(
-            Some(&Layout {
+            Some(&KeyTransformLayout {
                 name: "layout_2".to_string(),
                 ..Default::default()
             }),
@@ -194,7 +283,7 @@ pub mod tests {
         let layouts = create_test_layouts();
 
         assert_eq!(
-            Some(&Layout {
+            Some(&KeyTransformLayout {
                 name: "layout_3".to_string(),
                 ..Default::default()
             }),
@@ -202,7 +291,7 @@ pub mod tests {
         );
 
         assert_eq!(
-            Some(&Layout {
+            Some(&KeyTransformLayout {
                 name: "layout_1".to_string(),
                 ..Default::default()
             }),

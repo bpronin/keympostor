@@ -2,16 +2,8 @@ name = "game"
 title = "Game layout"
 icon = "image\\green.ico"
 
-[sound]
-default = "sound\\tap.wav"
-
-[keyboard_lighting]
-en_us = ["#FF0000", "#000020", "#000020", "#000020"]
-ru_ru = ["#0000FF", "#200000", "#200000", "#200000"]
-
 [rules]
 "INSERT" = "ESC"
-#"LAUNCH_APP2, FN_LAUNCH_APP2" = ""
 "FN_LAUNCH_APP2" = ""
 "BROWSER_SEARCH" = "F4"
 "[]BACKSPACE" = "F5"
@@ -32,3 +24,9 @@ ru_ru = ["#0000FF", "#200000", "#200000", "#200000"]
 "NUM_ENTER" = "SPACE"
 "NUM_0, NUM_INSERT" = "M"
 "NUM_DOT, NUM_DELETE" = "LEFT_SHIFT"
+
+[keyboard_lighting.default]
+default = ["#002000", "#002000", "#002000", "#200000"]
+
+[sound.default]
+default = "sound\\tap.wav"

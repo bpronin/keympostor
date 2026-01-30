@@ -1,4 +1,4 @@
-use crate::layout::Layout;
+use crate::layout::KeyTransformLayout;
 use crate::res::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_OPEN, IDS_TRAY_TIP};
 use crate::res::RESOURCES;
 use crate::ui::App;
@@ -46,7 +46,7 @@ impl Tray {
             .build(&mut self.exit_app_item)
     }
 
-    pub(crate) fn update_ui(&self, current_layout: Option<&Layout>) {
+    pub(crate) fn update_ui(&self, current_layout: Option<&KeyTransformLayout>) {
         let mut icon = r_icon!(IDI_ICON_APP);
 
         if let Some(layout) = current_layout {

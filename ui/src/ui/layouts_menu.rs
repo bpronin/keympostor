@@ -1,4 +1,4 @@
-use crate::layout::{Layout, Layouts};
+use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
 use crate::res::res_ids::{IDS_AUTO_SWITCH_LAYOUT, IDS_LAYOUT, IDS_NO_LAYOUT};
 use crate::res::RESOURCES;
 use crate::rs;
@@ -33,7 +33,7 @@ impl LayoutsMenu {
         Ok(())
     }
 
-    pub(crate) fn build_items(&self, layouts: &Layouts) -> Result<(), NwgError> {
+    pub(crate) fn build_items(&self, layouts: &KeyTransformLayouts) -> Result<(), NwgError> {
         let mut items = vec![];
 
         let mut item: MenuItem = MenuItem::default();
@@ -62,7 +62,7 @@ impl LayoutsMenu {
     pub(crate) fn update_ui(
         &self,
         is_auto_switch_layout_enabled: bool,
-        current_layout: Option<&Layout>,
+        current_layout: Option<&KeyTransformLayout>,
     ) {
         self.toggle_auto_switch_layout_item
             .set_checked(is_auto_switch_layout_enabled);

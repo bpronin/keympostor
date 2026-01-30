@@ -2,22 +2,22 @@ name = "default"
 title = "Default layout"
 icon = "image\\default.ico"
 
-[sound]
-ru_ru = "sound\\tap.wav"
-en_us = "sound\\clack.wav"
-
-[keyboard_lighting]
-en_us = ["#0000FF", "#0000FF", "#0000FF", "#0000FF"]
-ru_ru = ["#FF0000", "#FF0000", "#FF0000", "#FF0000"]
-
 [rules]
 "F1" = "LEFT_CTRL > V"
 "F2" = "LEFT_CTRL > C"
-
-# Caps Lock for keyboard layout change
-
 #"[] CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
-
 "[] CAPS_LOCK*" = "LEFT_WIN* > SPACE*"
 #"[LEFT_WIN] CAPS_LOCK*" = "SPACE*"
 "[LEFT_WIN] CAPS_LOCK^" = "SPACE^ → LEFT_WIN^"
+
+[keyboard_lighting.default]
+default = ["#0000FF", "#0000FF", "#0000FF", "#0000FF"]
+ru_ru = ["#FF0000", "#FF0000", "#FF0000", "#FF0000"]
+
+[keyboard_lighting.num]
+default = ["#FFFFFF", "#0000FF", "#0000FF", "#0000FF"]
+ru_ru = ["#FFFFFF", "#FF0000", "#FF0000", "#FF0000"]
+
+[sound.default]
+default = "sound\\clack.wav"
+ru_ru = "sound\\tap.wav"

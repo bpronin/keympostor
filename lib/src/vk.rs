@@ -6,10 +6,6 @@ use windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
 pub struct VirtualKey(pub u8);
 
 impl VirtualKey {
-    // pub(crate) fn hex_code(&self) -> String {
-    //     format!("VC_0x{:02X}", self.value)
-    // }
-
     pub(crate) fn name(&self) -> &str {
         VIRTUAL_KEY_NAME[self.0 as usize]
     }
@@ -18,6 +14,12 @@ impl VirtualKey {
 impl Display for VirtualKey {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name(), f)
+    }
+}
+
+impl From<VIRTUAL_KEY> for VirtualKey {
+    fn from(value: VIRTUAL_KEY) -> Self {
+        Self(value.0 as u8)
     }
 }
 

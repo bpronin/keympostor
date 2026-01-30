@@ -1,9 +1,18 @@
-name = "test"
-title = "Test layout"
-
-[auto_activation]
-window_title = "Notepad|Ghrome"
+name = "sample"
+title = "Sample layout"
+icon = 'image\default.ico'
 
 [rules]
 "[]CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
 "[LEFT_SHIFT] CAPS_LOCK↓" = "CAPS_LOCK↓ → CAPS_LOCK↑"
+
+[keyboard_lighting.default]
+default = ["#0", "#0", "#0", "#0"]
+
+[keyboard_lighting.num]
+default = ["#F", "#B", "#C", "#D"]
+ru_ru = ["#F", "#C", "#B", "#A"]
+
+[sound.default]
+default = "sound\\sound1.wav"
+ru_ru = "sound\\sound2.wav"

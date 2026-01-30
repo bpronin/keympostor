@@ -1,4 +1,4 @@
-use crate::layout::{Layout, Layouts};
+use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
 use crate::res::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
 use crate::res::RESOURCES;
 use crate::rs;
@@ -54,7 +54,7 @@ impl MainMenu {
         &self,
         is_auto_switch_layout_enabled: bool,
         is_logging_enabled: bool,
-        current_layout: Option<&Layout>,
+        current_layout: Option<&KeyTransformLayout>,
     ) {
         self.toggle_logging_enabled_item
             .set_checked(is_logging_enabled);
@@ -62,7 +62,7 @@ impl MainMenu {
             .update_ui(is_auto_switch_layout_enabled, current_layout);
     }
 
-    pub(crate) fn build_layouts_menu(&self, layouts: &Layouts) {
+    pub(crate) fn build_layouts_menu(&self, layouts: &KeyTransformLayouts) {
         self.layout_menu.build_items(layouts).unwrap_or_else(|e| {
             warn!("Failed to build layouts menu: {}", e);
         });
