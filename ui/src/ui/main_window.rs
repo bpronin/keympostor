@@ -140,7 +140,7 @@ impl MainWindow {
         &self,
         is_auto_switch_layout_enabled: bool,
         is_logging_enabled: bool,
-        current_layout: Option<&KeyTransformLayout>,
+        current_layout: &KeyTransformLayout,
     ) {
         self.main_menu.update_ui(
             is_auto_switch_layout_enabled,
@@ -172,6 +172,7 @@ impl MainWindow {
 
     pub(crate) fn set_layouts(&self, layouts: &KeyTransformLayouts) {
         self.main_menu.build_layouts_menu(layouts);
+        self.tray.build_layout_menu(layouts);
     }
 
     pub(crate) fn set_title(&self, title: &str) {

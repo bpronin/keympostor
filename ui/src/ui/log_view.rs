@@ -161,7 +161,7 @@ impl LogView {
                     .rule
                     .as_ref()
                     .map(|r| r.to_string())
-                    .unwrap_or("".to_string()),
+                    .unwrap_or(String::from("")),
                 format!(
                     "{:1} {:1} {:1} {:1} {:1} {:1} {:1} {:1}",
                     ife!(event.modifiers.contains(KM_LSHIFT), "S", "."),

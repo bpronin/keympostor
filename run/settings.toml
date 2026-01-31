@@ -1,20 +1,20 @@
 logging_enabled = true
-profiles_enabled = true
+profiles_enabled = false
 transform_layout = "default"
 toggle_layout_hot_key = "[] FN_LAUNCH_APP2↑"
 
 [main_window]
-position = [571, 286]
-size = [1364, 428]
+position = [396, 273]
+size = [1475, 428]
 selected_page = 0
 
 [main_window.log_view.columns]
+6 = 96
+8 = 50
+5 = 95
+2 = 77
+4 = 73
+7 = 69
 1 = 500
 3 = 79
-2 = 77
-8 = 50
-5 = 81
-6 = 64
-4 = 73
 0 = 300
-7 = 50

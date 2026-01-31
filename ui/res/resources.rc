@@ -19,9 +19,9 @@ IDI_ICON_APP ICON "res/image/app.ico"
 #define IDS_NO_PROFILE 1006
 #define IDS_LOG 1007
 #define IDS_LOGGING_ENABLED 1008
-#define IDS_OPEN 1009
+//#define IDS_OPEN 1009
 #define IDS_LAYOUT 1010
-#define IDS_NO_LAYOUT 1011
+//#define IDS_NO_LAYOUT 1011
 #define IDS_TRAY_TIP 1012
 #define IDS_ACTION 1013
 #define IDS_RULE 1014
@@ -36,6 +36,7 @@ IDI_ICON_APP ICON "res/image/app.ico"
 #define IDS_APP_ALREADY_RUNNING 1023
 #define IDS_FAILED_LOAD_SETTINGS 1024
 #define IDS_FAILED_LOAD_LAYOUTS 1025
+#define IDS_SETTINGS 1026
 
 STRINGTABLE
 BEGIN
@@ -45,9 +46,9 @@ BEGIN
     IDS_FILE "File"
     IDS_LOG "Log"
     IDS_LOGGING_ENABLED "Logging enabled"
-    IDS_OPEN "Open"
+//    IDS_OPEN "Open"
     IDS_LAYOUT "Layout"
-    IDS_NO_LAYOUT "No layout"
+//    IDS_NO_LAYOUT "No layout"
     IDS_TRAY_TIP "Keympostor"
     IDS_ACTION "Action"
     IDS_RULE "Rule"
@@ -63,4 +64,5 @@ BEGIN
     IDS_APP_ALREADY_RUNNING "Application is already running."
     IDS_FAILED_LOAD_SETTINGS "Failed to load settings"
     IDS_FAILED_LOAD_LAYOUTS "Failed to load layouts"
+    IDS_SETTINGS "Settings"
 END

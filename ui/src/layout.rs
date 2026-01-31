@@ -6,7 +6,6 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs;
 use std::path::Path;
-use std::slice::Iter;
 
 const LAYOUTS_PATH: &str = "layouts";
 
@@ -44,6 +43,15 @@ impl Display for KeyTransformLayout {
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct KeyTransformLayouts(Vec<KeyTransformLayout>);
 
+impl<'a> IntoIterator for &'a KeyTransformLayouts {
+    type Item = &'a KeyTransformLayout;
+    type IntoIter = std::slice::Iter<'a, KeyTransformLayout>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
 impl KeyTransformLayouts {
     pub(crate) fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let mut items = vec![];
@@ -63,23 +71,20 @@ impl KeyTransformLayouts {
         Self::load(LAYOUTS_PATH)
     }
 
-    pub(crate) fn find(&self, name: Option<&str>) -> Option<&KeyTransformLayout> {
-        name.and_then(|n| self.0.iter().find(|l| l.name == *n))
+    pub(crate) fn find(&self, name: &str) -> Option<&KeyTransformLayout> {
+        self.0.iter().find(|l| l.name == *name)
     }
 
-    pub(crate) fn cyclic_next(&self, name: Option<&str>) -> Option<&KeyTransformLayout> {
-        match name {
-            None => self.0.first(),
-            Some(n) => {
-                let mut iter = self.0.iter();
-                iter.find(|l| l.name == *n);
-                iter.next()
-            }
-        }
+    pub(crate) fn first(&self) -> &KeyTransformLayout {
+        self.0.first().expect("Layouts cannot be empty")
     }
 
-    pub(crate) fn iter(&self) -> Iter<'_, KeyTransformLayout> {
-        self.0.iter()
+    pub(crate) fn cyclic_next(&self, name: &str) -> &KeyTransformLayout {
+        let mut iter = self.0.iter();
+        iter.find(|l| l.name == *name);
+        iter.next()
+            .or_else(|| self.0.first())
+            .expect("Layouts cannot be empty")
     }
 }
 
@@ -87,17 +92,16 @@ impl KeyTransformLayouts {
 pub mod tests {
     use crate::indicator::SerdeLightingColors;
     use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
-    use crate::str;
+    use crate::{map, str};
     use keympostor::key_rule;
     use keympostor::rules::KeyTransformRule;
     use keympostor::rules::KeyTransformRules;
-    use std::collections::HashMap;
     use std::str::FromStr;
 
     fn create_test_layout() -> KeyTransformLayout {
         KeyTransformLayout {
-            name: "test".to_string(),
-            title: "Test layout".to_string(),
+            name: str!("test"),
+            title: str!("Test layout"),
             rules: KeyTransformRules::from(vec![
                 "[LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑"
                     .parse()
@@ -113,15 +117,15 @@ pub mod tests {
     fn create_test_layouts() -> KeyTransformLayouts {
         KeyTransformLayouts(vec![
             KeyTransformLayout {
-                name: "layout_1".to_string(),
+                name: str!("layout_1"),
                 ..Default::default()
             },
             KeyTransformLayout {
-                name: "layout_2".to_string(),
+                name: str!("layout_2"),
                 ..Default::default()
             },
             KeyTransformLayout {
-                name: "layout_3".to_string(),
+                name: str!("layout_3"),
                 ..Default::default()
             },
         ])
@@ -172,50 +176,36 @@ pub mod tests {
             name: str!("sample"),
             title: str!("Sample layout"),
             icon: Some(str!("image\\default.ico")),
-            sound: Some(HashMap::from([(
-                str!("default"),
-                HashMap::from([
-                    (str!("default"), str!("sound\\sound1.wav")),
-                    (str!("ru_ru"), str!("sound\\sound2.wav")),
-                ]),
-            )])),
-            keyboard_lighting: Some(HashMap::from([
-                (
-                    str!("default"),
-                    HashMap::from([(
-                        str!("default"),
-                        SerdeLightingColors::from(vec![
-                            str!("#0"),
-                            str!("#0"),
-                            str!("#0"),
-                            str!("#0"),
-                        ]),
-                    )]),
-                ),
-                (
-                    str!("num"),
-                    HashMap::from([
-                        (
-                            str!("default"),
-                            SerdeLightingColors::from(vec![
-                                str!("#F"),
-                                str!("#B"),
-                                str!("#C"),
-                                str!("#D"),
-                            ]),
-                        ),
-                        (
-                            str!("ru_ru"),
-                            SerdeLightingColors::from(vec![
-                                str!("#F"),
-                                str!("#C"),
-                                str!("#B"),
-                                str!("#A"),
-                            ]),
-                        ),
+            sound: Some(map![
+                str!("default") => map![
+                    str!("default")=> str!("sound\\sound1.wav"),
+                    str!("ru_ru")=> str!("sound\\sound2.wav"),
+                ],
+            ]),
+            keyboard_lighting: Some(map![
+                str!("default") => map![
+                    str!("default") => SerdeLightingColors::from(vec![
+                        str!("#0"),
+                        str!("#0"),
+                        str!("#0"),
+                        str!("#0"),
+                    ],
+                )],
+                str!("num") => map![
+                    str!("default") => SerdeLightingColors::from(vec![
+                        str!("#F"),
+                        str!("#B"),
+                        str!("#C"),
+                        str!("#D"),
                     ]),
-                ),
-            ])),
+                    str!("ru_ru") => SerdeLightingColors::from(vec![
+                        str!("#F"),
+                        str!("#C"),
+                        str!("#B"),
+                        str!("#A"),
+                    ]),
+                ],
+            ]),
             rules: KeyTransformRules::from(vec![
                 key_rule!("[LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑"),
                 key_rule!("[]CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
@@ -240,18 +230,18 @@ pub mod tests {
             title: str!("Sample layout"),
             icon: Some(str!("image\\default.ico")),
             sound: None,
-            keyboard_lighting: Some(HashMap::from([(
-                str!("num"),
-                HashMap::from([(
-                    str!("ru_ru"),
+            keyboard_lighting: Some(map![
+                str!("num") =>
+                map![
+                    str!("ru_ru") =>
                     SerdeLightingColors::from(vec![
                         str!("#AA0000"),
                         str!("#BB0000"),
                         str!(""),
                         str!("#DD0000"),
                     ]),
-                )]),
-            )])),
+                ],
+            ]),
         };
 
         layout.save("etc/test_data/tmp/saved_layout.toml").unwrap();
@@ -269,13 +259,13 @@ pub mod tests {
 
         assert_eq!(
             Some(&KeyTransformLayout {
-                name: "layout_2".to_string(),
+                name: str!("layout_2"),
                 ..Default::default()
             }),
-            layouts.find(Some("layout_2"))
+            layouts.find("layout_2")
         );
-        assert_eq!(None, layouts.find(Some("layout_4")));
-        assert_eq!(None, layouts.find(None));
+        assert_eq!(None, layouts.find("layout_4"));
+        assert_eq!(None, layouts.find(""));
     }
 
     #[test]
@@ -283,23 +273,19 @@ pub mod tests {
         let layouts = create_test_layouts();
 
         assert_eq!(
-            Some(&KeyTransformLayout {
-                name: "layout_3".to_string(),
+            &KeyTransformLayout {
+                name: str!("layout_3"),
                 ..Default::default()
-            }),
-            layouts.cyclic_next(Some("layout_2"))
+            },
+            layouts.cyclic_next("layout_2")
         );
 
         assert_eq!(
-            Some(&KeyTransformLayout {
-                name: "layout_1".to_string(),
+            &KeyTransformLayout {
+                name: str!("layout_1"),
                 ..Default::default()
-            }),
-            layouts.cyclic_next(None)
+            },
+            layouts.cyclic_next("")
         );
-
-        assert_eq!(None, layouts.cyclic_next(Some("layout_3")));
-
-        assert_eq!(None, layouts.cyclic_next(Some("layout_4")));
     }
 }

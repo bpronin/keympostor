@@ -54,6 +54,7 @@ pub(crate) fn get_lock_state(vk: VIRTUAL_KEY) -> bool {
 }
 
 #[cfg(test)]
+
 pub mod tests {
     #[macro_export]
     macro_rules! str {
@@ -61,4 +62,13 @@ pub mod tests {
             String::from($str)
         };
     }
+}
+
+#[macro_export]
+macro_rules! map {
+    ( $( $key:expr => $val:expr ),* $(,)? ) => {{
+        let mut map = ::std::collections::HashMap::new();
+        $(map.insert($key, $val);)*
+        map
+    }};
 }

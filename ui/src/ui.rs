@@ -3,8 +3,7 @@ use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
 use crate::profile::{Profile, Profiles};
 use crate::res::res_ids::{
-    IDS_APP_ALREADY_RUNNING, IDS_APP_TITLE, IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS,
-    IDS_NO_LAYOUT, IDS_NO_PROFILE,
+    IDS_APP_ALREADY_RUNNING, IDS_APP_TITLE, IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS, IDS_NO_PROFILE,
 };
 use crate::res::RESOURCES;
 use crate::settings::AppSettings;
@@ -50,7 +49,7 @@ pub(crate) struct App {
     profiles: RefCell<Rc<Profiles>>,
     layouts: RefCell<KeyTransformLayouts>,
     current_profile_name: RefCell<Option<String>>,
-    current_layout_name: RefCell<Option<String>>,
+    current_layout_name: RefCell<String>,
     toggle_layout_hot_key: RefCell<Option<KeyTrigger>>,
 }
 
@@ -66,7 +65,11 @@ impl App {
 
         self.profiles.replace(Rc::clone(&profiles));
 
-        self.select_layout(settings.transform_layout.as_deref());
+        let layout_name = settings.transform_layout.unwrap_or_else(|| {
+            self.layouts.borrow().first().name.clone()
+        });
+        self.select_layout(layout_name.as_str());
+
         self.win_watcher.set_profiles(profiles);
 
         self.win_watcher.set_enabled(settings.profiles_enabled);
@@ -86,13 +89,13 @@ impl App {
 
         match profile_name.as_deref() {
             None => {
-                settings.transform_layout = layout_name.clone();
+                settings.transform_layout = Some(layout_name.clone());
             }
             Some(name) => {
                 settings.profiles.get_or_insert_default().get_or_insert(
                     name,
                     Profile {
-                        rule: None,
+                        activation_rule: None,
                         layout: layout_name.clone(),
                     },
                 );
@@ -131,28 +134,23 @@ impl App {
     {
         let list = self.layouts.borrow();
         let name = self.current_layout_name.borrow();
-        action(list.find(name.as_deref()));
+        action(list.find(name.as_str()));
     }
 
     pub(crate) fn select_profile(&self, name: Option<&str>) {
         self.current_profile_name.replace(name.map(Into::into));
 
         self.with_current_profile(|profile| {
-            let layout_name = profile.and_then(|p| p.layout.as_deref());
-            self.select_layout(layout_name)
+            if let Some(p) = profile {
+                self.select_layout(p.layout.as_str());
+            }
         });
 
         debug!("Selected profile: {:?}", self.current_profile_name.borrow());
     }
 
-    pub(crate) fn select_layout(&self, name: Option<&str>) {
-        let layout_name = name.map(Into::into).or_else(|| {
-            let layouts = self.layouts.borrow();
-            let first = layouts.iter().next();
-            first.map(|l| l.name.clone())
-        });
-
-        self.current_layout_name.replace(layout_name);
+    pub(crate) fn select_layout(&self, layout_name: &str) {
+        self.current_layout_name.replace(layout_name.to_string());
         self.with_current_layout(|layout| {
             self.key_hook.set_rules(layout.map(|l| &l.rules));
             self.window.on_layout_changed(layout);
@@ -167,18 +165,18 @@ impl App {
         let layouts = self.layouts.borrow();
         let next_name = {
             let current = self.current_layout_name.borrow(); /* must stay exactly inside the block */
-            let next = layouts.cyclic_next(current.as_deref());
-            next.and_then(|l| Some(l.name.as_str()))
+            let next = layouts.cyclic_next(current.as_str());
+            next.name.clone()
         };
 
         debug!("Next layout: {:?}", next_name);
 
-        self.select_layout(next_name);
+        self.select_layout(next_name.as_str());
     }
 
     fn update_controls(&self) {
         let layouts = self.layouts.borrow();
-        let layout = layouts.find(self.current_layout_name.borrow().as_deref());
+        let layout = layouts.find(self.current_layout_name.borrow().as_str()).unwrap();
 
         self.update_title();
         self.window.update_ui(
@@ -196,10 +194,7 @@ impl App {
             None => title = format!("{} - {}", title, rs!(IDS_NO_PROFILE)),
         };
 
-        match self.current_layout_name.borrow().as_deref() {
-            Some(name) => title = format!("{} - {}", title, name),
-            None => title = format!("{} - {}", title, rs!(IDS_NO_LAYOUT)),
-        };
+        title = format!("{} - {}", title, self.current_layout_name.borrow());
 
         #[cfg(not(feature = "debug"))]
         self.window.set_title(title.as_str());
@@ -246,7 +241,7 @@ impl App {
         self.window.set_visible(true);
     }
 
-    fn on_select_layout(&self, layout_name: Option<&str>) {
+    fn on_select_layout(&self, layout_name: &str) {
         self.select_layout(layout_name);
         self.save_settings();
     }

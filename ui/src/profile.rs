@@ -5,13 +5,13 @@ use std::collections::HashMap;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct Profile {
-    pub(crate) rule: Option<String>,
-    pub(crate) layout: Option<String>,
+    pub(crate) activation_rule: Option<String>,
+    pub(crate) layout: String,
 }
 
 impl Profile {
     pub(crate) fn regex(&self) -> Option<Regex> {
-        match &self.rule {
+        match &self.activation_rule {
             Some(r) => Regex::new(r).ok(),
             None => None,
         }
@@ -37,6 +37,7 @@ impl Profiles {
 
 #[cfg(test)]
 pub mod tests {
+    use crate::str;
     use super::*;
 
     #[test]
@@ -45,7 +46,7 @@ pub mod tests {
         assert!(profile.regex().is_none());
 
         let profile = Profile {
-            rule: Some("".to_string()),
+            activation_rule: Some(str!("")),
             ..Default::default()
         };
 

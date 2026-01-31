@@ -74,7 +74,7 @@ pub(crate) struct LogViewSettings {
 pub mod tests {
     use super::*;
     use crate::profile::Profile;
-    use keympostor::map;
+    use crate::{map, str};
 
     #[test]
     fn test_save_load_settings() {
@@ -82,7 +82,7 @@ pub mod tests {
             logging_enabled: false,
             profiles_enabled: true,
             toggle_layout_hot_key: None,
-            transform_layout: Some("test-layout".to_string()),
+            transform_layout: Some(str!("test-layout")),
             main_window: MainWindowSettings {
                 position: Some((0, 0)),
                 size: Some((100, 200)),
@@ -90,13 +90,13 @@ pub mod tests {
                 log_view: Default::default(),
             },
             profiles: Some(Profiles(map![
-                "chrome".to_string() => Profile {
-                    rule: Some("Chrome".to_string()),
-                    layout: Some("game".to_string()),
+                str!("chrome") => Profile {
+                    activation_rule: Some(str!("Chrome")),
+                    layout: str!("game"),
                 },
-                "tc".to_string() => Profile {
-                    rule: Some("TOTALCMD64.EXE".to_string()),
-                    layout: Some("game".to_string()),
+                str!("tc") => Profile {
+                    activation_rule: Some(str!("TOTALCMD64.EXE")),
+                    layout: str!("game"),
                 },
             ])),
         };

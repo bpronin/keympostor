@@ -6,15 +6,6 @@ macro_rules! ife {
 }
 
 #[macro_export]
-macro_rules! map {
-    ( $( $key:expr => $val:expr ),* $(,)? ) => {{
-        let mut map = ::std::collections::HashMap::new();
-        $(map.insert($key, $val);)*
-        map
-    }};
-}
-
-#[macro_export]
 macro_rules! append_prefix {
     ($s:expr, $pref:literal) => {
         if $s.starts_with($pref) {

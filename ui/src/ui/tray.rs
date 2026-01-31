@@ -1,5 +1,5 @@
-use crate::layout::KeyTransformLayout;
-use crate::res::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_OPEN, IDS_TRAY_TIP};
+use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
+use crate::res::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_SETTINGS, IDS_TRAY_TIP};
 use crate::res::RESOURCES;
 use crate::ui::App;
 use crate::{r_icon, rs};
@@ -8,6 +8,7 @@ use native_windows_gui::{
     ControlHandle, Event, GlobalCursor, Icon, Menu, MenuItem, MenuSeparator, MousePressEvent,
     NwgError, TrayNotification, Window,
 };
+use std::cell::RefCell;
 
 #[derive(Default)]
 pub(crate) struct Tray {
@@ -15,7 +16,9 @@ pub(crate) struct Tray {
     menu: Menu,
     open_app_item: MenuItem,
     exit_app_item: MenuItem,
+    layouts_item: Menu,
     separator: MenuSeparator,
+    layout_items: RefCell<Vec<(MenuItem, String)>>,
 }
 
 impl Tray {
@@ -31,14 +34,19 @@ impl Tray {
             .parent(parent)
             .build(&mut self.menu)?;
 
-        MenuItem::builder()
-            .text(rs!(IDS_OPEN))
+        Menu::builder()
+            .text(rs!(IDS_LAYOUT))
             .parent(&self.menu)
-            .build(&mut self.open_app_item)?;
+            .build(&mut self.layouts_item)?;
 
         MenuSeparator::builder()
             .parent(&self.menu)
             .build(&mut self.separator)?;
+
+        MenuItem::builder()
+            .text(rs!(IDS_SETTINGS))
+            .parent(&self.menu)
+            .build(&mut self.open_app_item)?;
 
         MenuItem::builder()
             .text(rs!(IDS_EXIT))
@@ -46,26 +54,42 @@ impl Tray {
             .build(&mut self.exit_app_item)
     }
 
-    pub(crate) fn update_ui(&self, current_layout: Option<&KeyTransformLayout>) {
-        let mut icon = r_icon!(IDI_ICON_APP);
+    pub(crate) fn build_layout_menu(&self, layouts: &KeyTransformLayouts) {
+        let mut layout_items = vec![];
 
-        if let Some(layout) = current_layout {
-            Icon::builder()
-                .source_file(layout.icon.as_deref())
-                .strict(true)
-                .size(Some((16, 16)))
-                .build(&mut icon)
-                .unwrap_or_else(|e| {
-                    warn!("Failed to load layout icon: {:?}", e);
-                })
-        };
+        for layout in layouts {
+            let mut item: MenuItem = MenuItem::default();
+            MenuItem::builder()
+                .parent(&self.layouts_item)
+                .text(&layout.title)
+                .build(&mut item)
+                .unwrap();
 
-        self.notification.set_icon(&icon);
+            layout_items.push((item, layout.name.clone()));
+        }
+
+        self.layout_items.replace(layout_items);
+
+
     }
 
-    fn on_show_menu(&self) {
-        let (x, y) = GlobalCursor::position();
-        self.menu.popup(x, y);
+    pub(crate) fn update_ui(&self, layout: &KeyTransformLayout) {
+        let mut icon = r_icon!(IDI_ICON_APP);
+
+        Icon::builder()
+            .source_file(layout.icon.as_deref())
+            .strict(true)
+            .size(Some((16, 16)))
+            .build(&mut icon)
+            .unwrap_or_else(|e| {
+                warn!("Failed to load layout icon: {:?}", e);
+            });
+
+        self.notification.set_icon(&icon);
+
+        for (item, item_layout_name) in self.layout_items.borrow().iter() {
+            item.set_checked(item_layout_name == &layout.name);
+        }
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
@@ -85,9 +109,21 @@ impl Tray {
                     app.on_show_main_window();
                 } else if &handle == &self.exit_app_item {
                     app.on_app_exit();
+                } else {
+                    for (item, layout_name) in self.layout_items.borrow().iter() {
+                        if item.handle == handle {
+                            app.on_select_layout(layout_name);
+                            break;
+                        }
+                    }
                 }
             }
             _ => {}
         }
+    }
+
+    fn on_show_menu(&self) {
+        let (x, y) = GlobalCursor::position();
+        self.menu.popup(x, y);
     }
 }

@@ -26,7 +26,7 @@ mod tests {
                     sc_key.value, sc_key.is_extended as u8
                 )
             } else {
-                "None".to_string()
+                str!("None")
             };
 
             println!("new_key!({}, \"{}\", {}, {}),", id, name, vk_opt, sc_opt);
@@ -137,7 +137,7 @@ mod tests {
     }
 
     fn fmt_scancode_name(key_name: &str) -> String {
-        "SC_".to_string()
+        str!("SC_")
             + &key_name
                 .to_uppercase()
                 .replace(' ', "_")
@@ -160,7 +160,7 @@ mod tests {
         if let Some(key_name) = find_key_name(scancode, extended) {
             fmt_scancode_name(&key_name)
         } else {
-            "UNASSIGNED".to_string()
+            str!("UNASSIGNED")
         }
     }
 

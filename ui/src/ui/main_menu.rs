@@ -54,7 +54,7 @@ impl MainMenu {
         &self,
         is_auto_switch_layout_enabled: bool,
         is_logging_enabled: bool,
-        current_layout: Option<&KeyTransformLayout>,
+        current_layout: &KeyTransformLayout,
     ) {
         self.toggle_logging_enabled_item
             .set_checked(is_logging_enabled);
