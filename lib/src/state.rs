@@ -133,7 +133,7 @@ pub mod tests {
     fn test_keyboard_state_hex_format() {
         let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
 
-        println!("{:X}", state);
+        // println!("{:X}", state);
         assert_eq!(
             "0000000000000000_0000000000000000_0001000000000000_0001000800000000",
             format!("{:X}", state)
@@ -144,7 +144,7 @@ pub mod tests {
     fn test_keyboard_state_bin_format() {
         let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
 
-        println!("{:b}", state);
+        // println!("{:b}", state);
         assert_eq!(
             "0000000000000000000000000000000000000000000000000000000000000000_0000000000000000000000000000000000000000000000000000000000000000_0000000000000001000000000000000000000000000000000000000000000000_0000000000000001000000000000100000000000000000000000000000000000",
             format!("{:b}", state)

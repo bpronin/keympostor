@@ -212,7 +212,7 @@ mod tests {
         let result = get_window_title(hwnd);
 
         assert!(result.is_ok());
-        println!("{:?}", result);
+        // println!("{:?}", result);
     }
 
     #[test]
@@ -221,6 +221,6 @@ mod tests {
         let result = get_process_name(hwnd);
 
         assert!(result.is_ok());
-        println!("{:?}", result);
+        // println!("{:?}", result);
     }
 }

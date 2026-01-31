@@ -47,9 +47,13 @@ pub fn key_by_code(vk_code: u8, sc_code: u8, sc_ext: bool) -> &'static Key {
 }
 
 pub fn key_by_name(name: &str) -> Result<&'static Key, KeyError> {
-    NAME_TO_KEY_MAP
-        .get(name.trim())
-        .ok_or(KeyError::new(&format!("Illegal key name: `{name}`.")))
+    if name.is_empty() {
+        Ok(&KEY_UNASSIGNED)
+    } else {
+        NAME_TO_KEY_MAP
+            .get(name.trim())
+            .ok_or(KeyError::new(&format!("Illegal key name: `{name}`.")))
+    }
 }
 
 #[macro_export]
@@ -490,7 +494,7 @@ pub(crate) static CODE_TO_KEY_MAP: phf::Map<u32, Key> = phf_map! {
 };
 
 pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
-    "" => KEY_UNASSIGNED,
+    // "" => KEY_UNASSIGNED,
     "0" => KEY_0,
     "<00>" => KEY_00,
     "1" => KEY_1,
@@ -736,11 +740,9 @@ mod tests {
 
     #[test]
     fn test_key_name() {
-        assert!(
-            NAME_TO_KEY_MAP
-                .entries()
-                .all(|(name, key)| key.name == *name)
-        )
+        for (k, v) in NAME_TO_KEY_MAP.entries() {
+            assert_eq!(*k, v.name)
+        }
     }
 
     #[test]
