@@ -36,14 +36,6 @@ impl LayoutsMenu {
     pub(crate) fn build_items(&self, layouts: &KeyTransformLayouts) -> Result<(), NwgError> {
         let mut items = vec![];
 
-        let mut item: MenuItem = MenuItem::default();
-        MenuItem::builder()
-            .parent(&self.menu)
-            .text(rs!(IDS_NO_LAYOUT))
-            .build(&mut item)?;
-
-        items.push((item, None));
-
         for layout in layouts.iter() {
             let mut item: MenuItem = MenuItem::default();
             MenuItem::builder()

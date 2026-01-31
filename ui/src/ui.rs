@@ -146,7 +146,13 @@ impl App {
     }
 
     pub(crate) fn select_layout(&self, name: Option<&str>) {
-        self.current_layout_name.replace(name.map(Into::into));
+        let layout_name = name.map(Into::into).or_else(|| {
+            let layouts = self.layouts.borrow();
+            let first = layouts.iter().next();
+            first.map(|l| l.name.clone())
+        });
+
+        self.current_layout_name.replace(layout_name);
         self.with_current_layout(|layout| {
             self.key_hook.set_rules(layout.map(|l| &l.rules));
             self.window.on_layout_changed(layout);
