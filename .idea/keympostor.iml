@@ -12,6 +12,7 @@
       <excludeFolder url="file://$MODULE_DIR$/keyboard/target" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
       <excludeFolder url="file://$MODULE_DIR$/test_helpers/target" />
+      <excludeFolder url="file://$MODULE_DIR$/ui/etc/test_data/tmp" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

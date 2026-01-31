@@ -2,9 +2,11 @@ use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
 use crate::profile::{Profile, Profiles};
-use crate::res::res_ids::{IDS_APP_TITLE, IDS_NO_LAYOUT, IDS_NO_PROFILE};
+use crate::res::res_ids::{
+    IDS_APP_ALREADY_RUNNING, IDS_APP_TITLE, IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS,
+    IDS_NO_LAYOUT, IDS_NO_PROFILE,
+};
 use crate::res::RESOURCES;
-use crate::rs;
 use crate::settings::AppSettings;
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -13,9 +15,10 @@ use crate::ui::main_window::MainWindow;
 use crate::ui::style::display_font;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
-use crate::ui::utils::warn_message;
+use crate::ui::utils::show_warn_message;
 use crate::util::is_app_running;
 use crate::win_watch::WinWatcher;
+use crate::{rs, show_warn_message};
 use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
 use keympostor::notify::WM_KEY_HOOK_NOTIFY;
@@ -54,7 +57,7 @@ pub(crate) struct App {
 impl App {
     fn load_settings(&self) {
         let settings = AppSettings::load_default().unwrap_or_else(|e| {
-            warn_message(&format!("Failed to load settings: `{}`", e));
+            show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_SETTINGS), e);
             AppSettings::default()
         });
 
@@ -106,7 +109,7 @@ impl App {
 
     fn load_layouts(&self) {
         let layouts = KeyTransformLayouts::load_default().unwrap_or_else(|e| {
-            warn_message(&format!("Failed to load layouts: {}", e));
+            show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_LAYOUTS), e);
             KeyTransformLayouts::default()
         });
         self.layouts.replace(layouts);
@@ -350,7 +353,7 @@ impl AppUi {
 
     pub(crate) fn run(&self) {
         if is_app_running() {
-            warn_message("Application is already running");
+            show_warn_message(rs!(IDS_APP_ALREADY_RUNNING));
             return;
         }
         self.setup_event_handlers();

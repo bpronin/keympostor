@@ -22,3 +22,6 @@ pub(crate) const IDS_STATUS: usize = 1019;
 pub(crate) const IDS_TIME: usize = 1020;
 pub(crate) const IDS_VIRTUAL_KEY: usize = 1021;
 pub(crate) const IDS_SCAN_CODE: usize = 1022;
+pub(crate) const IDS_APP_ALREADY_RUNNING: usize = 1023;
+pub(crate) const IDS_FAILED_LOAD_SETTINGS: usize = 1024;
+pub(crate) const IDS_FAILED_LOAD_LAYOUTS: usize = 1025;

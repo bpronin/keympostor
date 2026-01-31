@@ -33,6 +33,9 @@ IDI_ICON_APP ICON "res/image/app.ico"
 #define IDS_TIME 1020
 #define IDS_VIRTUAL_KEY 1021
 #define IDS_SCAN_CODE 1022
+#define IDS_APP_ALREADY_RUNNING 1023
+#define IDS_FAILED_LOAD_SETTINGS 1024
+#define IDS_FAILED_LOAD_LAYOUTS 1025
 
 STRINGTABLE
 BEGIN
@@ -57,4 +60,7 @@ BEGIN
     IDS_VIRTUAL_KEY "Virtual key"
     IDS_SCAN_CODE "Scan code"
     IDS_NO_PROFILE "No profile"
+    IDS_APP_ALREADY_RUNNING "Application is already running."
+    IDS_FAILED_LOAD_SETTINGS "Failed to load settings"
+    IDS_FAILED_LOAD_LAYOUTS "Failed to load layouts"
 END

@@ -48,32 +48,22 @@ impl Resources {
     pub(crate) fn string(&self, res_id: usize) -> String {
         self.embed
             .string(res_id as u32)
-            .expect("Unable to read resource string")
+            .expect(&format!("Unable to read resource string:{res_id}"))
     }
 }
 
 #[cfg(test)]
 mod test {
-
-    use crate::res::res_ids::IDI_ICON_APP;
+    use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE};
     use crate::res::RESOURCES;
-    use log::LevelFilter;
-    use simple_logger::SimpleLogger;
 
-    // #[test]
-    // fn test_rs() {
-    //     assert_eq!("Keympostor", rs!(IDS_APP_TITLE));
-    // }
-    pub fn setup_test_logger() {
-        SimpleLogger::new()
-            .with_level(LevelFilter::Debug)
-            .init()
-            .expect("Failed to initialize logger.");
+    #[test]
+    fn test_rs() {
+        assert_eq!("Keympostor", rs!(IDS_APP_TITLE));
     }
 
     #[test]
     fn test_r_icon() {
         assert_ne!(std::ptr::null_mut(), r_icon!(IDI_ICON_APP).handle);
     }
-
 }

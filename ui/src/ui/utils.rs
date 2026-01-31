@@ -72,7 +72,7 @@ pub fn scroll_list_view_to_end(view: &ListView) {
     }
 }
 
-pub(crate) fn warn_message(text: &str) {
+pub(crate) fn show_warn_message(text: &str) {
     message(&MessageParams {
         title: rs!(IDS_APP_TITLE),
         content: text,
@@ -81,9 +81,9 @@ pub(crate) fn warn_message(text: &str) {
     });
 }
 
-// #[macro_export]
-// macro_rules! ui_warn {
-//     ($($arg:tt)*) => {
-//         crate::ui::utils::warn(&format!($($arg)*));
-//     }
-// }
+#[macro_export]
+macro_rules! show_warn_message {
+    ($($arg:tt)*) => {
+        crate::ui::utils::show_warn_message(&format!($($arg)*));
+    }
+}

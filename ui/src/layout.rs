@@ -69,7 +69,7 @@ impl KeyTransformLayouts {
 
     pub(crate) fn cyclic_next(&self, name: Option<&str>) -> Option<&KeyTransformLayout> {
         match name {
-            None => self.0.get(0),
+            None => self.0.first(),
             Some(n) => {
                 let mut iter = self.0.iter();
                 iter.find(|l| l.name == *n);
