@@ -1,3 +1,7 @@
 [workspace]
 members = ["lib", "ui"]
 resolver = "3"
+
+[profile.release]
+opt-level = 0 # native-windows-gui-1.0.13/src/controls/tabs.rs:760 fails with optimization
+#debug = "full"

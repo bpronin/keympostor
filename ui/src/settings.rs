@@ -101,9 +101,11 @@ pub mod tests {
             ])),
         };
 
-        assert!(settings.save("test_settings.toml").is_ok());
+        const PATH: &'static str = "etc/test_data/test_settings.toml";
 
-        let loaded = AppSettings::load("test_settings.toml").unwrap();
+        assert!(settings.save(PATH).is_ok());
+
+        let loaded = AppSettings::load(PATH).unwrap();
         assert_eq!(settings, loaded);
     }
 }
