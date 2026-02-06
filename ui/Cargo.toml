@@ -12,7 +12,7 @@ path = "src/main.rs"
 lib = { path = "../lib" }
 lomen-core = { path = "../../lomen/lomen-core" }
 log = "0.4.28"
-fern = "0.7.1"
+fern = { version = "0.7.1", features = ["colored"] }
 chrono = "0.4.43"
 log-panics = { version = "2", features = ["with-backtrace"] }
 windows = { version = "0.62.2", features = ["Win32_UI_Controls", "Win32_Graphics_Gdi", "Win32_Media", "Win32_Media_Audio", "Win32_System_LibraryLoader", "Win32_Globalization", "Win32_Storage_FileSystem"] }

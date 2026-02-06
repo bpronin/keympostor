@@ -1,8 +1,14 @@
 #![cfg_attr(not(feature = "console"), windows_subsystem = "windows")] /* hides the console window */
+use std::error::Error;
 use crate::ui::App;
 use log::LevelFilter;
 use native_windows_gui::NativeUi;
 use std::fs::File;
+use std::io::stdout;
+use std::thread;
+use chrono::Local;
+use fern::colors::{Color, ColoredLevelConfig};
+use fern::Dispatch;
 
 pub mod indicator;
 mod kb_watch;
@@ -23,31 +29,43 @@ fn main() {
         .run();
 }
 
-fn setup_logger() -> Result<(), fern::InitError> {
-    let base_config = fern::Dispatch::new()
+fn setup_logger() -> Result<(), Box<dyn Error>> {
+    let stdout_config = Dispatch::new()
+        .level(LevelFilter::Debug)
         .format(move |out, message, record| {
             out.finish(format_args!(
-                "{} {:<5} {:<32} [{}] {}",
-                chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
-                record.level(),
+                "{} {:<5} [{}] {:<32} {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+                ColoredLevelConfig::new()
+                    .error(Color::Red)
+                    .warn(Color::Yellow)
+                    .info(Color::Blue)
+                    .debug(Color::Green)
+                    .trace(Color::Magenta)
+                    .color(record.level()),
+                thread::current().name().unwrap_or("noname"),
                 record.target(),
-                std::thread::current().name().unwrap_or("unknown"),
                 message
             ))
         })
-        .filter(|metadata| {
-            metadata.target().starts_with("keympostor::")
-        });
+        .filter(|metadata| metadata.target().starts_with("keympostor::"))
+        .chain(stdout());
 
-    let stdout_config = fern::Dispatch::new()
-        .level(LevelFilter::Debug)
-        .chain(std::io::stdout());
-
-    let file_config = fern::Dispatch::new()
+    let file_config = Dispatch::new()
         .level(LevelFilter::Warn)
+        .format(move |out, message, record| {
+            out.finish(format_args!(
+                "{} {:<5} ({}) [{:<32}] {}",
+                Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+                record.level(),
+                thread::current().name().unwrap_or("unknown"),
+                record.target(),
+                message
+            ))
+        })
         .chain(File::create("keympostor.log")?);
 
-    base_config
+    Dispatch::new()
         .chain(stdout_config)
         .chain(file_config)
         .apply()?;
