@@ -1,4 +1,4 @@
-use crate::ui::App;
+use crate::app::App;
 use crate::{indicator, util};
 use indicator::notify_layout_changed;
 use log::{debug, warn};

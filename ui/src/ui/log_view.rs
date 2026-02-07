@@ -1,3 +1,4 @@
+use crate::res::RESOURCES;
 use crate::res::res_ids::{
     IDS_ACTION, IDS_KEY, IDS_MODIFIERS, IDS_RULE, IDS_SCAN_CODE, IDS_STATUS, IDS_TIME,
     IDS_TRANSITION, IDS_VIRTUAL_KEY,
@@ -6,7 +7,6 @@ use crate::rs;
 use crate::settings::MainWindowSettings;
 use crate::ui::utils::get_list_view_column_width;
 use crate::ui::utils::scroll_list_view_to_end;
-use crate::ui::RESOURCES;
 use keympostor::event::KeyEvent;
 use keympostor::ife;
 use keympostor::modifiers::{

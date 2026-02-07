@@ -1,17 +1,20 @@
-use super::*;
-use crate::layout::KeyTransformLayout;
+use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
 use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::res::RESOURCES;
 use crate::settings::MainWindowSettings;
 use crate::ui::style::INFO_LABEL_FONT;
-use crate::{r_icon, rs};
+use crate::{r_icon, rs, ui};
 use keympostor::event::KeyEvent;
 use native_windows_gui::stretch::geometry::{Rect, Size};
 use native_windows_gui::stretch::style::Dimension::Points as PT;
 use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
-use native_windows_gui::{
-    ControlHandle, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags,
-};
+use native_windows_gui::{ControlHandle, Event, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags};
+use crate::app::App;
+use crate::ui::layout_view::LayoutView;
+use crate::ui::log_view::LogView;
+use crate::ui::main_menu::MainMenu;
+use crate::ui::test_editor::TypeTestEditor;
+use crate::ui::tray::Tray;
 
 #[derive(Default)]
 pub(crate) struct MainWindow {
@@ -118,12 +121,12 @@ impl MainWindow {
             .build(&self.layout)
     }
 
-    pub(crate) fn handle_event(&self, app: &App, evt: nwg::Event, handle: ControlHandle) {
+    pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
         self.main_menu.handle_event(app, evt, handle);
         self.tray.handle_event(app, evt, handle);
         self.test_editor.handle_event(evt);
         match evt {
-            nwg::Event::OnWindowClose => {
+            Event::OnWindowClose => {
                 if &handle == &self.window.handle {
                     app.on_window_close();
                 }
@@ -155,7 +158,7 @@ impl MainWindow {
             self.window.set_position(position.0, position.1);
         }
         if let Some(size) = settings.size {
-            set_window_size(&self.window, size);
+            ui::utils::set_window_size(&self.window, size);
         }
         if let Some(page) = settings.selected_page {
             self.tab_container.set_selected_tab(page);
@@ -165,7 +168,7 @@ impl MainWindow {
 
     pub(crate) fn update_settings(&self, settings: &mut MainWindowSettings) {
         settings.position = Some(self.window.position());
-        settings.size = Some(get_window_size(&self.window));
+        settings.size = Some(ui::utils::get_window_size(&self.window));
         settings.selected_page = Some(self.tab_container.selected_tab());
         self.log_view.update_settings(settings);
     }

@@ -3,7 +3,7 @@ use crate::res::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED
 use crate::res::RESOURCES;
 use crate::rs;
 use crate::ui::layouts_menu::LayoutsMenu;
-use crate::ui::App;
+use crate::app::App;
 use log::warn;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};
 

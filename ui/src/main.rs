@@ -1,16 +1,17 @@
 #![cfg_attr(not(feature = "console"), windows_subsystem = "windows")] /* hides the console window */
-use std::error::Error;
-use crate::ui::App;
-use log::LevelFilter;
-use native_windows_gui::NativeUi;
-use std::fs::File;
-use std::io::stdout;
-use std::thread;
+use crate::ui::app_ui::AppUI;
 use chrono::Local;
 use fern::colors::{Color, ColoredLevelConfig};
 use fern::Dispatch;
+use log::LevelFilter;
+use std::error::Error;
+use std::fs::File;
+use std::io::stdout;
+use std::thread;
+use crate::app::App;
 
-pub mod indicator;
+mod app;
+mod indicator;
 mod kb_watch;
 mod layout;
 mod profile;
@@ -24,9 +25,9 @@ fn main() {
     log_panics::init();
     setup_logger().expect("Failed to initialize logger.");
 
-    App::build_ui(Default::default())
-        .expect("Failed to build application UI.")
-        .run();
+    let app = App::default();
+    let ui = AppUI::build(app);
+    ui.run();
 }
 
 fn setup_logger() -> Result<(), Box<dyn Error>> {

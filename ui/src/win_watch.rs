@@ -1,5 +1,5 @@
 use crate::profile::Profiles;
-use crate::ui::App;
+use crate::app::App;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
