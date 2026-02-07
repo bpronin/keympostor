@@ -8,6 +8,8 @@ use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
 use keympostor::notify::WM_KEY_HOOK_NOTIFY;
 use keympostor::trigger::KeyTrigger;
+use ui::utils;
+use utils::drain_timer_msg_queue;
 use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
@@ -209,7 +211,7 @@ impl App {
         self.load_layouts();
         self.load_settings();
 
-        let window_hwnd = ui::utils::try_hwnd(self.window.handle());
+        let window_hwnd = utils::try_hwnd(self.window.handle());
         self.key_hook.install(window_hwnd);
         self.win_watcher.init(window_hwnd);
         self.keyboard_layout_watcher.start(window_hwnd);
@@ -248,6 +250,7 @@ impl App {
         self.save_settings();
         self.keyboard_layout_watcher.stop();
         self.win_watcher.stop();
+        drain_timer_msg_queue();
         stop_thread_dispatch();
     }
 

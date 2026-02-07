@@ -7,10 +7,7 @@ use native_windows_gui::{
 use std::mem;
 use windows::Win32::Foundation::{HWND, RECT, WPARAM};
 use windows::Win32::UI::Controls::{LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH};
-use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowRect, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER,
-    SendMessageW, SetWindowPos,
-};
+use windows::Win32::UI::WindowsAndMessaging::{GetWindowRect, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER, SendMessageW, SetWindowPos, MSG, PeekMessageW, WM_TIMER, PM_REMOVE};
 
 pub fn try_hwnd(handle: ControlHandle) -> Option<HWND> {
     handle.hwnd().map(|h| HWND(h as _))
@@ -79,6 +76,15 @@ pub(crate) fn show_warn_message(text: &str) {
         buttons: MessageButtons::Ok,
         icons: MessageIcons::Warning,
     });
+}
+
+pub(crate) fn drain_timer_msg_queue() {
+    unsafe {
+        let mut msg = MSG::default();
+        while PeekMessageW(&mut msg, None, WM_TIMER, WM_TIMER, PM_REMOVE).as_bool() {
+            /* do nothing, just drain the queue until the timers are killed */
+        }
+    }
 }
 
 #[macro_export]

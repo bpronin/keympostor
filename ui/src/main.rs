@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "console"), windows_subsystem = "windows")] /* hides the console window */
+use crate::app::App;
 use crate::ui::app_ui::AppUI;
 use chrono::Local;
 use fern::colors::{Color, ColoredLevelConfig};
@@ -8,7 +9,6 @@ use std::error::Error;
 use std::fs::File;
 use std::io::stdout;
 use std::thread;
-use crate::app::App;
 
 mod app;
 mod indicator;
