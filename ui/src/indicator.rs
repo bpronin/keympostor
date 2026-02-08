@@ -70,37 +70,32 @@ fn set_layout_keyboard_lighting(
     }
 }
 
-fn play_layout_sound(
-    transform_layout: Option<&KeyTransformLayout>,
-    keyboard_state: &KeyboardLayoutState,
-) {
-    if let Some(layout) = transform_layout {
-        if let Some(layout_settings) = layout.sound.as_ref() {
-            let locks = &keyboard_state.locks();
-            if let Some(locks_settings) = layout_settings
-                .get(locks)
-                .or_else(|| layout_settings.get("default"))
+fn play_layout_sound(layout: &KeyTransformLayout, keyboard_state: &KeyboardLayoutState) {
+    if let Some(layout_settings) = layout.sound.as_ref() {
+        let locks = &keyboard_state.locks();
+        if let Some(locks_settings) = layout_settings
+            .get(locks)
+            .or_else(|| layout_settings.get("default"))
+        {
+            let locale = &keyboard_state.locale();
+            if let Some(sound) = locks_settings
+                .get(locale)
+                .or_else(|| locks_settings.get("default"))
             {
-                let locale = &keyboard_state.locale();
-                if let Some(sound) = locks_settings
-                    .get(locale)
-                    .or_else(|| locks_settings.get("default"))
-                {
-                    debug!(
-                        "Playing sound for layout: `{}`, locks: `{}`, locale: `{}``",
-                        layout.name, locks, locale
-                    );
-                    play_sound(sound);
-                }
+                debug!(
+                    "Playing sound for layout: `{}`, locks: `{}`, locale: `{}``",
+                    layout.name, locks, locale
+                );
+                play_sound(sound);
             }
         }
     }
 }
 
 pub(crate) fn notify_layout_changed(
-    layout: Option<&KeyTransformLayout>,
+    layout: &KeyTransformLayout,
     keyboard_state: &KeyboardLayoutState,
 ) {
     play_layout_sound(layout, keyboard_state);
-    set_layout_keyboard_lighting(layout, keyboard_state);
+    set_layout_keyboard_lighting(Some(layout), keyboard_state);
 }

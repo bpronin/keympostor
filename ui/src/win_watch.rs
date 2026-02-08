@@ -1,9 +1,9 @@
-use crate::profile::Profiles;
 use crate::app::App;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::error::Error;
 use std::rc::Rc;
 use windows::core::PWSTR;
@@ -18,6 +18,7 @@ use windows::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
 };
+use crate::profile::LayoutAutoswitchProfile;
 
 const TIMER_ID: usize = 19717;
 const WATCH_INTERVAL: u32 = 500;
@@ -34,7 +35,7 @@ impl WinWatcher {
         self.owner.replace(Some(owner));
     }
 
-    pub(crate) fn set_profiles(&self, profiles: Rc<Profiles>) {
+    pub(crate) fn set_profiles(&self, profiles: Rc<HashMap<String, LayoutAutoswitchProfile>>) {
         self.detector.borrow_mut().profiles = profiles;
     }
 
@@ -104,7 +105,7 @@ impl WinWatcher {
 
 #[derive(Default)]
 struct WindowActivationDetector {
-    profiles: Rc<Profiles>,
+    profiles: Rc<HashMap<String, LayoutAutoswitchProfile>>,
     last_hwnd: Option<HWND>,
 }
 
@@ -128,7 +129,7 @@ impl WindowActivationDetector {
     }
 }
 
-fn detect_active_window(profiles: &Profiles) -> Option<(HWND, &String)> {
+fn detect_active_window(profiles: &HashMap<String, LayoutAutoswitchProfile>) -> Option<(HWND, &String)> {
     profiles
         .iter()
         .find_map(|(name, profile)| match profile.regex() {

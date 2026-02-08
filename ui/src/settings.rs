@@ -1,4 +1,4 @@
-use crate::profile::Profiles;
+use crate::profile::{LayoutAutoswitchProfile};
 use keympostor::key_trigger;
 use keympostor::trigger::KeyTrigger;
 use log::debug;
@@ -17,7 +17,7 @@ pub(crate) struct AppSettings {
     pub(crate) profiles_enabled: bool,
     pub(crate) main_window: MainWindowSettings,
     pub(crate) transform_layout: Option<String>,
-    pub(crate) profiles: Option<Profiles>,
+    pub(crate) autoswitch_profiles: Option<HashMap<String, LayoutAutoswitchProfile>>,
     pub(crate) toggle_layout_hot_key: Option<KeyTrigger>,
 }
 
@@ -28,7 +28,7 @@ impl Default for AppSettings {
             profiles_enabled: false,
             main_window: Default::default(),
             transform_layout: None,
-            profiles: Default::default(),
+            autoswitch_profiles: Default::default(),
             toggle_layout_hot_key: Some(key_trigger!("[]FN_LAUNCH_APP2^")),
         }
     }
@@ -73,7 +73,7 @@ pub(crate) struct LogViewSettings {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::profile::Profile;
+    use crate::profile::LayoutAutoswitchProfile;
     use crate::{map, str};
 
     #[test]
@@ -89,16 +89,16 @@ pub mod tests {
                 selected_page: Some(0),
                 log_view: Default::default(),
             },
-            profiles: Some(Profiles(map![
-                str!("chrome") => Profile {
+            autoswitch_profiles: Some(map![
+                str!("chrome") => LayoutAutoswitchProfile {
                     activation_rule: Some(str!("Chrome")),
                     layout: str!("game"),
                 },
-                str!("tc") => Profile {
+                str!("tc") => LayoutAutoswitchProfile {
                     activation_rule: Some(str!("TOTALCMD64.EXE")),
                     layout: str!("game"),
                 },
-            ])),
+            ]),
         };
 
         const PATH: &'static str = "etc/test_data/test_settings.toml";

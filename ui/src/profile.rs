@@ -1,15 +1,20 @@
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::hash_map::Iter;
-use std::collections::HashMap;
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Profile {
+pub(crate) struct LayoutAutoswitchProfile {
     pub(crate) activation_rule: Option<String>,
     pub(crate) layout: String,
 }
 
-impl Profile {
+impl LayoutAutoswitchProfile {
+    pub(crate) fn new(layout: String) -> Self {
+        Self {
+            layout,
+            ..Default::default()
+        }
+    }
+
     pub(crate) fn regex(&self) -> Option<Regex> {
         match &self.activation_rule {
             Some(r) => Regex::new(r).ok(),
@@ -18,34 +23,34 @@ impl Profile {
     }
 }
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Profiles(pub(crate) HashMap<String, Profile>);
-
-impl Profiles {
-    pub(crate) fn get(&self, name: Option<&str>) -> Option<&Profile> {
-        name.and_then(|n| self.0.get(n))
-    }
-
-    pub(crate) fn get_or_insert(&mut self, name: &str, default: Profile) -> &Profile {
-        self.0.entry(name.to_string()).or_insert_with(|| default)
-    }
-
-    pub(crate) fn iter(&self) -> Iter<'_, String, Profile> {
-        self.0.iter()
-    }
-}
+// #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+// pub(crate) struct Profiles(pub(crate) HashMap<String, LayoutAutoswitchProfile>);
+//
+// impl Profiles {
+//     pub(crate) fn get(&self, name: Option<&str>) -> Option<&LayoutAutoswitchProfile> {
+//         name.and_then(|n| self.0.get(n))
+//     }
+//
+//     pub(crate) fn get_or_insert(&mut self, name: &str, default: LayoutAutoswitchProfile) -> &LayoutAutoswitchProfile {
+//         self.0.entry(name.to_string()).or_insert_with(|| default)
+//     }
+//
+//     pub(crate) fn iter(&self) -> Iter<'_, String, LayoutAutoswitchProfile> {
+//         self.0.iter()
+//     }
+// }
 
 #[cfg(test)]
 pub mod tests {
-    use crate::str;
     use super::*;
+    use crate::str;
 
     #[test]
     fn test_regex_parsing() {
-        let profile = Profile::default();
+        let profile = LayoutAutoswitchProfile::default();
         assert!(profile.regex().is_none());
 
-        let profile = Profile {
+        let profile = LayoutAutoswitchProfile {
             activation_rule: Some(str!("")),
             ..Default::default()
         };

@@ -1,7 +1,7 @@
 use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
-use crate::profile::{Profile, Profiles};
+use crate::profile::LayoutAutoswitchProfile;
 use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
 use crate::ui::res::RESOURCES;
@@ -17,11 +17,11 @@ use keympostor::trigger::KeyTrigger;
 use log::debug;
 use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ops::Not;
 use std::rc::Rc;
 use ui::utils;
 use utils::drain_timer_msg_queue;
-use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
 
 #[derive(Default)]
 pub(crate) struct App {
@@ -30,7 +30,7 @@ pub(crate) struct App {
     win_watcher: WinWatcher,
     keyboard_layout_watcher: KeyboardLayoutWatcher,
     is_log_enabled: RefCell<bool>,
-    profiles: RefCell<Rc<Profiles>>,
+    profiles: RefCell<Rc<HashMap<String, LayoutAutoswitchProfile>>>,
     layouts: RefCell<KeyTransformLayouts>,
     current_profile_name: RefCell<Option<String>>,
     current_layout_name: RefCell<String>,
@@ -45,7 +45,7 @@ impl App {
         });
 
         self.window.apply_settings(&settings.main_window);
-        let profiles = Rc::new(settings.profiles.unwrap_or_default());
+        let profiles = Rc::new(settings.autoswitch_profiles.unwrap_or_default());
 
         self.profiles.replace(Rc::clone(&profiles));
         self.win_watcher.set_profiles(profiles);
@@ -56,7 +56,6 @@ impl App {
                 .unwrap_or_else(|| self.layouts.borrow().first().name.clone())
                 .as_str(),
         );
-
 
         self.win_watcher.set_enabled(settings.profiles_enabled);
         self.is_log_enabled.replace(settings.logging_enabled);
@@ -70,21 +69,19 @@ impl App {
 
     fn save_settings(&self) {
         let mut settings = AppSettings::load_default().unwrap_or_default();
-        let layout_name = self.current_layout_name.borrow();
+        let layout_name = self.current_layout_name.borrow().clone();
         let profile_name = self.current_profile_name.borrow();
 
         match profile_name.as_deref() {
             None => {
-                settings.transform_layout = Some(layout_name.clone());
+                settings.transform_layout = Some(layout_name);
             }
             Some(name) => {
-                settings.profiles.get_or_insert_default().get_or_insert(
-                    name,
-                    Profile {
-                        activation_rule: None,
-                        layout: layout_name.clone(),
-                    },
-                );
+                settings
+                    .autoswitch_profiles
+                    .get_or_insert_default()
+                    .entry(name.to_string())
+                    .or_insert_with(|| LayoutAutoswitchProfile::new(layout_name));
             }
         }
 
@@ -107,20 +104,22 @@ impl App {
 
     pub(crate) fn with_current_profile<F>(&self, action: F)
     where
-        F: FnOnce(Option<&Profile>),
+        F: FnOnce(Option<&LayoutAutoswitchProfile>),
     {
-        let list = self.profiles.borrow();
-        let name = self.current_profile_name.borrow();
-        action(list.get(name.as_deref()));
+        let profiles = self.profiles.borrow();
+        let profile_name = self.current_profile_name.borrow();
+        let profile = profile_name.as_deref().and_then(|n| profiles.get(n));
+        action(profile);
     }
 
     pub(crate) fn with_current_layout<F>(&self, action: F)
     where
-        F: FnOnce(Option<&KeyTransformLayout>),
+        F: FnOnce(&KeyTransformLayout),
     {
-        let list = self.layouts.borrow();
-        let name = self.current_layout_name.borrow();
-        action(list.find(name.as_str()));
+        let layouts = self.layouts.borrow();
+        let layout_name = self.current_layout_name.borrow();
+        let layout = layouts.find(layout_name.as_str()).expect("Layout not found.");
+        action(layout);
     }
 
     pub(crate) fn select_profile(&self, name: Option<&str>) {
@@ -137,11 +136,13 @@ impl App {
 
     pub(crate) fn select_layout(&self, layout_name: &str) {
         self.current_layout_name.replace(layout_name.to_string());
+
         self.with_current_layout(|layout| {
-            self.key_hook.set_rules(layout.map(|l| &l.rules));
-            self.window.on_layout_changed(layout);
+            self.key_hook.set_rules(Some(&layout.rules));
+            self.window.on_layout_changed(Some(layout));
             notify_layout_changed(layout, &KeyboardLayoutState::capture());
         });
+
         self.update_controls();
 
         debug!("Selected layout: {:?}", self.current_layout_name.borrow(),);
@@ -161,34 +162,16 @@ impl App {
     }
 
     fn update_controls(&self) {
-        let layouts = self.layouts.borrow();
-        let layout = layouts
-            .find(self.current_layout_name.borrow().as_str())
-            .unwrap();
+        let profile_name = self.current_profile_name.borrow();
 
-        self.update_title();
-        self.window.update_ui(
-            self.win_watcher.is_enabled(),
-            *self.is_log_enabled.borrow(),
-            layout,
-        );
-    }
-
-    fn update_title(&self) {
-        let mut title = rs!(IDS_APP_TITLE).to_string();
-
-        match self.current_profile_name.borrow().as_deref() {
-            Some(name) => title = format!("{} - {}", title, name),
-            None => title = format!("{} - {}", title, rs!(IDS_NO_PROFILE)),
-        };
-
-        title = format!("{} - {}", title, self.current_layout_name.borrow());
-
-        #[cfg(not(feature = "debug"))]
-        self.window.set_title(title.as_str());
-
-        #[cfg(feature = "debug")]
-        self.window.set_title(&format!("{} - DEBUG", title));
+        self.with_current_layout(|layout| {
+            self.window.update_ui(
+                self.win_watcher.is_enabled(),
+                *self.is_log_enabled.borrow(),
+                profile_name.as_deref(),
+                layout,
+            );
+        });
     }
 
     fn show_window(&self, show: bool) {

@@ -5,7 +5,7 @@ use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
 use crate::ui::main_menu::MainMenu;
 use crate::ui::res::RESOURCES;
-use crate::ui::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
+use crate::ui::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG, IDS_NO_PROFILE};
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
@@ -75,11 +75,7 @@ impl MainWindow {
         self.layout_view.build(&mut self.tab_layouts)?;
         self.tray.build(&self.window)?;
 
-        self.layout()
-    }
-
-    fn layout(&self) -> Result<(), NwgError> {
-        /* Log tab */
+        /* Layout view */
         FlexboxLayout::builder()
             .parent(&self.tab_container)
             .child(self.log_view.view())
@@ -151,14 +147,14 @@ impl MainWindow {
         &self,
         is_auto_switch_layout_enabled: bool,
         is_logging_enabled: bool,
-        current_layout: &KeyTransformLayout,
+        auto_switch_profile_name: Option<&str>,
+        layout: &KeyTransformLayout,
     ) {
-        self.main_menu.update_ui(
-            is_auto_switch_layout_enabled,
-            is_logging_enabled,
-            current_layout,
-        );
-        self.tray.update_ui(current_layout);
+        self.main_menu
+            .update_ui(is_auto_switch_layout_enabled, is_logging_enabled, layout);
+        self.tray.update_ui(layout);
+
+        self.update_title(auto_switch_profile_name, layout);
     }
 
     pub(crate) fn apply_settings(&self, settings: &MainWindowSettings) {
@@ -186,10 +182,6 @@ impl MainWindow {
         self.tray.build_layout_menu(layouts);
     }
 
-    pub(crate) fn set_title(&self, title: &str) {
-        self.window.set_text(title)
-    }
-
     pub(crate) fn set_visible(&self, visible: bool) {
         self.window.set_visible(visible);
     }
@@ -210,5 +202,20 @@ impl MainWindow {
         self.log_view.append(event);
         self.key_event_label
             .set_text(event.as_trigger().to_string().as_str());
+    }
+
+    fn update_title(&self, profile_name: Option<&str>, layout: &KeyTransformLayout) {
+        let title = format!(
+            "{} - {} - {}",
+            rs!(IDS_APP_TITLE),
+            profile_name.unwrap_or(rs!(IDS_NO_PROFILE)).to_string(),
+            layout.title
+        );
+
+        #[cfg(not(feature = "debug"))]
+        self.window.set_text(title.as_str());
+
+        #[cfg(feature = "debug")]
+        self.window.set_text(&format!("{} - DEBUG", title))
     }
 }

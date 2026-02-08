@@ -5,7 +5,7 @@ use native_windows_gui::{EmbedResource, Icon};
 #[macro_export]
 macro_rules! rs {
     ($res_id:ident) => {
-        &RESOURCES.with(|r| r.string($res_id))
+        RESOURCES.with(|r| r.string($res_id)).as_str()
     };
 }
 
