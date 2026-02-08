@@ -1,6 +1,6 @@
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
-use crate::res::res_ids::{IDS_AUTO_SWITCH_LAYOUT, IDS_LAYOUT};
-use crate::res::RESOURCES;
+use crate::ui::res_ids::{IDS_AUTO_SWITCH_LAYOUT, IDS_LAYOUT};
+use crate::ui::res::RESOURCES;
 use crate::rs;
 use crate::app::App;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};

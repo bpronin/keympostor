@@ -1,6 +1,6 @@
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
-use crate::res::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_SETTINGS, IDS_TRAY_TIP};
-use crate::res::RESOURCES;
+use crate::ui::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_SETTINGS, IDS_TRAY_TIP};
+use crate::ui::res::RESOURCES;
 use crate::app::App;
 use crate::{r_icon, rs};
 use log::warn;

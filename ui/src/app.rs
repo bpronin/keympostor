@@ -1,4 +1,4 @@
-use crate::res::RESOURCES;
+use crate::ui::res::RESOURCES;
 use std::cell::RefCell;
 use std::ops::Not;
 use std::rc::Rc;
@@ -14,7 +14,7 @@ use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
 use crate::profile::{Profile, Profiles};
-use crate::res::res_ids::{IDS_APP_TITLE, IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS, IDS_NO_PROFILE};
+use crate::ui::res_ids::{IDS_APP_TITLE, IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS, IDS_NO_PROFILE};
 use crate::{rs, show_warn_message, ui};
 use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;

@@ -1,5 +1,5 @@
-use crate::res::RESOURCES;
-use crate::res::res_ids::IDS_APP_TITLE;
+use crate::ui::res::RESOURCES;
+use crate::ui::res_ids::IDS_APP_TITLE;
 use crate::rs;
 use native_windows_gui::{
     ControlHandle, ListView, MessageButtons, MessageIcons, MessageParams, Window, message,

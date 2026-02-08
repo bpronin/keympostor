@@ -1,6 +1,6 @@
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
-use crate::res::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
-use crate::res::RESOURCES;
+use crate::ui::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
+use crate::ui::res::RESOURCES;
 use crate::settings::MainWindowSettings;
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::{r_icon, rs, ui};

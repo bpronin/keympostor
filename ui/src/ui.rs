@@ -8,3 +8,5 @@ mod style;
 mod test_editor;
 mod tray;
 pub(crate) mod utils;
+pub mod res;
+pub(crate) mod res_ids;

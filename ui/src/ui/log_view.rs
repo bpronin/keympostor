@@ -1,5 +1,5 @@
-use crate::res::RESOURCES;
-use crate::res::res_ids::{
+use crate::ui::res::RESOURCES;
+use crate::ui::res_ids::{
     IDS_ACTION, IDS_KEY, IDS_MODIFIERS, IDS_RULE, IDS_SCAN_CODE, IDS_STATUS, IDS_TIME,
     IDS_TRANSITION, IDS_VIRTUAL_KEY,
 };

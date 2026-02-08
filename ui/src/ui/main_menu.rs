@@ -1,6 +1,6 @@
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
-use crate::res::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
-use crate::res::RESOURCES;
+use crate::ui::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
+use crate::ui::res::RESOURCES;
 use crate::rs;
 use crate::ui::layouts_menu::LayoutsMenu;
 use crate::app::App;

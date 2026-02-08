@@ -15,7 +15,6 @@ mod indicator;
 mod kb_watch;
 mod layout;
 mod profile;
-mod res;
 mod settings;
 mod ui;
 mod util;
