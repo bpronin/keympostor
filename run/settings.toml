@@ -1,20 +1,30 @@
-logging_enabled = true
-profiles_enabled = true
-transform_layout = "default"
+keys_logging_enabled = true
+last_transform_layout = "game"
 toggle_layout_hot_key = "[] FN_LAUNCH_APP2↑"
 
+[layout_autoswitch]
+enabled = true
+
+[layout_autoswitch.profiles.chrome]
+activation_rule = "Chrome"
+layout = "desktop"
+
+[layout_autoswitch.profiles.tc]
+activation_rule = "TOTALCMD64.EXE"
+layout = "game"
+
 [main_window]
-position = [396, 273]
-size = [1475, 428]
+position = [300, 300]
+size = [716, 339]
 selected_page = 0
 
 [main_window.log_view.columns]
+2 = 50
 0 = 300
-1 = 500
-6 = 96
+5 = 50
+7 = 50
+4 = 50
 8 = 50
-2 = 77
-3 = 79
-7 = 69
-5 = 95
-4 = 73
+1 = 500
+3 = 50
+6 = 50

@@ -75,17 +75,17 @@ impl KeyboardLayoutState {
 
 #[derive(Default)]
 pub(crate) struct KeyboardLayoutWatcher {
-    owner: RefCell<Option<HWND>>,
+    hwnd: RefCell<HWND>,
     last_state: RefCell<KeyboardLayoutState>,
 }
 
 impl KeyboardLayoutWatcher {
-    pub(crate) fn start(&self, owner: HWND) {
-        self.owner.replace(Some(owner));
+    pub(crate) fn setup(&self, hwnd: HWND) {
+        self.hwnd.replace(hwnd);
         self.last_state.replace(KeyboardLayoutState::capture());
 
         unsafe {
-            SetTimer(*self.owner.borrow(), TIMER_ID, WATCH_INTERVAL, None);
+            SetTimer(Some(*self.hwnd.borrow()), TIMER_ID, WATCH_INTERVAL, None);
         }
 
         debug!("Keyboard layout watch started");
@@ -93,7 +93,7 @@ impl KeyboardLayoutWatcher {
 
     pub(crate) fn stop(&self) {
         unsafe {
-            KillTimer(*self.owner.borrow(), TIMER_ID).unwrap_or_else(|e| {
+            KillTimer(Some(*self.hwnd.borrow()), TIMER_ID).unwrap_or_else(|e| {
                 if e.code().is_err() {
                     warn!("Failed to kill keyboard layout watch timer: {}", e);
                 }

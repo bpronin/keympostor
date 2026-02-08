@@ -14,11 +14,11 @@ use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
 use keympostor::notify::WM_KEY_HOOK_NOTIFY;
 use keympostor::trigger::KeyTrigger;
-use log::debug;
+use log::{debug, trace};
 use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::Not;
+use std::ops::{Deref, Not};
 use std::rc::Rc;
 use ui::utils;
 use utils::drain_timer_msg_queue;
@@ -30,7 +30,8 @@ pub(crate) struct App {
     win_watcher: WinWatcher,
     keyboard_layout_watcher: KeyboardLayoutWatcher,
     is_log_enabled: RefCell<bool>,
-    profiles: RefCell<Rc<HashMap<String, LayoutAutoswitchProfile>>>,
+    is_autoswitch_enabled: RefCell<bool>,
+    autoswitch_profiles: RefCell<Rc<HashMap<String, LayoutAutoswitchProfile>>>,
     layouts: RefCell<KeyTransformLayouts>,
     current_profile_name: RefCell<Option<String>>,
     current_layout_name: RefCell<String>,
@@ -44,49 +45,48 @@ impl App {
             AppSettings::default()
         });
 
-        self.window.apply_settings(&settings.main_window);
-        let profiles = Rc::new(settings.autoswitch_profiles.unwrap_or_default());
-
-        self.profiles.replace(Rc::clone(&profiles));
-        self.win_watcher.set_profiles(profiles);
-
         self.select_layout(
             settings
-                .transform_layout
+                .last_transform_layout
                 .unwrap_or_else(|| self.layouts.borrow().first().name.clone())
                 .as_str(),
         );
 
-        self.win_watcher.set_enabled(settings.profiles_enabled);
-        self.is_log_enabled.replace(settings.logging_enabled);
-        self.toggle_layout_hot_key
-            .replace(settings.toggle_layout_hot_key);
+        if let Some(la_settings) = settings.layout_autoswitch {
+            self.autoswitch_profiles
+                .replace(Rc::new(la_settings.profiles.unwrap_or_default()));
+            self.is_autoswitch_enabled.replace(la_settings.enabled);
+        };
 
-        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
+        self.is_log_enabled.replace(settings.keys_logging_enabled);
+
+        let hot_key = settings.toggle_layout_hot_key;
+        if let Some(key) = hot_key {
             self.key_hook.suppress_keys(&[key.action.key]);
         }
+        self.toggle_layout_hot_key.replace(hot_key);
+
+        self.window.apply_settings(&settings.main_window);
     }
 
     fn save_settings(&self) {
         let mut settings = AppSettings::load_default().unwrap_or_default();
-        let layout_name = self.current_layout_name.borrow().clone();
-        let profile_name = self.current_profile_name.borrow();
 
-        match profile_name.as_deref() {
-            None => {
-                settings.transform_layout = Some(layout_name);
-            }
-            Some(name) => {
-                settings
-                    .autoswitch_profiles
-                    .get_or_insert_default()
-                    .entry(name.to_string())
-                    .or_insert_with(|| LayoutAutoswitchProfile::new(layout_name));
-            }
+        let layout_name = self.current_layout_name.borrow();
+        settings.last_transform_layout = Some(layout_name.clone());
+        settings.keys_logging_enabled = *self.is_log_enabled.borrow();
+
+        let autoswitch_settings = settings.layout_autoswitch.get_or_insert_default();
+        autoswitch_settings.enabled = *self.is_autoswitch_enabled.borrow();
+        let profiles = autoswitch_settings.profiles.get_or_insert_default();
+        if let Some(profile_name) = self.current_profile_name.borrow().as_deref() {
+            profiles
+                .entry(profile_name.to_string())
+                .or_insert_with(|| LayoutAutoswitchProfile {
+                    layout: layout_name.clone(),
+                    activation_rule: None,
+                });
         }
-
-        settings.profiles_enabled = self.win_watcher.is_enabled();
-        settings.logging_enabled = *self.is_log_enabled.borrow();
 
         self.window.update_settings(&mut settings.main_window);
 
@@ -98,15 +98,16 @@ impl App {
             show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_LAYOUTS), e);
             KeyTransformLayouts::default()
         });
+
+        self.window.set_layouts(&layouts);
         self.layouts.replace(layouts);
-        self.window.set_layouts(&self.layouts.borrow());
     }
 
     pub(crate) fn with_current_profile<F>(&self, action: F)
     where
         F: FnOnce(Option<&LayoutAutoswitchProfile>),
     {
-        let profiles = self.profiles.borrow();
+        let profiles = self.autoswitch_profiles.borrow();
         let profile_name = self.current_profile_name.borrow();
         let profile = profile_name.as_deref().and_then(|n| profiles.get(n));
         action(profile);
@@ -118,7 +119,9 @@ impl App {
     {
         let layouts = self.layouts.borrow();
         let layout_name = self.current_layout_name.borrow();
-        let layout = layouts.find(layout_name.as_str()).expect("Layout not found.");
+        let layout = layouts
+            .find(layout_name.as_str())
+            .expect("Layout not found.");
         action(layout);
     }
 
@@ -143,9 +146,9 @@ impl App {
             notify_layout_changed(layout, &KeyboardLayoutState::capture());
         });
 
-        self.update_controls();
+        self.update_window();
 
-        debug!("Selected layout: {:?}", self.current_layout_name.borrow(),);
+        debug!("Selected layout: {:?}", self.current_layout_name.borrow());
     }
 
     pub(crate) fn select_next_layout(&self) {
@@ -159,24 +162,6 @@ impl App {
         debug!("Next layout: {:?}", next_name);
 
         self.select_layout(next_name.as_str());
-    }
-
-    fn update_controls(&self) {
-        let profile_name = self.current_profile_name.borrow();
-
-        self.with_current_layout(|layout| {
-            self.window.update_ui(
-                self.win_watcher.is_enabled(),
-                *self.is_log_enabled.borrow(),
-                profile_name.as_deref(),
-                layout,
-            );
-        });
-    }
-
-    fn show_window(&self, show: bool) {
-        self.update_controls();
-        self.window.set_visible(show);
     }
 
     pub(crate) fn handle_event(&self, evt: Event, handle: ControlHandle) {
@@ -197,19 +182,53 @@ impl App {
         }
     }
 
+    fn update_window(&self) {
+        let profile_name = self.current_profile_name.borrow();
+
+        self.with_current_layout(|layout| {
+            self.window.update_ui(
+                *self.is_autoswitch_enabled.borrow(),
+                *self.is_log_enabled.borrow(),
+                profile_name.as_deref(),
+                layout,
+            );
+        });
+    }
+
+    fn show_window(&self, show: bool) {
+        self.update_window();
+        self.window.set_visible(show);
+    }
+
     fn on_init(&self) {
         self.load_layouts();
         self.load_settings();
 
         let hwnd = self.window.hwnd();
         self.key_hook.install(hwnd);
-        self.win_watcher.init(hwnd);
-        self.keyboard_layout_watcher.start(hwnd);
+        self.keyboard_layout_watcher.setup(hwnd);
+        self.win_watcher.setup(
+            hwnd,
+            self.autoswitch_profiles.borrow().clone(),
+            *self.is_autoswitch_enabled.borrow(),
+        );
 
-        self.update_controls();
+        self.update_window();
 
         #[cfg(feature = "debug")]
         self.window.set_visible(true);
+    }
+
+    fn on_key_hook_notify(&self, event: &KeyEvent) {
+        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
+            if &event.as_trigger() == key {
+                self.select_next_layout();
+            }
+        }
+
+        if *self.is_log_enabled.borrow() {
+            self.window.on_key_hook_notify(event);
+        }
     }
 
     pub(crate) fn on_select_layout(&self, layout_name: &str) {
@@ -218,20 +237,21 @@ impl App {
     }
 
     pub(crate) fn on_toggle_logging_enabled(&self) {
-        self.is_log_enabled.replace_with(|v| v.not());
-        self.update_controls();
+        self.is_log_enabled.replace_with(|b| b.not());
+        self.update_window();
         self.save_settings();
     }
 
     pub(crate) fn on_toggle_auto_switch_layout(&self) {
+        self.is_autoswitch_enabled.replace_with(|b| b.not());
         self.win_watcher
-            .set_enabled(self.win_watcher.is_enabled().not());
-        self.update_controls();
+            .enable(*self.is_autoswitch_enabled.borrow());
+        self.update_window();
         self.save_settings();
     }
 
     pub(crate) fn on_window_close(&self) {
-        self.update_controls();
+        self.update_window();
         #[cfg(feature = "debug")]
         self.on_app_exit()
     }
@@ -254,17 +274,5 @@ impl App {
 
     pub(crate) fn on_log_view_clear(&self) {
         self.window.clear_log();
-    }
-
-    fn on_key_hook_notify(&self, event: &KeyEvent) {
-        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
-            if &event.as_trigger() == key {
-                self.select_next_layout();
-            }
-        }
-
-        if *self.is_log_enabled.borrow() {
-            self.window.on_key_hook_notify(event);
-        }
     }
 }

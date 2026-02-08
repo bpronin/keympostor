@@ -1,4 +1,5 @@
 use crate::app::App;
+use crate::profile::LayoutAutoswitchProfile;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
@@ -18,58 +19,43 @@ use windows::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
 };
-use crate::profile::LayoutAutoswitchProfile;
 
 const TIMER_ID: usize = 19717;
 const WATCH_INTERVAL: u32 = 500;
 
 #[derive(Default)]
 pub(crate) struct WinWatcher {
-    owner: RefCell<Option<HWND>>,
-    is_enabled: RefCell<bool>,
+    hwnd: RefCell<HWND>,
     detector: RefCell<WindowActivationDetector>,
 }
 
 impl WinWatcher {
-    pub(crate) fn init(&self, owner: HWND) {
-        self.owner.replace(Some(owner));
-    }
-
-    pub(crate) fn set_profiles(&self, profiles: Rc<HashMap<String, LayoutAutoswitchProfile>>) {
+    pub(crate) fn setup(
+        &self,
+        hwnd: HWND,
+        profiles: Rc<HashMap<String, LayoutAutoswitchProfile>>,
+        enable: bool,
+    ) {
+        self.hwnd.replace(hwnd);
         self.detector.borrow_mut().profiles = profiles;
+        self.enable(enable);
     }
 
-    pub(crate) fn is_enabled(&self) -> bool {
-        *self.is_enabled.borrow()
-    }
-
-    pub(crate) fn set_enabled(&self, is_enabled: bool) {
-        if is_enabled {
-            self.start()
-        } else {
-            self.stop()
-        }
+    pub(crate) fn enable(&self, enable: bool) {
+        if enable { self.start() } else { self.stop() }
     }
 
     fn start(&self) {
-        if self.is_enabled.replace(true) {
-            return;
-        }
-
         unsafe {
-            SetTimer(*self.owner.borrow(), TIMER_ID, WATCH_INTERVAL, None);
+            SetTimer(Some(*self.hwnd.borrow()), TIMER_ID, WATCH_INTERVAL, None);
         }
 
         debug!("Window watch timer started");
     }
 
     pub(crate) fn stop(&self) {
-        if !self.is_enabled.replace(false) {
-            return;
-        }
-
         unsafe {
-            KillTimer(*self.owner.borrow(), TIMER_ID).unwrap_or_else(|e| {
+            KillTimer(Some(*self.hwnd.borrow()), TIMER_ID).unwrap_or_else(|e| {
                 if e.code().is_err() {
                     warn!("Failed to kill window watch timer: {}", e);
                 }
@@ -84,6 +70,7 @@ impl WinWatcher {
             Event::OnTimerTick => {
                 if let Some((_, timer_id)) = handle.timer() {
                     if timer_id == TIMER_ID as u32 {
+                        debug!("Window watch timer tick");
                         self.invoke_detector(app);
                     }
                 }
@@ -129,7 +116,9 @@ impl WindowActivationDetector {
     }
 }
 
-fn detect_active_window(profiles: &HashMap<String, LayoutAutoswitchProfile>) -> Option<(HWND, &String)> {
+fn detect_active_window(
+    profiles: &HashMap<String, LayoutAutoswitchProfile>,
+) -> Option<(HWND, &String)> {
     profiles
         .iter()
         .find_map(|(name, profile)| match profile.regex() {

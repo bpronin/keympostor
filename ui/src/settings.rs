@@ -1,4 +1,4 @@
-use crate::profile::{LayoutAutoswitchProfile};
+use crate::profile::LayoutAutoswitchProfile;
 use keympostor::key_trigger;
 use keympostor::trigger::KeyTrigger;
 use log::debug;
@@ -13,23 +13,21 @@ const SETTINGS_FILE: &str = "settings.toml";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct AppSettings {
-    pub(crate) logging_enabled: bool,
-    pub(crate) profiles_enabled: bool,
-    pub(crate) main_window: MainWindowSettings,
-    pub(crate) transform_layout: Option<String>,
-    pub(crate) autoswitch_profiles: Option<HashMap<String, LayoutAutoswitchProfile>>,
+    pub(crate) keys_logging_enabled: bool,
+    pub(crate) last_transform_layout: Option<String>,
     pub(crate) toggle_layout_hot_key: Option<KeyTrigger>,
+    pub(crate) layout_autoswitch: Option<LayoutAutoSwitchSettings>,
+    pub(crate) main_window: MainWindowSettings,
 }
 
 impl Default for AppSettings {
     fn default() -> Self {
         Self {
-            logging_enabled: false,
-            profiles_enabled: false,
-            main_window: Default::default(),
-            transform_layout: None,
-            autoswitch_profiles: Default::default(),
+            keys_logging_enabled: false,
             toggle_layout_hot_key: Some(key_trigger!("[]FN_LAUNCH_APP2^")),
+            last_transform_layout: Default::default(),
+            layout_autoswitch: Default::default(),
+            main_window: Default::default(),
         }
     }
 }
@@ -58,6 +56,12 @@ impl AppSettings {
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
+pub(crate) struct LayoutAutoSwitchSettings {
+    pub(crate) enabled: bool,
+    pub(crate) profiles: Option<HashMap<String, LayoutAutoswitchProfile>>,
+}
+
+#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct MainWindowSettings {
     pub(crate) position: Option<(i32, i32)>,
     pub(crate) size: Option<(u32, u32)>,
@@ -79,26 +83,28 @@ pub mod tests {
     #[test]
     fn test_save_load_settings() {
         let settings = AppSettings {
-            logging_enabled: false,
-            profiles_enabled: true,
+            keys_logging_enabled: false,
             toggle_layout_hot_key: None,
-            transform_layout: Some(str!("test-layout")),
+            last_transform_layout: Some(str!("test-layout")),
             main_window: MainWindowSettings {
                 position: Some((0, 0)),
                 size: Some((100, 200)),
                 selected_page: Some(0),
                 log_view: Default::default(),
             },
-            autoswitch_profiles: Some(map![
-                str!("chrome") => LayoutAutoswitchProfile {
-                    activation_rule: Some(str!("Chrome")),
-                    layout: str!("game"),
-                },
-                str!("tc") => LayoutAutoswitchProfile {
-                    activation_rule: Some(str!("TOTALCMD64.EXE")),
-                    layout: str!("game"),
-                },
-            ]),
+            layout_autoswitch: Some(LayoutAutoSwitchSettings {
+                enabled: true,
+                profiles: Some(map![
+                    str!("chrome") => LayoutAutoswitchProfile {
+                        activation_rule: Some(str!("Chrome")),
+                        layout: str!("desktop"),
+                    },
+                    str!("tc") => LayoutAutoswitchProfile {
+                        activation_rule: Some(str!("TOTALCMD64.EXE")),
+                        layout: str!("game"),
+                    },
+                ])
+            }),
         };
 
         const PATH: &'static str = "etc/test_data/test_settings.toml";
