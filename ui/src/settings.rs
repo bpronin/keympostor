@@ -97,11 +97,11 @@ pub mod tests {
                 profiles: Some(map![
                     str!("chrome") => LayoutAutoswitchProfile {
                         activation_rule: Some(str!("Chrome")),
-                        layout: str!("desktop"),
+                        transform_layout: str!("desktop"),
                     },
                     str!("tc") => LayoutAutoswitchProfile {
                         activation_rule: Some(str!("TOTALCMD64.EXE")),
-                        layout: str!("game"),
+                        transform_layout: str!("game"),
                     },
                 ])
             }),

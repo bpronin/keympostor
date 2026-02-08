@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct LayoutAutoswitchProfile {
     pub(crate) activation_rule: Option<String>,
-    pub(crate) layout: String,
+    pub(crate) transform_layout: String,
 }
 
 impl LayoutAutoswitchProfile {
@@ -25,7 +25,7 @@ pub mod tests {
     fn test_regex_parsing() {
         let profile = LayoutAutoswitchProfile {
             activation_rule: Some(str!("")),
-            layout: Default::default(),
+            transform_layout: Default::default(),
         };
 
         assert!(profile.regex().unwrap().is_match("test"));

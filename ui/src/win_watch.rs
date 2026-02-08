@@ -70,7 +70,6 @@ impl WinWatcher {
             Event::OnTimerTick => {
                 if let Some((_, timer_id)) = handle.timer() {
                     if timer_id == TIMER_ID as u32 {
-                        debug!("Window watch timer tick");
                         self.invoke_detector(app);
                     }
                 }
@@ -85,7 +84,7 @@ impl WinWatcher {
             //     debug!("Self window detected, skipping profile switch");
             //     return;
             // }
-            app.select_profile(profile_name);
+            app.on_select_profile(profile_name);
         }
     }
 }

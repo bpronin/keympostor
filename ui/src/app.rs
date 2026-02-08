@@ -35,6 +35,7 @@ pub(crate) struct App {
     layouts: RefCell<KeyTransformLayouts>,
     current_profile_name: RefCell<Option<String>>,
     current_layout_name: RefCell<String>,
+    no_profile_layout_name: RefCell<String>,
     toggle_layout_hot_key: RefCell<Option<KeyTrigger>>,
 }
 
@@ -45,12 +46,11 @@ impl App {
             AppSettings::default()
         });
 
-        self.select_layout(
-            settings
-                .last_transform_layout
-                .unwrap_or_else(|| self.layouts.borrow().first().name.clone())
-                .as_str(),
-        );
+        let layout_name = settings
+            .last_transform_layout
+            .unwrap_or_else(|| self.layouts.borrow().first().name.clone());
+        self.apply_layout(layout_name.as_str());
+        self.no_profile_layout_name.replace(layout_name);
 
         if let Some(la_settings) = settings.layout_autoswitch {
             self.autoswitch_profiles
@@ -83,7 +83,7 @@ impl App {
             profiles
                 .entry(profile_name.to_string())
                 .or_insert_with(|| LayoutAutoswitchProfile {
-                    layout: layout_name.clone(),
+                    transform_layout: layout_name.clone(),
                     activation_rule: None,
                 });
         }
@@ -125,20 +125,10 @@ impl App {
         action(layout);
     }
 
-    pub(crate) fn select_profile(&self, name: Option<&str>) {
-        self.current_profile_name.replace(name.map(Into::into));
+    pub(crate) fn apply_layout(&self, layout_name: &str) {
+        self.current_layout_name.replace(layout_name.into());
 
-        self.with_current_profile(|profile| {
-            if let Some(p) = profile {
-                self.select_layout(p.layout.as_str());
-            }
-        });
-
-        debug!("Selected profile: {:?}", self.current_profile_name.borrow());
-    }
-
-    pub(crate) fn select_layout(&self, layout_name: &str) {
-        self.current_layout_name.replace(layout_name.to_string());
+        debug!("Selected layout: {:?}", self.current_layout_name.borrow());
 
         self.with_current_layout(|layout| {
             self.key_hook.set_rules(Some(&layout.rules));
@@ -147,21 +137,6 @@ impl App {
         });
 
         self.update_window();
-
-        debug!("Selected layout: {:?}", self.current_layout_name.borrow());
-    }
-
-    pub(crate) fn select_next_layout(&self) {
-        let layouts = self.layouts.borrow();
-        let next_name = {
-            let current = self.current_layout_name.borrow(); /* must stay exactly inside the block */
-            let next = layouts.cyclic_next(current.as_str());
-            next.name.clone()
-        };
-
-        debug!("Next layout: {:?}", next_name);
-
-        self.select_layout(next_name.as_str());
     }
 
     pub(crate) fn handle_event(&self, evt: Event, handle: ControlHandle) {
@@ -219,27 +194,59 @@ impl App {
         self.window.set_visible(true);
     }
 
-    fn on_key_hook_notify(&self, event: &KeyEvent) {
-        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
-            if &event.as_trigger() == key {
-                self.select_next_layout();
-            }
-        }
+    pub(crate) fn on_select_profile(&self, profile_name: Option<&str>) {
+        self.current_profile_name
+            .replace(profile_name.map(Into::into));
 
-        if *self.is_log_enabled.borrow() {
-            self.window.on_key_hook_notify(event);
-        }
+        debug!("Selected profile: {:?}", profile_name);
+
+        self.with_current_profile(|profile| match profile {
+            Some(p) => self.apply_layout(p.transform_layout.as_str()),
+            None => self.apply_layout(self.no_profile_layout_name.borrow().as_str()),
+        });
     }
 
     pub(crate) fn on_select_layout(&self, layout_name: &str) {
-        self.select_layout(layout_name);
+        self.apply_layout(layout_name);
+
+        self.with_current_profile(|profile| match profile {
+            Some(p) => {
+                // p.transform_layout = layout_name;
+            }
+            None => {
+                self.no_profile_layout_name.replace(layout_name.to_string());
+            }
+        });
+
         self.save_settings();
+    }
+
+    fn on_select_next_layout(&self) {
+        let layouts = self.layouts.borrow();
+        let next_name = {
+            let current = self.current_layout_name.borrow(); /* must stay exactly inside the block */
+            let next = layouts.cyclic_next(current.as_str());
+            next.name.clone()
+        };
+        self.on_select_layout(next_name.as_str());
     }
 
     pub(crate) fn on_toggle_logging_enabled(&self) {
         self.is_log_enabled.replace_with(|b| b.not());
         self.update_window();
         self.save_settings();
+    }
+
+    fn on_key_hook_notify(&self, event: &KeyEvent) {
+        if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
+            if &event.as_trigger() == key {
+                self.on_select_next_layout();
+            }
+        }
+
+        if *self.is_log_enabled.borrow() {
+            self.window.on_key_hook_notify(event);
+        }
     }
 
     pub(crate) fn on_toggle_auto_switch_layout(&self) {
