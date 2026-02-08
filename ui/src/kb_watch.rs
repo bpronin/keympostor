@@ -80,8 +80,8 @@ pub(crate) struct KeyboardLayoutWatcher {
 }
 
 impl KeyboardLayoutWatcher {
-    pub(crate) fn start(&self, owner: Option<HWND>) {
-        self.owner.replace(owner);
+    pub(crate) fn start(&self, owner: HWND) {
+        self.owner.replace(Some(owner));
         self.last_state.replace(KeyboardLayoutState::capture());
 
         unsafe {

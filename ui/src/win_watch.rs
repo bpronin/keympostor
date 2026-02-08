@@ -30,8 +30,8 @@ pub(crate) struct WinWatcher {
 }
 
 impl WinWatcher {
-    pub(crate) fn init(&self, owner: Option<HWND>) {
-        self.owner.replace(owner);
+    pub(crate) fn init(&self, owner: HWND) {
+        self.owner.replace(Some(owner));
     }
 
     pub(crate) fn set_profiles(&self, profiles: Rc<Profiles>) {

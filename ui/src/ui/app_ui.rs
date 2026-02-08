@@ -32,6 +32,7 @@ impl AppUI {
     }
 
     pub(crate) fn run(&self) {
+        #[cfg(not(feature = "debug"))]
         if is_app_running() {
             show_warn_message(rs!(IDS_APP_ALREADY_RUNNING));
             return;

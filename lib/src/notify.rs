@@ -9,8 +9,8 @@ thread_local! {
     static RECEIVER: RefCell<Option<HWND>> = RefCell::new(Default::default());
 }
 
-pub(crate) fn install_notify_listener(owner: Option<HWND>) {
-    RECEIVER.replace(owner);
+pub(crate) fn install_notify_listener(owner: HWND) {
+    RECEIVER.replace(Some(owner));
 }
 
 pub(crate) fn notify_listener(event: KeyEvent) {

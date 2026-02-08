@@ -1,24 +1,27 @@
-use crate::ui::res::RESOURCES;
-use std::cell::RefCell;
-use std::ops::Not;
-use std::rc::Rc;
-use log::debug;
-use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
-use keympostor::event::KeyEvent;
-use keympostor::hook::KeyboardHook;
-use keympostor::notify::WM_KEY_HOOK_NOTIFY;
-use keympostor::trigger::KeyTrigger;
-use ui::utils;
-use utils::drain_timer_msg_queue;
 use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
 use crate::profile::{Profile, Profiles};
-use crate::ui::res_ids::{IDS_APP_TITLE, IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS, IDS_NO_PROFILE};
-use crate::{rs, show_warn_message, ui};
 use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
+use crate::ui::res::RESOURCES;
+use crate::ui::res_ids::{
+    IDS_APP_TITLE, IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS, IDS_NO_PROFILE,
+};
 use crate::win_watch::WinWatcher;
+use crate::{rs, show_warn_message, ui};
+use keympostor::event::KeyEvent;
+use keympostor::hook::KeyboardHook;
+use keympostor::notify::WM_KEY_HOOK_NOTIFY;
+use keympostor::trigger::KeyTrigger;
+use log::debug;
+use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
+use std::cell::RefCell;
+use std::ops::Not;
+use std::rc::Rc;
+use ui::utils;
+use utils::drain_timer_msg_queue;
+use windows::Win32::UI::WindowsAndMessaging::SendMessageW;
 
 #[derive(Default)]
 pub(crate) struct App {
@@ -45,13 +48,15 @@ impl App {
         let profiles = Rc::new(settings.profiles.unwrap_or_default());
 
         self.profiles.replace(Rc::clone(&profiles));
-
-        let layout_name = settings.transform_layout.unwrap_or_else(|| {
-            self.layouts.borrow().first().name.clone()
-        });
-        self.select_layout(layout_name.as_str());
-
         self.win_watcher.set_profiles(profiles);
+
+        self.select_layout(
+            settings
+                .transform_layout
+                .unwrap_or_else(|| self.layouts.borrow().first().name.clone())
+                .as_str(),
+        );
+
 
         self.win_watcher.set_enabled(settings.profiles_enabled);
         self.is_log_enabled.replace(settings.logging_enabled);
@@ -157,7 +162,9 @@ impl App {
 
     fn update_controls(&self) {
         let layouts = self.layouts.borrow();
-        let layout = layouts.find(self.current_layout_name.borrow().as_str()).unwrap();
+        let layout = layouts
+            .find(self.current_layout_name.borrow().as_str())
+            .unwrap();
 
         self.update_title();
         self.window.update_ui(
@@ -211,10 +218,10 @@ impl App {
         self.load_layouts();
         self.load_settings();
 
-        let window_hwnd = utils::try_hwnd(self.window.handle());
-        self.key_hook.install(window_hwnd);
-        self.win_watcher.init(window_hwnd);
-        self.keyboard_layout_watcher.start(window_hwnd);
+        let hwnd = self.window.hwnd();
+        self.key_hook.install(hwnd);
+        self.win_watcher.init(hwnd);
+        self.keyboard_layout_watcher.start(hwnd);
 
         self.update_controls();
 

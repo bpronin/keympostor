@@ -13,7 +13,7 @@ pub fn try_hwnd(handle: ControlHandle) -> Option<HWND> {
     handle.hwnd().map(|h| HWND(h as _))
 }
 
-fn hwnd(handle: ControlHandle) -> HWND {
+pub fn hwnd(handle: ControlHandle) -> HWND {
     try_hwnd(handle).expect("Failed to get HWND from control handle.")
 }
 

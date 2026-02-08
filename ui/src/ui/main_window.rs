@@ -1,20 +1,24 @@
+use crate::app::App;
 use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
-use crate::ui::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
-use crate::ui::res::RESOURCES;
 use crate::settings::MainWindowSettings;
+use crate::ui::layout_view::LayoutView;
+use crate::ui::log_view::LogView;
+use crate::ui::main_menu::MainMenu;
+use crate::ui::res::RESOURCES;
+use crate::ui::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::ui::style::INFO_LABEL_FONT;
+use crate::ui::test_editor::TypeTestEditor;
+use crate::ui::tray::Tray;
+use crate::ui::utils::hwnd;
 use crate::{r_icon, rs, ui};
 use keympostor::event::KeyEvent;
 use native_windows_gui::stretch::geometry::{Rect, Size};
 use native_windows_gui::stretch::style::Dimension::Points as PT;
 use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
-use native_windows_gui::{ControlHandle, Event, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags};
-use crate::app::App;
-use crate::ui::layout_view::LayoutView;
-use crate::ui::log_view::LogView;
-use crate::ui::main_menu::MainMenu;
-use crate::ui::test_editor::TypeTestEditor;
-use crate::ui::tray::Tray;
+use native_windows_gui::{
+    ControlHandle, Event, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags,
+};
+use windows::Win32::Foundation::HWND;
 
 #[derive(Default)]
 pub(crate) struct MainWindow {
@@ -137,6 +141,10 @@ impl MainWindow {
 
     pub(crate) fn handle(&self) -> ControlHandle {
         self.window.handle
+    }
+
+    pub(crate) fn hwnd(&self) -> HWND {
+        hwnd(self.window.handle)
     }
 
     pub(crate) fn update_ui(

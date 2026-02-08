@@ -17,7 +17,7 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 pub struct KeyboardHook {}
 
 impl KeyboardHook {
-    pub fn install(&self, owner: Option<HWND>) {
+    pub fn install(&self, owner: HWND) {
         install_notify_listener(owner);
         install_keyboard_hook();
 
