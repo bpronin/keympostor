@@ -1,16 +1,21 @@
-use std::error::Error;
 use log::warn;
+use regex::Regex;
+use std::error::Error;
 use std::ptr::null_mut;
 use windows::core::{PCSTR, PCWSTR, PWSTR};
 use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS, HWND, MAX_PATH};
 use windows::Win32::Media::Audio::{PlaySoundW, SND_ASYNC, SND_FILENAME, SND_NODEFAULT};
 use windows::Win32::Storage::FileSystem::SYNCHRONIZE;
-use windows::Win32::System::Threading::{CreateMutexExA, OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION};
+use windows::Win32::System::Threading::{
+    CreateMutexExA, OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
+    PROCESS_QUERY_LIMITED_INFORMATION,
+};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     GetKeyState, GetKeyboardLayout, HKL, VIRTUAL_KEY,
 };
-use windows::Win32::UI::WindowsAndMessaging::{GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId};
-use regex::Regex;
+use windows::Win32::UI::WindowsAndMessaging::{
+    GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
+};
 
 pub(crate) fn is_app_running() -> bool {
     const APP_MUTEX_ID: &[u8] = b"Global\\8e32f9ab-067f-0f01-8dc2-6047b7aa2a99\0";
@@ -22,7 +27,7 @@ pub(crate) fn is_app_running() -> bool {
             0,
             SYNCHRONIZE.0,
         )
-            .unwrap();
+        .unwrap();
 
         handle.is_invalid() || GetLastError() == ERROR_ALREADY_EXISTS
     }
@@ -73,7 +78,7 @@ pub(crate) fn get_process_name(hwnd: HWND) -> Result<String, Box<dyn Error>> {
             PWSTR(buffer.as_mut_ptr()),
             &mut buffer_size,
         )
-            .is_ok();
+        .is_ok();
 
         CloseHandle(p_handle)?;
 
@@ -105,20 +110,35 @@ pub(crate) fn get_window_title(hwnd: HWND) -> Result<String, Box<dyn Error>> {
 #[cfg(test)]
 
 pub mod tests {
+    use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
+    use crate::util::{get_process_name, get_window_title};
+
     #[macro_export]
     macro_rules! str {
         ($str:literal) => {
             String::from($str)
         };
     }
-}
 
-#[macro_export]
-macro_rules! map {
+    #[macro_export]
+    macro_rules! map {
     ( $( $key:expr => $val:expr ),* $(,)? ) => {{
         let mut map = ::std::collections::HashMap::new();
         $(map.insert($key, $val);)*
         map
-    }};
-}
+    }}}
 
+    #[test]
+    fn test_get_window_title() {
+        let hwnd = unsafe { GetForegroundWindow() };
+        
+        assert!(get_window_title(hwnd).is_ok());
+    }
+
+    #[test]
+    fn test_get_process_name() {
+        let hwnd = unsafe { GetForegroundWindow() };
+
+        assert!(get_process_name(hwnd).is_ok());
+    }
+}
