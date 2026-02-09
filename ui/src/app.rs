@@ -71,23 +71,28 @@ impl App {
 
     fn save_settings(&self) {
         let mut settings = AppSettings::load_default().unwrap_or_default();
+        let autoswitch_settings = settings.layout_autoswitch.get_or_insert_default();
 
         let layout_name = self.current_layout_name.borrow();
-        settings.last_transform_layout = Some(layout_name.clone());
-        settings.keys_logging_enabled = *self.is_log_enabled.borrow();
-
-        let autoswitch_settings = settings.layout_autoswitch.get_or_insert_default();
-        autoswitch_settings.enabled = *self.is_autoswitch_enabled.borrow();
-        let profiles = autoswitch_settings.profiles.get_or_insert_default();
         if let Some(profile_name) = self.current_profile_name.borrow().as_deref() {
-            profiles
-                .entry(profile_name.to_string())
-                .or_insert_with(|| LayoutAutoswitchProfile {
-                    transform_layout: layout_name.clone(),
-                    activation_rule: None,
-                });
+            let profiles = autoswitch_settings.profiles.get_or_insert_default();
+            if let Some(profile) = profiles.get_mut(profile_name) {
+                profile.transform_layout = layout_name.clone();
+            } else {
+                profiles.insert(
+                    profile_name.to_string(),
+                    LayoutAutoswitchProfile {
+                        transform_layout: layout_name.clone(),
+                        activation_rule: None,
+                    },
+                );
+            }
+        } else {
+            settings.last_transform_layout = Some(layout_name.clone());
         }
 
+        autoswitch_settings.enabled = *self.is_autoswitch_enabled.borrow();
+        settings.keys_logging_enabled = *self.is_log_enabled.borrow();
         self.window.update_settings(&mut settings.main_window);
 
         settings.save_default();

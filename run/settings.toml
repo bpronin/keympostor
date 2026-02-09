@@ -15,7 +15,7 @@ transform_layout = "game"
 
 [layout_autoswitch.profiles.chrome]
 activation_rule = "Chrome"
-transform_layout = "desktop"
+transform_layout = "default"
 
 [main_window]
 position = [562, 202]
@@ -23,12 +23,12 @@ size = [716, 339]
 selected_page = 1
 
 [main_window.log_view.columns]
-3 = 50
+2 = 50
+8 = 50
+4 = 50
+5 = 50
+7 = 50
 0 = 300
 1 = 500
-2 = 50
-7 = 50
-8 = 50
-5 = 50
-4 = 50
+3 = 50
 6 = 50
