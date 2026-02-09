@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
+use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
 use crate::settings::MainWindowSettings;
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -177,7 +177,7 @@ impl MainWindow {
         self.log_view.update_settings(settings);
     }
 
-    pub(crate) fn set_layouts(&self, layouts: &KeyTransformLayouts) {
+    pub(crate) fn set_layouts(&self, layouts: &KeyTransformLayoutList) {
         self.main_menu.build_layouts_menu(layouts);
         self.tray.build_layout_menu(layouts);
     }

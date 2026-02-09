@@ -118,12 +118,11 @@ impl WindowActivationDetector {
 fn detect_active_window(
     profiles: &HashMap<String, LayoutAutoswitchProfile>,
 ) -> Option<(HWND, &String)> {
-    profiles
-        .iter()
-        .find_map(|(name, profile)| match profile.regex() {
-            Some(regex) => get_active_window(&regex).map(|hwnd| (hwnd, name)),
-            None => None,
-        })
+    profiles.iter().find_map(|(profile_name, profile)| {
+        profile
+            .rule_regex()
+            .and_then(|regex| get_active_window(&regex).map(|hwnd| (hwnd, profile_name)))
+    })
 }
 
 fn get_process_name(hwnd: HWND) -> Result<String, Box<dyn Error>> {

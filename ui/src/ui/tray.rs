@@ -1,4 +1,4 @@
-use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
+use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
 use crate::ui::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_SETTINGS, IDS_TRAY_TIP};
 use crate::ui::res::RESOURCES;
 use crate::app::App;
@@ -54,7 +54,7 @@ impl Tray {
             .build(&mut self.exit_app_item)
     }
 
-    pub(crate) fn build_layout_menu(&self, layouts: &KeyTransformLayouts) {
+    pub(crate) fn build_layout_menu(&self, layouts: &KeyTransformLayoutList) {
         let mut layout_items = vec![];
 
         for layout in layouts {

@@ -1,4 +1,4 @@
-use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
+use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
 use crate::ui::res_ids::{IDS_AUTO_SWITCH_LAYOUT, IDS_LAYOUT};
 use crate::ui::res::RESOURCES;
 use crate::rs;
@@ -33,7 +33,7 @@ impl LayoutsMenu {
         Ok(())
     }
 
-    pub(crate) fn build_items(&self, layouts: &KeyTransformLayouts) -> Result<(), NwgError> {
+    pub(crate) fn build_items(&self, layouts: &KeyTransformLayoutList) -> Result<(), NwgError> {
         let items = build_layout_items(&self.menu, layouts)?;
         self.items.replace(items);
         Ok(())
@@ -73,7 +73,7 @@ impl LayoutsMenu {
 
 pub(crate) fn build_layout_items(
     parent: &Menu,
-    layouts: &KeyTransformLayouts,
+    layouts: &KeyTransformLayoutList,
 ) -> Result<Vec<(MenuItem, String)>, NwgError> {
     let mut items = vec![];
 

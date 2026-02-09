@@ -1,6 +1,6 @@
 use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
-use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
+use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
 use crate::profile::LayoutAutoswitchProfile;
 use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
@@ -32,7 +32,7 @@ pub(crate) struct App {
     is_log_enabled: RefCell<bool>,
     is_autoswitch_enabled: RefCell<bool>,
     autoswitch_profiles: RefCell<Rc<HashMap<String, LayoutAutoswitchProfile>>>,
-    layouts: RefCell<KeyTransformLayouts>,
+    layouts: RefCell<KeyTransformLayoutList>,
     current_profile_name: RefCell<Option<String>>,
     current_layout_name: RefCell<String>,
     no_profile_layout_name: RefCell<String>,
@@ -99,9 +99,9 @@ impl App {
     }
 
     fn load_layouts(&self) {
-        let layouts = KeyTransformLayouts::load_default().unwrap_or_else(|e| {
+        let layouts = KeyTransformLayoutList::load_default().unwrap_or_else(|e| {
             show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_LAYOUTS), e);
-            KeyTransformLayouts::default()
+            KeyTransformLayoutList::default()
         });
 
         self.window.set_layouts(&layouts);
@@ -281,7 +281,7 @@ impl App {
     pub(crate) fn on_app_exit(&self) {
         self.save_settings();
         self.keyboard_layout_watcher.stop();
-        self.win_watcher.stop();
+        self.win_watcher.enable(false);
         drain_timer_msg_queue();
         stop_thread_dispatch();
     }

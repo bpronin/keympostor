@@ -1,4 +1,4 @@
-use crate::layout::{KeyTransformLayout, KeyTransformLayouts};
+use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
 use crate::ui::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
 use crate::ui::res::RESOURCES;
 use crate::rs;
@@ -62,7 +62,7 @@ impl MainMenu {
             .update_ui(is_auto_switch_layout_enabled, current_layout);
     }
 
-    pub(crate) fn build_layouts_menu(&self, layouts: &KeyTransformLayouts) {
+    pub(crate) fn build_layouts_menu(&self, layouts: &KeyTransformLayoutList) {
         self.layout_menu.build_items(layouts).unwrap_or_else(|e| {
             warn!("Failed to build layouts menu: {}", e);
         });
