@@ -1,0 +1,25 @@
+name = "ide"
+title = "IDE layout"
+icon = "image\\yellow.ico"
+
+[rules]
+# "INSERT" = "ESC"
+# "BROWSER_SEARCH" = "F4"
+# "[]BACKSPACE" = "F5"
+# "NUM_LOCK" = "1"
+# "NUM_DIV" = "2"
+# "NUM_MUL" = "3"
+# "NUM_MINUS" = "4"
+# "NUM_7, NUM_HOME" = "Q"
+# "NUM_8, NUM_UP" = "W"
+# "NUM_9, NUM_PAGE_UP" = "E"
+"NUM_PLUS" = "LEFT_SHIFT"
+"NUM_ENTER" = "LEFT_CTRL"
+#"NUM_0, NUM_INSERT" = "M"
+#"NUM_DOT, NUM_DELETE" = "LEFT_SHIFT"
+
+[keyboard_lighting.default]
+default = ["#CCCC00", "#CCCC00", "#CCCC00", "#CCCC00"]
+
+[sound.default]
+default = "sound\\tap.wav"

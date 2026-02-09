@@ -14,7 +14,7 @@ use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
 use keympostor::notify::WM_KEY_HOOK_NOTIFY;
 use keympostor::trigger::KeyTrigger;
-use log::{debug, trace};
+use log::{debug, trace, warn};
 use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -126,9 +126,13 @@ impl App {
     }
 
     pub(crate) fn apply_layout(&self, layout_name: &str) {
-        self.current_layout_name.replace(layout_name.into());
-
-        debug!("Selected layout: {:?}", self.current_layout_name.borrow());
+        if self.layouts.borrow().find(layout_name).is_some() {
+            self.current_layout_name.replace(layout_name.into());
+            debug!("Selected layout: `{}`", layout_name);
+        } else {
+            warn!("Layout not found: `{}`", layout_name);
+            return;
+        }
 
         self.with_current_layout(|layout| {
             self.key_hook.set_rules(Some(&layout.rules));
@@ -195,10 +199,21 @@ impl App {
     }
 
     pub(crate) fn on_select_profile(&self, profile_name: Option<&str>) {
-        self.current_profile_name
-            .replace(profile_name.map(Into::into));
-
-        debug!("Selected profile: {:?}", profile_name);
+        match profile_name {
+            None => {
+                self.current_profile_name.replace(None);
+                debug!("Selected no profile");
+            }
+            Some(n) => {
+                if self.autoswitch_profiles.borrow().get(n).is_some() {
+                    self.current_profile_name.replace(Some(n.into()));
+                    debug!("Selected profile: `{}`", n);
+                } else {
+                    warn!("Profile not found: `{}`", n);
+                    return;
+                }
+            }
+        }
 
         self.with_current_profile(|profile| match profile {
             Some(p) => self.apply_layout(p.transform_layout.as_str()),
@@ -209,14 +224,9 @@ impl App {
     pub(crate) fn on_select_layout(&self, layout_name: &str) {
         self.apply_layout(layout_name);
 
-        self.with_current_profile(|profile| match profile {
-            Some(p) => {
-                // p.transform_layout = layout_name;
-            }
-            None => {
-                self.no_profile_layout_name.replace(layout_name.to_string());
-            }
-        });
+        if self.current_profile_name.borrow().is_none() {
+            self.no_profile_layout_name.replace(layout_name.to_string());
+        };
 
         self.save_settings();
     }

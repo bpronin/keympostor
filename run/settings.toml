@@ -1,30 +1,34 @@
 keys_logging_enabled = true
-last_transform_layout = "ide"
+last_transform_layout = "default"
 toggle_layout_hot_key = "[] FN_LAUNCH_APP2↑"
 
 [layout_autoswitch]
 enabled = true
 
-[layout_autoswitch.profiles.chrome]
-activation_rule = "Chrome"
-transform_layout = "desktop"
+[layout_autoswitch.profiles.ide]
+activation_rule = "rustrover64.exe"
+transform_layout = "ide"
 
 [layout_autoswitch.profiles.tc]
 activation_rule = "TOTALCMD64.EXE"
 transform_layout = "game"
 
+[layout_autoswitch.profiles.chrome]
+activation_rule = "Chrome"
+transform_layout = "desktop"
+
 [main_window]
-position = [300, 300]
+position = [562, 202]
 size = [716, 339]
 selected_page = 1
 
 [main_window.log_view.columns]
 3 = 50
-1 = 500
-7 = 50
-6 = 50
 0 = 300
-4 = 50
-5 = 50
-8 = 50
+1 = 500
 2 = 50
+7 = 50
+8 = 50
+5 = 50
+4 = 50
+6 = 50

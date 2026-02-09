@@ -101,7 +101,7 @@ impl WindowActivationDetector {
             let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
             self.last_hwnd = Some(hwnd);
             if activated {
-                debug!("Window detected for profile: {:?}", profile_name);
+                debug!("Window detected for profile: `{}`", profile_name);
 
                 return Some(Some(profile_name));
             }
