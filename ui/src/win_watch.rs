@@ -1,20 +1,15 @@
 use crate::app::App;
 use crate::profile::LayoutAutoswitchProfile;
+use crate::util::{get_process_name, get_window_title};
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::error::Error;
 use std::rc::Rc;
-use windows::core::PWSTR;
 use windows::Win32::UI::WindowsAndMessaging::{KillTimer, SetTimer};
 use windows::{
-    Win32::Foundation::{CloseHandle, HWND, MAX_PATH},
-    Win32::System::Threading::{
-        OpenProcess, QueryFullProcessImageNameW, PROCESS_NAME_WIN32,
-        PROCESS_QUERY_LIMITED_INFORMATION,
-    },
+    Win32::Foundation::HWND,
     Win32::UI::WindowsAndMessaging::{
         GetForegroundWindow, GetWindowTextLengthW, GetWindowTextW, GetWindowThreadProcessId,
     },
@@ -24,45 +19,42 @@ const TIMER_ID: usize = 19717;
 const WATCH_INTERVAL: u32 = 500;
 
 #[derive(Default)]
-pub(crate) struct WinWatcher {
-    hwnd: RefCell<HWND>,
-    detector: RefCell<WindowActivationDetector>,
+pub(crate) struct WindowWatcher {
+    owner: RefCell<HWND>,
+    profiles: RefCell<Rc<HashMap<String, LayoutAutoswitchProfile>>>,
+    last_hwnd: RefCell<Option<HWND>>,
 }
 
-impl WinWatcher {
+impl WindowWatcher {
     pub(crate) fn setup(
         &self,
-        hwnd: HWND,
+        owner: HWND,
         profiles: Rc<HashMap<String, LayoutAutoswitchProfile>>,
         enable: bool,
     ) {
-        self.hwnd.replace(hwnd);
-        self.detector.borrow_mut().profiles = profiles;
+        self.owner.replace(owner);
+        self.profiles.replace(profiles);
         self.enable(enable);
     }
 
     pub(crate) fn enable(&self, enable: bool) {
-        if enable { self.start() } else { self.stop() }
-    }
+        if enable {
+            unsafe {
+                SetTimer(Some(*self.owner.borrow()), TIMER_ID, WATCH_INTERVAL, None);
+            }
 
-    fn start(&self) {
-        unsafe {
-            SetTimer(Some(*self.hwnd.borrow()), TIMER_ID, WATCH_INTERVAL, None);
+            debug!("Window watch timer started");
+        } else {
+            unsafe {
+                KillTimer(Some(*self.owner.borrow()), TIMER_ID).unwrap_or_else(|e| {
+                    if e.code().is_err() {
+                        warn!("Failed to kill window watch timer: {}", e);
+                    }
+                });
+            }
+
+            debug!("Window watch timer stopped");
         }
-
-        debug!("Window watch timer started");
-    }
-
-    pub(crate) fn stop(&self) {
-        unsafe {
-            KillTimer(Some(*self.hwnd.borrow()), TIMER_ID).unwrap_or_else(|e| {
-                if e.code().is_err() {
-                    warn!("Failed to kill window watch timer: {}", e);
-                }
-            });
-        }
-
-        debug!("Window watch timer stopped");
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {
@@ -70,7 +62,9 @@ impl WinWatcher {
             Event::OnTimerTick => {
                 if let Some((_, timer_id)) = handle.timer() {
                     if timer_id == TIMER_ID as u32 {
-                        self.invoke_detector(app);
+                        if let Some(profile_name) = self.detect_profile() {
+                            app.on_select_profile(profile_name.as_deref());
+                        }
                     }
                 }
             }
@@ -78,97 +72,29 @@ impl WinWatcher {
         };
     }
 
-    fn invoke_detector(&self, app: &App) {
-        if let Some(profile_name) = self.detector.borrow_mut().detect() {
-            // if unsafe { GetForegroundWindow() } == *self.owner.borrow(){
-            //     debug!("Self window detected, skipping profile switch");
-            //     return;
-            // }
-            app.on_select_profile(profile_name);
-        }
-    }
-}
+    fn detect_profile(&self) -> Option<Option<String>> {
+        let profiles = self.profiles.borrow();
+        let find_result = profiles.iter().find_map(|(profile_name, profile)| {
+            profile
+                .rule_regex()
+                .and_then(|regex| get_active_window(&regex).map(|hwnd| (hwnd, profile_name)))
+        });
 
-#[derive(Default)]
-struct WindowActivationDetector {
-    profiles: Rc<HashMap<String, LayoutAutoswitchProfile>>,
-    last_hwnd: Option<HWND>,
-}
-
-impl WindowActivationDetector {
-    fn detect(&mut self) -> Option<Option<&str>> {
-        if let Some((hwnd, profile_name)) = detect_active_window(self.profiles.as_ref()) {
-            let activated = self.last_hwnd.map_or(true, |it| it != hwnd);
-            self.last_hwnd = Some(hwnd);
+        if let Some((hwnd, profile_name)) = find_result {
+            let activated = self.last_hwnd.borrow().map_or(true, |it| it != hwnd);
+            self.last_hwnd.replace(Some(hwnd));
             if activated {
                 debug!("Window detected for profile: `{}`", profile_name);
 
-                return Some(Some(profile_name));
+                return Some(Some(profile_name.clone()));
             }
-        } else if self.last_hwnd.is_some() {
+        } else if self.last_hwnd.borrow().is_some() {
             debug!("No active profile windows");
 
-            self.last_hwnd = None;
+            self.last_hwnd.replace(None);
             return Some(None);
         }
         None
-    }
-}
-
-fn detect_active_window(
-    profiles: &HashMap<String, LayoutAutoswitchProfile>,
-) -> Option<(HWND, &String)> {
-    profiles.iter().find_map(|(profile_name, profile)| {
-        profile
-            .rule_regex()
-            .and_then(|regex| get_active_window(&regex).map(|hwnd| (hwnd, profile_name)))
-    })
-}
-
-fn get_process_name(hwnd: HWND) -> Result<String, Box<dyn Error>> {
-    unsafe {
-        let mut pid = 0u32;
-        GetWindowThreadProcessId(hwnd, Some(&mut pid));
-        if pid == 0 {
-            return Err("Failed to get process ID".into());
-        }
-
-        let p_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid)?;
-
-        let mut buffer = [0u16; MAX_PATH as usize];
-        let mut buffer_size = buffer.len() as u32;
-        let success = QueryFullProcessImageNameW(
-            p_handle,
-            PROCESS_NAME_WIN32,
-            PWSTR(buffer.as_mut_ptr()),
-            &mut buffer_size,
-        )
-        .is_ok();
-
-        CloseHandle(p_handle)?;
-
-        if success {
-            Ok(String::from_utf16_lossy(&buffer[..buffer_size as usize]))
-        } else {
-            Err("Failed to get process name".into())
-        }
-    }
-}
-
-fn get_window_title(hwnd: HWND) -> Result<String, Box<dyn Error>> {
-    unsafe {
-        if GetWindowTextLengthW(hwnd) == 0 {
-            return Err("Invalid window handle".into());
-        }
-
-        let mut buffer = vec![0u16; (GetWindowTextLengthW(hwnd) + 1) as usize];
-        let bytes_read = GetWindowTextW(hwnd, &mut buffer);
-        if bytes_read == 0 {
-            return Err("Failed to get window title".into());
-        }
-
-        let result = String::from_utf16_lossy(&buffer[..bytes_read as usize]);
-        Ok(result)
     }
 }
 
@@ -193,6 +119,7 @@ fn get_active_window(regex: &Regex) -> Option<HWND> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::util::{get_process_name, get_window_title};
 
     #[test]
     fn test_get_window_title() {

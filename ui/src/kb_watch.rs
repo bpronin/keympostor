@@ -4,7 +4,7 @@ use indicator::notify_layout_changed;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use std::cell::RefCell;
-use util::{get_current_keyboard_layout, get_lock_state};
+use util::{get_current_keyboard_layout, get_keyboard_lock_state};
 use windows::Win32::Foundation::HWND;
 use windows::Win32::Globalization::GetLocaleInfoW;
 use windows::Win32::UI::Input::KeyboardAndMouse::{HKL, VK_CAPITAL, VK_NUMLOCK, VK_SCROLL};
@@ -26,13 +26,13 @@ pub(crate) struct KeyboardLayoutState {
 impl KeyboardLayoutState {
     pub(crate) fn capture() -> Self {
         let mut locks = 0;
-        if get_lock_state(VK_NUMLOCK) {
+        if get_keyboard_lock_state(VK_NUMLOCK) {
             locks |= LOCK_NUM
         }
-        if get_lock_state(VK_CAPITAL) {
+        if get_keyboard_lock_state(VK_CAPITAL) {
             locks |= LOCK_CAPS
         }
-        if get_lock_state(VK_SCROLL) {
+        if get_keyboard_lock_state(VK_SCROLL) {
             locks |= LOCK_SCROLL
         }
 

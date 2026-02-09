@@ -8,7 +8,7 @@ use crate::ui::res::RESOURCES;
 use crate::ui::res_ids::{
     IDS_APP_TITLE, IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS, IDS_NO_PROFILE,
 };
-use crate::win_watch::WinWatcher;
+use crate::win_watch::WindowWatcher;
 use crate::{rs, show_warn_message, ui};
 use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
@@ -27,7 +27,7 @@ use utils::drain_timer_msg_queue;
 pub(crate) struct App {
     pub(crate) window: MainWindow,
     key_hook: KeyboardHook,
-    win_watcher: WinWatcher,
+    win_watcher: WindowWatcher,
     keyboard_layout_watcher: KeyboardLayoutWatcher,
     is_log_enabled: RefCell<bool>,
     is_autoswitch_enabled: RefCell<bool>,
