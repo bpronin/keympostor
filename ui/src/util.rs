@@ -1,7 +1,5 @@
-use log::{debug, warn};
-use regex::Regex;
+use log::warn;
 use std::cell::RefCell;
-use std::error::Error;
 use std::ptr::null_mut;
 use windows::core::{PCSTR, PCWSTR, PWSTR};
 use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS, HWND, MAX_PATH};

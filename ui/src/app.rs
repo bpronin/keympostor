@@ -6,7 +6,7 @@ use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
 use crate::ui::res::RESOURCES;
 use crate::ui::res_ids::{
-    IDS_APP_TITLE, IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS, IDS_NO_PROFILE,
+    IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS,
 };
 use crate::win_watch::WindowWatcher;
 use crate::{rs, show_warn_message, ui};
@@ -14,11 +14,11 @@ use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
 use keympostor::notify::WM_KEY_HOOK_NOTIFY;
 use keympostor::trigger::KeyTrigger;
-use log::{debug, trace, warn};
+use log::{debug, warn};
 use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::{Deref, Not};
+use std::ops::{Not};
 use std::rc::Rc;
 use ui::utils;
 use utils::drain_timer_msg_queue;
