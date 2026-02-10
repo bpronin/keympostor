@@ -1,19 +1,11 @@
-use std::fmt;
-use std::fmt::{Display, Formatter};
 use windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct VirtualKey(pub u8);
 
 impl VirtualKey {
-    pub(crate) fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         VIRTUAL_KEY_NAME[self.0 as usize]
-    }
-}
-
-impl Display for VirtualKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name(), f)
     }
 }
 

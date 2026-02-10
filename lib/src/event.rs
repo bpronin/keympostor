@@ -34,7 +34,7 @@ pub struct KeyEvent {
 }
 
 impl KeyEvent {
-    pub(crate) fn new_key_event(
+    pub(crate) fn from_key_input(
         input: KBDLLHOOKSTRUCT,
         keyboard_state: &KeyboardState,
     ) -> KeyEvent {
@@ -55,7 +55,7 @@ impl KeyEvent {
         }
     }
 
-    pub(crate) fn new_mouse_event(
+    pub(crate) fn from_mouse_input(
         msg: u32,
         input: MSLLHOOKSTRUCT,
         keyboard_state: &KeyboardState,

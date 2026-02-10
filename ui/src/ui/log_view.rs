@@ -1,10 +1,10 @@
+use crate::rs;
+use crate::settings::MainWindowSettings;
 use crate::ui::res::RESOURCES;
 use crate::ui::res_ids::{
     IDS_ACTION, IDS_KEY, IDS_MODIFIERS, IDS_RULE, IDS_SCAN_CODE, IDS_STATUS, IDS_TIME,
     IDS_TRANSITION, IDS_VIRTUAL_KEY,
 };
-use crate::rs;
-use crate::settings::MainWindowSettings;
 use crate::ui::utils::get_list_view_column_width;
 use crate::ui::utils::scroll_list_view_to_end;
 use keympostor::event::KeyEvent;
@@ -175,14 +175,14 @@ impl LogView {
                 ),
                 event.action.key.to_string(),
                 event.action.transition.to_string(),
-                event.action.key.vk.to_string(),
-                event.action.key.sc.to_string(),
+                event.action.key.vk.name().to_string(),
+                event.action.key.sc.name().to_string(),
                 event.time.to_string(),
                 format!(
                     "{:1}{:1}{:1}",
-                    if event.rule.is_some() { "!" } else { "" },
-                    if event.is_injected { ">" } else { "" },
-                    if event.is_private { "<" } else { "" },
+                    ife!(event.rule.is_some(), "R", "-"),
+                    ife!(event.is_injected, "I", "-"),
+                    ife!(event.is_private, "P", "-"),
                 ),
             ],
         );

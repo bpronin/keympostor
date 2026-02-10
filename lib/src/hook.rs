@@ -133,7 +133,7 @@ fn uninstall_mouse_hook() {
 
 extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
-        let event = KeyEvent::new_key_event(
+        let event = KeyEvent::from_key_input(
             unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) },
             &KEYBOARD_STATE.with(|state| *state.borrow()),
         );
@@ -188,7 +188,7 @@ fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
     }
 
     let keyboard_state = KEYBOARD_STATE.with_borrow(|state| *state);
-    match KeyEvent::new_mouse_event(msg, input, &keyboard_state) {
+    match KeyEvent::from_mouse_input(msg, input, &keyboard_state) {
         Ok(event) => handle_event(event),
         Err(e) => {
             warn!("Failed to build event: {}", e);

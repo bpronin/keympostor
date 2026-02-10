@@ -1,30 +1,21 @@
-use std::fmt;
-use std::fmt::{Display, Formatter};
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct ScanCode(pub u8, pub bool);
 
 impl ScanCode {
-    // pub(crate) fn hex_code(&self) -> String {
-    //     format!("SC_0x{:04X}", self.ext_value())
-    // }
-
-    pub(crate) fn name(&self) -> &str {
+    pub fn name(&self) -> &str {
         SCAN_CODE_NAME[self.0 as usize][self.1 as usize]
     }
 
-    pub(crate) fn into_ext(self) -> u16 {
-        if self.1 {
-            self.0 as u16 | 0xE0 << 8
-        } else {
-            self.0 as u16
-        }
+    pub fn into_ext(self) -> u16 {
+        ext_scan_code(self.0, self.1)
     }
 }
 
-impl Display for ScanCode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name(), f)
+pub(crate) fn ext_scan_code(code: u8, is_ext: bool) -> u16 {
+    if is_ext {
+        code as u16 | 0xE0 << 8
+    } else {
+        code as u16
     }
 }
 

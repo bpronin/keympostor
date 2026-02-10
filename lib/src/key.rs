@@ -1,7 +1,8 @@
 use crate::error::KeyError;
-use crate::sc::ScanCode;
+use crate::sc::{ext_scan_code, ScanCode};
 use crate::vk::VirtualKey;
 use crate::{deserialize_from_string, serialize_to_string};
+use log::warn;
 use phf::phf_map;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
@@ -40,10 +41,14 @@ impl<'de> Deserialize<'de> for Key {
 pub fn key_by_code(vk_code: u8, sc_code: u8, sc_ext: bool) -> &'static Key {
     CODE_TO_KEY_MAP
         .get(&key_code(vk_code, sc_code, sc_ext))
-        .expect(&format!(
-            "Unsupported key code: `{:?} {:?}`.",
-            vk_code, sc_code
-        ))
+        .unwrap_or_else(|| {
+            warn!(
+                "Unsupported key codes: {:#02X} {:#04X}`.",
+                vk_code,
+                ext_scan_code(sc_code, sc_ext)
+            );
+            &KEY_UNASSIGNED
+        })
 }
 
 pub fn key_by_name(name: &str) -> Result<&'static Key, KeyError> {
@@ -229,7 +234,7 @@ pub static KEY_OEM_8: Key = new_key!("OEM_8", 0xDF, 0x00, false);
 pub static KEY_OEM_CLEAR: Key = new_key!("OEM_CLEAR", 0xFE, 0x00, false);
 pub static KEY_P: Key = new_key!("P", 0x50, 0x19, false);
 pub static KEY_PA1: Key = new_key!("PA1", 0xFD, 0x00, false);
-pub static KEY_PACKET: Key = new_key!("PACKET", 0xE7, 0x00, false);
+// pub static KEY_PACKET: Key = new_key!("PACKET", 0xE7, /* can be any */, false);  this VK for unicode simulation
 pub static KEY_PAGE_DOWN: Key = new_key!("PAGE_DOWN", 0x22, 0x51, true);
 pub static KEY_PAGE_UP: Key = new_key!("PAGE_UP", 0x21, 0x49, true);
 pub static KEY_PAUSE: Key = new_key!("PAUSE", 0x13, 0x45, false);
@@ -479,7 +484,7 @@ pub(crate) static CODE_TO_KEY_MAP: phf::Map<u32, Key> = phf_map! {
     0xDF0000 => KEY_OEM_8,
     0xE25600 => KEY_BACKSLASH_2,
     0xE50000 => KEY_PROCESS_KEY,
-    0xE70000 => KEY_PACKET,
+    // 0xE70000 => KEY_PACKET,
     0xF10001 => KEY_WHEEL_X,
     0xF30001 => KEY_WHEEL_Y,
     0xF60000 => KEY_ATTN,
@@ -494,7 +499,6 @@ pub(crate) static CODE_TO_KEY_MAP: phf::Map<u32, Key> = phf_map! {
 };
 
 pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
-    // "" => KEY_UNASSIGNED,
     "0" => KEY_0,
     "<00>" => KEY_00,
     "1" => KEY_1,
@@ -651,7 +655,7 @@ pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
     "OEM_CLEAR" => KEY_OEM_CLEAR,
     "P" => KEY_P,
     "PA1" => KEY_PA1,
-    "PACKET" => KEY_PACKET,
+    // "PACKET" => KEY_PACKET,
     "PAGE_DOWN" => KEY_PAGE_DOWN,
     "PAGE_UP" => KEY_PAGE_UP,
     "PAUSE" => KEY_PAUSE,
@@ -705,7 +709,7 @@ pub(crate) static NAME_TO_KEY_MAP: phf::Map<&'static str, Key> = phf_map! {
 
 #[cfg(test)]
 mod tests {
-    use crate::key::{key_by_name, key_code, Key, CODE_TO_KEY_MAP, NAME_TO_KEY_MAP};
+    use crate::key::{key_by_code, key_by_name, key_code, Key, CODE_TO_KEY_MAP, KEY_0, KEY_PRINT_SCREEN, KEY_UNASSIGNED, NAME_TO_KEY_MAP};
     use crate::sc::ScanCode;
     use crate::utils::test::SerdeWrapper;
     use crate::vk::VirtualKey;
@@ -714,6 +718,16 @@ mod tests {
     #[test]
     fn test_key_code() {
         assert_eq!(key_code(0x30, 0x0B, false), 0x300B00);
+    }
+
+    #[test]
+    fn test_key_by_code() {
+        assert_eq!(key_by_code(0x30, 0x0B, false), &KEY_0);
+        assert_eq!(key_by_code(0x2C, 0x37, true), &KEY_PRINT_SCREEN);
+
+        /* ignore VK_PACKET */
+        assert_eq!(key_by_code(0xE7, 0x00, true), &KEY_UNASSIGNED);
+        assert_eq!(key_by_code(0xE7, 0xAA, true), &KEY_UNASSIGNED);
     }
 
     #[test]
