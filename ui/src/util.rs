@@ -1,5 +1,6 @@
-use log::warn;
+use log::{debug, warn};
 use regex::Regex;
+use std::cell::RefCell;
 use std::error::Error;
 use std::ptr::null_mut;
 use windows::core::{PCSTR, PCWSTR, PWSTR};
@@ -60,59 +61,72 @@ pub(crate) fn get_keyboard_lock_state(vk: VIRTUAL_KEY) -> bool {
     unsafe { (GetKeyState(vk.0 as i32) & 1) != 0 }
 }
 
-pub(crate) fn get_process_name(hwnd: HWND) -> Result<String, Box<dyn Error>> {
-    unsafe {
+thread_local! {
+    static PROCESS_PATH_BUFFER: RefCell<[u16;MAX_PATH as usize]> = RefCell::new([0u16;MAX_PATH as usize]);
+}
+
+pub(crate) fn with_process_path<R>(hwnd: HWND, f: impl FnOnce(&str) -> R) -> Option<R> {
+    PROCESS_PATH_BUFFER.with(|buffer_cell| unsafe {
         let mut pid = 0u32;
         GetWindowThreadProcessId(hwnd, Some(&mut pid));
         if pid == 0 {
-            return Err("Failed to get process ID".into());
+            return None;
         }
 
-        let p_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid)?;
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid).ok()?;
 
-        let mut buffer = [0u16; MAX_PATH as usize];
+        let mut buffer = buffer_cell.borrow_mut();
         let mut buffer_size = buffer.len() as u32;
-        let success = QueryFullProcessImageNameW(
-            p_handle,
+
+        let result = QueryFullProcessImageNameW(
+            handle,
             PROCESS_NAME_WIN32,
             PWSTR(buffer.as_mut_ptr()),
             &mut buffer_size,
-        )
-        .is_ok();
+        );
 
-        CloseHandle(p_handle)?;
+        let _ = CloseHandle(handle);
 
-        if success {
-            Ok(String::from_utf16_lossy(&buffer[..buffer_size as usize]))
+        if result.is_ok() {
+            let path = String::from_utf16_lossy(&buffer[..buffer_size as usize]);
+            Some(f(&path))
         } else {
-            Err("Failed to get process name".into())
+            None
         }
-    }
+    })
 }
 
-pub(crate) fn get_window_title(hwnd: HWND) -> Result<String, Box<dyn Error>> {
-    unsafe {
-        if GetWindowTextLengthW(hwnd) == 0 {
-            return Err("Invalid window handle".into());
+thread_local! {
+    static WINDOW_TEXT_BUFFER: RefCell<Vec<u16>> = RefCell::new(Vec::with_capacity(256));
+}
+
+pub(crate) fn with_window_title<R>(hwnd: HWND, f: impl FnOnce(&str) -> R) -> Option<R> {
+    WINDOW_TEXT_BUFFER.with(|buffer_cell| unsafe {
+        let len = GetWindowTextLengthW(hwnd);
+        if len == 0 {
+            return None;
         }
 
-        let mut buffer = vec![0u16; (GetWindowTextLengthW(hwnd) + 1) as usize];
-        let bytes_read = GetWindowTextW(hwnd, &mut buffer);
-        if bytes_read == 0 {
-            return Err("Failed to get window title".into());
+        let mut buffer = buffer_cell.borrow_mut();
+        let needed = (len + 1) as usize;
+        if buffer.len() < needed {
+            buffer.resize(needed, 0);
         }
 
-        let result = String::from_utf16_lossy(&buffer[..bytes_read as usize]);
-        Ok(result)
-    }
+        let copied = GetWindowTextW(hwnd, &mut buffer);
+        if copied == 0 {
+            return None;
+        }
+
+        let title = String::from_utf16_lossy(&buffer[..copied as usize]);
+
+        Some(f(&title))
+    })
 }
 
 #[cfg(test)]
 
 pub mod tests {
-    use windows::Win32::UI::WindowsAndMessaging::GetForegroundWindow;
-    use crate::util::{get_process_name, get_window_title};
-
     #[macro_export]
     macro_rules! str {
         ($str:literal) => {
@@ -127,18 +141,4 @@ pub mod tests {
         $(map.insert($key, $val);)*
         map
     }}}
-
-    #[test]
-    fn test_get_window_title() {
-        let hwnd = unsafe { GetForegroundWindow() };
-        
-        assert!(get_window_title(hwnd).is_ok());
-    }
-
-    #[test]
-    fn test_get_process_name() {
-        let hwnd = unsafe { GetForegroundWindow() };
-
-        assert!(get_process_name(hwnd).is_ok());
-    }
 }

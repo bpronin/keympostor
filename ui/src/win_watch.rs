@@ -1,6 +1,6 @@
 use crate::app::App;
 use crate::profile::LayoutAutoswitchProfile;
-use crate::util::{get_process_name, get_window_title};
+use crate::util::{with_process_path, with_window_title};
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
@@ -104,17 +104,11 @@ fn active_window_matches(regex: &Regex) -> Option<HWND> {
         return None;
     }
 
-    let title_matches = get_window_title(hwnd)
-        .ok()
-        .is_some_and(|title| regex.is_match(&title));
-    if title_matches {
+    if with_window_title(hwnd, |t| regex.is_match(t)).unwrap_or(false) {
         return Some(hwnd);
     }
 
-    let process_matches = get_process_name(hwnd)
-        .ok()
-        .is_some_and(|name| regex.is_match(&name));
-    if process_matches {
+    if with_process_path(hwnd, |n| regex.is_match(n)).unwrap_or(false) {
         return Some(hwnd);
     }
 
