@@ -101,7 +101,7 @@ impl From<&KeyboardState> for ModifierKeys {
         let value = (0..MODIFIER_KEYS.len())
             .filter(|modifier_index| {
                 let vk_code = MODIFIER_KEYS[*modifier_index].0;
-                keyboard_state.is_set(vk_code as u8)
+                keyboard_state.is_bit_set(vk_code as u8)
             })
             .fold(0, |acc, flag_index| acc | (1 << flag_index));
 

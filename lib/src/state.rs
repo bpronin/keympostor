@@ -1,4 +1,5 @@
 use crate::action::KeyAction;
+use crate::vk::{VirtualKey, VIRTUAL_KEY_NAME};
 use std::fmt;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -21,7 +22,7 @@ impl KeyboardState {
     }
 
     #[inline]
-    pub(crate) fn is_set(&self, index: u8) -> bool {
+    pub(crate) fn is_bit_set(&self, index: u8) -> bool {
         let (part_index, bit_index) = self.bit_pos(index);
         unsafe {
             let part = self.0.get_unchecked(part_index);
@@ -54,6 +55,21 @@ impl KeyboardState {
     fn bit_pos(&self, index: u8) -> (usize, u8) {
         ((index / 64) as usize, index % 64)
     }
+
+    fn into_virtual_keys(self) -> Vec<VirtualKey> {
+        (0..255)
+            .filter(|&index| self.is_bit_set(index))
+            .map(VirtualKey)
+            .collect()
+    }
+
+    fn into_virtual_keys_str(self) -> String {
+        (0..255)
+            .filter(|&index| self.is_bit_set(index))
+            .map(|k| VIRTUAL_KEY_NAME[k as usize])
+            .collect::<Vec<&str>>()
+            .join(" + ")
+    }
 }
 
 impl fmt::Binary for KeyboardState {
@@ -82,7 +98,6 @@ impl fmt::UpperHex for KeyboardState {
     }
 }
 
-
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -95,38 +110,30 @@ pub mod tests {
         this
     }
 
-    pub fn state_to_keys(state: &KeyboardState) -> Vec<VirtualKey> {
-        let mut result = vec![];
-        for index in 0..255 {
-            if state.is_set(index) {
-                result.push(VirtualKey(index))
-            }
-        }
-        result
-    }
-
     #[test]
     fn test_keyboard_state_get_set_bit() {
         let mut state = KeyboardState::new();
         state.set_bit(1);
         state.clear_bit(41);
 
-        assert!(state.is_set(1));
-        assert!(!state.is_set(41));
+        assert!(state.is_bit_set(1));
+        assert!(!state.is_bit_set(41));
 
         state.clear_bit(1);
         state.set_bit(41);
 
-        assert!(!state.is_set(1));
-        assert!(state.is_set(41));
+        assert!(!state.is_bit_set(1));
+        assert!(state.is_bit_set(41));
     }
 
     #[test]
-    fn test_keyboard_state_to_keys() {
+    fn test_keyboard_state_into_virtual_keys() {
         let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
 
-        // order is not guaranteed
-        assert_eq!(vec![KEY_END.vk, KEY_0.vk, KEY_F1.vk], state_to_keys(&state));
+        /* the order is always from less to greater VK */
+        assert_eq!(vec![KEY_END.vk, KEY_0.vk, KEY_F1.vk], state.into_virtual_keys());
+
+        println!("{}", state.into_virtual_keys_str());
     }
 
     #[test]
