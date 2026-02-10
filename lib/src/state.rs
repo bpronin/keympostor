@@ -1,11 +1,18 @@
 use crate::action::KeyAction;
+use crate::error::KeyError;
 use crate::vk::{VirtualKey, VIRTUAL_KEY_NAME};
+use crate::{deserialize_from_string, serialize_to_string};
+use serde::Deserializer;
+use serde::Serializer;
+use serde::{de, Deserialize, Serialize};
 use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
+use std::hash::Hash;
+use std::str::FromStr;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+/* Using [u64; 4] because it is faster than [u128; 2] on most systems */
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct KeyboardState([u64; 4]);
-
-/* [u64; 4] is faster than [u128; 2] on most systems */
 
 impl KeyboardState {
     pub(crate) fn new() -> Self {
@@ -55,20 +62,32 @@ impl KeyboardState {
     fn bit_pos(&self, index: u8) -> (usize, u8) {
         ((index / 64) as usize, index % 64)
     }
+}
 
-    fn into_virtual_keys(self) -> Vec<VirtualKey> {
-        (0..255)
-            .filter(|&index| self.is_bit_set(index))
-            .map(VirtualKey)
-            .collect()
+impl FromStr for KeyboardState {
+    type Err = KeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut this = Self::new();
+
+        for part in s.trim().split('+') {
+            let vk = VirtualKey::from_str(part.trim())?;
+            this.set_bit(vk.0);
+        }
+
+        Ok(this)
     }
+}
 
-    fn into_virtual_keys_str(self) -> String {
-        (0..255)
+impl Display for KeyboardState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let s = (0..255)
             .filter(|&index| self.is_bit_set(index))
             .map(|k| VIRTUAL_KEY_NAME[k as usize])
             .collect::<Vec<&str>>()
-            .join(" + ")
+            .join(" + ");
+
+        write!(f, "{}", s)
     }
 }
 
@@ -96,6 +115,14 @@ impl fmt::UpperHex for KeyboardState {
         }
         Ok(())
     }
+}
+
+impl Serialize for KeyboardState {
+    serialize_to_string!();
+}
+
+impl<'de> Deserialize<'de> for KeyboardState {
+    deserialize_from_string!();
 }
 
 #[cfg(test)]
@@ -127,13 +154,17 @@ pub mod tests {
     }
 
     #[test]
-    fn test_keyboard_state_into_virtual_keys() {
+    fn test_keyboard_state_to_string() {
         let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
 
-        /* the order is always from less to greater VK */
-        assert_eq!(vec![KEY_END.vk, KEY_0.vk, KEY_F1.vk], state.into_virtual_keys());
+        assert_eq!("VK_END + VK_0 + VK_F1", state.to_string());
+        // println!("{}", state);
+    }
 
-        println!("{}", state.into_virtual_keys_str());
+    #[test]
+    fn test_keyboard_state_from_string() {
+        let state = KeyboardState::from_str("VK_END + VK_0 + VK_F1").unwrap();
+        assert_eq!(state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]), state);
     }
 
     #[test]

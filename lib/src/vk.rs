@@ -1,7 +1,22 @@
+use crate::error::KeyError;
+use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct VirtualKey(pub u8);
+
+impl FromStr for VirtualKey {
+    type Err = KeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let code = VIRTUAL_KEY_NAME
+            .iter()
+            .position(|&n| n == s)
+            .ok_or(KeyError::new(&format!("Illegal virtual key name: `{}`", s)))?;
+
+        Ok(Self(code as u8))
+    }
+}
 
 impl VirtualKey {
     pub fn name(&self) -> &str {

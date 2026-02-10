@@ -27,6 +27,17 @@ pub const KM_RALT: ModifierKeys = ModifierKeys(1 << 5);
 pub const KM_LWIN: ModifierKeys = ModifierKeys(1 << 6);
 pub const KM_RWIN: ModifierKeys = ModifierKeys(1 << 7);
 
+static MODIFIER_KEYS: [VIRTUAL_KEY; 8] = [
+    VK_LSHIFT,
+    VK_RSHIFT,
+    VK_LCONTROL,
+    VK_RCONTROL,
+    VK_LMENU,
+    VK_RMENU,
+    VK_LWIN,
+    VK_RWIN,
+];
+
 //todo: replace it with KeyboardState to support any key as modifier
 
 //todo: probably change `[A+B] C^` to 'A+B+C^' and get rid of `[]` prefix for modifiers absence ?
@@ -85,30 +96,6 @@ impl Display for ModifierKeys {
     }
 }
 
-static MODIFIER_KEYS: [VIRTUAL_KEY; 8] = [
-    VK_LSHIFT,
-    VK_RSHIFT,
-    VK_LCONTROL,
-    VK_RCONTROL,
-    VK_LMENU,
-    VK_RMENU,
-    VK_LWIN,
-    VK_RWIN,
-];
-
-impl From<&KeyboardState> for ModifierKeys {
-    fn from(keyboard_state: &KeyboardState) -> Self {
-        let value = (0..MODIFIER_KEYS.len())
-            .filter(|modifier_index| {
-                let vk_code = MODIFIER_KEYS[*modifier_index].0;
-                keyboard_state.is_bit_set(vk_code as u8)
-            })
-            .fold(0, |acc, flag_index| acc | (1 << flag_index));
-
-        Self(value as u8)
-    }
-}
-
 impl FromStr for ModifierKeys {
     type Err = KeyError;
 
@@ -163,6 +150,19 @@ impl Serialize for ModifierKeys {
 
 impl<'de> Deserialize<'de> for ModifierKeys {
     deserialize_from_string!();
+}
+
+impl From<&KeyboardState> for ModifierKeys {
+    fn from(keyboard_state: &KeyboardState) -> Self {
+        let value = (0..MODIFIER_KEYS.len())
+            .filter(|modifier_index| {
+                let vk_code = MODIFIER_KEYS[*modifier_index].0;
+                keyboard_state.is_bit_set(vk_code as u8)
+            })
+            .fold(0, |acc, flag_index| acc | (1 << flag_index));
+
+        Self(value as u8)
+    }
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash, Serialize, Deserialize)]
