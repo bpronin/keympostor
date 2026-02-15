@@ -1,7 +1,7 @@
+use crate::vk::virtual_key_name;
+use crate::sc::scan_code_name;
 use crate::sc::ext_scan_code;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::fmt::{Debug, Display};
-use std::str::FromStr;
+use std::fmt::Debug;
 
 macro_rules! define_keys {
     ($const_name:ident { $($variant:ident = ($index:expr, $name:literal, $vk:expr, $sc:expr, $sc_ext:expr)),* $(,)? }) => {
@@ -38,6 +38,14 @@ macro_rules! define_keys {
                 match self {
                     $(Self::$variant => $sc_ext),*
                 }
+            }
+
+            pub const fn sc_name(&self) -> &'static str  {
+                scan_code_name(self.sc(), self.is_ext_sc())
+            }
+
+            pub const fn vk_name(&self) -> &'static str  {
+                virtual_key_name(self.vk())
             }
 
             pub const fn as_str(&self) -> &'static str {

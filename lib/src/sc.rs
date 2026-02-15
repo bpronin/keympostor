@@ -1,20 +1,3 @@
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
-pub struct ScanCode(u8, bool);
-
-impl ScanCode {
-    pub fn name(&self) -> &str {
-        SCAN_CODE_NAME[self.0 as usize][self.1 as usize]
-    }
-
-    pub fn is_ext(&self) -> bool {
-        self.1
-    }
-
-    pub fn into_ext(self) -> u16 {
-        ext_scan_code(self.0, self.1)
-    }
-}
-
 pub(crate) const fn ext_scan_code(code: u8, is_ext: bool) -> u16 {
     if is_ext {
         code as u16 | 0xE0 << 8
@@ -23,7 +6,11 @@ pub(crate) const fn ext_scan_code(code: u8, is_ext: bool) -> u16 {
     }
 }
 
-pub static SCAN_CODE_NAME: [[&str; 2]; 136] = [
+pub(crate) const fn scan_code_name(code: u8, is_ext: bool) -> &'static str {
+    SCAN_CODE_NAME[code as usize][is_ext as usize]
+}
+
+static SCAN_CODE_NAME: [[&str; 2]; 136] = [
     ["UNASSIGNED", "UNASSIGNED"],
     ["SC_ESC", "SC_"],
     ["SC_1", "SC_1"],

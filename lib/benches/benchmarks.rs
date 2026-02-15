@@ -3,7 +3,7 @@ use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
 use fxhash::FxHashMap;
 use keympostor::action::{KeyAction, KeyActionSequence};
 use keympostor::event::KeyEvent;
-use keympostor::key::key_by_code;
+use keympostor::key::{Key};
 use keympostor::modifiers::KeyModifiers;
 use keympostor::modifiers::KeyModifiers::{All, Any};
 use keympostor::rules::KeyTransformRule;
@@ -53,18 +53,18 @@ impl Default for KeyTransformMatrix {
 
 impl KeyTransformMatrix {
     fn get_group_mut(&mut self, action: &KeyAction) -> &mut Option<Group> {
-        &mut self.matrix[action.transition as usize][action.key.sc.1 as usize]
-            [action.key.sc.0 as usize][action.key.vk.0 as usize]
+        &mut self.matrix[action.transition as usize][action.key.is_ext_sc() as usize]
+            [action.key.sc() as usize][action.key.vk() as usize]
     }
 
     fn get_group(&self, action: &KeyAction) -> &Option<Group> {
-        &self.matrix[action.transition as usize][action.key.sc.1 as usize][action.key.sc.0 as usize]
-            [action.key.vk.0 as usize]
+        &self.matrix[action.transition as usize][action.key.is_ext_sc() as usize]
+            [action.key.sc() as usize][action.key.vk() as usize]
     }
 
     fn put_group(&mut self, action: &KeyAction, group: Group) {
-        self.matrix[action.transition as usize][action.key.sc.1 as usize]
-            [action.key.sc.0 as usize][action.key.vk.0 as usize] = Some(group);
+        self.matrix[action.transition as usize][action.key.is_ext_sc() as usize]
+            [action.key.sc() as usize][action.key.vk() as usize] = Some(group);
     }
 }
 
@@ -93,7 +93,7 @@ impl KeyTransformMap for KeyTransformMatrix {
 
 fn create_action(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyAction {
     KeyAction {
-        key: key_by_code(vk, sc, ext),
+        key: Key::from_code(vk, sc, ext).unwrap(),
         transition: trans,
     }
 }

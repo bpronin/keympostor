@@ -117,7 +117,7 @@ mod tests {
     use crate::event::SELF_EVENT_MARKER;
     use crate::input::{build_action_input, build_key_input};
     use crate::key_action;
-    use crate::sc::{ext_scan_code, ScanCode};
+    use crate::sc::{ext_scan_code};
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT, INPUT_KEYBOARD, INPUT_MOUSE, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,

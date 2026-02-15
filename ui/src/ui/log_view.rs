@@ -175,10 +175,8 @@ impl LogView {
                 ),
                 event.action.key.as_str().to_string(),
                 event.action.transition.to_string(),
-                // event.action.key.vk.name().to_string(),
-                 event.action.key.vk().to_string(),
-                // event.action.key.sc.name().to_string(),
-                event.action.key.ext_sc().to_string(),
+                event.action.key.vk_name().to_string(),
+                event.action.key.sc_name().to_string(),
                 event.time.to_string(),
                 format!(
                     "{:1}{:1}{:1}",

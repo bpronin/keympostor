@@ -38,7 +38,11 @@ impl Into<VIRTUAL_KEY> for VirtualKey {
     }
 }
 
-pub(crate) static VIRTUAL_KEY_NAME: [&str; 256] = [
+pub(crate) const fn virtual_key_name(vk: u8) -> &'static str {
+    VIRTUAL_KEY_NAME[vk as usize]
+}
+
+static VIRTUAL_KEY_NAME: [&str; 256] = [
     "UNASSIGNED",
     "VK_LBUTTON",
     "VK_RBUTTON",

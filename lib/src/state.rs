@@ -1,6 +1,6 @@
 use crate::action::KeyAction;
 use crate::error::KeyError;
-use crate::vk::{VirtualKey, VIRTUAL_KEY_NAME};
+use crate::vk::{virtual_key_name, VirtualKey};
 use crate::{deserialize_from_string, serialize_to_string};
 use serde::Deserializer;
 use serde::Serializer;
@@ -83,7 +83,7 @@ impl Display for KeyboardState {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = (0..255)
             .filter(|&index| self.is_bit_set(index))
-            .map(|k| VIRTUAL_KEY_NAME[k as usize])
+            .map(|k| virtual_key_name(k))
             .collect::<Vec<&str>>()
             .join(" + ");
 
