@@ -1,10 +1,5 @@
 use crate::app::App;
-use crate::ui::res_ids::IDS_APP_ALREADY_RUNNING;
-use crate::ui::res::RESOURCES;
-use crate::rs;
 use crate::ui::style::display_font;
-use crate::ui::utils::show_warn_message;
-use crate::util::is_app_running;
 use log::error;
 use native_windows_gui as nwg;
 use std::cell::RefCell;

@@ -1,7 +1,7 @@
 use crate::action::KeyActionSequence;
 use crate::error::KeyError;
 use crate::trigger::KeyTrigger;
-use crate::{key_err, write_joined};
+use crate::{key_err, key_error, write_joined};
 use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
@@ -53,10 +53,10 @@ impl KeyTransformRule {
         Self::from_str_pair(
             parts
                 .next()
-                .ok_or(KeyError::new(&format!("Missing trigger part in `{s}`")))?,
+                .ok_or(key_error!("Missing trigger part in `{s}`"))?,
             parts
                 .next()
-                .ok_or(KeyError::new(&format!("Missing rule part in `{s}`.")))?,
+                .ok_or(key_error!("Missing rule part in `{s}`."))?,
         )
     }
 }

@@ -2,7 +2,7 @@ use crate::action::KeyAction;
 use crate::error::KeyError;
 use crate::modifiers::KeyModifiers;
 use crate::modifiers::KeyModifiers::{All, Any};
-use crate::{deserialize_from_string, key_err, serialize_to_string};
+use crate::{deserialize_from_string, key_err, key_error, serialize_to_string};
 use serde::{de, Deserialize, Serialize};
 use serde::{Deserializer, Serializer};
 use std::fmt::{Display, Formatter};
@@ -34,11 +34,11 @@ impl KeyTrigger {
             let modifiers = KeyModifiers::from_str(
                 parts
                     .next()
-                    .ok_or(KeyError::new("Missing modifiers part"))?,
+                    .ok_or(key_error!("Missing modifiers part"))?,
             )?;
 
             let actions = KeyAction::from_str_expand(
-                parts.next().ok_or(KeyError::new("Missing actions part"))?,
+                parts.next().ok_or(key_error!("Missing actions part"))?,
             )?;
 
             for action in actions {

@@ -1,3 +1,4 @@
+use crate::key_error;
 use crate::error::KeyError;
 use crate::key::{key_by_name, Key};
 use crate::transition::KeyTransition;
@@ -26,7 +27,7 @@ impl KeyAction {
     pub(crate) fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
         let (sk, st) = match s.find(|c| ['^', '*', '↓', '↑'].contains(&c)) {
             Some(p) => (
-                s.get(..p).ok_or(KeyError::new("Missing key part"))?,
+                s.get(..p).ok_or(key_error!("Missing key part"))?,
                 s.get(p..),
             ),
             None => (s, None),

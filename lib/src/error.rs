@@ -3,19 +3,7 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
 pub struct KeyError {
-    message: String,
-}
-
-impl KeyError {
-    pub(crate) fn new(message: &str) -> Self {
-        Self {
-            message: message.into(),
-        }
-    }
-
-    pub fn err<T>(message: &str) -> Result<T, KeyError> {
-        Err::<T, KeyError>(Self::new(message))
-    }
+    pub message: String,
 }
 
 impl Default for KeyError {
@@ -35,8 +23,15 @@ impl Display for KeyError {
 impl Error for KeyError {}
 
 #[macro_export]
+macro_rules! key_error {
+    ($($arg:tt)*) => {
+        KeyError{ message: format!($($arg)*) }
+    }
+}
+
+#[macro_export]
 macro_rules! key_err {
     ($($arg:tt)*) => {
-        KeyError::err(&format!($($arg)*))
+        Err(KeyError{ message: format!($($arg)*) })
     }
 }
