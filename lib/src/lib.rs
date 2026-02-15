@@ -14,3 +14,4 @@ pub mod transition;
 pub mod trigger;
 pub mod utils;
 pub mod vk;
+mod KeyEnum;
