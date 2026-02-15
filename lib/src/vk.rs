@@ -1,8 +1,9 @@
 use crate::error::KeyError;
+use crate::key_error;
 use std::str::FromStr;
 use windows::Win32::UI::Input::KeyboardAndMouse::VIRTUAL_KEY;
-use crate::key_error;
 
+#[repr(transparent)]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct VirtualKey(pub u8);
 

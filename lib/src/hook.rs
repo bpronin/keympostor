@@ -34,10 +34,8 @@ impl KeyboardHook {
         });
     }
 
-    pub fn suppress_keys(&self, keys: &[&Key]) {
-        let mut set: FxHashSet<Key> = FxHashSet::default();
-        set.extend(keys.iter().cloned());
-        SUPPRESSED_KEYS.replace(set);
+    pub fn suppress_keys(&self, keys: &[&'static Key]) {
+        SUPPRESSED_KEYS.replace(FxHashSet::from_iter(keys.iter().cloned()));
     }
 }
 
@@ -56,7 +54,7 @@ thread_local! {
     static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(KeyboardState::new());
     static LAST_MOUSE_POSITION: RefCell<Option<POINT>> = RefCell::new(None);
     static TRANSFOFM_MAP: RefCell<Option<KeyTransformMap>> = RefCell::new(None);
-    static SUPPRESSED_KEYS: RefCell<FxHashSet<Key>> = RefCell::new(FxHashSet::default());
+    static SUPPRESSED_KEYS: RefCell<FxHashSet<&'static Key>> = RefCell::new(FxHashSet::default());
 }
 
 fn install_keyboard_hook() {
