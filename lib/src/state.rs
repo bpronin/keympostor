@@ -20,7 +20,7 @@ impl KeyboardState {
     }
 
     pub(crate) fn update(&mut self, action: KeyAction) {
-        let index = action.key.vk.0;
+        let index = action.key.vk();
         if action.transition.into_bool() {
             self.set_bit(index);
         } else {
@@ -127,13 +127,13 @@ impl<'de> Deserialize<'de> for KeyboardState {
 
 #[cfg(test)]
 pub mod tests {
+    use crate::key::Key;
+    use crate::key::Key::{Digit0, End, F1};
     use super::*;
-    use crate::key::{KEY_0, KEY_END, KEY_F1};
-    use crate::vk::VirtualKey;
 
-    pub fn state_from_keys(keys: &[VirtualKey]) -> KeyboardState {
+    pub fn state_from_keys(keys: &[Key]) -> KeyboardState {
         let mut this = KeyboardState::new();
-        keys.iter().for_each(|key| this.set_bit(key.0));
+        keys.iter().for_each(|key| this.set_bit(key.vk()));
         this
     }
 
@@ -155,7 +155,7 @@ pub mod tests {
 
     #[test]
     fn test_keyboard_state_to_string() {
-        let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
+        let state = state_from_keys(&[F1, End, Digit0]);
 
         assert_eq!("VK_END + VK_0 + VK_F1", state.to_string());
         // println!("{}", state);
@@ -164,12 +164,12 @@ pub mod tests {
     #[test]
     fn test_keyboard_state_from_string() {
         let state = KeyboardState::from_str("VK_END + VK_0 + VK_F1").unwrap();
-        assert_eq!(state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]), state);
+        assert_eq!(state_from_keys(&[F1, End, Digit0]), state);
     }
 
     #[test]
     fn test_keyboard_state_hex_format() {
-        let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
+        let state = state_from_keys(&[F1, End, Digit0]);
 
         // println!("{:X}", state);
         assert_eq!(
@@ -180,7 +180,7 @@ pub mod tests {
 
     #[test]
     fn test_keyboard_state_bin_format() {
-        let state = state_from_keys(&[KEY_F1.vk, KEY_END.vk, KEY_0.vk]);
+        let state = state_from_keys(&[F1, End, Digit0]);
 
         // println!("{:b}", state);
         assert_eq!(

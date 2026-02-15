@@ -1,8 +1,4 @@
 use crate::error::KeyError;
-use crate::key::{
-    KEY_LEFT_ALT, KEY_LEFT_CTRL, KEY_LEFT_SHIFT, KEY_LEFT_WIN, KEY_RIGHT_ALT, KEY_RIGHT_CTRL,
-    KEY_RIGHT_SHIFT, KEY_RIGHT_WIN, KEY_SHIFT,
-};
 use crate::modifiers::KeyModifiers::All;
 use crate::state::KeyboardState;
 use crate::{deserialize_from_string, key_err, serialize_to_string, write_joined};
@@ -16,6 +12,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     VIRTUAL_KEY, VK_LCONTROL, VK_LMENU, VK_LSHIFT, VK_LWIN, VK_RCONTROL, VK_RMENU, VK_RSHIFT,
     VK_RWIN,
 };
+use crate::key::Key;
 
 pub const KM_NONE: ModifierKeys = ModifierKeys(0);
 pub const KM_LSHIFT: ModifierKeys = ModifierKeys(1);
@@ -64,28 +61,28 @@ impl Display for ModifierKeys {
         let mut names: Vec<&str> = Vec::new();
 
         if self.contains(KM_LSHIFT) {
-            names.push(KEY_LEFT_SHIFT.name);
+            names.push(Key::LeftShift.as_str());
         }
         if self.contains(KM_RSHIFT) {
-            names.push(KEY_RIGHT_SHIFT.name);
+            names.push(Key::RightShift.as_str());
         }
         if self.contains(KM_LCTRL) {
-            names.push(KEY_LEFT_CTRL.name);
+            names.push(Key::LeftCtrl.as_str());
         }
         if self.contains(KM_RCTRL) {
-            names.push(KEY_RIGHT_CTRL.name);
+            names.push(Key::RightCtrl.as_str());
         }
         if self.contains(KM_LALT) {
-            names.push(KEY_LEFT_ALT.name);
+            names.push(Key::LeftAlt.as_str());
         }
         if self.contains(KM_RALT) {
-            names.push(KEY_RIGHT_ALT.name);
+            names.push(Key::RightAlt.as_str());
         }
         if self.contains(KM_LWIN) {
-            names.push(KEY_LEFT_WIN.name);
+            names.push(Key::LeftWin.as_str());
         }
         if self.contains(KM_RWIN) {
-            names.push(KEY_RIGHT_WIN.name);
+            names.push(Key::RightWin.as_str());
         }
 
         if !names.is_empty() {
@@ -105,26 +102,26 @@ impl FromStr for ModifierKeys {
         } else {
             let result = s.trim().split('+').fold(KM_NONE, |acc, part| {
                 let p = part.trim();
-                acc | if KEY_LEFT_SHIFT.name == p {
+                acc | if Key::LeftShift.as_str() == p {
                     KM_LSHIFT
-                } else if KEY_RIGHT_SHIFT.name == p {
+                } else if Key::RightShift.as_str() == p {
                     KM_RSHIFT
-                } else if KEY_SHIFT.name == p {
+                } else if Key::Shift.as_str() == p {
                     KM_LSHIFT | KM_RSHIFT
-                } else if KEY_LEFT_CTRL.name == p {
+                } else if Key::LeftCtrl.as_str() == p {
                     KM_LCTRL
-                } else if KEY_RIGHT_CTRL.name == p {
+                } else if Key::RightCtrl.as_str() == p {
                     KM_RCTRL
-                } else if KEY_LEFT_ALT.name == p {
+                } else if Key::LeftAlt.as_str() == p {
                     KM_LALT
-                } else if KEY_RIGHT_ALT.name == p {
+                } else if Key::RightAlt.as_str() == p {
                     KM_RALT
-                } else if KEY_LEFT_WIN.name == p {
+                } else if Key::LeftWin.as_str() == p {
                     KM_LWIN
-                } else if KEY_RIGHT_WIN.name == p {
+                } else if Key::RightWin.as_str() == p {
                     KM_RWIN
                     // todo: this expands key into LEFT+RIGHT but must be LEFT|RIGHT
-                    // } else if KEY_CTRL.name == p {
+                    // } else if Key::CTRL.name == p {
                     //     KM_LCTRL | KM_RCTRL
                     // } else if "ALT" == p {
                     //     KM_LALT | KM_RALT
@@ -192,7 +189,6 @@ impl FromStr for KeyModifiers {
 
 #[cfg(test)]
 mod tests {
-    use crate::key::{KEY_LEFT_CTRL, KEY_LEFT_SHIFT, KEY_RIGHT_SHIFT, KEY_RIGHT_WIN};
     use crate::modifiers::KeyModifiers::{All, Any};
     use crate::modifiers::{
         KeyModifiers, ModifierKeys, KM_LALT, KM_LCTRL, KM_LSHIFT, KM_NONE, KM_RCTRL, KM_RSHIFT,
@@ -202,6 +198,7 @@ mod tests {
     use crate::state::KeyboardState;
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
+    use crate::key::Key;
 
     #[macro_export]
     macro_rules! key_mod {
@@ -214,7 +211,7 @@ mod tests {
     fn test_key_modifiers_display() {
         assert_eq!("", KM_NONE.to_string());
 
-        assert_eq!("LEFT_SHIFT + RIGHT_WIN", (KM_LSHIFT | KM_RWIN).to_string());
+        assert_eq!("LeftShift + RIGHT_WIN", (KM_LSHIFT | KM_RWIN).to_string());
         assert_eq!("RIGHT_CTRL + LEFT_ALT", (KM_LALT | KM_RCTRL).to_string());
 
         // assert_eq!(
@@ -230,10 +227,10 @@ mod tests {
         assert_eq!(KM_NONE, ModifierKeys::from(&keys));
 
         let keys = state_from_keys(&[
-            KEY_LEFT_SHIFT.vk,
-            KEY_RIGHT_SHIFT.vk,
-            KEY_LEFT_CTRL.vk,
-            KEY_RIGHT_WIN.vk,
+            Key::LeftShift,
+            Key::RightShift,
+            Key::LeftCtrl,
+            Key::RightWin,
         ]);
 
         assert_eq!(
@@ -245,7 +242,7 @@ mod tests {
     #[test]
     fn test_keyboard_state_display() {
         assert_eq!(
-            "[LEFT_SHIFT + RIGHT_WIN]",
+            "[LeftShift + RIGHT_WIN]",
             All(KM_LSHIFT | KM_RWIN).to_string()
         );
         assert_eq!("[]", All(KM_NONE).to_string());
@@ -258,7 +255,7 @@ mod tests {
 
         assert_eq!(
             All(KM_LSHIFT | KM_RSHIFT | KM_RWIN),
-            KeyModifiers::from_str("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN").unwrap()
+            KeyModifiers::from_str("LeftShift + RIGHT_SHIFT + RIGHT_WIN").unwrap()
         );
     }
 
@@ -269,7 +266,7 @@ mod tests {
 
     #[test]
     fn test_key_modifier_keys_serialize() {
-        let source = SerdeWrapper::new(key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN"));
+        let source = SerdeWrapper::new(key_mod!("LeftShift + RIGHT_SHIFT + RIGHT_WIN"));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 
@@ -278,7 +275,7 @@ mod tests {
 
     #[test]
     fn test_key_modifiers_serialize() {
-        let source = SerdeWrapper::new(All(key_mod!("LEFT_SHIFT + RIGHT_SHIFT + RIGHT_WIN")));
+        let source = SerdeWrapper::new(All(key_mod!("LeftShift + RIGHT_SHIFT + RIGHT_WIN")));
         let text = toml::to_string_pretty(&source).unwrap();
         let actual = toml::from_str(&text).unwrap();
 

@@ -1,17 +1,9 @@
 use crate::action::{KeyAction, KeyActionSequence};
 use crate::event::SELF_EVENT_MARKER;
-use crate::key::{
-    KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_RIGHT_BUTTON, KEY_UNASSIGNED, KEY_WHEEL_X, KEY_WHEEL_Y,
-    KEY_XBUTTON1, KEY_XBUTTON2,
-};
 use crate::transition::KeyTransition::{Down, Up};
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
-    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
-    MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP,
-    MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP, MOUSEINPUT, MOUSE_EVENT_FLAGS,
-};
+use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP, MOUSEINPUT, MOUSE_EVENT_FLAGS, VIRTUAL_KEY};
 use windows::Win32::UI::WindowsAndMessaging::{XBUTTON1, XBUTTON2};
+use crate::key::Key;
 
 pub fn build_input(seq: &KeyActionSequence) -> Vec<INPUT> {
     seq.iter().filter_map(build_action_input).collect()
@@ -25,9 +17,9 @@ fn build_action_input(action: &KeyAction) -> Option<INPUT> {
 }
 
 fn build_mouse_wheel_input(action: &KeyAction) -> Option<INPUT> {
-    if action.key == &KEY_WHEEL_X {
+    if action.key == Key::WheelX {
         build_mouse_input(MOUSEEVENTF_WHEEL, 0)
-    } else if action.key == &KEY_WHEEL_Y {
+    } else if action.key == Key::WheelY {
         build_mouse_input(MOUSEEVENTF_WHEEL, 0)
     } else {
         return None;
@@ -35,19 +27,19 @@ fn build_mouse_wheel_input(action: &KeyAction) -> Option<INPUT> {
 }
 
 fn build_mouse_button_input(action: &KeyAction) -> Option<INPUT> {
-    let flags = if action.key == &KEY_LEFT_BUTTON {
+    let flags = if action.key == Key::LeftButton {
         if action.transition == Down {
             MOUSEEVENTF_LEFTDOWN
         } else {
             MOUSEEVENTF_LEFTUP
         }
-    } else if action.key == &KEY_RIGHT_BUTTON {
+    } else if action.key == Key::RightButton {
         if action.transition == Down {
             MOUSEEVENTF_RIGHTDOWN
         } else {
             MOUSEEVENTF_RIGHTUP
         }
-    } else if action.key == &KEY_MIDDLE_BUTTON {
+    } else if action.key == Key::MiddleButton {
         if action.transition == Down {
             MOUSEEVENTF_MIDDLEDOWN
         } else {
@@ -61,9 +53,9 @@ fn build_mouse_button_input(action: &KeyAction) -> Option<INPUT> {
 }
 
 fn build_mouse_x_button_input(action: &KeyAction) -> Option<INPUT> {
-    let data = if action.key == &KEY_XBUTTON1 {
+    let data = if action.key == Key::Xbutton1 {
         XBUTTON1
-    } else if action.key == &KEY_XBUTTON2 {
+    } else if action.key == Key::Xbutton2 {
         XBUTTON2
     } else {
         return None;
@@ -93,12 +85,12 @@ fn build_mouse_input(flags: MOUSE_EVENT_FLAGS, data: u32) -> Option<INPUT> {
 }
 
 fn build_key_input(action: &KeyAction) -> Option<INPUT> {
-    if action.key == &KEY_UNASSIGNED {
+    if action.key == Key::Unassigned {
         return None;
     }
 
     let mut flags = KEYEVENTF_SCANCODE;
-    if action.key.sc.1 {
+    if action.key.is_ext_sc() {
         flags |= KEYEVENTF_EXTENDEDKEY
     }
     if action.transition == Up {
@@ -109,8 +101,8 @@ fn build_key_input(action: &KeyAction) -> Option<INPUT> {
         r#type: INPUT_KEYBOARD,
         Anonymous: INPUT_0 {
             ki: KEYBDINPUT {
-                wVk: action.key.vk.into(),
-                wScan: action.key.sc.into_ext(),
+                wVk: VIRTUAL_KEY(action.key.vk() as u16),
+                wScan: action.key.ext_sc(),
                 dwFlags: flags,
                 dwExtraInfo: SELF_EVENT_MARKER,
                 ..Default::default()
@@ -125,7 +117,7 @@ mod tests {
     use crate::event::SELF_EVENT_MARKER;
     use crate::input::{build_action_input, build_key_input};
     use crate::key_action;
-    use crate::sc::ScanCode;
+    use crate::sc::{ext_scan_code, ScanCode};
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT, INPUT_KEYBOARD, INPUT_MOUSE, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,
@@ -138,7 +130,7 @@ mod tests {
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
-            assert_eq!(ScanCode(0x1C, false).into_ext(), actual.Anonymous.ki.wScan);
+            assert_eq!(ext_scan_code(0x1C, false), actual.Anonymous.ki.wScan);
             assert_eq!(KEYEVENTF_SCANCODE, actual.Anonymous.ki.dwFlags);
             assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.ki.dwExtraInfo);
         };
@@ -147,7 +139,7 @@ mod tests {
         unsafe {
             assert_eq!(INPUT_KEYBOARD, actual.r#type);
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
-            assert_eq!(ScanCode(0x1C, true).into_ext(), actual.Anonymous.ki.wScan);
+            assert_eq!(ext_scan_code(0x1C, true), actual.Anonymous.ki.wScan);
             assert_eq!(
                 KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
                 actual.Anonymous.ki.dwFlags

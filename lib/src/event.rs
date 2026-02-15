@@ -1,9 +1,6 @@
 use crate::action::KeyAction;
 use crate::error::KeyError;
-use crate::key::{
-    key_by_code, Key, KEY_LEFT_BUTTON, KEY_MIDDLE_BUTTON, KEY_RIGHT_BUTTON, KEY_WHEEL_X,
-    KEY_WHEEL_Y, KEY_XBUTTON1, KEY_XBUTTON2,
-};
+use crate::key::Key;
 use crate::key_err;
 use crate::modifiers::KeyModifiers::All;
 use crate::modifiers::ModifierKeys;
@@ -13,7 +10,6 @@ use crate::transition::KeyTransition;
 use crate::transition::KeyTransition::{Down, Up};
 use crate::trigger::KeyTrigger;
 use std::fmt::{Display, Formatter};
-use std::rc::Rc;
 use windows::Win32::UI::WindowsAndMessaging::{
     KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP, LLMHF_INJECTED,
     LLMHF_LOWER_IL_INJECTED, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN,
@@ -40,11 +36,12 @@ impl KeyEvent {
     ) -> KeyEvent {
         Self {
             action: KeyAction {
-                key: key_by_code(
+                key: Key::from_code(
                     input.vkCode as u8,
                     input.scanCode as u8,
                     input.flags.contains(LLKHF_EXTENDED),
-                ),
+                )
+                .expect("Invalid key code"),
                 transition: KeyTransition::from_bool(!input.flags.contains(LLKHF_UP)),
             },
             modifiers: ModifierKeys::from(keyboard_state),
@@ -61,28 +58,23 @@ impl KeyEvent {
         keyboard_state: &KeyboardState,
     ) -> Result<KeyEvent, KeyError> {
         let event = match msg {
-            WM_LBUTTONDOWN => Self::button_event(&KEY_LEFT_BUTTON, Down, input, keyboard_state),
-            WM_LBUTTONUP => Self::button_event(&KEY_LEFT_BUTTON, Up, input, keyboard_state),
-            WM_RBUTTONDOWN => Self::button_event(&KEY_RIGHT_BUTTON, Down, input, keyboard_state),
-            WM_RBUTTONUP => Self::button_event(&KEY_RIGHT_BUTTON, Up, input, keyboard_state),
-            WM_MBUTTONDOWN => Self::button_event(&KEY_MIDDLE_BUTTON, Down, input, keyboard_state),
-            WM_MBUTTONUP => Self::button_event(&KEY_MIDDLE_BUTTON, Up, input, keyboard_state),
+            WM_LBUTTONDOWN => Self::button_event(Key::LeftButton, Down, input, keyboard_state),
+            WM_LBUTTONUP => Self::button_event(Key::LeftButton, Up, input, keyboard_state),
+            WM_RBUTTONDOWN => Self::button_event(Key::RightButton, Down, input, keyboard_state),
+            WM_RBUTTONUP => Self::button_event(Key::RightButton, Up, input, keyboard_state),
+            WM_MBUTTONDOWN => Self::button_event(Key::MiddleButton, Down, input, keyboard_state),
+            WM_MBUTTONUP => Self::button_event(Key::MiddleButton, Up, input, keyboard_state),
             WM_XBUTTONDOWN => Self::x_button_event(Down, input, keyboard_state)?,
             WM_XBUTTONUP => Self::x_button_event(Up, input, keyboard_state)?,
-            WM_MOUSEWHEEL => Self::wheel_event(&KEY_WHEEL_Y, input, keyboard_state),
-            WM_MOUSEHWHEEL => Self::wheel_event(&KEY_WHEEL_X, input, keyboard_state),
-            //WM_MOUSEMOVE => Self::move_event(&KEY_LEFT_BUTTON, Down, input, keyboard_state),
+            WM_MOUSEWHEEL => Self::wheel_event(Key::WheelY, input, keyboard_state),
+            WM_MOUSEHWHEEL => Self::wheel_event(Key::WheelX, input, keyboard_state),
             _ => return key_err!("Unsupported mouse event: `{}`", msg),
         };
 
         Ok(event)
     }
 
-    fn wheel_event(
-        key: &'static Key,
-        input: MSLLHOOKSTRUCT,
-        keyboard_state: &KeyboardState,
-    ) -> KeyEvent {
+    fn wheel_event(key: Key, input: MSLLHOOKSTRUCT, keyboard_state: &KeyboardState) -> KeyEvent {
         let d = (input.mouseData >> 16) as i16;
         Self::mouse_event(
             KeyAction::new(key, KeyTransition::from_bool(d < 0)),
@@ -92,7 +84,7 @@ impl KeyEvent {
     }
 
     fn button_event(
-        key: &'static Key,
+        key: Key,
         transition: KeyTransition,
         input: MSLLHOOKSTRUCT,
         keyboard_state: &KeyboardState,
@@ -106,8 +98,8 @@ impl KeyEvent {
         keyboard_state: &KeyboardState,
     ) -> Result<KeyEvent, KeyError> {
         let key = match (input.mouseData >> 16) as u16 {
-            1 => &KEY_XBUTTON1,
-            2 => &KEY_XBUTTON2,
+            1 => Key::Xbutton1,
+            2 => Key::Xbutton2,
             b => {
                 return key_err!("Unsupported mouse x-button: `{b}`");
             }
@@ -159,7 +151,8 @@ impl Display for KeyEvent {
 #[cfg(test)]
 mod tests {
     use crate::event::KeyEvent;
-    use crate::key::KEY_LEFT_SHIFT;
+    use crate::key::Key;
+    use crate::key::Key::LeftShift;
     use crate::modifiers::ModifierKeys;
     use crate::state::tests::state_from_keys;
 
@@ -179,7 +172,7 @@ mod tests {
 
     #[test]
     fn test_key_event_display() {
-        let keyboard_state = state_from_keys(&[KEY_LEFT_SHIFT.vk]);
+        let keyboard_state = state_from_keys(&[LeftShift]);
         let event = key_event!("A↓", &keyboard_state);
 
         assert_eq!(format!("{}", event), "[LEFT_SHIFT] A↓ T:000000000  ");

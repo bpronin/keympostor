@@ -1,6 +1,6 @@
 use crate::key_error;
 use crate::error::KeyError;
-use crate::key::{key_by_name, Key};
+use crate::key::{Key};
 use crate::transition::KeyTransition;
 use crate::transition::KeyTransition::{Down, Up};
 use crate::{deserialize_from_string, key_err, serialize_to_string, write_joined};
@@ -15,12 +15,12 @@ use std::str::FromStr;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
 pub struct KeyAction {
-    pub key: &'static Key,
+    pub key: Key,
     pub transition: KeyTransition,
 }
 
 impl KeyAction {
-    pub(crate) const fn new(key: &'static Key, transition: KeyTransition) -> Self {
+    pub(crate) const fn new(key: Key, transition: KeyTransition) -> Self {
         Self { key, transition }
     }
 
@@ -33,7 +33,7 @@ impl KeyAction {
             None => (s, None),
         };
 
-        let key = key_by_name(sk)?;
+        let key = Key::from_str(sk).ok_or(key_error!("Invalid key part: `{sk}`"))?;
 
         let mut result = Vec::new();
         match st {
@@ -58,7 +58,7 @@ impl KeyAction {
 
 impl Display for KeyAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&format!("{}{}", self.key, self.transition), f)
+        Display::fmt(&format!("{}{}", self.key.as_str(), self.transition), f)
     }
 }
 
@@ -174,10 +174,10 @@ macro_rules! key_action_seq {
 
 #[cfg(test)]
 mod tests {
-    use crate::action::KeyAction;
+    use crate::key::Key;
+use crate::action::KeyAction;
     use crate::action::KeyActionSequence;
     use crate::key;
-    use crate::key::key_by_name;
     use crate::transition::KeyTransition::{Down, Up};
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
