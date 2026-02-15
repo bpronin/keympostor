@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug)]
+#[derive(PartialEq)]
 pub struct KeyError {
     pub message: String,
 }

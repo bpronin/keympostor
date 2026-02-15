@@ -166,9 +166,7 @@ fn handle_event(mut event: KeyEvent) -> bool {
     } else {
         TRANSFOFM_MAP.with_borrow(|transform_map| {
             if let Some(map) = transform_map {
-                if let Some(rule) = map.get(&event) {
-                    event.rule = Some(Rc::clone(rule));
-                }
+                event.rule = map.get(&event).cloned();
             }
         });
 

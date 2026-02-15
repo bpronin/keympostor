@@ -258,12 +258,13 @@ pub fn key_by_code(vk_code: u8, sc_code: u8, sc_ext: bool) -> &'static Key {
 }
 
 pub fn key_by_name(name: &str) -> Result<&'static Key, KeyError> {
-    if name.is_empty() {
+    let n = name.trim();
+    if n.is_empty() {
         Ok(&KEY_UNASSIGNED)
     } else {
         NAME_TO_KEY_MAP
-            .get(name)
-            .ok_or(key_error!("Illegal key name: `{name}`."))
+            .get(n)
+            .ok_or(key_error!("Illegal key name: `{n}`."))
     }
 }
 

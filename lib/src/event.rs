@@ -27,7 +27,7 @@ pub(crate) static SELF_EVENT_MARKER: usize = 497298395;
 pub struct KeyEvent {
     pub action: KeyAction,
     pub modifiers: ModifierKeys,
-    pub rule: Option<Rc<KeyTransformRule>>,
+    pub rule: Option<KeyTransformRule>,
     pub time: u32,
     pub is_injected: bool,
     pub is_private: bool,

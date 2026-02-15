@@ -4,11 +4,10 @@ use crate::modifiers::KeyModifiers;
 use crate::modifiers::KeyModifiers::{All, Any};
 use crate::rules::{KeyTransformRule, KeyTransformRules};
 use fxhash::FxHashMap;
-use std::rc::Rc;
 
 #[derive(Debug, Default)]
 pub(crate) struct KeyTransformMap {
-    map: FxHashMap<KeyAction, FxHashMap<KeyModifiers, Rc<KeyTransformRule>>>,
+    map: FxHashMap<KeyAction, FxHashMap<KeyModifiers, KeyTransformRule>>,
 }
 
 impl KeyTransformMap {
@@ -20,17 +19,17 @@ impl KeyTransformMap {
         this
     }
 
-    pub(crate) fn get(&self, event: &KeyEvent) -> Option<&Rc<KeyTransformRule>> {
+    pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         let map = self.map.get(&event.action)?;
         map.get(&All(event.modifiers)).or_else(|| map.get(&Any))
     }
 
     fn put(&mut self, rule: KeyTransformRule) {
-        let trigger = rule.trigger;
+        let trigger = &rule.trigger;
         self.map
             .entry(trigger.action)
             .or_default()
-            .insert(trigger.modifiers, Rc::new(rule));
+            .insert(trigger.modifiers, rule);
     }
 }
 
@@ -67,16 +66,13 @@ mod tests {
 
         assert_eq!(
             &key_rule!("[LEFT_SHIFT] A↓ : B↓"),
-            map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref()))
-                .unwrap()
-                .as_ref()
+            map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref())).unwrap()
         );
 
         assert_eq!(
             &key_rule!("[LEFT_ALT + LEFT_CTRL]A↓ : C↓"),
             map.get(&key_event!("A↓", KS_LEFT_CTRL_ALT.deref()))
                 .unwrap()
-                .as_ref()
         );
 
         assert_none!(map.get(&key_event!("A↓", KS_ALL_UP.deref())));
@@ -93,9 +89,7 @@ mod tests {
 
         assert_eq!(
             &key_rule!("[] A↓ : B↓"),
-            map.get(&key_event!("A↓", KS_ALL_UP.deref()))
-                .unwrap()
-                .as_ref()
+            map.get(&key_event!("A↓", KS_ALL_UP.deref())).unwrap()
         );
         assert_none!(map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref())));
         assert_none!(map.get(&key_event!("A↓", KS_LEFT_CTRL.deref())));
@@ -111,33 +105,24 @@ mod tests {
         let expected = &key_rule!("A↓ : B↓");
         assert_eq!(
             expected,
-            map.get(&key_event!("A↓", KS_ALL_UP.deref()))
-                .unwrap()
-                .as_ref()
+            map.get(&key_event!("A↓", KS_ALL_UP.deref())).unwrap()
         );
         assert_eq!(
             expected,
-            map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref()))
-                .unwrap()
-                .as_ref()
+            map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref())).unwrap()
         );
         assert_eq!(
             expected,
-            map.get(&key_event!("A↓", KS_LEFT_CTRL.deref()))
-                .unwrap()
-                .as_ref()
+            map.get(&key_event!("A↓", KS_LEFT_CTRL.deref())).unwrap()
         );
         assert_eq!(
             expected,
-            map.get(&key_event!("A↓", KS_LEFT_ALT.deref()))
-                .unwrap()
-                .as_ref()
+            map.get(&key_event!("A↓", KS_LEFT_ALT.deref())).unwrap()
         );
         assert_eq!(
             expected,
             map.get(&key_event!("A↓", KS_LEFT_CTRL_ALT.deref()))
                 .unwrap()
-                .as_ref()
         );
     }
 
@@ -152,9 +137,7 @@ mod tests {
         assert_eq!(1, map.map.get(&key_action!("A↓")).unwrap().len());
         assert_eq!(
             &key_rule!("[LEFT_SHIFT] A↓ : B↓"),
-            map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref()))
-                .unwrap()
-                .as_ref()
+            map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref())).unwrap()
         );
     }
 }
