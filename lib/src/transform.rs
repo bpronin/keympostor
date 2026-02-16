@@ -45,24 +45,25 @@ mod tests {
     use std::ops::Deref;
     use std::str::FromStr;
     use std::sync::LazyLock;
+    use crate::state::tests::kb_state_from_keys;
 
-    static KS_ALL_UP: LazyLock<KeyboardState> = LazyLock::new(KeyboardState::new);
+    static KS_NONE_PRESSED: LazyLock<KeyboardState> = LazyLock::new(KeyboardState::default);
     static KS_LEFT_SHIFT: LazyLock<KeyboardState> = LazyLock::new(|| {
         let keys = &[LeftShift];
-        KeyboardState::from_keys(keys)
+        kb_state_from_keys(keys)
     });
     static KS_LEFT_CTRL: LazyLock<KeyboardState> = LazyLock::new(|| {
         let keys = &[LeftCtrl];
-        KeyboardState::from_keys(keys)
+        kb_state_from_keys(keys)
     });
     static KS_LEFT_ALT: LazyLock<KeyboardState> = LazyLock::new(|| {
         let keys = &[LeftAlt];
-        KeyboardState::from_keys(keys)
+        kb_state_from_keys(keys)
     });
     static KS_LEFT_CTRL_ALT: LazyLock<KeyboardState> =
         LazyLock::new(|| {
             let keys = &[LeftCtrl, LeftAlt];
-            KeyboardState::from_keys(keys)
+            kb_state_from_keys(keys)
         });
 
     #[test]
@@ -82,7 +83,7 @@ mod tests {
                 .unwrap()
         );
 
-        assert_none!(map.get(&key_event!("A↓", KS_ALL_UP.deref())));
+        assert_none!(map.get(&key_event!("A↓", KS_NONE_PRESSED.deref())));
         assert_none!(map.get(&key_event!("A↑", KS_LEFT_SHIFT.deref())));
         assert_none!(map.get(&key_event!("LEFT_ALT↓", KS_LEFT_ALT.deref())));
         assert_none!(map.get(&key_event!("LEFT_SHIFT↓", KS_LEFT_SHIFT.deref())));
@@ -96,7 +97,7 @@ mod tests {
 
         assert_eq!(
             &key_rule!("[] A↓ : B↓"),
-            map.get(&key_event!("A↓", KS_ALL_UP.deref())).unwrap()
+            map.get(&key_event!("A↓", KS_NONE_PRESSED.deref())).unwrap()
         );
         assert_none!(map.get(&key_event!("A↓", KS_LEFT_SHIFT.deref())));
         assert_none!(map.get(&key_event!("A↓", KS_LEFT_CTRL.deref())));
@@ -112,7 +113,7 @@ mod tests {
         let expected = &key_rule!("A↓ : B↓");
         assert_eq!(
             expected,
-            map.get(&key_event!("A↓", KS_ALL_UP.deref())).unwrap()
+            map.get(&key_event!("A↓", KS_NONE_PRESSED.deref())).unwrap()
         );
         assert_eq!(
             expected,

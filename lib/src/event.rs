@@ -148,10 +148,9 @@ impl Display for KeyEvent {
 
 #[cfg(test)]
 mod tests {
-    use std::str::FromStr;
-use crate::event::KeyEvent;
-    use crate::kb_state;
-    use crate::state::KeyboardState;
+    use crate::event::KeyEvent;
+    use crate::key::Key;
+    use crate::state::tests::kb_state_from_keys;
 
     #[macro_export]
     macro_rules! key_event {
@@ -169,8 +168,7 @@ use crate::event::KeyEvent;
 
     #[test]
     fn test_key_event_display() {
-        let keyboard_state = kb_state!("LEFT_SHIFT");
-        let event = key_event!("A↓", &keyboard_state);
+        let event = key_event!("A↓", &kb_state_from_keys(&[Key::LeftShift]));
 
         assert_eq!(format!("{}", event), "[LEFT_SHIFT] A↓ T:000000000  ");
     }

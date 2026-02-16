@@ -5,8 +5,7 @@ use crate::{deserialize_from_string, key_error, serialize_to_string};
 use serde::Deserializer;
 use serde::Serializer;
 use serde::{de, Deserialize, Serialize};
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Binary, Display, Formatter, UpperHex};
 use std::hash::Hash;
 use std::str::FromStr;
 
@@ -15,20 +14,8 @@ use std::str::FromStr;
 pub struct KeyboardState([u64; 4]);
 
 impl KeyboardState {
-    pub(crate) const fn new() -> Self {
-        Self([0u64; 4])
-    }
-
-    pub(crate) fn from_keys(keys: &[Key]) -> Self {
-        let mut this = Self::new();
-        for key in keys {
-            this.set_bit(key.index());
-        }
-        this
-    }
-
     pub(crate) fn update(&mut self, action: KeyAction) {
-        let index = action.key.index();
+        let index = action.key as u8;
         if action.transition.into_bool() {
             self.set_bit(index);
         } else {
@@ -37,13 +24,12 @@ impl KeyboardState {
     }
 
     #[inline]
-    pub(crate) fn is_bit_set(&self, index: u8) -> bool {
+    fn is_bit_set(&self, index: u8) -> bool {
         let (part_index, bit_index) = self.bit_pos(index);
         unsafe {
             let part = self.0.get_unchecked(part_index);
             (*part >> bit_index) & 1 == 1
         }
-        // (self.0[part_index] >> bit_index) & 1 == 1 //slower
     }
 
     #[inline]
@@ -53,7 +39,6 @@ impl KeyboardState {
             let part = self.0.get_unchecked_mut(part_index);
             *part |= 1u64 << bit_index;
         }
-        // self.0[part_index] |= 1u64 << bit_index;  //slower
     }
 
     #[inline]
@@ -63,7 +48,6 @@ impl KeyboardState {
             let part = self.0.get_unchecked_mut(part_index);
             *part &= !(1u64 << bit_index);
         }
-        // self.0[part_index] &= !(1u64 << bit_index); //slower
     }
 
     #[inline]
@@ -76,19 +60,22 @@ impl FromStr for KeyboardState {
     type Err = KeyError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut this = Self::new();
-
-        for part in s.trim().split('+') {
-            let key = Key::from_str(part.trim()).ok_or(key_error!("Invalid key name: {}", part))?;
-            this.set_bit(key.index());
+        if s.is_empty() {
+            return Ok(Self::default());
         }
 
+        let mut this = Self::default();
+        for part in s.split('+') {
+            let name = part.trim();
+            let key = Key::from_str(name).ok_or(key_error!("Invalid key name: `{}`", name))?;
+            this.set_bit(key as u8);
+        }
         Ok(this)
     }
 }
 
 impl Display for KeyboardState {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let s = (0..=255)
             .filter(|&index| self.is_bit_set(index))
             .map(|k| Key::from_index(k).expect("Invalid key index").as_str())
@@ -99,8 +86,8 @@ impl Display for KeyboardState {
     }
 }
 
-impl fmt::Binary for KeyboardState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
+impl Binary for KeyboardState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for (i, &part) in self.0.iter().enumerate().rev() {
             if i < 3 {
                 write!(f, "_{:064b}", part)?;
@@ -112,8 +99,8 @@ impl fmt::Binary for KeyboardState {
     }
 }
 
-impl fmt::UpperHex for KeyboardState {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+impl UpperHex for KeyboardState {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         for (i, &part) in self.0.iter().enumerate().rev() {
             if i < 3 {
                 write!(f, "_{:016X}", part)?;
@@ -138,16 +125,17 @@ pub mod tests {
     use super::*;
     use crate::key::Key::{Digit0, End, F1};
 
-    #[macro_export]
-    macro_rules! kb_state {
-        ($text:literal) => {
-            KeyboardState::from_str($text).unwrap()
-        };
+    pub fn kb_state_from_keys(keys: &[Key]) -> KeyboardState {
+        let mut this = KeyboardState::default();
+        for key in keys {
+            this.set_bit(*key as u8);
+        }
+        this
     }
 
     #[test]
     fn test_keyboard_state_get_set_bit() {
-        let mut state = KeyboardState::new();
+        let mut state = KeyboardState::default();
         state.set_bit(1);
         state.clear_bit(41);
 
@@ -163,40 +151,43 @@ pub mod tests {
 
     #[test]
     fn test_keyboard_state_to_string() {
-        let keys = &[F1, End, Digit0];
-        let state = KeyboardState::from_keys(keys);
+        assert_eq!(
+            "END + 0 + F1",
+            kb_state_from_keys(&[F1, End, Digit0]).to_string()
+        );
 
-        assert_eq!("VK_END + VK_0 + VK_F1", state.to_string());
-        // println!("{}", state);
+        assert_eq!("", KeyboardState::default().to_string());
     }
 
     #[test]
     fn test_keyboard_state_from_string() {
-        let state = KeyboardState::from_str("VK_END + VK_0 + VK_F1").unwrap();
-        let keys = &[F1, End, Digit0];
-        assert_eq!(KeyboardState::from_keys(keys), state);
+        assert_eq!(
+            Ok(kb_state_from_keys(&[F1, End, Digit0])),
+            KeyboardState::from_str("END + 0 + F1")
+        );
+
+        assert_eq!(
+            Ok(KeyboardState::default()),
+            KeyboardState::from_str("")
+        );
     }
 
     #[test]
     fn test_keyboard_state_hex_format() {
-        // let state = KeyboardState::from_keys(&[F1, End, Digit0]);
-        let state = kb_state!("F1 + END + 0");
-
-        // println!("{:X}", state);
         assert_eq!(
             "0000000000000000_0000000000000000_0001000000000000_0001000800000000",
-            format!("{:X}", state)
+            format!("{:X}", kb_state_from_keys(&[F1, End, Digit0]))
         );
     }
 
     #[test]
     fn test_keyboard_state_bin_format() {
-        let state = KeyboardState::from_keys(&[F1, End, Digit0]);
-
-        // println!("{:b}", state);
         assert_eq!(
-            "0000000000000000000000000000000000000000000000000000000000000000_0000000000000000000000000000000000000000000000000000000000000000_0000000000000001000000000000000000000000000000000000000000000000_0000000000000001000000000000100000000000000000000000000000000000",
-            format!("{:b}", state)
+            "0000000000000000000000000000000000000000000000000000000000000000_\
+            0000000000000000000000000000000000000000000000000000000000000000_\
+            0000000000000001000000000000000000000000000000000000000000000000_\
+            0000000000000001000000000000100000000000000000000000000000000000",
+            format!("{:b}", kb_state_from_keys(&[F1, End, Digit0]))
         );
     }
 }

@@ -16,7 +16,6 @@ use native_windows_gui::{
 };
 use std::cell::RefCell;
 use std::collections::HashMap;
-use keympostor::key::Key;
 
 const MAX_LOG_ITEMS: usize = 256;
 

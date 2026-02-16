@@ -5,7 +5,7 @@ use log::error;
 use native_windows_gui as nwg;
 use std::cell::RefCell;
 use std::rc::Rc;
-use crate::{rs, show_warn_message};
+use crate::rs;
 use crate::ui::res_ids::IDS_APP_ALREADY_RUNNING;
 use crate::ui::utils::show_warn_message;
 use crate::util::is_app_running;

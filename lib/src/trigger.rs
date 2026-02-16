@@ -16,26 +16,19 @@ pub struct KeyTrigger {
 
 impl KeyTrigger {
     pub(crate) fn from_str_expand_list(s: &str) -> Result<Vec<Vec<Self>>, KeyError> {
-        let mut list = Vec::new();
-        for part in s.split(',') {
-            list.push(Self::from_str_expand(part)?);
-        }
-
-        Ok(list)
+        Ok(s.split(',')
+            .map(|part| Self::from_str_expand(part.trim()))
+            .collect::<Result<Vec<_>, _>>()?)
     }
 
     fn from_str_expand(s: &str) -> Result<Vec<KeyTrigger>, KeyError> {
-        let ts = s.trim();
         let mut list = Vec::with_capacity(2);
 
-        if let Some(s) = ts.strip_prefix('[') {
+        if s.starts_with('[') {
             let mut parts = s.split(']');
 
-            let modifiers = KeyModifiers::from_str(
-                parts
-                    .next()
-                    .ok_or(key_error!("Missing modifiers part"))?,
-            )?;
+            let modifiers =
+                KeyModifiers::from_str(parts.next().ok_or(key_error!("Missing modifiers part"))?)?;
 
             let actions = KeyAction::from_str_expand(
                 parts.next().ok_or(key_error!("Missing actions part"))?,
@@ -45,8 +38,7 @@ impl KeyTrigger {
                 list.push(Self { action, modifiers });
             }
         } else {
-            let actions = KeyAction::from_str_expand(ts)?;
-            for action in actions {
+            for action in KeyAction::from_str_expand(s)? {
                 list.push(Self {
                     action,
                     modifiers: Any,
@@ -96,26 +88,27 @@ macro_rules! key_trigger {
 
 #[cfg(test)]
 mod tests {
+    use crate::key::Key;
+    use crate::key_action;
     use crate::modifiers::KeyModifiers::{All, Any};
+    use crate::state::tests::kb_state_from_keys;
+    use crate::state::KeyboardState;
     use crate::trigger::KeyAction;
     use crate::trigger::KeyTrigger;
     use crate::utils::test::SerdeWrapper;
-    use crate::{kb_state, key_action};
     use std::str::FromStr;
-    use crate::key::Key;
-    use crate::state::KeyboardState;
 
     #[test]
     fn test_key_trigger_display() {
         let actual = KeyTrigger {
             action: key_action!("A↓"),
-            modifiers: All(kb_state!("LEFT_SHIFT")),
+            modifiers: All(kb_state_from_keys(&[Key::LeftShift])),
         };
         assert_eq!("[LEFT_SHIFT] A↓", format!("{}", actual));
 
         let actual = KeyTrigger {
             action: key_action!("A↓"),
-            modifiers: All(kb_state!("")),
+            modifiers: All(KeyboardState::default()),
         };
         assert_eq!("[] A↓", format!("{}", actual));
 
@@ -127,7 +120,7 @@ mod tests {
 
         let actual = KeyTrigger {
             action: key_action!("A↓"),
-            modifiers: All(kb_state!("LEFT_SHIFT")),
+            modifiers: All(kb_state_from_keys(&[Key::LeftShift])),
         };
         assert_eq!("|     [LEFT_SHIFT] A↓|", format!("|{:>20}|", actual));
     }
@@ -137,7 +130,7 @@ mod tests {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                modifiers: All(kb_state!("LEFT_SHIFT")),
+                modifiers: All(kb_state_from_keys(&[Key::LeftShift])),
             },
             KeyTrigger::from_str("[LEFT_SHIFT] A*").unwrap()
         );
@@ -148,7 +141,7 @@ mod tests {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                modifiers: All(kb_state!("")),
+                modifiers: All(KeyboardState::default()),
             },
             KeyTrigger::from_str("[] A*").unwrap()
         );

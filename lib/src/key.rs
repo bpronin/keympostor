@@ -1,22 +1,20 @@
+use crate::key_error;
+use crate::error::KeyError;
 use log::error;
-use crate::key_code::virtual_key_as_str;
-use crate::key_code::scan_code_as_str;
+use crate::key_code::virtual_key_name;
+use crate::key_code::scan_code_name;
 use crate::key_code::ext_scan_code;
 use std::fmt::Debug;
 
 macro_rules! define_keys {
     ($const_name:ident { $($variant:ident = ($index:expr, $name:literal, $vk:expr, $sc:expr, $sc_ext:expr)),* $(,)? }) => {
-        #[repr(u16)]
+        #[repr(u8)]
         #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
         pub enum $const_name {
             $($variant = $index),*
         }
 
         impl $const_name {
-            pub const fn index(&self) -> u8 {
-                *self as u8
-            }
-
             pub const fn vk(&self) -> u8 {
                 match self {
                     $(Self::$variant => $vk),*
@@ -42,11 +40,11 @@ macro_rules! define_keys {
             }
 
             pub const fn sc_name(&self) -> &'static str  {
-                scan_code_as_str(self.sc(), self.is_ext_sc())
+                scan_code_name(self.sc(), self.is_ext_sc())
             }
 
             pub const fn vk_name(&self) -> &'static str  {
-                virtual_key_as_str(self.vk())
+                virtual_key_name(self.vk())
             }
 
             pub const fn as_str(&self) -> &'static str {
@@ -78,6 +76,10 @@ macro_rules! define_keys {
                     "" => Some(Self::Unassigned),
                     _ => None
                 }
+            }
+
+            pub fn try_from_str(s: &str) -> Result<Self, KeyError> {
+                Self::from_str(s).ok_or(key_error!("Unsupported key name: `{}`", s))
             }
         }
     };
@@ -318,7 +320,7 @@ mod tests {
 
     #[test]
     fn test_index() {
-        assert_eq!(Key::A.index(), 65);
+        assert_eq!(Key::A as u8, 65);
     }
 
     #[test]

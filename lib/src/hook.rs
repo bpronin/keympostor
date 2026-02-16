@@ -8,7 +8,6 @@ use crate::{input, notify};
 use fxhash::FxHashSet;
 use log::{debug, trace, warn};
 use std::cell::RefCell;
-use std::rc::Rc;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
@@ -51,7 +50,7 @@ impl Drop for KeyboardHook {
 thread_local! {
     static KEY_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
     static MOUSE_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
-    static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(KeyboardState::new());
+    static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(KeyboardState::default());
     static LAST_MOUSE_POSITION: RefCell<Option<POINT>> = RefCell::new(None);
     static TRANSFOFM_MAP: RefCell<Option<KeyTransformMap>> = RefCell::new(None);
     static SUPPRESSED_KEYS: RefCell<FxHashSet<Key>> = RefCell::new(FxHashSet::default());
