@@ -5,17 +5,17 @@ toggle_layout_hot_key = "[] FN_LAUNCH_APP2↑"
 [layout_autoswitch]
 enabled = true
 
-[layout_autoswitch.profiles.tc]
-activation_rule = "TOTALCMD64.EXE"
-transform_layout = "game"
+[layout_autoswitch.profiles.ide]
+activation_rule = "rustrover64.exe"
+transform_layout = "ide"
 
 [layout_autoswitch.profiles.chrome]
 activation_rule = "Chrome"
 transform_layout = "default"
 
-[layout_autoswitch.profiles.ide]
-activation_rule = "rustrover64.exe"
-transform_layout = "ide"
+[layout_autoswitch.profiles.tc]
+activation_rule = "TOTALCMD64.EXE"
+transform_layout = "game"
 
 [main_window]
 position = [261, 204]
@@ -23,12 +23,12 @@ size = [1534, 504]
 selected_page = 0
 
 [main_window.log_view.columns]
-0 = 300
+1 = 500
+2 = 50
 6 = 131
+3 = 50
+7 = 50
+8 = 50
+0 = 300
 4 = 50
 5 = 116
-2 = 50
-7 = 50
-1 = 500
-3 = 50
-8 = 50

@@ -12,8 +12,8 @@ macro_rules! define_keys {
         }
 
         impl $const_name {
-            pub const fn index(&self) -> u16 {
-                *self as u16
+            pub const fn index(&self) -> u8 {
+                *self as u8
             }
 
             pub const fn vk(&self) -> u8 {
@@ -54,7 +54,7 @@ macro_rules! define_keys {
                 }
             }
 
-            pub const fn from_index(index: u16) -> Option<Self> {
+            pub const fn from_index(index: u8) -> Option<Self> {
                 match index {
                     $($index => Some(Self::$variant)),*,
                     _ => None
@@ -256,44 +256,43 @@ define_keys! {
         Pa1 = (253, "PA1", 0xFD, 0x00, false),
         OemClear = (254, "OEM_CLEAR", 0xFE, 0x00, false),
 
-        _Esc_ = (256, "<ESC>", 0x00, 0x01, true),
-        _Tab_ = (257, "<TAB>", 0x00, 0x0F, true),
-        Brightness = (258, "BRIGHTNESS", 0x00, 0x2B, true),
-        RightShift2 = (259, "RIGHT_SHIFT_2", 0x00, 0x36, true),
-        Underscore = (260, "_", 0x00, 0x39, true),
-        Plus = (261, "PLUS", 0x00, 0x4E, true),
-        _00_ = (262, "<00>", 0x00, 0x54, true),
-        NumEnter = (263, "NUM_ENTER", 0x0D, 0x1C, true),
-        NumLock2 = (264, "NUM_LOCK_2", 0x13, 0x45, true),
-        NumPageUp = (265, "NUM_PAGE_UP", 0x21, 0x49, false),
-        NumPageDown = (266, "NUM_PAGE_DOWN", 0x22, 0x51, false),
-        NumEnd = (267, "NUM_END", 0x23, 0x4F, false),
-        NumHome = (268, "NUM_HOME", 0x24, 0x47, false),
-        NumLeft = (269, "NUM_LEFT", 0x25, 0x4B, false),
-        NumUp = (270, "NUM_UP", 0x26, 0x48, false),
-        NumRight = (271, "NUM_RIGHT", 0x27, 0x4D, false),
-        NumDown = (272, "NUM_DOWN", 0x28, 0x50, false),
-        PrintScreen = (273, "PRINT_SCREEN", 0x2C, 0x37, true),
-        NumInsert = (274, "NUM_INSERT", 0x2D, 0x52, false),
-        NumDelete = (275, "NUM_DELETE", 0x2E, 0x53, false),
-        FnBrowserSearch = (276, "FN_BROWSER_SEARCH", 0xAA, 0x65, true),
-        FnBrowserHome = (277, "FN_BROWSER_HOME", 0xAC, 0x32, true),
-        FnVolumeMute = (278, "FN_VOLUME_MUTE", 0xAD, 0x20, true),
-        FnVolumeDown = (279, "FN_VOLUME_DOWN", 0xAE, 0x2E, true),
-        FnVolumeUp = (280, "FN_VOLUME_UP", 0xAF, 0x30, true),
-        FnMediaNextTrack = (281, "FN_MEDIA_NEXT_TRACK", 0xB0, 0x19, true),
-        FnMediaPrevTrack = (282, "FN_MEDIA_PREV_TRACK", 0xB1, 0x10, true),
-        FnMediaPlayPause = (283, "FN_MEDIA_PLAY_PAUSE", 0xB3, 0x22, true),
-        FnLaunchMail = (284, "FN_LAUNCH_MAIL", 0xB4, 0x6C, true),
-        FnLaunchApp1 = (285, "FN_LAUNCH_APP1", 0xB6, 0x6B, true),
-        FnLaunchApp2 = (286, "FN_LAUNCH_APP2", 0xB7, 0x21, true),
+        _Esc_ = (193, "<ESC>", 0x00, 0x01, true),
+        _Tab_ = (194, "<TAB>", 0x00, 0x0F, true),
+        Brightness = (195, "BRIGHTNESS", 0x00, 0x2B, true),
+        RightShift2 = (196, "RIGHT_SHIFT_2", 0x00, 0x36, true),
+        Underscore = (197, "_", 0x00, 0x39, true),
+        Plus = (198, "PLUS", 0x00, 0x4E, true),
+        _00_ = (199, "<00>", 0x00, 0x54, true),
+        NumEnter = (200, "NUM_ENTER", 0x0D, 0x1C, true),
+        NumLock2 = (201, "NUM_LOCK_2", 0x13, 0x45, true),
+        NumPageUp = (202, "NUM_PAGE_UP", 0x21, 0x49, false),
+        NumPageDown = (203, "NUM_PAGE_DOWN", 0x22, 0x51, false),
+        NumEnd = (204, "NUM_END", 0x23, 0x4F, false),
+        NumHome = (205, "NUM_HOME", 0x24, 0x47, false),
+        NumLeft = (206, "NUM_LEFT", 0x25, 0x4B, false),
+        NumUp = (207, "NUM_UP", 0x26, 0x48, false),
+        NumRight = (208, "NUM_RIGHT", 0x27, 0x4D, false),
+        NumDown = (209, "NUM_DOWN", 0x28, 0x50, false),
+        PrintScreen = (210, "PRINT_SCREEN", 0x2C, 0x37, true),
+        NumInsert = (211, "NUM_INSERT", 0x2D, 0x52, false),
+        NumDelete = (212, "NUM_DELETE", 0x2E, 0x53, false),
+        FnBrowserSearch = (213, "FN_BROWSER_SEARCH", 0xAA, 0x65, true),
+        FnBrowserHome = (214, "FN_BROWSER_HOME", 0xAC, 0x32, true),
+        FnVolumeMute = (215, "FN_VOLUME_MUTE", 0xAD, 0x20, true),
+        FnVolumeDown = (216, "FN_VOLUME_DOWN", 0xAE, 0x2E, true),
+        FnVolumeUp = (217, "FN_VOLUME_UP", 0xAF, 0x30, true),
+        FnMediaNextTrack = (218, "FN_MEDIA_NEXT_TRACK", 0xB0, 0x19, true),
+        FnMediaPrevTrack = (224, "FN_MEDIA_PREV_TRACK", 0xB1, 0x10, true),
+        FnMediaPlayPause = (225, "FN_MEDIA_PLAY_PAUSE", 0xB3, 0x22, true),
+        FnLaunchMail = (227, "FN_LAUNCH_MAIL", 0xB4, 0x6C, true),
+        FnLaunchApp1 = (228, "FN_LAUNCH_APP1", 0xB6, 0x6B, true),
+        FnLaunchApp2 = (230, "FN_LAUNCH_APP2", 0xB7, 0x21, true),
     }
 }
 
 #[cfg(test)]
 mod tests {
     use crate::key::Key;
-    use windows::Win32::UI::Input::KeyboardAndMouse::VK_A;
 
     #[macro_export]
     macro_rules! key {
@@ -309,7 +308,7 @@ mod tests {
 
     #[test]
     fn test_from_index() {
-        assert_eq!(Key::from_index(VK_A.0), Some(Key::A));
+        assert_eq!(Key::from_index(65), Some(Key::A));
     }
 
     #[test]

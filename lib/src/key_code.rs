@@ -2,12 +2,12 @@ pub(crate) const fn virtual_key_as_str(code: u8) -> &'static str {
     VIRTUAL_KEY_NAME[code as usize]
 }
 
-pub(crate) fn virtual_key_from_str(s: &str) -> Option<u8> {
-    VIRTUAL_KEY_NAME
-        .iter()
-        .position(|name| *name == s)
-        .map(|code| code as u8)
-}
+// pub(crate) fn virtual_key_from_str(s: &str) -> Option<u8> {
+//     VIRTUAL_KEY_NAME
+//         .iter()
+//         .position(|name| *name == s)
+//         .map(|code| code as u8)
+// }
 
 static VIRTUAL_KEY_NAME: [&str; 256] = [
     "UNASSIGNED",
@@ -418,3 +418,17 @@ static SCAN_CODE_NAME: [[&str; 2]; 136] = [
     ["SC_F23", "UNASSIGNED"],
     ["SC_F24", "UNASSIGNED"],
 ];
+
+#[cfg(test)]
+mod tests {
+    use crate::key_code::VIRTUAL_KEY_NAME;
+
+    // #[test]
+    fn print_unused() {
+        for i in 0..256 {
+            if VIRTUAL_KEY_NAME[i] == "UNASSIGNED" {
+                println!("VK_{}", i);
+            }
+        }
+    }
+}

@@ -1,6 +1,6 @@
 use crate::action::KeyAction;
 use crate::error::KeyError;
-use crate::key_code::{virtual_key_as_str, virtual_key_from_str};
+use crate::key::Key;
 use crate::{deserialize_from_string, key_error, serialize_to_string};
 use serde::Deserializer;
 use serde::Serializer;
@@ -15,12 +15,12 @@ use std::str::FromStr;
 pub struct KeyboardState([u64; 4]);
 
 impl KeyboardState {
-    pub(crate) fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self([0u64; 4])
     }
 
     pub(crate) fn update(&mut self, action: KeyAction) {
-        let index = action.key.vk();
+        let index = action.key.index();
         if action.transition.into_bool() {
             self.set_bit(index);
         } else {
@@ -71,9 +71,8 @@ impl FromStr for KeyboardState {
         let mut this = Self::new();
 
         for part in s.trim().split('+') {
-            let vk = virtual_key_from_str(part.trim())
-                .ok_or(key_error!("Invalid virtual key name: {}", part))?;
-            this.set_bit(vk);
+            let key = Key::from_str(part.trim()).ok_or(key_error!("Invalid key name: {}", part))?;
+            this.set_bit(key.index());
         }
 
         Ok(this)
@@ -84,7 +83,7 @@ impl Display for KeyboardState {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = (0..255)
             .filter(|&index| self.is_bit_set(index))
-            .map(|k| virtual_key_as_str(k))
+            .map(|k| Key::from_index(k).expect("Invalid key index").as_str())
             .collect::<Vec<&str>>()
             .join(" + ");
 
@@ -134,7 +133,7 @@ pub mod tests {
 
     pub fn state_from_keys(keys: &[Key]) -> KeyboardState {
         let mut this = KeyboardState::new();
-        keys.iter().for_each(|key| this.set_bit(key.vk()));
+        keys.iter().for_each(|key| this.set_bit(key.index()));
         this
     }
 
