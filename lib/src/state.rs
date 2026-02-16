@@ -11,12 +11,20 @@ use std::hash::Hash;
 use std::str::FromStr;
 
 /* Using [u64; 4] because it is faster than [u128; 2] on most systems */
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct KeyboardState([u64; 4]);
 
 impl KeyboardState {
     pub(crate) const fn new() -> Self {
         Self([0u64; 4])
+    }
+
+    pub(crate) fn from_keys(keys: &[Key]) -> Self {
+        let mut this = Self::new();
+        for key in keys {
+            this.set_bit(key.index());
+        }
+        this
     }
 
     pub(crate) fn update(&mut self, action: KeyAction) {
@@ -81,7 +89,7 @@ impl FromStr for KeyboardState {
 
 impl Display for KeyboardState {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        let s = (0..255)
+        let s = (0..=255)
             .filter(|&index| self.is_bit_set(index))
             .map(|k| Key::from_index(k).expect("Invalid key index").as_str())
             .collect::<Vec<&str>>()
@@ -128,13 +136,13 @@ impl<'de> Deserialize<'de> for KeyboardState {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::key::Key;
     use crate::key::Key::{Digit0, End, F1};
 
-    pub fn state_from_keys(keys: &[Key]) -> KeyboardState {
-        let mut this = KeyboardState::new();
-        keys.iter().for_each(|key| this.set_bit(key.index()));
-        this
+    #[macro_export]
+    macro_rules! kb_state {
+        ($text:literal) => {
+            KeyboardState::from_str($text).unwrap()
+        };
     }
 
     #[test]
@@ -155,7 +163,8 @@ pub mod tests {
 
     #[test]
     fn test_keyboard_state_to_string() {
-        let state = state_from_keys(&[F1, End, Digit0]);
+        let keys = &[F1, End, Digit0];
+        let state = KeyboardState::from_keys(keys);
 
         assert_eq!("VK_END + VK_0 + VK_F1", state.to_string());
         // println!("{}", state);
@@ -164,12 +173,14 @@ pub mod tests {
     #[test]
     fn test_keyboard_state_from_string() {
         let state = KeyboardState::from_str("VK_END + VK_0 + VK_F1").unwrap();
-        assert_eq!(state_from_keys(&[F1, End, Digit0]), state);
+        let keys = &[F1, End, Digit0];
+        assert_eq!(KeyboardState::from_keys(keys), state);
     }
 
     #[test]
     fn test_keyboard_state_hex_format() {
-        let state = state_from_keys(&[F1, End, Digit0]);
+        // let state = KeyboardState::from_keys(&[F1, End, Digit0]);
+        let state = kb_state!("F1 + END + 0");
 
         // println!("{:X}", state);
         assert_eq!(
@@ -180,7 +191,7 @@ pub mod tests {
 
     #[test]
     fn test_keyboard_state_bin_format() {
-        let state = state_from_keys(&[F1, End, Digit0]);
+        let state = KeyboardState::from_keys(&[F1, End, Digit0]);
 
         // println!("{:b}", state);
         assert_eq!(

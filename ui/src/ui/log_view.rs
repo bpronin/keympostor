@@ -9,9 +9,6 @@ use crate::ui::utils::get_list_view_column_width;
 use crate::ui::utils::scroll_list_view_to_end;
 use keympostor::event::KeyEvent;
 use keympostor::ife;
-use keympostor::modifiers::{
-    KM_LALT, KM_LCTRL, KM_LSHIFT, KM_LWIN, KM_RALT, KM_RCTRL, KM_RSHIFT, KM_RWIN,
-};
 use log::error;
 use native_windows_gui::{
     unbind_raw_event_handler, ControlHandle, InsertListViewColumn, ListView, ListViewColumnFlags, ListViewStyle,
@@ -19,6 +16,7 @@ use native_windows_gui::{
 };
 use std::cell::RefCell;
 use std::collections::HashMap;
+use keympostor::key::Key;
 
 const MAX_LOG_ITEMS: usize = 256;
 
@@ -162,17 +160,7 @@ impl LogView {
                     .as_ref()
                     .map(|r| r.to_string())
                     .unwrap_or(String::from("")),
-                format!(
-                    "{:1} {:1} {:1} {:1} {:1} {:1} {:1} {:1}",
-                    ife!(event.modifiers.contains(KM_LSHIFT), "S", "."),
-                    ife!(event.modifiers.contains(KM_LCTRL), "C", "."),
-                    ife!(event.modifiers.contains(KM_LWIN), "W", "."),
-                    ife!(event.modifiers.contains(KM_LALT), "A", "."),
-                    ife!(event.modifiers.contains(KM_RALT), "A", "."),
-                    ife!(event.modifiers.contains(KM_RWIN), "W", "."),
-                    ife!(event.modifiers.contains(KM_RCTRL), "C", "."),
-                    ife!(event.modifiers.contains(KM_RSHIFT), "S", "."),
-                ),
+                event.modifiers.to_string(),
                 event.action.key.as_str().to_string(),
                 event.action.transition.to_string(),
                 event.action.key.vk_name().to_string(),

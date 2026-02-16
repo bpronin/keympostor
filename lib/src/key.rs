@@ -1,3 +1,4 @@
+use log::error;
 use crate::key_code::virtual_key_as_str;
 use crate::key_code::scan_code_as_str;
 use crate::key_code::ext_scan_code;
@@ -61,10 +62,13 @@ macro_rules! define_keys {
                 }
             }
 
-            pub const fn from_code(vk: u8, sc:u8, sc_ext:bool) -> Option<Self> {
+            pub fn from_code(vk: u8, sc:u8, sc_ext:bool) -> Self {
                 match (vk, sc, sc_ext) {
-                    $(($vk, $sc, $sc_ext) => Some(Self::$variant)),*,
-                    _ => None
+                    $(($vk, $sc, $sc_ext) => Self::$variant),*,
+                    _ => {
+                        error!("Unsupported key code: 0x{:02X} 0x{:02X} {}", vk, sc, sc_ext);
+                        Self::Unassigned
+                    }
                 }
             }
 
@@ -255,10 +259,11 @@ define_keys! {
         Noname = (252, "NONAME", 0xFC, 0x00, false),
         Pa1 = (253, "PA1", 0xFD, 0x00, false),
         OemClear = (254, "OEM_CLEAR", 0xFE, 0x00, false),
+        Brightness = (255, "BRIGHTNESS", 0xFF, 0x2B, true),
 
         _Esc_ = (193, "<ESC>", 0x00, 0x01, true),
         _Tab_ = (194, "<TAB>", 0x00, 0x0F, true),
-        Brightness = (195, "BRIGHTNESS", 0x00, 0x2B, true),
+        Brightness2 = (195, "BRIGHTNESS_2", 0x00, 0x2B, true),
         RightShift2 = (196, "RIGHT_SHIFT_2", 0x00, 0x36, true),
         Underscore = (197, "_", 0x00, 0x39, true),
         Plus = (198, "PLUS", 0x00, 0x4E, true),
@@ -303,7 +308,7 @@ mod tests {
 
     #[test]
     fn test_from_code() {
-        assert_eq!(Key::from_code(0x41, 0x1E, false), Some(Key::A));
+        assert_eq!(Key::from_code(0x41, 0x1E, false), Key::A);
     }
 
     #[test]

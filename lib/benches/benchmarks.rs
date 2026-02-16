@@ -93,7 +93,7 @@ impl KeyTransformMap for KeyTransformMatrix {
 
 fn create_action(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyAction {
     KeyAction {
-        key: Key::from_code(vk, sc, ext).unwrap(),
+        key: Key::from_code(vk, sc, ext),
         transition: trans,
     }
 }
@@ -123,7 +123,7 @@ pub fn for_all<F>(mut f: F)
 where
     F: FnMut(u8, u8, bool, KeyTransition) -> (),
 {
-    for vk in 0..255 {
+    for vk in 0..=255 {
         for sc in 0..135 {
             f(vk, sc, false, Down);
             f(vk, sc, false, Up);

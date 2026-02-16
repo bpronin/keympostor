@@ -97,26 +97,25 @@ macro_rules! key_trigger {
 #[cfg(test)]
 mod tests {
     use crate::modifiers::KeyModifiers::{All, Any};
-    use crate::modifiers::ModifierKeys;
-    use crate::modifiers::KM_LSHIFT;
-    use crate::modifiers::KM_NONE;
     use crate::trigger::KeyAction;
     use crate::trigger::KeyTrigger;
     use crate::utils::test::SerdeWrapper;
-    use crate::{key_action, key_mod};
+    use crate::{kb_state, key_action};
     use std::str::FromStr;
+    use crate::key::Key;
+    use crate::state::KeyboardState;
 
     #[test]
     fn test_key_trigger_display() {
         let actual = KeyTrigger {
             action: key_action!("A↓"),
-            modifiers: All(KM_LSHIFT),
+            modifiers: All(kb_state!("LEFT_SHIFT")),
         };
         assert_eq!("[LEFT_SHIFT] A↓", format!("{}", actual));
 
         let actual = KeyTrigger {
             action: key_action!("A↓"),
-            modifiers: All(KM_NONE),
+            modifiers: All(kb_state!("")),
         };
         assert_eq!("[] A↓", format!("{}", actual));
 
@@ -128,7 +127,7 @@ mod tests {
 
         let actual = KeyTrigger {
             action: key_action!("A↓"),
-            modifiers: All(KM_LSHIFT),
+            modifiers: All(kb_state!("LEFT_SHIFT")),
         };
         assert_eq!("|     [LEFT_SHIFT] A↓|", format!("|{:>20}|", actual));
     }
@@ -138,7 +137,7 @@ mod tests {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                modifiers: All(key_mod!("LEFT_SHIFT")),
+                modifiers: All(kb_state!("LEFT_SHIFT")),
             },
             KeyTrigger::from_str("[LEFT_SHIFT] A*").unwrap()
         );
@@ -149,7 +148,7 @@ mod tests {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                modifiers: All(KM_NONE),
+                modifiers: All(kb_state!("")),
             },
             KeyTrigger::from_str("[] A*").unwrap()
         );

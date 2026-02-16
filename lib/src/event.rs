@@ -3,7 +3,6 @@ use crate::error::KeyError;
 use crate::key::Key;
 use crate::key_err;
 use crate::modifiers::KeyModifiers::All;
-use crate::modifiers::ModifierKeys;
 use crate::rules::KeyTransformRule;
 use crate::state::KeyboardState;
 use crate::transition::KeyTransition;
@@ -22,7 +21,7 @@ pub(crate) static SELF_EVENT_MARKER: usize = 497298395;
 #[derive(Clone, Debug, PartialEq)]
 pub struct KeyEvent {
     pub action: KeyAction,
-    pub modifiers: ModifierKeys,
+    pub modifiers: KeyboardState,
     pub rule: Option<KeyTransformRule>,
     pub time: u32,
     pub is_injected: bool,
@@ -40,11 +39,10 @@ impl KeyEvent {
                     input.vkCode as u8,
                     input.scanCode as u8,
                     input.flags.contains(LLKHF_EXTENDED),
-                )
-                .expect("Invalid key code"),
+                ),
                 transition: KeyTransition::from_bool(!input.flags.contains(LLKHF_UP)),
             },
-            modifiers: ModifierKeys::from(keyboard_state),
+            modifiers: keyboard_state.clone(),
             is_injected: input.flags.contains(LLKHF_INJECTED),
             is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
             time: input.time,
@@ -118,7 +116,7 @@ impl KeyEvent {
     ) -> KeyEvent {
         Self {
             action,
-            modifiers: ModifierKeys::from(keyboard_state),
+            modifiers: keyboard_state.clone(),
             is_injected: (input.flags & (LLMHF_INJECTED | LLMHF_LOWER_IL_INJECTED)) != 0,
             is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
             time: input.time,
@@ -150,18 +148,17 @@ impl Display for KeyEvent {
 
 #[cfg(test)]
 mod tests {
-    use crate::event::KeyEvent;
-    use crate::key::Key;
-    use crate::key::Key::LeftShift;
-    use crate::modifiers::ModifierKeys;
-    use crate::state::tests::state_from_keys;
+    use std::str::FromStr;
+use crate::event::KeyEvent;
+    use crate::kb_state;
+    use crate::state::KeyboardState;
 
     #[macro_export]
     macro_rules! key_event {
         ($action:literal, $state:expr) => {
             KeyEvent {
                 action: $action.parse().unwrap(),
-                modifiers: ModifierKeys::from($state),
+                modifiers: $state.clone(),
                 time: 0,
                 is_injected: false,
                 is_private: false,
@@ -172,7 +169,7 @@ mod tests {
 
     #[test]
     fn test_key_event_display() {
-        let keyboard_state = state_from_keys(&[LeftShift]);
+        let keyboard_state = kb_state!("LEFT_SHIFT");
         let event = key_event!("A↓", &keyboard_state);
 
         assert_eq!(format!("{}", event), "[LEFT_SHIFT] A↓ T:000000000  ");

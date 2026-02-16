@@ -36,9 +36,7 @@ impl KeyTransformMap {
 #[cfg(test)]
 mod tests {
     use crate::key::Key::{LeftAlt, LeftCtrl, LeftShift};
-    use crate::modifiers::ModifierKeys;
     use crate::rules::KeyTransformRule;
-    use crate::state::tests::state_from_keys;
     use crate::state::KeyboardState;
     use crate::transform::KeyAction;
     use crate::transform::KeyEvent;
@@ -49,11 +47,23 @@ mod tests {
     use std::sync::LazyLock;
 
     static KS_ALL_UP: LazyLock<KeyboardState> = LazyLock::new(KeyboardState::new);
-    static KS_LEFT_SHIFT: LazyLock<KeyboardState> = LazyLock::new(|| state_from_keys(&[LeftShift]));
-    static KS_LEFT_CTRL: LazyLock<KeyboardState> = LazyLock::new(|| state_from_keys(&[LeftCtrl]));
-    static KS_LEFT_ALT: LazyLock<KeyboardState> = LazyLock::new(|| state_from_keys(&[LeftAlt]));
+    static KS_LEFT_SHIFT: LazyLock<KeyboardState> = LazyLock::new(|| {
+        let keys = &[LeftShift];
+        KeyboardState::from_keys(keys)
+    });
+    static KS_LEFT_CTRL: LazyLock<KeyboardState> = LazyLock::new(|| {
+        let keys = &[LeftCtrl];
+        KeyboardState::from_keys(keys)
+    });
+    static KS_LEFT_ALT: LazyLock<KeyboardState> = LazyLock::new(|| {
+        let keys = &[LeftAlt];
+        KeyboardState::from_keys(keys)
+    });
     static KS_LEFT_CTRL_ALT: LazyLock<KeyboardState> =
-        LazyLock::new(|| state_from_keys(&[LeftCtrl, LeftAlt]));
+        LazyLock::new(|| {
+            let keys = &[LeftCtrl, LeftAlt];
+            KeyboardState::from_keys(keys)
+        });
 
     #[test]
     fn test_put_get_normal() {
