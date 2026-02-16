@@ -98,7 +98,7 @@ fn create_action(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyAction {
     }
 }
 
-fn crete_rule(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyTransformRule {
+fn create_rule(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyTransformRule {
     KeyTransformRule {
         trigger: KeyTrigger {
             action: create_action(vk, sc, ext, trans),
@@ -135,7 +135,7 @@ where
 
 fn bench_map<M: KeyTransformMap>(group: &mut BenchmarkGroup<WallTime>, id: &str, mut map: M) {
     for_all(|vk, sc, ext, trans| {
-        map.put(crete_rule(vk, sc, ext, trans));
+        map.put(create_rule(vk, sc, ext, trans));
     });
     group.bench_function(id, move |b| {
         b.iter(|| {
