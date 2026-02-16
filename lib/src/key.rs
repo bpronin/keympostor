@@ -1,6 +1,6 @@
-use crate::vk::virtual_key_name;
-use crate::sc::scan_code_name;
-use crate::sc::ext_scan_code;
+use crate::key_code::virtual_key_as_str;
+use crate::key_code::scan_code_as_str;
+use crate::key_code::ext_scan_code;
 use std::fmt::Debug;
 
 macro_rules! define_keys {
@@ -41,11 +41,11 @@ macro_rules! define_keys {
             }
 
             pub const fn sc_name(&self) -> &'static str  {
-                scan_code_name(self.sc(), self.is_ext_sc())
+                scan_code_as_str(self.sc(), self.is_ext_sc())
             }
 
             pub const fn vk_name(&self) -> &'static str  {
-                virtual_key_name(self.vk())
+                virtual_key_as_str(self.vk())
             }
 
             pub const fn as_str(&self) -> &'static str {
@@ -69,9 +69,9 @@ macro_rules! define_keys {
             }
 
             pub fn from_str(s: &str) -> Option<Self> {
-                match s.trim() {
-                    "" => Some(Self::Unassigned),
+                match s {
                     $($name => Some(Self::$variant)),*,
+                    "" => Some(Self::Unassigned),
                     _ => None
                 }
             }

@@ -1,7 +1,7 @@
 use crate::action::KeyAction;
 use crate::error::KeyError;
-use crate::vk::{virtual_key_name, VirtualKey};
-use crate::{deserialize_from_string, serialize_to_string};
+use crate::key_code::{virtual_key_as_str, virtual_key_from_str};
+use crate::{deserialize_from_string, key_error, serialize_to_string};
 use serde::Deserializer;
 use serde::Serializer;
 use serde::{de, Deserialize, Serialize};
@@ -71,8 +71,9 @@ impl FromStr for KeyboardState {
         let mut this = Self::new();
 
         for part in s.trim().split('+') {
-            let vk = VirtualKey::from_str(part.trim())?;
-            this.set_bit(vk.0);
+            let vk = virtual_key_from_str(part.trim())
+                .ok_or(key_error!("Invalid virtual key name: {}", part))?;
+            this.set_bit(vk);
         }
 
         Ok(this)
@@ -83,7 +84,7 @@ impl Display for KeyboardState {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         let s = (0..255)
             .filter(|&index| self.is_bit_set(index))
-            .map(|k| virtual_key_name(k))
+            .map(|k| virtual_key_as_str(k))
             .collect::<Vec<&str>>()
             .join(" + ");
 
@@ -127,9 +128,9 @@ impl<'de> Deserialize<'de> for KeyboardState {
 
 #[cfg(test)]
 pub mod tests {
+    use super::*;
     use crate::key::Key;
     use crate::key::Key::{Digit0, End, F1};
-    use super::*;
 
     pub fn state_from_keys(keys: &[Key]) -> KeyboardState {
         let mut this = KeyboardState::new();

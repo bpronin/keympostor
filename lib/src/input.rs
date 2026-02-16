@@ -1,9 +1,15 @@
 use crate::action::{KeyAction, KeyActionSequence};
 use crate::event::SELF_EVENT_MARKER;
-use crate::transition::KeyTransition::{Down, Up};
-use windows::Win32::UI::Input::KeyboardAndMouse::{INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP, MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP, MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP, MOUSEINPUT, MOUSE_EVENT_FLAGS, VIRTUAL_KEY};
-use windows::Win32::UI::WindowsAndMessaging::{XBUTTON1, XBUTTON2};
 use crate::key::Key;
+use crate::transition::KeyTransition::{Down, Up};
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    INPUT, INPUT_0, INPUT_KEYBOARD, INPUT_MOUSE, KEYBDINPUT, KEYEVENTF_EXTENDEDKEY,
+    KEYEVENTF_KEYUP, KEYEVENTF_SCANCODE, MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP,
+    MOUSEEVENTF_MIDDLEDOWN, MOUSEEVENTF_MIDDLEUP, MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP,
+    MOUSEEVENTF_WHEEL, MOUSEEVENTF_XDOWN, MOUSEEVENTF_XUP, MOUSEINPUT, MOUSE_EVENT_FLAGS,
+    VIRTUAL_KEY,
+};
+use windows::Win32::UI::WindowsAndMessaging::{XBUTTON1, XBUTTON2};
 
 pub fn build_input(seq: &KeyActionSequence) -> Vec<INPUT> {
     seq.iter().filter_map(build_action_input).collect()
@@ -117,7 +123,7 @@ mod tests {
     use crate::event::SELF_EVENT_MARKER;
     use crate::input::{build_action_input, build_key_input};
     use crate::key_action;
-    use crate::sc::{ext_scan_code};
+    use crate::key_code::ext_scan_code;
     use std::str::FromStr;
     use windows::Win32::UI::Input::KeyboardAndMouse::{
         INPUT, INPUT_KEYBOARD, INPUT_MOUSE, KEYEVENTF_EXTENDEDKEY, KEYEVENTF_KEYUP,

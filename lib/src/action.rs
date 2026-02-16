@@ -1,6 +1,6 @@
-use crate::key_error;
 use crate::error::KeyError;
-use crate::key::{Key};
+use crate::key::Key;
+use crate::key_error;
 use crate::transition::KeyTransition;
 use crate::transition::KeyTransition::{Down, Up};
 use crate::{deserialize_from_string, key_err, serialize_to_string, write_joined};
@@ -33,7 +33,7 @@ impl KeyAction {
             None => (s, None),
         };
 
-        let key = Key::from_str(sk).ok_or(key_error!("Invalid key part: `{sk}`"))?;
+        let key = Key::from_str(sk.trim()).ok_or(key_error!("Invalid key part: `{sk}`"))?;
 
         let mut result = Vec::new();
         match st {
@@ -174,10 +174,10 @@ macro_rules! key_action_seq {
 
 #[cfg(test)]
 mod tests {
-    use crate::key::Key;
-use crate::action::KeyAction;
+    use crate::action::KeyAction;
     use crate::action::KeyActionSequence;
     use crate::key;
+    use crate::key::Key;
     use crate::transition::KeyTransition::{Down, Up};
     use crate::utils::test::SerdeWrapper;
     use std::str::FromStr;
