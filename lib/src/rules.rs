@@ -7,6 +7,7 @@ use serde::ser::SerializeMap;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
 use std::fmt::{Display, Formatter};
+use std::option::IntoIter;
 use std::slice::Iter;
 use std::str::{FromStr, Lines};
 
@@ -96,6 +97,14 @@ impl KeyTransformRules {
         self.0.iter()
     }
 }
+// impl<'a> IntoIterator for &'a KeyTransformRules {
+//     type Item = &'a KeyTransformRule;
+//     type IntoIter = Iter<'a, KeyTransformRule>;
+// 
+//     fn into_iter(self) -> Self::IntoIter {
+//         self.0.iter()
+//     }
+// }
 
 impl Display for KeyTransformRules {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

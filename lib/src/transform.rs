@@ -1,3 +1,4 @@
+use std::slice::Iter;
 use crate::action::KeyAction;
 use crate::event::KeyEvent;
 use crate::modifiers::KeyModifiers;
@@ -11,25 +12,26 @@ pub(crate) struct KeyTransformMap {
 }
 
 impl KeyTransformMap {
-    pub(crate) fn new(rules: &KeyTransformRules) -> Self {
-        let mut this = Self::default();
-        for rule in rules.iter() {
-            this.put(rule.clone())
+    pub(crate) fn new(rules: Iter<KeyTransformRule>) -> Self
+    {
+        let mut map: FxHashMap<KeyAction, FxHashMap<KeyModifiers, KeyTransformRule>> =
+            Default::default();
+
+        for rule in rules {
+            let trigger = rule.trigger;
+            map.entry(trigger.action)
+                .or_default()
+                .insert(trigger.modifiers, rule.clone());
         }
-        this
+
+        Self { map }
     }
 
     pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
-        let map = self.map.get(&event.action)?;
-        map.get(&All(event.modifiers)).or_else(|| map.get(&Any))
-    }
-
-    fn put(&mut self, rule: KeyTransformRule) {
-        let trigger = &rule.trigger;
         self.map
-            .entry(trigger.action)
-            .or_default()
-            .insert(trigger.modifiers, rule);
+            .get(&event.action)?
+            .get(&All(event.modifiers))
+            .or_else(|| self.map.get(&event.action)?.get(&Any))
     }
 }
 
@@ -37,6 +39,7 @@ impl KeyTransformMap {
 mod tests {
     use crate::key::Key::{LeftAlt, LeftCtrl, LeftShift};
     use crate::rules::KeyTransformRule;
+    use crate::state::tests::kb_state_from_keys;
     use crate::state::KeyboardState;
     use crate::transform::KeyAction;
     use crate::transform::KeyEvent;
@@ -45,7 +48,6 @@ mod tests {
     use std::ops::Deref;
     use std::str::FromStr;
     use std::sync::LazyLock;
-    use crate::state::tests::kb_state_from_keys;
 
     static KS_NONE_PRESSED: LazyLock<KeyboardState> = LazyLock::new(KeyboardState::default);
     static KS_LEFT_SHIFT: LazyLock<KeyboardState> = LazyLock::new(|| {
@@ -60,17 +62,17 @@ mod tests {
         let keys = &[LeftAlt];
         kb_state_from_keys(keys)
     });
-    static KS_LEFT_CTRL_ALT: LazyLock<KeyboardState> =
-        LazyLock::new(|| {
-            let keys = &[LeftCtrl, LeftAlt];
-            kb_state_from_keys(keys)
-        });
+    static KS_LEFT_CTRL_ALT: LazyLock<KeyboardState> = LazyLock::new(|| {
+        let keys = &[LeftCtrl, LeftAlt];
+        kb_state_from_keys(keys)
+    });
 
     #[test]
     fn test_put_get_normal() {
-        let mut map = KeyTransformMap::default();
-        map.put(key_rule!("[LEFT_SHIFT] A↓ : B↓"));
-        map.put(key_rule!("[LEFT_ALT + LEFT_CTRL] A↓ : C↓"));
+        let map = KeyTransformMap::new([
+            key_rule!("[LEFT_SHIFT] A↓ : B↓"),
+            key_rule!("[LEFT_ALT + LEFT_CTRL] A↓ : C↓"),
+        ].iter());
 
         assert_eq!(
             &key_rule!("[LEFT_SHIFT] A↓ : B↓"),
@@ -92,8 +94,7 @@ mod tests {
 
     #[test]
     fn test_get_no_modifiers() {
-        let mut map = KeyTransformMap::default();
-        map.put(key_rule!("[] A↓ : B↓"));
+        let map = KeyTransformMap::new([key_rule!("[] A↓ : B↓")].iter());
 
         assert_eq!(
             &key_rule!("[] A↓ : B↓"),
@@ -107,8 +108,7 @@ mod tests {
 
     #[test]
     fn test_get_ignore_modifiers() {
-        let mut map = KeyTransformMap::default();
-        map.put(key_rule!("A↓ : B↓"));
+        let map = KeyTransformMap::new([key_rule!("A↓ : B↓")].iter());
 
         let expected = &key_rule!("A↓ : B↓");
         assert_eq!(
@@ -136,10 +136,11 @@ mod tests {
 
     #[test]
     fn test_put_duplicates() {
-        let mut map = KeyTransformMap::default();
-        map.put(key_rule!("[LEFT_SHIFT] A↓ : B↓"));
-        map.put(key_rule!("[LEFT_SHIFT] A↓ : B↓"));
-        map.put(key_rule!("[LEFT_SHIFT] A↓ : B↓"));
+        let map = KeyTransformMap::new([
+            key_rule!("[LEFT_SHIFT] A↓ : B↓"),
+            key_rule!("[LEFT_SHIFT] A↓ : B↓"),
+            key_rule!("[LEFT_SHIFT] A↓ : B↓"),
+        ].iter());
 
         assert_eq!(1, map.map.len());
         assert_eq!(1, map.map.get(&key_action!("A↓")).unwrap().len());

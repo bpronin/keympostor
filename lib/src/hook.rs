@@ -1,7 +1,7 @@
 use crate::event::KeyEvent;
 use crate::key::Key;
 use crate::notify::install_notify_listener;
-use crate::rules::KeyTransformRules;
+use crate::rules::{KeyTransformRule, KeyTransformRules};
 use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
 use crate::{input, notify};
@@ -27,10 +27,8 @@ impl KeyboardHook {
     }
 
     pub fn set_rules(&self, rules: Option<&KeyTransformRules>) {
-        TRANSFOFM_MAP.replace(match rules {
-            None => None,
-            Some(r) => Some(KeyTransformMap::new(r)),
-        });
+        let map = rules.and_then(|r| Some(KeyTransformMap::new(r.iter())));
+        TRANSFOFM_MAP.replace(map);
     }
 
     pub fn suppress_keys(&self, keys: &[Key]) {
