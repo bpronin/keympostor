@@ -10,9 +10,8 @@ use crate::ui::res_ids::{
 };
 use crate::win_watch::WindowWatcher;
 use crate::{rs, show_warn_message, ui};
-use keympostor::event::KeyEvent;
 use keympostor::hook::KeyboardHook;
-use keympostor::notify::WM_KEY_HOOK_NOTIFY;
+use keympostor::notify::{KeyEventNotification, WM_KEY_HOOK_NOTIFY};
 use keympostor::trigger::KeyTrigger;
 use log::{debug, warn};
 use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
@@ -61,7 +60,7 @@ impl App {
         self.is_log_enabled.replace(settings.keys_logging_enabled);
 
         let hot_key = settings.toggle_layout_hot_key;
-        if let Some(key) = hot_key {
+        if let Some(key) = &hot_key {
             self.key_hook.suppress_keys(&[key.action.key]);
         }
         self.toggle_layout_hot_key.replace(hot_key);
@@ -161,7 +160,7 @@ impl App {
 
     pub(crate) fn handle_raw_event(&self, msg: u32, l_param: isize) {
         if msg == WM_KEY_HOOK_NOTIFY {
-            let param = unsafe { &*(l_param as *const KeyEvent) };
+            let param = unsafe { &*(l_param as *const KeyEventNotification) };
             self.on_key_hook_notify(param);
         }
     }
@@ -252,15 +251,15 @@ impl App {
         self.save_settings();
     }
 
-    fn on_key_hook_notify(&self, event: &KeyEvent) {
+    fn on_key_hook_notify(&self, notification: &KeyEventNotification) {
         if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
-            if &event.as_trigger() == key {
+            if &notification.event.trigger == key {
                 self.on_select_next_layout();
             }
         }
 
         if *self.is_log_enabled.borrow() {
-            self.window.on_key_hook_notify(event);
+            self.window.on_key_hook_notify(notification);
         }
     }
 

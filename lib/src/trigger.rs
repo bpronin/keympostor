@@ -8,7 +8,7 @@ use serde::{Deserializer, Serializer};
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct KeyTrigger {
     pub action: KeyAction,
     pub modifiers: KeyModifiers,
@@ -58,7 +58,7 @@ impl FromStr for KeyTrigger {
         if vec.len() > 1 {
             return key_err!("String must be exactly single trigger");
         }
-        Ok(vec[0])
+        vec.first().cloned().ok_or_else(|| key_error!("Invalid trigger string"))
     }
 }
 

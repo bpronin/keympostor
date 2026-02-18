@@ -1,10 +1,10 @@
-use crate::key_error;
 use crate::error::KeyError;
-use log::error;
-use crate::key_code::virtual_key_name;
-use crate::key_code::scan_code_name;
 use crate::key_code::ext_scan_code;
-use std::fmt::Debug;
+use crate::key_code::scan_code_name;
+use crate::key_code::virtual_key_name;
+use crate::key_error;
+use log::error;
+use std::fmt::{Debug, Display, Formatter};
 
 macro_rules! define_keys {
     ($const_name:ident { $($variant:ident = ($index:expr, $name:literal, $vk:expr, $sc:expr, $sc_ext:expr)),* $(,)? }) => {
@@ -39,14 +39,6 @@ macro_rules! define_keys {
                 }
             }
 
-            pub const fn sc_name(&self) -> &'static str  {
-                scan_code_name(self.sc(), self.is_ext_sc())
-            }
-
-            pub const fn vk_name(&self) -> &'static str  {
-                virtual_key_name(self.vk())
-            }
-
             pub const fn as_str(&self) -> &'static str {
                 match self {
                     $(Self::$variant => $name),*
@@ -78,11 +70,28 @@ macro_rules! define_keys {
                 }
             }
 
-            pub fn try_from_str(s: &str) -> Result<Self, KeyError> {
-                Self::from_str(s).ok_or(key_error!("Unsupported key name: `{}`", s))
-            }
         }
     };
+}
+
+impl Key {
+    pub const fn sc_name(&self) -> &'static str {
+        scan_code_name(self.sc(), self.is_ext_sc())
+    }
+
+    pub const fn vk_name(&self) -> &'static str {
+        virtual_key_name(self.vk())
+    }
+
+    pub fn try_from_str(s: &str) -> Result<Self, KeyError> {
+        Self::from_str(s).ok_or(key_error!("Unsupported key name: `{}`", s))
+    }
+}
+
+impl Display for Key {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
 }
 
 define_keys! {

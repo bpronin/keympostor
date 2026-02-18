@@ -1,9 +1,18 @@
-#[macro_export]
-macro_rules! ife {
-    ($condition:expr, $a:expr, $b:expr) => {
-        if $condition { $a } else { $b }
-    };
+#[inline(always)]
+pub fn if_else<T>(condition: bool, a: T, b: T) -> T {
+    if condition { a } else { b }
 }
+
+// #[macro_export]
+// macro_rules! ife {
+//     ($condition:expr, $a:expr, $b:expr) => {
+//         if $condition {
+//             $a
+//         } else {
+//             $b
+//         }
+//     };
+// }
 
 #[macro_export]
 macro_rules! append_prefix {
@@ -90,13 +99,6 @@ pub(crate) mod test {
     macro_rules! assert_not {
         ($a:expr) => {
             assert!(!$a)
-        };
-    }
-
-    #[macro_export]
-    macro_rules! assert_none {
-        ($a:expr) => {
-            assert!($a.is_none())
         };
     }
 

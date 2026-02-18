@@ -97,15 +97,6 @@ impl KeyTransformRules {
     }
 }
 
-// impl<'a> IntoIterator for &'a KeyTransformRules {
-//     type Item = &'a KeyTransformRule;
-//     type IntoIter = Iter<'a, KeyTransformRule>;
-//
-//     fn into_iter(self) -> Self::IntoIter {
-//         self.0.iter()
-//     }
-// }
-
 impl Display for KeyTransformRules {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         write_joined!(f, &self.0, "\n")

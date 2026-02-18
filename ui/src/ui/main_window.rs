@@ -11,7 +11,7 @@ use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;
 use crate::ui::utils::hwnd;
 use crate::{r_icon, rs, ui};
-use keympostor::event::KeyEvent;
+use keympostor::notify::KeyEventNotification;
 use native_windows_gui::stretch::geometry::{Rect, Size};
 use native_windows_gui::stretch::style::Dimension::Points as PT;
 use native_windows_gui::stretch::style::{Dimension as D, FlexDirection};
@@ -198,10 +198,10 @@ impl MainWindow {
         self.layout_view.update_ui(layout);
     }
 
-    pub(crate) fn on_key_hook_notify(&self, event: &KeyEvent) {
-        self.log_view.append(event);
+    pub(crate) fn on_key_hook_notify(&self, notification: &KeyEventNotification) {
+        self.log_view.append(notification);
         self.key_event_label
-            .set_text(event.as_trigger().to_string().as_str());
+            .set_text(notification.event.trigger.to_string().as_str());
     }
 
     fn update_title(&self, profile_name: Option<&str>, layout: &KeyTransformLayout) {

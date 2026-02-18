@@ -10,15 +10,12 @@ use std::fmt::{Binary, Display, Formatter, UpperHex};
 use std::hash::Hash;
 use std::str::FromStr;
 use KeyTransition::{Down, Up};
+
 /* Using [u64; 4] because it is faster than [u128; 2] on most systems */
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct KeyboardState([u64; 4]);
 
 impl KeyboardState {
-    pub(crate) const fn new() -> Self {
-        Self([0u64; 4])
-    }
-
     pub(crate) fn exclude(&mut self, key: Key) {
         self.clear_bit(key as u8);
     }

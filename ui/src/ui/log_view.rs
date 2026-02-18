@@ -7,8 +7,8 @@ use crate::ui::res_ids::{
 };
 use crate::ui::utils::get_list_view_column_width;
 use crate::ui::utils::scroll_list_view_to_end;
-use keympostor::event::KeyEvent;
-use keympostor::ife;
+use keympostor::notify::KeyEventNotification;
+use keympostor::utils::if_else;
 use log::error;
 use native_windows_gui::{
     unbind_raw_event_handler, ControlHandle, InsertListViewColumn, ListView, ListViewColumnFlags, ListViewStyle,
@@ -143,33 +143,33 @@ impl LogView {
         settings.log_view.columns = Some(map);
     }
 
-    pub(crate) fn append(&self, event: &KeyEvent) {
+    pub(crate) fn append(&self, notification: &KeyEventNotification) {
         self.list.set_redraw(false);
 
         while self.list.len() > MAX_LOG_ITEMS {
             self.list.remove_item(0);
         }
 
+        let event = &notification.event;
+        let trigger = &event.trigger;
+        let rule = notification.rule.as_ref();
+
         self.list.insert_items_row(
             None,
             &[
-                event.as_trigger().to_string(),
-                event
-                    .rule
-                    .as_ref()
-                    .map(|r| r.to_string())
-                    .unwrap_or(String::from("")),
-                event.modifiers.to_string(),
-                event.action.key.as_str().to_string(),
-                event.action.transition.to_string(),
-                event.action.key.vk_name().to_string(),
-                event.action.key.sc_name().to_string(),
+                trigger.to_string(),
+                rule.map(|r| r.to_string()).unwrap_or(String::from("")),
+                trigger.modifiers.to_string(),
+                trigger.action.key.to_string(),
+                trigger.action.transition.to_string(),
+                trigger.action.key.vk_name().to_string(),
+                trigger.action.key.sc_name().to_string(),
                 event.time.to_string(),
                 format!(
                     "{:1}{:1}{:1}",
-                    ife!(event.rule.is_some(), "R", "-"),
-                    ife!(event.is_injected, "I", "-"),
-                    ife!(event.is_private, "P", "-"),
+                    if_else(rule.is_some(), "R", "-"),
+                    if_else(event.is_injected, "I", "-"),
+                    if_else(event.is_private, "P", "-"),
                 ),
             ],
         );

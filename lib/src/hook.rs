@@ -1,4 +1,4 @@
-use crate::event::KeyEvent;
+use crate::event::{build_action_from_kbd_input, build_action_from_mouse_input, KeyEvent};
 use crate::key::Key;
 use crate::notify::install_notify_listener;
 use crate::rules::{KeyTransformRule, KeyTransformRules};
@@ -7,11 +7,11 @@ use crate::transform::KeyTransformMap;
 use crate::{input, notify};
 use fxhash::FxHashSet;
 use log::{debug, trace, warn};
+use notify::notify_key_event;
 use std::cell::RefCell;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
-use crate::action::KeyAction;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHook {}
@@ -130,8 +130,9 @@ fn uninstall_mouse_hook() {
 extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
         let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
-        let state = KEYBOARD_STATE.with(|state| *state.borrow());
-        let event = KeyEvent::from_key_input(input, state);
+        let state = get_keyboard_state(build_action_from_kbd_input(input).key);
+        let event = KeyEvent::from_kbd_input(input, state);
+
         if handle_event(event) {
             return LRESULT(1);
         }
@@ -144,14 +145,11 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
     let msg = w_param.0 as u32;
     if msg != WM_MOUSEMOVE {
         let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
-        let state = KEYBOARD_STATE.with_borrow(|state| *state);
-        match KeyEvent::from_mouse_input(msg, input, state) {
-            Ok(event) => {
-                if handle_event(event) {
-                    return LRESULT(1);
-                }
-            }
-            Err(error) => warn!("Failed to build mouse event: {}", error),
+        let state = get_keyboard_state(build_action_from_mouse_input(msg, input).key);
+        let event = KeyEvent::from_mouse_input(msg, input, state);
+
+        if handle_event(event) {
+            return LRESULT(1);
         }
     }
 
@@ -159,31 +157,32 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
 }
 
 fn handle_event(mut event: KeyEvent) -> bool {
-    KEYBOARD_STATE.with_borrow_mut(|state| state.update(event.action));
+    update_keyboard_state(&mut event);
 
-    let handled = if SUPPRESSED_KEYS.with_borrow(|set| set.contains(&event.action.key)) {
+    if SUPPRESSED_KEYS.with_borrow(|set| set.contains(&event.trigger.action.key)) {
         trace!("Event suppressed: {event}");
+        notify_key_event(&event, None);
         true
     } else if event.is_private {
         trace!("Private event ignored: {event}");
+        notify_key_event(&event, None);
         false
     } else {
         TRANSFOFM_MAP.with_borrow(|transform_map| {
             if let Some(map) = transform_map {
-                event.rule = map.get(&event).cloned();
+                trace!("Processing event: {event}");
+                let rule = map.get(&event.trigger);
+                notify_key_event(&event, rule);
+                apply_transform(rule)
+            } else {
+                false
             }
-        });
-
-        trace!("Processing event: {event}");
-        apply_transform(&event)
-    };
-
-    notify::notify_listener(event);
-    handled
+        })
+    }
 }
 
-fn apply_transform(event: &KeyEvent) -> bool {
-    if let Some(rule) = &event.rule {
+fn apply_transform(rule: Option<&KeyTransformRule>) -> bool {
+    if let Some(rule) = rule {
         debug!("Applying rule: {}", rule);
 
         let input = input::build_input(&rule.actions);
@@ -192,4 +191,15 @@ fn apply_transform(event: &KeyEvent) -> bool {
     } else {
         false
     }
+}
+
+fn get_keyboard_state(excluded: Key) -> KeyboardState {
+    KEYBOARD_STATE.with_borrow_mut(|state| {
+        state.exclude(excluded);
+        *state
+    })
+}
+
+fn update_keyboard_state(event: &KeyEvent) {
+    KEYBOARD_STATE.with_borrow_mut(|state| state.update(event.trigger.action));
 }
