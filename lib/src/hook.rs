@@ -11,6 +11,7 @@ use std::cell::RefCell;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
+use crate::action::KeyAction;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHook {}
@@ -130,7 +131,7 @@ extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) ->
     if code == HC_ACTION as i32 {
         let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
         let state = KEYBOARD_STATE.with(|state| *state.borrow());
-        let event = KeyEvent::from_key_input(input, &state);
+        let event = KeyEvent::from_key_input(input, state);
         if handle_event(event) {
             return LRESULT(1);
         }
@@ -144,7 +145,7 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
     if msg != WM_MOUSEMOVE {
         let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
         let state = KEYBOARD_STATE.with_borrow(|state| *state);
-        match KeyEvent::from_mouse_input(msg, input, &state) {
+        match KeyEvent::from_mouse_input(msg, input, state) {
             Ok(event) => {
                 if handle_event(event) {
                     return LRESULT(1);

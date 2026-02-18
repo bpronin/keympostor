@@ -1,6 +1,7 @@
 use crate::action::KeyAction;
 use crate::error::KeyError;
 use crate::key::Key;
+use crate::transition::KeyTransition;
 use crate::{deserialize_from_string, key_error, serialize_to_string};
 use serde::Deserializer;
 use serde::Serializer;
@@ -8,19 +9,25 @@ use serde::{de, Deserialize, Serialize};
 use std::fmt::{Binary, Display, Formatter, UpperHex};
 use std::hash::Hash;
 use std::str::FromStr;
-
+use KeyTransition::{Down, Up};
 /* Using [u64; 4] because it is faster than [u128; 2] on most systems */
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct KeyboardState([u64; 4]);
 
 impl KeyboardState {
+    pub(crate) const fn new() -> Self {
+        Self([0u64; 4])
+    }
+
+    pub(crate) fn exclude(&mut self, key: Key) {
+        self.clear_bit(key as u8);
+    }
+
     pub(crate) fn update(&mut self, action: KeyAction) {
-        let index = action.key as u8;
-        if action.transition.into_bool() {
-            self.set_bit(index);
-        } else {
-            self.clear_bit(index);
-        }
+        match action.transition {
+            Down => self.set_bit(action.key as u8),
+            Up => self.clear_bit(action.key as u8),
+        };
     }
 
     #[inline]
@@ -166,10 +173,7 @@ pub mod tests {
             KeyboardState::from_str("END + 0 + F1")
         );
 
-        assert_eq!(
-            Ok(KeyboardState::default()),
-            KeyboardState::from_str("")
-        );
+        assert_eq!(Ok(KeyboardState::default()), KeyboardState::from_str(""));
     }
 
     #[test]

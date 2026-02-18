@@ -2,22 +2,27 @@ use crate::action::KeyAction;
 use crate::error::KeyError;
 use crate::key::Key;
 use crate::key_err;
-use crate::modifiers::KeyModifiers::All;
+use crate::modifiers::KeyModifiers;
+use crate::modifiers::KeyModifiers::{All, Any};
 use crate::rules::KeyTransformRule;
 use crate::state::KeyboardState;
 use crate::transition::KeyTransition;
 use crate::transition::KeyTransition::{Down, Up};
 use crate::trigger::KeyTrigger;
-use log::{debug, warn};
 use std::fmt::{Display, Formatter};
-use windows::Win32::UI::WindowsAndMessaging::{KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP, LLMHF_INJECTED, LLMHF_LOWER_IL_INJECTED, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEMOVE, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_XBUTTONDOWN, WM_XBUTTONUP};
+use windows::Win32::UI::WindowsAndMessaging::{
+    KBDLLHOOKSTRUCT, LLKHF_EXTENDED, LLKHF_INJECTED, LLKHF_UP, LLMHF_INJECTED,
+    LLMHF_LOWER_IL_INJECTED, MSLLHOOKSTRUCT, WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN,
+    WM_MBUTTONUP, WM_MOUSEHWHEEL, WM_MOUSEWHEEL, WM_RBUTTONDOWN, WM_RBUTTONUP,
+    WM_XBUTTONDOWN, WM_XBUTTONUP,
+};
 
 pub(crate) static SELF_EVENT_MARKER: usize = 497298395;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct KeyEvent {
     pub action: KeyAction,
-    pub modifiers: KeyboardState,
+    pub modifiers: KeyModifiers,
     pub rule: Option<KeyTransformRule>,
     pub time: u32,
     pub is_injected: bool,
@@ -27,7 +32,7 @@ pub struct KeyEvent {
 impl KeyEvent {
     pub(crate) fn from_key_input(
         input: KBDLLHOOKSTRUCT,
-        keyboard_state: &KeyboardState,
+        keyboard_state: KeyboardState,
     ) -> KeyEvent {
         Self {
             action: KeyAction {
@@ -38,10 +43,10 @@ impl KeyEvent {
                 ),
                 transition: KeyTransition::from_bool(!input.flags.contains(LLKHF_UP)),
             },
-            modifiers: keyboard_state.clone(),
             is_injected: input.flags.contains(LLKHF_INJECTED),
             is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
             time: input.time,
+            modifiers: All(keyboard_state),
             rule: None,
         }
     }
@@ -49,7 +54,7 @@ impl KeyEvent {
     pub(crate) fn from_mouse_input(
         msg: u32,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &KeyboardState,
+        keyboard_state: KeyboardState,
     ) -> Result<KeyEvent, KeyError> {
         let event = match msg {
             WM_LBUTTONDOWN => Self::button_event(Key::LeftButton, Down, input, keyboard_state),
@@ -68,7 +73,7 @@ impl KeyEvent {
         Ok(event)
     }
 
-    fn wheel_event(key: Key, input: MSLLHOOKSTRUCT, keyboard_state: &KeyboardState) -> KeyEvent {
+    fn wheel_event(key: Key, input: MSLLHOOKSTRUCT, keyboard_state: KeyboardState) -> KeyEvent {
         let d = (input.mouseData >> 16) as i16;
         Self::mouse_event(
             KeyAction::new(key, KeyTransition::from_bool(d < 0)),
@@ -81,7 +86,7 @@ impl KeyEvent {
         key: Key,
         transition: KeyTransition,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &KeyboardState,
+        keyboard_state: KeyboardState,
     ) -> KeyEvent {
         Self::mouse_event(KeyAction::new(key, transition), input, keyboard_state)
     }
@@ -89,7 +94,7 @@ impl KeyEvent {
     fn x_button_event(
         transition: KeyTransition,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &KeyboardState,
+        keyboard_state: KeyboardState,
     ) -> Result<KeyEvent, KeyError> {
         let key = match (input.mouseData >> 16) as u16 {
             1 => Key::Xbutton1,
@@ -108,11 +113,11 @@ impl KeyEvent {
     fn mouse_event(
         action: KeyAction,
         input: MSLLHOOKSTRUCT,
-        keyboard_state: &KeyboardState,
+        keyboard_state: KeyboardState,
     ) -> KeyEvent {
         Self {
             action,
-            modifiers: keyboard_state.clone(),
+            modifiers: All(keyboard_state),
             is_injected: (input.flags & (LLMHF_INJECTED | LLMHF_LOWER_IL_INJECTED)) != 0,
             is_private: input.dwExtraInfo == SELF_EVENT_MARKER,
             time: input.time,
@@ -123,7 +128,7 @@ impl KeyEvent {
     pub fn as_trigger(&self) -> KeyTrigger {
         KeyTrigger {
             action: self.action,
-            modifiers: All(self.modifiers),
+            modifiers: self.modifiers,
         }
     }
 }
@@ -146,6 +151,7 @@ impl Display for KeyEvent {
 mod tests {
     use crate::event::KeyEvent;
     use crate::key::Key;
+    use crate::modifiers::KeyModifiers;
     use crate::state::tests::kb_state_from_keys;
 
     #[macro_export]
@@ -153,7 +159,7 @@ mod tests {
         ($action:literal, $state:expr) => {
             KeyEvent {
                 action: $action.parse().unwrap(),
-                modifiers: $state.clone(),
+                modifiers: KeyModifiers::All($state.clone()),
                 time: 0,
                 is_injected: false,
                 is_private: false,
@@ -164,7 +170,7 @@ mod tests {
 
     #[test]
     fn test_key_event_display() {
-        let event = key_event!("A↓", &kb_state_from_keys(&[Key::LeftShift]));
+        let event = key_event!("A↓", kb_state_from_keys(&[Key::LeftShift]));
 
         assert_eq!(format!("{}", event), "[LEFT_SHIFT] A↓ T:000000000  ");
     }

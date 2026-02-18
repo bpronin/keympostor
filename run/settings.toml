@@ -1,5 +1,5 @@
 keys_logging_enabled = true
-last_transform_layout = "default"
+last_transform_layout = "ide"
 toggle_layout_hot_key = "[] FN_LAUNCH_APP2↓"
 
 [layout_autoswitch]
@@ -23,12 +23,12 @@ size = [1534, 504]
 selected_page = 0
 
 [main_window.log_view.columns]
-1 = 254
-5 = 116
-2 = 211
 4 = 91
-0 = 300
-3 = 50
-8 = 50
-6 = 131
 7 = 50
+6 = 131
+2 = 211
+8 = 50
+5 = 116
+0 = 300
+1 = 254
+3 = 50

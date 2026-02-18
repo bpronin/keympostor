@@ -29,14 +29,15 @@ impl KeyTransformMap {
     pub(crate) fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
         self.map
             .get(&event.action)?
-            .get(&All(event.modifiers))
+            .get(&event.modifiers)
             .or_else(|| self.map.get(&event.action)?.get(&Any))
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::key::Key::{LeftAlt, LeftCtrl, LeftShift};
+    use crate::transform::KeyModifiers;
+use crate::key::Key::{LeftAlt, LeftCtrl, LeftShift};
     use crate::rules::KeyTransformRule;
     use crate::state::tests::kb_state_from_keys;
     use crate::state::KeyboardState;
