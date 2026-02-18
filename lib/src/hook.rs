@@ -12,6 +12,7 @@ use std::cell::RefCell;
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
+use crate::action::KeyAction;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHook {}
@@ -130,10 +131,12 @@ fn uninstall_mouse_hook() {
 extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
         let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
-        let state = get_keyboard_state(build_action_from_kbd_input(input).key);
+        let action = build_action_from_kbd_input(input);
+        let state = get_keyboard_state(&action);
         let event = KeyEvent::from_kbd_input(input, state);
+        update_keyboard_state(&action);
 
-        if handle_event(event) {
+        if handle_event(&event) {
             return LRESULT(1);
         }
     }
@@ -145,10 +148,12 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
     let msg = w_param.0 as u32;
     if msg != WM_MOUSEMOVE {
         let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
-        let state = get_keyboard_state(build_action_from_mouse_input(msg, input).key);
+        let action = build_action_from_mouse_input(msg, input);
+        let state = get_keyboard_state(&action);
         let event = KeyEvent::from_mouse_input(msg, input, state);
+        update_keyboard_state(&action);
 
-        if handle_event(event) {
+        if handle_event(&event) {
             return LRESULT(1);
         }
     }
@@ -156,23 +161,21 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
     MOUSE_HOOK.with_borrow(|hook| unsafe { CallNextHookEx(*hook, code, w_param, l_param) })
 }
 
-fn handle_event(mut event: KeyEvent) -> bool {
-    update_keyboard_state(&mut event);
-
+fn handle_event(event: &KeyEvent) -> bool {
     if SUPPRESSED_KEYS.with_borrow(|set| set.contains(&event.trigger.action.key)) {
         trace!("Event suppressed: {event}");
         notify_key_event(&event, None);
         true
     } else if event.is_private {
         trace!("Private event ignored: {event}");
-        notify_key_event(&event, None);
+        notify_key_event(event, None);
         false
     } else {
         TRANSFOFM_MAP.with_borrow(|transform_map| {
             if let Some(map) = transform_map {
                 trace!("Processing event: {event}");
                 let rule = map.get(&event.trigger);
-                notify_key_event(&event, rule);
+                notify_key_event(event, rule);
                 apply_transform(rule)
             } else {
                 false
@@ -193,13 +196,13 @@ fn apply_transform(rule: Option<&KeyTransformRule>) -> bool {
     }
 }
 
-fn get_keyboard_state(excluded: Key) -> KeyboardState {
+fn get_keyboard_state(action: &KeyAction) -> KeyboardState {
     KEYBOARD_STATE.with_borrow_mut(|state| {
-        state.exclude(excluded);
+        state.exclude(action.key);
         *state
     })
 }
 
-fn update_keyboard_state(event: &KeyEvent) {
-    KEYBOARD_STATE.with_borrow_mut(|state| state.update(event.trigger.action));
+fn update_keyboard_state(action: &KeyAction) {
+    KEYBOARD_STATE.with_borrow_mut(|state| state.update(action));
 }

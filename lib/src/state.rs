@@ -20,7 +20,7 @@ impl KeyboardState {
         self.clear_bit(key as u8);
     }
 
-    pub(crate) fn update(&mut self, action: KeyAction) {
+    pub(crate) fn update(&mut self, action: &KeyAction) {
         match action.transition {
             Down => self.set_bit(action.key as u8),
             Up => self.clear_bit(action.key as u8),
