@@ -3,13 +3,14 @@ use crate::error::KeyError;
 use crate::key::Key;
 use crate::transition::KeyTransition;
 use crate::{deserialize_from_string, key_error, serialize_to_string};
+use log::warn;
 use serde::Deserializer;
 use serde::Serializer;
 use serde::{de, Deserialize, Serialize};
 use std::fmt::{Binary, Display, Formatter, UpperHex};
 use std::hash::Hash;
 use std::str::FromStr;
-use KeyTransition::{Down, Up};
+use KeyTransition::{Down};
 
 /* Using [u64; 4] because it is faster than [u128; 2] on most systems */
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -17,14 +18,11 @@ pub struct KeyboardState([u64; 4]);
 
 impl KeyboardState {
     pub(crate) fn exclude(&mut self, action: &KeyAction) {
-        self.clear_bit(action.key as u8);
+        self.set_bit(action.key as u8, false);
     }
 
     pub(crate) fn update(&mut self, action: &KeyAction) {
-        match action.transition {
-            Down => self.set_bit(action.key as u8),
-            Up => self.clear_bit(action.key as u8),
-        };
+        self.set_bit(action.key as u8, action.transition == Down)
     }
 
     #[inline]
@@ -37,20 +35,15 @@ impl KeyboardState {
     }
 
     #[inline]
-    fn set_bit(&mut self, index: u8) {
+    fn set_bit(&mut self, index: u8, is_set: bool) {
         let (part_index, bit_index) = self.bit_pos(index);
         unsafe {
             let part = self.0.get_unchecked_mut(part_index);
-            *part |= 1u64 << bit_index;
-        }
-    }
-
-    #[inline]
-    fn clear_bit(&mut self, index: u8) {
-        let (part_index, bit_index) = self.bit_pos(index);
-        unsafe {
-            let part = self.0.get_unchecked_mut(part_index);
-            *part &= !(1u64 << bit_index);
+            if is_set {
+                *part |= 1 << bit_index;
+            } else {
+                *part &= !(1 << bit_index);
+            }
         }
     }
 
@@ -72,7 +65,7 @@ impl FromStr for KeyboardState {
         for part in s.split('+') {
             let name = part.trim();
             let key = Key::from_str(name).ok_or(key_error!("Invalid key name: `{}`", name))?;
-            this.set_bit(key as u8);
+            this.set_bit(key as u8, true);
         }
         Ok(this)
     }
@@ -80,13 +73,27 @@ impl FromStr for KeyboardState {
 
 impl Display for KeyboardState {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let s = (0..=255)
-            .filter(|&index| self.is_bit_set(index))
-            .map(|k| Key::from_index(k).expect("Invalid key index").as_str())
-            .collect::<Vec<&str>>()
-            .join(" + ");
+        let mut is_first = true;
 
-        write!(f, "{}", s)
+        for index in 0..=255 {
+            if !self.is_bit_set(index) {
+                continue;
+            }
+
+            let Some(key) = Key::from_index(index) else {
+                warn!("Invalid key index: {}", index);
+                continue;
+            };
+
+            if !is_first {
+                f.write_str(" + ")?;
+            }
+            is_first = false;
+
+            f.write_str(key.as_str())?;
+        }
+
+        Ok(())
     }
 }
 
@@ -132,7 +139,7 @@ pub mod tests {
     pub fn kb_state_from_keys(keys: &[Key]) -> KeyboardState {
         let mut this = KeyboardState::default();
         for key in keys {
-            this.set_bit(*key as u8);
+            this.set_bit(*key as u8, true);
         }
         this
     }
@@ -140,14 +147,14 @@ pub mod tests {
     #[test]
     fn test_keyboard_state_get_set_bit() {
         let mut state = KeyboardState::default();
-        state.set_bit(1);
-        state.clear_bit(41);
+        state.set_bit(1, true);
+        state.set_bit(41, false);
 
         assert!(state.is_bit_set(1));
         assert!(!state.is_bit_set(41));
 
-        state.clear_bit(1);
-        state.set_bit(41);
+        state.set_bit(1, false);
+        state.set_bit(41, true);
 
         assert!(!state.is_bit_set(1));
         assert!(state.is_bit_set(41));

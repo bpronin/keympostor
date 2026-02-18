@@ -6,6 +6,7 @@ use crate::state::KeyboardState;
 use crate::transition::KeyTransition;
 use crate::transition::KeyTransition::{Down, Up};
 use crate::trigger::KeyTrigger;
+use crate::utils::if_else;
 use log::warn;
 use std::fmt::{Display, Formatter};
 use windows::Win32::UI::WindowsAndMessaging::{
@@ -66,8 +67,8 @@ impl Display for KeyEvent {
             "{} T:{:09} {} {}",
             self.trigger,
             self.time,
-            if self.is_injected { "INJ" } else { "" },
-            if self.is_private { "PRV" } else { "" },
+            if_else(self.is_injected, "INJ", ""),
+            if_else(self.is_private, "PRV", ""),
         )
     }
 }
@@ -79,7 +80,7 @@ pub(crate) fn build_action_from_kbd_input(input: KBDLLHOOKSTRUCT) -> KeyAction {
             input.scanCode as u8,
             input.flags.contains(LLKHF_EXTENDED),
         ),
-        transition: KeyTransition::from_bool(!input.flags.contains(LLKHF_UP)),
+        transition: if_else(input.flags.contains(LLKHF_UP), Up, Down),
     }
 }
 
@@ -103,7 +104,7 @@ pub(crate) fn build_action_from_mouse_input(msg: u32, input: MSLLHOOKSTRUCT) -> 
 // #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 fn build_mouse_wheel_transition(input: MSLLHOOKSTRUCT) -> KeyTransition {
     let delta = (input.mouseData >> 16) as i16;
-    KeyTransition::from_bool(delta < 0)
+    if_else(delta < 0, Up, Down)
 }
 
 #[inline(always)]

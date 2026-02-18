@@ -25,7 +25,7 @@ impl KeyAction {
     }
 
     pub(crate) fn from_str_expand(s: &str) -> Result<Vec<Self>, KeyError> {
-        let (sk, st) = match s.find(|c| ['^', '*', '↓', '↑'].contains(&c)) {
+        let (key_part, trans_part) = match s.find(|c| KeyTransition::is_transition_char(c)) {
             Some(p) => (
                 s.get(..p).ok_or(key_error!("Missing key part"))?,
                 s.get(p..),
@@ -33,26 +33,19 @@ impl KeyAction {
             None => (s, None),
         };
 
-        let key = Key::from_str(sk.trim()).ok_or(key_error!("Invalid key part: `{sk}`"))?;
+        let key =
+            Key::from_str(key_part.trim()).ok_or(key_error!("Invalid key part: `{key_part}`"))?;
 
-        let mut result = Vec::new();
-        match st {
-            Some(t) => {
-                for char in t.trim().chars() {
-                    match char {
-                        '*' | '↓' => result.push(KeyAction::new(key, Down)),
-                        '^' | '↑' => result.push(KeyAction::new(key, Up)),
-                        _ => return key_err!("Invalid transition character: `{char}`"),
-                    }
+        match trans_part {
+            Some(part) => {
+                let mut vec = vec![];
+                for char in part.trim().chars() {
+                    vec.push(KeyAction::new(key, KeyTransition::from_char(char)?))
                 }
+                Ok(vec)
             }
-            None => {
-                result.push(KeyAction::new(key, Down));
-                result.push(KeyAction::new(key, Up));
-            }
+            None => Ok(vec![KeyAction::new(key, Down), KeyAction::new(key, Up)]),
         }
-
-        Ok(result)
     }
 }
 
