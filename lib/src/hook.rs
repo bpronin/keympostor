@@ -128,10 +128,9 @@ fn uninstall_mouse_hook() {
 
 extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
-        let event = KeyEvent::from_key_input(
-            unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) },
-            &KEYBOARD_STATE.with(|state| *state.borrow()),
-        );
+        let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
+        let state = KEYBOARD_STATE.with(|state| *state.borrow());
+        let event = KeyEvent::from_key_input(input, &state);
         if handle_event(event) {
             return LRESULT(1);
         }
@@ -142,10 +141,17 @@ extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) ->
 
 extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     let msg = w_param.0 as u32;
-    let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
-
-    if handle_mouse_button(msg, input) {
-        return LRESULT(1);
+    if msg != WM_MOUSEMOVE {
+        let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
+        let state = KEYBOARD_STATE.with_borrow(|state| *state);
+        match KeyEvent::from_mouse_input(msg, input, &state) {
+            Ok(event) => {
+                if handle_event(event) {
+                    return LRESULT(1);
+                }
+            }
+            Err(error) => warn!("Failed to build mouse event: {}", error),
+        }
     }
 
     MOUSE_HOOK.with_borrow(|hook| unsafe { CallNextHookEx(*hook, code, w_param, l_param) })
@@ -173,21 +179,6 @@ fn handle_event(mut event: KeyEvent) -> bool {
 
     notify::notify_listener(event);
     handled
-}
-
-fn handle_mouse_button(msg: u32, input: MSLLHOOKSTRUCT) -> bool {
-    if msg == WM_MOUSEMOVE {
-        return false;
-    }
-
-    let keyboard_state = KEYBOARD_STATE.with_borrow(|state| *state);
-    match KeyEvent::from_mouse_input(msg, input, &keyboard_state) {
-        Ok(event) => handle_event(event),
-        Err(e) => {
-            warn!("Failed to build event: {}", e);
-            false
-        }
-    }
 }
 
 fn apply_transform(event: &KeyEvent) -> bool {

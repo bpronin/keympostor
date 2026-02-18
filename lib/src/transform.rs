@@ -1,10 +1,10 @@
-use std::slice::Iter;
 use crate::action::KeyAction;
 use crate::event::KeyEvent;
 use crate::modifiers::KeyModifiers;
 use crate::modifiers::KeyModifiers::{All, Any};
-use crate::rules::{KeyTransformRule, KeyTransformRules};
+use crate::rules::KeyTransformRule;
 use fxhash::FxHashMap;
+use std::slice::Iter;
 
 #[derive(Debug, Default)]
 pub(crate) struct KeyTransformMap {
@@ -12,8 +12,7 @@ pub(crate) struct KeyTransformMap {
 }
 
 impl KeyTransformMap {
-    pub(crate) fn new(rules: Iter<KeyTransformRule>) -> Self
-    {
+    pub(crate) fn new(rules: Iter<KeyTransformRule>) -> Self {
         let mut map: FxHashMap<KeyAction, FxHashMap<KeyModifiers, KeyTransformRule>> =
             Default::default();
 
@@ -69,10 +68,13 @@ mod tests {
 
     #[test]
     fn test_put_get_normal() {
-        let map = KeyTransformMap::new([
-            key_rule!("[LEFT_SHIFT] A↓ : B↓"),
-            key_rule!("[LEFT_ALT + LEFT_CTRL] A↓ : C↓"),
-        ].iter());
+        let map = KeyTransformMap::new(
+            [
+                key_rule!("[LEFT_SHIFT] A↓ : B↓"),
+                key_rule!("[LEFT_ALT + LEFT_CTRL] A↓ : C↓"),
+            ]
+            .iter(),
+        );
 
         assert_eq!(
             &key_rule!("[LEFT_SHIFT] A↓ : B↓"),
@@ -136,11 +138,14 @@ mod tests {
 
     #[test]
     fn test_put_duplicates() {
-        let map = KeyTransformMap::new([
-            key_rule!("[LEFT_SHIFT] A↓ : B↓"),
-            key_rule!("[LEFT_SHIFT] A↓ : B↓"),
-            key_rule!("[LEFT_SHIFT] A↓ : B↓"),
-        ].iter());
+        let map = KeyTransformMap::new(
+            [
+                key_rule!("[LEFT_SHIFT] A↓ : B↓"),
+                key_rule!("[LEFT_SHIFT] A↓ : B↓"),
+                key_rule!("[LEFT_SHIFT] A↓ : B↓"),
+            ]
+            .iter(),
+        );
 
         assert_eq!(1, map.map.len());
         assert_eq!(1, map.map.get(&key_action!("A↓")).unwrap().len());
