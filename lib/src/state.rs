@@ -16,8 +16,8 @@ use KeyTransition::{Down, Up};
 pub struct KeyboardState([u64; 4]);
 
 impl KeyboardState {
-    pub(crate) fn exclude(&mut self, key: Key) {
-        self.clear_bit(key as u8);
+    pub(crate) fn exclude(&mut self, action: &KeyAction) {
+        self.clear_bit(action.key as u8);
     }
 
     pub(crate) fn update(&mut self, action: &KeyAction) {

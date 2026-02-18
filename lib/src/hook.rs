@@ -1,3 +1,4 @@
+use crate::action::KeyAction;
 use crate::event::{build_action_from_kbd_input, build_action_from_mouse_input, KeyEvent};
 use crate::key::Key;
 use crate::notify::install_notify_listener;
@@ -8,11 +9,10 @@ use crate::{input, notify};
 use fxhash::FxHashSet;
 use log::{debug, trace, warn};
 use notify::notify_key_event;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use windows::Win32::Foundation::*;
 use windows::Win32::UI::Input::KeyboardAndMouse::{SendInput, INPUT};
 use windows::Win32::UI::WindowsAndMessaging::*;
-use crate::action::KeyAction;
 
 #[derive(Debug, Default)]
 pub struct KeyboardHook {}
@@ -48,84 +48,69 @@ impl Drop for KeyboardHook {
 }
 
 thread_local! {
-    static KEY_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
-    static MOUSE_HOOK: RefCell<Option<HHOOK>> = RefCell::new(None);
-    static KEYBOARD_STATE: RefCell<KeyboardState> = RefCell::new(KeyboardState::default());
-    static LAST_MOUSE_POSITION: RefCell<Option<POINT>> = RefCell::new(None);
+    static KEY_HOOK: Cell<Option<HHOOK>> = Cell::new(None);
+    static MOUSE_HOOK: Cell<Option<HHOOK>> = Cell::new(None);
+    static KEYBOARD_STATE: Cell<KeyboardState> = Cell::new(KeyboardState::default());
     static TRANSFOFM_MAP: RefCell<Option<KeyTransformMap>> = RefCell::new(None);
     static SUPPRESSED_KEYS: RefCell<FxHashSet<Key>> = RefCell::new(FxHashSet::default());
 }
 
 fn install_keyboard_hook() {
-    KEY_HOOK.with_borrow_mut(|hook| {
-        if hook.is_some() {
-            warn!("Keyboard hook already installed");
+    if KEY_HOOK.get().is_some() {
+        warn!("Keyboard hook already installed");
+        return;
+    }
 
-            return;
+    match unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(key_hook_proc), None, 0) } {
+        Ok(handle) => {
+            KEY_HOOK.replace(Some(handle));
+            debug!("Keyboard hook installed");
         }
-
-        match unsafe { SetWindowsHookExW(WH_KEYBOARD_LL, Some(key_hook_proc), None, 0) } {
-            Ok(handle) => {
-                *hook = Some(handle);
-
-                debug!("Keyboard hook installed");
-            }
-            Err(e) => {
-                *hook = None;
-
-                warn!("Failed to install keyboard hook: {}", e);
-            }
+        Err(e) => {
+            KEY_HOOK.replace(None);
+            warn!("Failed to install keyboard hook: {}", e);
         }
-    })
+    }
 }
 
 fn uninstall_key_hook() {
-    KEY_HOOK.with_borrow_mut(|hook| {
-        if let Some(handle) = hook.take() {
-            match unsafe { UnhookWindowsHookEx(handle) } {
-                Ok(_) => debug!("Keyboard hook uninstalled"),
-                Err(e) => warn!("Failed to uninstall keyboard hook: {}", e),
-            }
-        } else {
-            warn!("Keyboard hook already uninstalled");
+    if let Some(handle) = KEY_HOOK.take() {
+        match unsafe { UnhookWindowsHookEx(handle) } {
+            Ok(_) => debug!("Keyboard hook uninstalled"),
+            Err(e) => warn!("Failed to uninstall keyboard hook: {}", e),
         }
-    })
+    } else {
+        warn!("Keyboard hook already uninstalled");
+    }
 }
 
 fn install_mouse_hook() {
-    MOUSE_HOOK.with_borrow_mut(|hook| {
-        if hook.is_some() {
-            warn!("Mouse hook already installed");
+    if MOUSE_HOOK.get().is_some() {
+        warn!("Mouse hook already installed");
+        return;
+    }
 
-            return;
+    match unsafe { SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), None, 0) } {
+        Ok(handle) => {
+            MOUSE_HOOK.replace(Some(handle));
+            debug!("Mouse hook installed");
         }
-
-        match unsafe { SetWindowsHookExW(WH_MOUSE_LL, Some(mouse_hook_proc), None, 0) } {
-            Ok(handle) => {
-                *hook = Some(handle);
-
-                debug!("Mouse hook installed");
-            }
-            Err(e) => {
-                *hook = None;
-
-                warn!("Failed to install mouse hook: {}", e);
-            }
+        Err(e) => {
+            MOUSE_HOOK.replace(None);
+            warn!("Failed to install mouse hook: {}", e);
         }
-    });
+    }
 }
 
 fn uninstall_mouse_hook() {
-    MOUSE_HOOK.with_borrow_mut(|hook| {
-        if let Some(handle) = hook.take() {
-            match unsafe { UnhookWindowsHookEx(handle) } {
-                Ok(_) => debug!("Mouse hook uninstalled"),
-                Err(e) => warn!("Failed to uninstall mouse hook: {}", e),
-            }
-        } else {
-            warn!("Mouse hook already uninstalled");
+    if let Some(handle) = MOUSE_HOOK.take() {
+        match unsafe { UnhookWindowsHookEx(handle) } {
+            Ok(_) => debug!("Mouse hook uninstalled"),
+            Err(e) => warn!("Failed to uninstall mouse hook: {}", e),
         }
-    })
+    } else {
+        warn!("Mouse hook already uninstalled");
+    }
 }
 
 extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
@@ -141,7 +126,7 @@ extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) ->
         }
     }
 
-    KEY_HOOK.with_borrow(|hook| unsafe { CallNextHookEx(*hook, code, w_param, l_param) })
+    unsafe { CallNextHookEx(KEY_HOOK.get(), code, w_param, l_param) }
 }
 
 extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
@@ -158,7 +143,7 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
         }
     }
 
-    MOUSE_HOOK.with_borrow(|hook| unsafe { CallNextHookEx(*hook, code, w_param, l_param) })
+    unsafe { CallNextHookEx(MOUSE_HOOK.get(), code, w_param, l_param) }
 }
 
 fn handle_event(event: &KeyEvent) -> bool {
@@ -197,12 +182,14 @@ fn apply_transform(rule: Option<&KeyTransformRule>) -> bool {
 }
 
 fn get_keyboard_state(action: &KeyAction) -> KeyboardState {
-    KEYBOARD_STATE.with_borrow_mut(|state| {
-        state.exclude(action.key);
-        *state
-    })
+    let mut state = KEYBOARD_STATE.get();
+    state.exclude(action);
+    KEYBOARD_STATE.set(state);
+    state
 }
 
 fn update_keyboard_state(action: &KeyAction) {
-    KEYBOARD_STATE.with_borrow_mut(|state| state.update(action));
+    let mut state = KEYBOARD_STATE.get();
+    state.update(action);
+    KEYBOARD_STATE.set(state);
 }
