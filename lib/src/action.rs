@@ -51,7 +51,7 @@ impl KeyAction {
 
 impl Display for KeyAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        Display::fmt(&format!("{}{}", self.key.as_str(), self.transition), f)
+        write!(f, "{}{}", self.key, self.transition)
     }
 }
 

@@ -18,17 +18,17 @@ activation_rule = "rustrover64.exe"
 transform_layout = "ide"
 
 [main_window]
-position = [261, 204]
+position = [340, 237]
 size = [1534, 504]
-selected_page = 1
+selected_page = 0
 
 [main_window.log_view.columns]
-2 = 107
-0 = 300
-3 = 185
+0 = 284
+5 = 116
+6 = 131
 7 = 50
 1 = 254
-5 = 116
-8 = 50
 4 = 91
-6 = 131
+2 = 107
+8 = 50
+3 = 185

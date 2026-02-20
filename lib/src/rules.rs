@@ -63,7 +63,7 @@ impl KeyTransformRule {
 
 impl Display for KeyTransformRule {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&format!("{} : {}", self.trigger, self.actions), f)
+        write!(f, "{} : {}", self.trigger, self.actions)
     }
 }
 

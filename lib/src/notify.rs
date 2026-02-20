@@ -15,23 +15,14 @@ pub struct KeyEventNotification {
     pub rule: Option<KeyTransformRule>,
 }
 
-impl KeyEventNotification {
-    fn new(event: &KeyEvent, rule: Option<KeyTransformRule>) -> Self {
-        Self {
-            event: event.clone(),
-            rule,
-        }
-    }
-}
-
 pub(crate) fn install_notify_listener(owner: HWND) {
     RECEIVER.replace(Some(owner));
 }
 
-pub(crate) fn notify_key_event(event: &KeyEvent, rule: Option<&KeyTransformRule>) {
+pub(crate) fn notify_key_event(event: KeyEvent, rule: Option<KeyTransformRule>) {
     RECEIVER.with_borrow(|receiver| {
         if receiver.is_some() {
-            let notification = KeyEventNotification::new(event, rule.and_then(|r| Some(r.clone())));
+            let notification = KeyEventNotification { event, rule };
             let raw_ptr = Box::into_raw(Box::new(notification)) as isize;
             unsafe {
                 PostMessageW(*receiver, WM_KEY_HOOK_NOTIFY, WPARAM(0), LPARAM(raw_ptr))

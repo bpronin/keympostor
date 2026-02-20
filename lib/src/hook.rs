@@ -1,12 +1,20 @@
 use crate::action::KeyAction;
-use crate::event::{build_action_from_kbd_input, build_action_from_mouse_input, KeyEvent};
+use crate::event::KeyEvent;
+use crate::input::PRIVATE_EVENT_MARKER;
 use crate::key::Key;
+use crate::key::Key::{LeftButton, MiddleButton, RightButton, WheelX, WheelY};
+use crate::modifiers::KeyModifiers::{All};
 use crate::notify::install_notify_listener;
-use crate::rules::{KeyTransformRule, KeyTransformRules};
+use crate::rules::{KeyTransformRules};
 use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
+use crate::transition::KeyTransition;
+use crate::transition::KeyTransition::{Down, Up};
+use crate::trigger::KeyTrigger;
+use crate::utils::if_else;
 use crate::{input, notify};
 use fxhash::FxHashSet;
+use input::build_input;
 use log::{debug, trace, warn};
 use notify::notify_key_event;
 use std::cell::{Cell, RefCell};
@@ -116,11 +124,7 @@ fn uninstall_mouse_hook() {
 extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     if code == HC_ACTION as i32 {
         let input = unsafe { *(l_param.0 as *const KBDLLHOOKSTRUCT) };
-        let action = build_action_from_kbd_input(input);
-        let state = get_keyboard_state(&action);
-        let event = KeyEvent::from_kbd_input(input, state);
-        update_keyboard_state(&action);
-
+        let event = build_key_event(input);
         if handle_event(&event) {
             return LRESULT(1);
         }
@@ -133,11 +137,7 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
     let msg = w_param.0 as u32;
     if msg != WM_MOUSEMOVE {
         let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
-        let action = build_action_from_mouse_input(msg, input);
-        let state = get_keyboard_state(&action);
-        let event = KeyEvent::from_mouse_input(msg, input, state);
-        update_keyboard_state(&action);
-
+        let event = build_mouse_event(msg, input);
         if handle_event(&event) {
             return LRESULT(1);
         }
@@ -147,48 +147,128 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
 }
 
 fn handle_event(event: &KeyEvent) -> bool {
+    trace!("Processing event: {event}");
+
+    if event.is_private {
+        trace!("Event ignored");
+        notify_key_event(event.clone(), None);
+        return false;
+    }
+
     if SUPPRESSED_KEYS.with_borrow(|set| set.contains(&event.trigger.action.key)) {
-        trace!("Event suppressed: {event}");
-        notify_key_event(&event, None);
-        true
-    } else if event.is_private {
-        trace!("Private event ignored: {event}");
-        notify_key_event(event, None);
-        false
-    } else {
-        TRANSFOFM_MAP.with_borrow(|transform_map| {
-            if let Some(map) = transform_map {
-                trace!("Processing event: {event}");
-                let rule = map.get(&event.trigger);
-                notify_key_event(event, rule);
-                apply_transform(rule)
-            } else {
-                false
+        trace!("Event suppressed");
+        update_kbd_state(&event.trigger.action);
+        notify_key_event(event.clone(), None);
+        return true;
+    }
+
+    let rule = TRANSFOFM_MAP.with_borrow(|transform_map| {
+        transform_map
+            .as_ref()
+            .and_then(|map| map.get(&event.trigger).cloned())
+    });
+
+    let handled = match rule.as_ref() {
+        Some(r) => {
+            debug!("Applying rule: {}", r);
+            unsafe {
+                if SendInput(&build_input(&r.actions), size_of::<INPUT>() as i32) == 0 {
+                    warn!("Failed to send input: {:?}", GetLastError());
+                }
             }
-        })
+            true
+        }
+        None => {
+            trace!("No matching rules");
+            update_kbd_state(&event.trigger.action);
+            false
+        }
+    };
+
+    notify_key_event(event.clone(), rule);
+    handled
+}
+
+fn build_key_event(input: KBDLLHOOKSTRUCT) -> KeyEvent {
+    let action = build_action_from_kbd_input(input);
+    KeyEvent {
+        trigger: KeyTrigger {
+            action,
+            modifiers: All(prepare_kbd_state(&action)),
+        },
+        is_injected: input.flags.contains(LLKHF_INJECTED),
+        is_private: input.dwExtraInfo == PRIVATE_EVENT_MARKER,
+        time: input.time,
     }
 }
 
-fn apply_transform(rule: Option<&KeyTransformRule>) -> bool {
-    if let Some(rule) = rule {
-        debug!("Applying rule: {}", rule);
-
-        let input = input::build_input(&rule.actions);
-        unsafe { SendInput(&input, size_of::<INPUT>() as i32) };
-        true
-    } else {
-        false
+fn build_mouse_event(msg: u32, input: MSLLHOOKSTRUCT) -> KeyEvent {
+    let action = build_action_from_mouse_input(msg, input);
+    KeyEvent {
+        trigger: KeyTrigger {
+            action,
+            modifiers: All(prepare_kbd_state(&action)),
+        },
+        is_injected: (input.flags & (LLMHF_INJECTED | LLMHF_LOWER_IL_INJECTED)) != 0,
+        is_private: input.dwExtraInfo == PRIVATE_EVENT_MARKER,
+        time: input.time,
     }
 }
 
-fn get_keyboard_state(action: &KeyAction) -> KeyboardState {
+fn build_action_from_kbd_input(input: KBDLLHOOKSTRUCT) -> KeyAction {
+    KeyAction {
+        key: Key::from_code(
+            input.vkCode as u8,
+            input.scanCode as u8,
+            input.flags.contains(LLKHF_EXTENDED),
+        ),
+        transition: if_else(input.flags.contains(LLKHF_UP), Up, Down),
+    }
+}
+
+#[inline(always)]
+fn build_action_from_mouse_input(msg: u32, input: MSLLHOOKSTRUCT) -> KeyAction {
+    match msg {
+        WM_LBUTTONDOWN => KeyAction::new(LeftButton, Down),
+        WM_LBUTTONUP => KeyAction::new(LeftButton, Up),
+        WM_RBUTTONDOWN => KeyAction::new(RightButton, Down),
+        WM_RBUTTONUP => KeyAction::new(RightButton, Up),
+        WM_MBUTTONDOWN => KeyAction::new(MiddleButton, Down),
+        WM_MBUTTONUP => KeyAction::new(MiddleButton, Up),
+        WM_XBUTTONDOWN => KeyAction::new(build_mouse_x_button_key(input), Down),
+        WM_XBUTTONUP => KeyAction::new(build_mouse_x_button_key(input), Up),
+        WM_MOUSEWHEEL => KeyAction::new(WheelY, build_mouse_wheel_transition(input)),
+        WM_MOUSEHWHEEL => KeyAction::new(WheelX, build_mouse_wheel_transition(input)),
+        _ => panic!("Illegal mouse message: `{}`", msg),
+    }
+}
+
+#[inline(always)]
+fn build_mouse_wheel_transition(input: MSLLHOOKSTRUCT) -> KeyTransition {
+    let delta = (input.mouseData >> 16) as i16;
+    if_else(delta < 0, Up, Down)
+}
+
+#[inline(always)]
+fn build_mouse_x_button_key(input: MSLLHOOKSTRUCT) -> Key {
+    match (input.mouseData >> 16) as u16 {
+        1 => Key::Xbutton1,
+        2 => Key::Xbutton2,
+        b => {
+            warn!("Unsupported mouse x-button: `{b}`");
+            Key::Xbutton1
+        }
+    }
+}
+
+fn prepare_kbd_state(action: &KeyAction) -> KeyboardState {
     let mut state = KEYBOARD_STATE.get();
-    state.exclude(action);
+    state.remove(&action);
     KEYBOARD_STATE.set(state);
     state
 }
 
-fn update_keyboard_state(action: &KeyAction) {
+fn update_kbd_state(action: &KeyAction) {
     let mut state = KEYBOARD_STATE.get();
     state.update(action);
     KEYBOARD_STATE.set(state);

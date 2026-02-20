@@ -1,5 +1,4 @@
 use crate::action::{KeyAction, KeyActionSequence};
-use crate::event::SELF_EVENT_MARKER;
 use crate::key::Key;
 use crate::transition::KeyTransition::{Down, Up};
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -11,7 +10,9 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
 };
 use windows::Win32::UI::WindowsAndMessaging::{XBUTTON1, XBUTTON2};
 
-pub fn build_input(seq: &KeyActionSequence) -> Vec<INPUT> {
+pub(crate) static PRIVATE_EVENT_MARKER: usize = 497298395;
+
+pub(crate) fn build_input(seq: &KeyActionSequence) -> Vec<INPUT> {
     seq.iter().filter_map(build_action_input).collect()
 }
 
@@ -83,7 +84,7 @@ fn build_mouse_input(flags: MOUSE_EVENT_FLAGS, data: u32) -> Option<INPUT> {
             mi: MOUSEINPUT {
                 dwFlags: flags,
                 mouseData: data,
-                dwExtraInfo: SELF_EVENT_MARKER,
+                dwExtraInfo: PRIVATE_EVENT_MARKER,
                 ..Default::default()
             },
         },
@@ -110,7 +111,7 @@ fn build_key_input(action: &KeyAction) -> Option<INPUT> {
                 wVk: VIRTUAL_KEY(action.key.vk() as u16),
                 wScan: action.key.ext_sc(),
                 dwFlags: flags,
-                dwExtraInfo: SELF_EVENT_MARKER,
+                dwExtraInfo: PRIVATE_EVENT_MARKER,
                 ..Default::default()
             },
         },
@@ -120,8 +121,7 @@ fn build_key_input(action: &KeyAction) -> Option<INPUT> {
 #[cfg(test)]
 mod tests {
     use crate::action::KeyAction;
-    use crate::event::SELF_EVENT_MARKER;
-    use crate::input::{build_action_input, build_key_input};
+    use crate::input::{build_action_input, build_key_input, PRIVATE_EVENT_MARKER};
     use crate::key_action;
     use crate::key_code::ext_scan_code;
     use std::str::FromStr;
@@ -138,7 +138,7 @@ mod tests {
             assert_eq!(VK_RETURN, actual.Anonymous.ki.wVk);
             assert_eq!(ext_scan_code(0x1C, false), actual.Anonymous.ki.wScan);
             assert_eq!(KEYEVENTF_SCANCODE, actual.Anonymous.ki.dwFlags);
-            assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.ki.dwExtraInfo);
+            assert_eq!(PRIVATE_EVENT_MARKER, actual.Anonymous.ki.dwExtraInfo);
         };
 
         let actual: INPUT = build_key_input(&key_action!("NUM_ENTER^")).unwrap();
@@ -150,7 +150,7 @@ mod tests {
                 KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP,
                 actual.Anonymous.ki.dwFlags
             );
-            assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.ki.dwExtraInfo);
+            assert_eq!(PRIVATE_EVENT_MARKER, actual.Anonymous.ki.dwExtraInfo);
         };
     }
 
@@ -163,7 +163,7 @@ mod tests {
             // assert_eq!(120, actual.Anonymous.mi.dy);
             // assert_eq!(0, actual.Anonymous.mi.dx);
             assert_eq!(0, actual.Anonymous.mi.mouseData);
-            assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.mi.dwExtraInfo);
+            assert_eq!(PRIVATE_EVENT_MARKER, actual.Anonymous.mi.dwExtraInfo);
         };
 
         let actual: INPUT = build_action_input(&key_action!("WHEEL_X^")).unwrap();
@@ -173,7 +173,7 @@ mod tests {
             // assert_eq!(0, actual.Anonymous.mi.dy);
             // assert_eq!(-480, actual.Anonymous.mi.dx);
             assert_eq!(0, actual.Anonymous.mi.mouseData);
-            assert_eq!(SELF_EVENT_MARKER, actual.Anonymous.mi.dwExtraInfo);
+            assert_eq!(PRIVATE_EVENT_MARKER, actual.Anonymous.mi.dwExtraInfo);
         };
     }
 }

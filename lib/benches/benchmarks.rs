@@ -3,9 +3,9 @@ use criterion::{criterion_group, criterion_main, BenchmarkGroup, Criterion};
 use fxhash::FxHashMap;
 use keympostor::action::{KeyAction, KeyActionSequence};
 use keympostor::event::KeyEvent;
-use keympostor::key::{Key};
+use keympostor::key::Key;
 use keympostor::modifiers::KeyModifiers;
-use keympostor::modifiers::KeyModifiers::{All, Any};
+use keympostor::modifiers::KeyModifiers::Any;
 use keympostor::rules::KeyTransformRule;
 use keympostor::transition::KeyTransition;
 use keympostor::transition::KeyTransition::{Down, Up};
@@ -25,12 +25,12 @@ pub struct KeyTransformHashMap {
 
 impl KeyTransformMap for KeyTransformHashMap {
     fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
-        let map = self.map.get(&event.action)?;
-        map.get(&All(event.modifiers)).or_else(|| map.get(&Any))
+        let map = self.map.get(&event.trigger.action)?;
+        map.get(&event.trigger.modifiers).or_else(|| map.get(&Any))
     }
 
     fn put(&mut self, rule: KeyTransformRule) {
-        let trigger = rule.trigger;
+        let trigger = &rule.trigger;
         self.map
             .entry(trigger.action)
             .or_default()
@@ -70,15 +70,15 @@ impl KeyTransformMatrix {
 
 impl KeyTransformMap for KeyTransformMatrix {
     fn get(&self, event: &KeyEvent) -> Option<&KeyTransformRule> {
-        if let Some(map) = self.get_group(&event.action) {
-            map.get(&All(event.modifiers)).or_else(|| map.get(&Any))
+        if let Some(map) = self.get_group(&event.trigger.action) {
+            map.get(&event.trigger.modifiers).or_else(|| map.get(&Any))
         } else {
             None
         }
     }
 
     fn put(&mut self, rule: KeyTransformRule) {
-        let trigger = rule.trigger;
+        let trigger = &rule.trigger;
         let action = trigger.action;
 
         if let Some(map) = self.get_group_mut(&action) {
@@ -110,9 +110,10 @@ fn create_rule(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyTransformR
 
 fn create_event(vk: u8, sc: u8, ext: bool, trans: KeyTransition) -> KeyEvent {
     KeyEvent {
-        action: create_action(vk, sc, ext, trans),
-        modifiers: Default::default(),
-        rule: None,
+        trigger: KeyTrigger {
+            action: create_action(vk, sc, ext, trans),
+            modifiers: Any,
+        },
         time: 0,
         is_injected: false,
         is_private: false,

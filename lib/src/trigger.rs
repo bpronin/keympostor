@@ -58,15 +58,17 @@ impl FromStr for KeyTrigger {
         if vec.len() > 1 {
             return key_err!("String must be exactly single trigger");
         }
-        vec.first().cloned().ok_or_else(|| key_error!("Invalid trigger string"))
+        vec.first()
+            .cloned()
+            .ok_or_else(|| key_error!("Invalid trigger string"))
     }
 }
 
 impl Display for KeyTrigger {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self.modifiers {
-            Any => Display::fmt(&format!("{}", self.action), f),
-            All(m) => Display::fmt(&format!("[{}] {}", m, self.action), f),
+            Any => write!(f, "{}", self.action),
+            All(m) => write!(f, "[{}] {}", m, self.action),
         }
     }
 }

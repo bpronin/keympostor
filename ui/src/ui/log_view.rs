@@ -158,7 +158,7 @@ impl LogView {
             None,
             &[
                 trigger.to_string(),
-                rule.map(|r| r.to_string()).unwrap_or(String::from("")),
+                rule.map(|r| r.to_string()).unwrap_or("".to_string()),
                 trigger.modifiers.to_string(),
                 trigger.action.key.to_string(),
                 trigger.action.transition.to_string(),

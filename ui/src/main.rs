@@ -2,7 +2,7 @@
 use crate::app::App;
 use crate::ui::app_ui::AppUI;
 use chrono::Local;
-use fern::colors::ColoredLevelConfig;
+use fern::colors::{Color, ColoredLevelConfig};
 use fern::Dispatch;
 use log::LevelFilter;
 use std::error::Error;
@@ -30,13 +30,17 @@ fn main() {
 }
 
 fn setup_logger() -> Result<(), Box<dyn Error>> {
+    let colors = ColoredLevelConfig::new()
+        .info(Color::Blue)
+        .debug(Color::Green);
+    
     let stdout_config = Dispatch::new()
-        .level(LevelFilter::Debug)
+        .level(LevelFilter::Trace)
         .format(move |out, message, record| {
             out.finish(format_args!(
                 "{} {:<5} [{}] {:<32} {}",
                 Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
-                ColoredLevelConfig::default().color(record.level()),
+                colors.color(record.level()),
                 thread::current().name().unwrap_or("noname"),
                 record.target(),
                 message
