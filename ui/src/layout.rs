@@ -53,7 +53,11 @@ impl<'a> IntoIterator for &'a KeyTransformLayoutList {
 }
 
 impl KeyTransformLayoutList {
-    pub(crate) fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+    pub(crate) fn load() -> Result<KeyTransformLayoutList, Box<dyn Error>> {
+        Self::load_from(LAYOUTS_PATH)
+    }
+
+    fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let mut items = vec![];
 
         for entry in fs::read_dir(path)? {
@@ -65,10 +69,6 @@ impl KeyTransformLayoutList {
         }
 
         Ok(Self(items))
-    }
-
-    pub(crate) fn load_default() -> Result<KeyTransformLayoutList, Box<dyn Error>> {
-        Self::load(LAYOUTS_PATH)
     }
 
     pub(crate) fn find(&self, name: &str) -> Option<&KeyTransformLayout> {
@@ -249,7 +249,7 @@ pub mod tests {
 
     #[test]
     fn test_layouts_load() {
-        let result = KeyTransformLayoutList::load("etc/test_data/layouts/");
+        let result = KeyTransformLayoutList::load_from("etc/test_data/layouts/");
         assert!(result.is_err());
     }
 

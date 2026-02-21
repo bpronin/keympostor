@@ -24,11 +24,11 @@ impl WindowWatcher {
     pub(crate) fn setup(
         &self,
         owner: HWND,
-        profiles: Rc<HashMap<String, LayoutAutoswitchProfile>>,
+        profiles: HashMap<String, LayoutAutoswitchProfile>,
         enable: bool,
     ) {
         self.owner.replace(owner);
-        self.profiles.replace(profiles);
+        self.profiles.replace(Rc::from(profiles));
         self.enable(enable);
     }
 

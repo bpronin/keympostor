@@ -33,25 +33,25 @@ impl Default for AppSettings {
 }
 
 impl AppSettings {
-    fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+    pub(crate) fn load() -> Result<Self, Box<dyn Error>> {
+        Self::load_from(SETTINGS_FILE)
+    }
+
+    pub(crate) fn save(&self) {
+        self.save_to(SETTINGS_FILE).expect("Failed to save settings");
+        debug!("Settings saved");
+    }
+
+    fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let text = fs::read_to_string(path)?;
         let this = toml::from_str(&text)?;
         Ok(this)
     }
 
-    fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
+    fn save_to<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
         let text = toml::to_string(self)?;
         fs::write(path, text)?;
         Ok(())
-    }
-
-    pub(crate) fn load_default() -> Result<Self, Box<dyn Error>> {
-        Self::load(SETTINGS_FILE)
-    }
-
-    pub(crate) fn save_default(&self) {
-        self.save(SETTINGS_FILE).expect("Failed to save settings");
-        debug!("Settings saved");
     }
 }
 
@@ -109,9 +109,9 @@ pub mod tests {
 
         const PATH: &'static str = "etc/test_data/test_settings.toml";
 
-        assert!(settings.save(PATH).is_ok());
+        assert!(settings.save_to(PATH).is_ok());
 
-        let loaded = AppSettings::load(PATH).unwrap();
+        let loaded = AppSettings::load_from(PATH).unwrap();
         assert_eq!(settings, loaded);
     }
 }

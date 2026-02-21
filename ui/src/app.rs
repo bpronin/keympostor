@@ -5,9 +5,7 @@ use crate::profile::LayoutAutoswitchProfile;
 use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
 use crate::ui::res::RESOURCES;
-use crate::ui::res_ids::{
-    IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS,
-};
+use crate::ui::res_ids::{IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS};
 use crate::win_watch::WindowWatcher;
 use crate::{rs, show_warn_message, ui};
 use keympostor::hook::KeyboardHook;
@@ -17,7 +15,7 @@ use log::{debug, warn};
 use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::{Not};
+use std::ops::{Deref, Not};
 use std::rc::Rc;
 use ui::utils;
 use utils::drain_timer_msg_queue;
@@ -30,7 +28,7 @@ pub(crate) struct App {
     keyboard_layout_watcher: KeyboardLayoutWatcher,
     is_log_enabled: RefCell<bool>,
     is_autoswitch_enabled: RefCell<bool>,
-    autoswitch_profiles: RefCell<Rc<HashMap<String, LayoutAutoswitchProfile>>>,
+    autoswitch_profiles: Rc<RefCell<HashMap<String, LayoutAutoswitchProfile>>>,
     layouts: RefCell<KeyTransformLayoutList>,
     current_profile_name: RefCell<Option<String>>,
     current_layout_name: RefCell<String>,
@@ -40,7 +38,7 @@ pub(crate) struct App {
 
 impl App {
     fn load_settings(&self) {
-        let settings = AppSettings::load_default().unwrap_or_else(|e| {
+        let settings = AppSettings::load().unwrap_or_else(|e| {
             show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_SETTINGS), e);
             AppSettings::default()
         });
@@ -52,8 +50,7 @@ impl App {
         self.no_profile_layout_name.replace(layout_name);
 
         if let Some(la_settings) = settings.layout_autoswitch {
-            self.autoswitch_profiles
-                .replace(Rc::new(la_settings.profiles.unwrap_or_default()));
+            *self.autoswitch_profiles.borrow_mut() = la_settings.profiles.unwrap_or_default();
             self.is_autoswitch_enabled.replace(la_settings.enabled);
         };
 
@@ -69,36 +66,40 @@ impl App {
     }
 
     fn save_settings(&self) {
-        let mut settings = AppSettings::load_default().unwrap_or_default();
-        let autoswitch_settings = settings.layout_autoswitch.get_or_insert_default();
+        let mut settings = AppSettings::default();
 
-        let layout_name = self.current_layout_name.borrow();
-        if let Some(profile_name) = self.current_profile_name.borrow().as_deref() {
-            let profiles = autoswitch_settings.profiles.get_or_insert_default();
-            if let Some(profile) = profiles.get_mut(profile_name) {
-                profile.transform_layout = layout_name.clone();
-            } else {
-                profiles.insert(
-                    profile_name.to_string(),
-                    LayoutAutoswitchProfile {
-                        transform_layout: layout_name.clone(),
-                        activation_rule: None,
-                    },
-                );
-            }
-        } else {
-            settings.last_transform_layout = Some(layout_name.clone());
-        }
-
-        autoswitch_settings.enabled = *self.is_autoswitch_enabled.borrow();
-        settings.keys_logging_enabled = *self.is_log_enabled.borrow();
         self.window.update_settings(&mut settings.main_window);
+        settings.toggle_layout_hot_key = self.toggle_layout_hot_key.borrow().clone();
+        settings.keys_logging_enabled = *self.is_log_enabled.borrow();
+        settings.last_transform_layout = Some(self.current_layout_name.borrow().clone());
 
-        settings.save_default();
+        let autoswitch_settings = settings.layout_autoswitch.get_or_insert_default();
+        autoswitch_settings.enabled = *self.is_autoswitch_enabled.borrow();
+        autoswitch_settings.profiles = Some(self.autoswitch_profiles.borrow().clone());
+
+        // let layout_name = self.current_layout_name.borrow();
+        // if let Some(profile_name) = self.current_profile_name.borrow().as_deref() {
+        //     let profiles = autoswitch_settings.profiles.get_or_insert_default();
+        //     if let Some(profile) = profiles.get_mut(profile_name) {
+        //         profile.transform_layout = layout_name.clone();
+        //     } else {
+        //         profiles.insert(
+        //             profile_name.to_string(),
+        //             LayoutAutoswitchProfile {
+        //                 transform_layout: layout_name.clone(),
+        //                 activation_rule: None,
+        //             },
+        //         );
+        //     }
+        // } else {
+        //     settings.last_transform_layout = Some(layout_name.clone());
+        // }
+
+        settings.save();
     }
 
     fn load_layouts(&self) {
-        let layouts = KeyTransformLayoutList::load_default().unwrap_or_else(|e| {
+        let layouts = KeyTransformLayoutList::load().unwrap_or_else(|e| {
             show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_LAYOUTS), e);
             KeyTransformLayoutList::default()
         });
@@ -107,14 +108,14 @@ impl App {
         self.layouts.replace(layouts);
     }
 
-    pub(crate) fn with_current_profile<F>(&self, action: F)
+    pub(crate) fn with_current_profile<F, R>(&self, action: F) -> R
     where
-        F: FnOnce(Option<&LayoutAutoswitchProfile>),
+        F: FnOnce(Option<&mut LayoutAutoswitchProfile>) -> R,
     {
-        let profiles = self.autoswitch_profiles.borrow();
-        let profile_name = self.current_profile_name.borrow();
-        let profile = profile_name.as_deref().and_then(|n| profiles.get(n));
-        action(profile);
+        let profile_name = self.current_profile_name.borrow().clone();
+        let mut profiles = self.autoswitch_profiles.borrow_mut();
+        let profile = profile_name.and_then(|n| profiles.get_mut(&n));
+        action(profile)
     }
 
     pub(crate) fn with_current_layout<F>(&self, action: F)
@@ -142,6 +143,11 @@ impl App {
             self.key_hook.set_rules(Some(&layout.rules));
             self.window.on_layout_changed(Some(layout));
             notify_layout_changed(layout, &KeyboardLayoutState::capture());
+        });
+
+        self.with_current_profile(|profile| match profile {
+            None => {}
+            Some(p) => p.transform_layout = layout_name.to_string(),
         });
 
         self.update_window();
@@ -219,10 +225,11 @@ impl App {
             }
         }
 
-        self.with_current_profile(|profile| match profile {
-            Some(p) => self.apply_layout(p.transform_layout.as_str()),
-            None => self.apply_layout(self.no_profile_layout_name.borrow().as_str()),
+        let layout_name = self.with_current_profile(|profile| match profile {
+            Some(p) => p.transform_layout.clone(),
+            None => self.no_profile_layout_name.borrow().clone(),
         });
+        self.apply_layout(layout_name.as_str());
     }
 
     pub(crate) fn on_select_layout(&self, layout_name: &str) {

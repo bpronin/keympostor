@@ -4,7 +4,7 @@ use crate::ui::app_ui::AppUI;
 use chrono::Local;
 use fern::colors::{Color, ColoredLevelConfig};
 use fern::Dispatch;
-use log::LevelFilter;
+use log::LevelFilter::{Trace, Warn};
 use std::error::Error;
 use std::fs::File;
 use std::io::stdout;
@@ -33,9 +33,9 @@ fn setup_logger() -> Result<(), Box<dyn Error>> {
     let colors = ColoredLevelConfig::new()
         .info(Color::Blue)
         .debug(Color::Green);
-    
+
     let stdout_config = Dispatch::new()
-        .level(LevelFilter::Trace)
+        .level(Trace)
         .format(move |out, message, record| {
             out.finish(format_args!(
                 "{} {:<5} [{}] {:<32} {}",
@@ -46,11 +46,13 @@ fn setup_logger() -> Result<(), Box<dyn Error>> {
                 message
             ))
         })
-        .filter(|metadata| metadata.target().starts_with("keympostor::"))
+        .filter(|metadata| {
+            metadata.level() <= Warn || metadata.target().starts_with("keympostor::")
+        })
         .chain(stdout());
 
     let file_config = Dispatch::new()
-        .level(LevelFilter::Warn)
+        .level(Warn)
         .format(move |out, message, record| {
             out.finish(format_args!(
                 "{} {:<5} ({}) [{:<32}] {}",

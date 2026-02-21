@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone)]
 pub(crate) struct LayoutAutoswitchProfile {
     pub(crate) activation_rule: Option<String>,
     pub(crate) transform_layout: String,
