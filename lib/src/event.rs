@@ -1,6 +1,5 @@
 use crate::trigger::KeyTrigger;
-use crate::utils::if_else;
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, Write};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct KeyEvent {
@@ -12,46 +11,55 @@ pub struct KeyEvent {
 
 impl Display for KeyEvent {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{} {} {}",
-            self.trigger,
-            if_else(self.is_injected, "INJECTED", ""),
-            if_else(self.is_private, "PRIVATE", ""),
-        )
+        let mut s = String::new();
+        write!(s, "{}", self.trigger)?;
+        if self.is_injected {
+            write!(s, " INJECTED")?;
+        }
+        if self.is_private {
+            write!(s, " PRIVATE")?;
+        }
+        f.pad(&s)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::action::KeyAction;
     use crate::event::KeyEvent;
-    use crate::key::Key;
-    use crate::modifiers::KeyModifiers;
-    use crate::state::tests::kb_state_from_keys;
+    use crate::key_trigger;
     use crate::trigger::KeyTrigger;
     use std::str::FromStr;
 
-    #[macro_export]
-    macro_rules! key_event {
-        ($action:literal, $state:expr) => {
-            KeyEvent {
-                trigger: KeyTrigger {
-                    action: KeyAction::from_str($action).unwrap(),
-                    modifiers: KeyModifiers::All($state.clone()),
-                },
-                time: 0,
-                is_injected: false,
-                is_private: false,
-            }
-        };
-    }
-
     #[test]
     fn test_key_event_display() {
-        let state = kb_state_from_keys(&[Key::LeftShift]);
-        let event = key_event!("A↓", state);
+        let event = KeyEvent {
+            trigger: key_trigger!("[LEFT_SHIFT] A↓"),
+            time: 0,
+            is_injected: false,
+            is_private: false,
+        };
+        assert_eq!("|     [LEFT_SHIFT] A↓|", format!("|{:>20}|", event));
 
-        assert_eq!(format!("{}", event), "[LEFT_SHIFT] A↓ T:000000000  ");
+        let event = KeyEvent {
+            trigger: key_trigger!("[LEFT_SHIFT] A↓"),
+            time: 0,
+            is_injected: true,
+            is_private: false,
+        };
+        assert_eq!(
+            "|                [LEFT_SHIFT] A↓ INJECTED|",
+            format!("|{:>40}|", event)
+        );
+
+        let event = KeyEvent {
+            trigger: key_trigger!("[LEFT_SHIFT] A↓"),
+            time: 0,
+            is_injected: true,
+            is_private: true,
+        };
+        assert_eq!(
+            "|        [LEFT_SHIFT] A↓ INJECTED PRIVATE|",
+            format!("|{:>40}|", event)
+        );
     }
 }

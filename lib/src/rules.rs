@@ -6,6 +6,7 @@ use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use std::fmt;
+use std::fmt::Write;
 use std::fmt::{Display, Formatter};
 use std::slice::Iter;
 use std::str::{FromStr, Lines};
@@ -63,7 +64,9 @@ impl KeyTransformRule {
 
 impl Display for KeyTransformRule {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        write!(f, "{} : {}", self.trigger, self.actions)
+        let mut s = String::new();
+        write!(s, "{} : {}", self.trigger, self.actions)?;
+        f.pad(&s)
     }
 }
 

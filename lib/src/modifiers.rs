@@ -37,7 +37,7 @@ impl FromStr for KeyModifiers {
 mod tests {
     use crate::key::Key;
     use crate::modifiers::KeyModifiers;
-    use crate::state::tests::kb_state_from_keys;
+    use crate::state::tests::kbd_state_from_keys;
     use crate::state::KeyboardState;
     use std::str::FromStr;
     use crate::modifiers::KeyModifiers::{All, Any};
@@ -46,7 +46,7 @@ mod tests {
     fn test_key_modifiers_to_str() {
         assert_eq!(
             "[RIGHT_WIN + LEFT_SHIFT + RIGHT_SHIFT]",
-            All(kb_state_from_keys(&[
+            All(kbd_state_from_keys(&[
                 Key::LeftShift,
                 Key::RightShift,
                 Key::RightWin
@@ -65,7 +65,7 @@ mod tests {
     #[test]
     fn test_key_modifiers_from_str() {
         assert_eq!(
-            Ok(All(kb_state_from_keys(&[
+            Ok(All(kbd_state_from_keys(&[
                 Key::LeftShift,
                 Key::RightShift,
                 Key::RightWin

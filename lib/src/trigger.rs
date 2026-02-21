@@ -5,6 +5,7 @@ use crate::modifiers::KeyModifiers::{All, Any};
 use crate::{deserialize_from_string, key_err, key_error, serialize_to_string};
 use serde::{de, Deserialize, Serialize};
 use serde::{Deserializer, Serializer};
+use std::fmt::Write;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
 
@@ -66,10 +67,12 @@ impl FromStr for KeyTrigger {
 
 impl Display for KeyTrigger {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self.modifiers {
-            Any => write!(f, "{}", self.action),
-            All(m) => write!(f, "[{}] {}", m, self.action),
-        }
+        let mut s = String::new();
+        if let All(m) = self.modifiers {
+            write!(s, "[{}] ", m)?
+        };
+        write!(s, "{}", self.action)?;
+        f.pad(&s)
     }
 }
 
@@ -93,7 +96,7 @@ mod tests {
     use crate::key::Key;
     use crate::key_action;
     use crate::modifiers::KeyModifiers::{All, Any};
-    use crate::state::tests::kb_state_from_keys;
+    use crate::state::tests::kbd_state_from_keys;
     use crate::state::KeyboardState;
     use crate::trigger::KeyAction;
     use crate::trigger::KeyTrigger;
@@ -104,7 +107,7 @@ mod tests {
     fn test_key_trigger_display() {
         let actual = KeyTrigger {
             action: key_action!("A↓"),
-            modifiers: All(kb_state_from_keys(&[Key::LeftShift])),
+            modifiers: All(kbd_state_from_keys(&[Key::LeftShift])),
         };
         assert_eq!("[LEFT_SHIFT] A↓", format!("{}", actual));
 
@@ -122,7 +125,7 @@ mod tests {
 
         let actual = KeyTrigger {
             action: key_action!("A↓"),
-            modifiers: All(kb_state_from_keys(&[Key::LeftShift])),
+            modifiers: All(kbd_state_from_keys(&[Key::LeftShift])),
         };
         assert_eq!("|     [LEFT_SHIFT] A↓|", format!("|{:>20}|", actual));
     }
@@ -132,7 +135,7 @@ mod tests {
         assert_eq!(
             KeyTrigger {
                 action: key_action!("A*"),
-                modifiers: All(kb_state_from_keys(&[Key::LeftShift])),
+                modifiers: All(kbd_state_from_keys(&[Key::LeftShift])),
             },
             KeyTrigger::from_str("[LEFT_SHIFT] A*").unwrap()
         );

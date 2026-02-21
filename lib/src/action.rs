@@ -8,7 +8,7 @@ use serde::Deserializer;
 use serde::Serializer;
 use serde::{de, Deserialize, Serialize};
 use slice::Iter;
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, Write};
 use std::hash::Hash;
 use std::slice;
 use std::str::FromStr;
@@ -51,7 +51,9 @@ impl KeyAction {
 
 impl Display for KeyAction {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.key, self.transition)
+        let mut s = String::new();
+        write!(s, "{}{}", self.key, self.transition)?;
+        f.pad(&s)
     }
 }
 

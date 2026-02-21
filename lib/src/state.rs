@@ -136,7 +136,7 @@ pub mod tests {
     use super::*;
     use crate::key::Key::{Digit0, End, F1};
 
-    pub fn kb_state_from_keys(keys: &[Key]) -> KeyboardState {
+    pub fn kbd_state_from_keys(keys: &[Key]) -> KeyboardState {
         let mut this = KeyboardState::default();
         for key in keys {
             this.set_bit(*key as u8, true);
@@ -164,7 +164,7 @@ pub mod tests {
     fn test_keyboard_state_to_string() {
         assert_eq!(
             "END + 0 + F1",
-            kb_state_from_keys(&[F1, End, Digit0]).to_string()
+            kbd_state_from_keys(&[F1, End, Digit0]).to_string()
         );
 
         assert_eq!("", KeyboardState::default().to_string());
@@ -173,7 +173,7 @@ pub mod tests {
     #[test]
     fn test_keyboard_state_from_string() {
         assert_eq!(
-            Ok(kb_state_from_keys(&[F1, End, Digit0])),
+            Ok(kbd_state_from_keys(&[F1, End, Digit0])),
             KeyboardState::from_str("END + 0 + F1")
         );
 
@@ -184,7 +184,7 @@ pub mod tests {
     fn test_keyboard_state_hex_format() {
         assert_eq!(
             "0000000000000000_0000000000000000_0001000000000000_0001000800000000",
-            format!("{:X}", kb_state_from_keys(&[F1, End, Digit0]))
+            format!("{:X}", kbd_state_from_keys(&[F1, End, Digit0]))
         );
     }
 
@@ -195,7 +195,7 @@ pub mod tests {
             0000000000000000000000000000000000000000000000000000000000000000_\
             0000000000000001000000000000000000000000000000000000000000000000_\
             0000000000000001000000000000100000000000000000000000000000000000",
-            format!("{:b}", kb_state_from_keys(&[F1, End, Digit0]))
+            format!("{:b}", kbd_state_from_keys(&[F1, End, Digit0]))
         );
     }
 }
