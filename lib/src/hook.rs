@@ -5,7 +5,7 @@ use crate::key::Key;
 use crate::key::Key::{LeftButton, MiddleButton, RightButton, WheelX, WheelY};
 use crate::modifiers::KeyModifiers::{All};
 use crate::notify::install_notify_listener;
-use crate::rule::{KeyTransformRules};
+use crate::rule::{KeyTransformRule, KeyTransformRules};
 use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
 use crate::transition::KeyTransition;
@@ -162,21 +162,11 @@ fn handle_event(event: &KeyEvent) -> bool {
         return true;
     }
 
-    let rule = TRANSFOFM_MAP.with_borrow(|transform_map| {
-        transform_map
-            .as_ref()
-            .and_then(|map| map.get(&event.trigger).cloned())
-    });
-
-    match rule {
-        Some(r) => {
-            debug!("Applying rule: {}", r);
-            notify_key_event(event.clone(), Some(r.clone()));
-            unsafe {
-                if SendInput(&build_input(&r.actions), size_of::<INPUT>() as i32) == 0 {
-                    warn!("Failed to send input: {:?}", GetLastError());
-                }
-            }
+    match get_rule(&event) {
+        Some(rule) => {
+            debug!("Applying rule: {}", rule);
+            notify_key_event(event.clone(), Some(rule.clone()));
+            apply_rule(&rule);
             true
         }
         None => {
@@ -184,6 +174,22 @@ fn handle_event(event: &KeyEvent) -> bool {
             notify_key_event(event.clone(), None);
             update_kbd_state(&event.trigger.action);
             false
+        }
+    }
+}
+
+fn get_rule(event: &KeyEvent) -> Option<KeyTransformRule> {
+    TRANSFOFM_MAP.with_borrow(|transform_map| {
+        transform_map
+            .as_ref()
+            .and_then(|map| map.get(&event.trigger).cloned())
+    })
+}
+
+fn apply_rule(rule: &KeyTransformRule) {
+    unsafe {
+        if SendInput(&build_input(&rule.actions), size_of::<INPUT>() as i32) == 0 {
+            warn!("Failed to send input: {:?}", GetLastError());
         }
     }
 }
