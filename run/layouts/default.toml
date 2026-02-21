@@ -3,12 +3,12 @@ title = "Default layout"
 icon = "image\\default.ico"
 
 [rules]
-"F1" = "LEFT_CTRL > V"
-"F2" = "LEFT_CTRL > C"
+"F1" = "LEFT_CTRL → V"
+"F2" = "LEFT_CTRL → C"
+"[LEFT_SHIFT] F2" = "LEFT_CTRL → X"
 #"[] CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
-"[] CAPS_LOCK*" = "LEFT_WIN* > SPACE*"
-#"[LEFT_WIN] CAPS_LOCK*" = "SPACE*"
-"[LEFT_WIN] CAPS_LOCK^" = "SPACE^ → LEFT_WIN^"
+"[] CAPS_LOCK↓" = "LEFT_WIN↓ → SPACE↓"
+"[] CAPS_LOCK↑" = "SPACE↑ → LEFT_WIN↑"
 
 [keyboard_lighting.default]
 default = ["#0000FF", "#0000FF", "#0000FF", "#0000FF"]

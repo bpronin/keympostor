@@ -168,9 +168,10 @@ fn handle_event(event: &KeyEvent) -> bool {
             .and_then(|map| map.get(&event.trigger).cloned())
     });
 
-    let handled = match rule.as_ref() {
+    match rule {
         Some(r) => {
             debug!("Applying rule: {}", r);
+            notify_key_event(event.clone(), Some(r.clone()));
             unsafe {
                 if SendInput(&build_input(&r.actions), size_of::<INPUT>() as i32) == 0 {
                     warn!("Failed to send input: {:?}", GetLastError());
@@ -180,13 +181,11 @@ fn handle_event(event: &KeyEvent) -> bool {
         }
         None => {
             trace!("No matching rules");
+            notify_key_event(event.clone(), None);
             update_kbd_state(&event.trigger.action);
             false
         }
-    };
-
-    notify_key_event(event.clone(), rule);
-    handled
+    }
 }
 
 fn build_key_event(input: KBDLLHOOKSTRUCT) -> KeyEvent {
