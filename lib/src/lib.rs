@@ -7,7 +7,7 @@ pub mod key;
 pub mod key_code;
 pub mod modifiers;
 pub mod notify;
-pub mod rules;
+pub mod rule;
 mod state;
 mod transform;
 pub mod transition;

@@ -188,8 +188,8 @@ macro_rules! key_rules {
 #[cfg(test)]
 pub mod tests {
     use crate::action::KeyActionSequence;
-    use crate::rules::KeyTransformRule;
-    use crate::rules::KeyTransformRules;
+    use crate::rule::KeyTransformRule;
+    use crate::rule::KeyTransformRules;
     use crate::trigger::KeyTrigger;
     use crate::{key_action_seq, key_trigger};
     use std::str::FromStr;

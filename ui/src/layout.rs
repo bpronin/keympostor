@@ -1,5 +1,5 @@
 use crate::indicator::SerdeLightingColors;
-use keympostor::rules::KeyTransformRules;
+use keympostor::rule::KeyTransformRules;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
@@ -94,8 +94,8 @@ pub mod tests {
     use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
     use crate::{map, str};
     use keympostor::key_rule;
-    use keympostor::rules::KeyTransformRule;
-    use keympostor::rules::KeyTransformRules;
+    use keympostor::rule::KeyTransformRule;
+    use keympostor::rule::KeyTransformRules;
     use std::str::FromStr;
 
     fn create_test_layout() -> KeyTransformLayout {

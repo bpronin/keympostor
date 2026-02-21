@@ -1,7 +1,7 @@
 use crate::action::KeyAction;
 use crate::modifiers::KeyModifiers;
 use crate::modifiers::KeyModifiers::Any;
-use crate::rules::KeyTransformRule;
+use crate::rule::KeyTransformRule;
 use crate::trigger::KeyTrigger;
 use fxhash::FxHashMap;
 use std::slice::Iter;
@@ -36,7 +36,7 @@ impl KeyTransformMap {
 
 #[cfg(test)]
 mod tests {
-    use crate::rules::KeyTransformRule;
+    use crate::rule::KeyTransformRule;
     use crate::transform::KeyAction;
     use crate::transform::KeyTransformMap;
     use crate::trigger::KeyTrigger;

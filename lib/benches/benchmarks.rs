@@ -6,7 +6,7 @@ use keympostor::event::KeyEvent;
 use keympostor::key::Key;
 use keympostor::modifiers::KeyModifiers;
 use keympostor::modifiers::KeyModifiers::Any;
-use keympostor::rules::KeyTransformRule;
+use keympostor::rule::KeyTransformRule;
 use keympostor::transition::KeyTransition;
 use keympostor::transition::KeyTransition::{Down, Up};
 use keympostor::trigger::KeyTrigger;

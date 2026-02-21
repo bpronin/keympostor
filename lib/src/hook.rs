@@ -5,7 +5,7 @@ use crate::key::Key;
 use crate::key::Key::{LeftButton, MiddleButton, RightButton, WheelX, WheelY};
 use crate::modifiers::KeyModifiers::{All};
 use crate::notify::install_notify_listener;
-use crate::rules::{KeyTransformRules};
+use crate::rule::{KeyTransformRules};
 use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
 use crate::transition::KeyTransition;

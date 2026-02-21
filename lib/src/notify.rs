@@ -1,5 +1,5 @@
 use crate::event::KeyEvent;
-use crate::rules::KeyTransformRule;
+use crate::rule::KeyTransformRule;
 use std::cell::RefCell;
 use windows::Win32::Foundation::{HWND, LPARAM, WPARAM};
 use windows::Win32::UI::WindowsAndMessaging::PostMessageW;
