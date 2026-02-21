@@ -1,13 +1,18 @@
+use crate::rs;
 use crate::ui::res::RESOURCES;
 use crate::ui::res_ids::IDS_APP_TITLE;
-use crate::rs;
 use native_windows_gui::{
-    ControlHandle, ListView, MessageButtons, MessageIcons, MessageParams, Window, message,
+    message, ControlHandle, ListView, MessageButtons, MessageIcons, MessageParams, Window,
 };
 use std::mem;
+use std::sync::atomic::AtomicBool;
+use std::sync::atomic::Ordering::Relaxed;
 use windows::Win32::Foundation::{HWND, RECT, WPARAM};
 use windows::Win32::UI::Controls::{LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH};
-use windows::Win32::UI::WindowsAndMessaging::{GetWindowRect, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER, SendMessageW, SetWindowPos, MSG, PeekMessageW, WM_TIMER, PM_REMOVE};
+use windows::Win32::UI::WindowsAndMessaging::{
+    GetWindowRect, PeekMessageW, SendMessageW, SetWindowPos, MSG, PM_REMOVE, SWP_NOACTIVATE,
+    SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER, WM_TIMER,
+};
 
 pub fn try_hwnd(handle: ControlHandle) -> Option<HWND> {
     handle.hwnd().map(|h| HWND(h as _))
@@ -91,5 +96,22 @@ pub(crate) fn drain_timer_msg_queue() {
 macro_rules! show_warn_message {
     ($($arg:tt)*) => {
         crate::ui::utils::show_warn_message(&format!($($arg)*));
+    }
+}
+
+#[derive(Default)]
+pub struct RelaxedAtomicBool(AtomicBool);
+
+impl RelaxedAtomicBool {
+    pub fn load(&self) -> bool {
+        self.0.load(Relaxed)
+    }
+
+    pub fn store(&self, val: bool) {
+        self.0.store(val, Relaxed)
+    }
+
+    pub fn toggle(&self) {
+        self.store(!self.load());
     }
 }

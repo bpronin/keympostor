@@ -6,6 +6,7 @@ use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
 use crate::ui::res::RESOURCES;
 use crate::ui::res_ids::{IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS};
+use crate::ui::utils::RelaxedAtomicBool;
 use crate::win_watch::WindowWatcher;
 use crate::{rs, show_warn_message, ui};
 use keympostor::hook::KeyboardHook;
@@ -15,7 +16,6 @@ use log::{debug, warn};
 use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::ops::{Deref, Not};
 use std::rc::Rc;
 use ui::utils;
 use utils::drain_timer_msg_queue;
@@ -26,8 +26,8 @@ pub(crate) struct App {
     key_hook: KeyboardHook,
     win_watcher: WindowWatcher,
     keyboard_layout_watcher: KeyboardLayoutWatcher,
-    is_log_enabled: RefCell<bool>,
-    is_autoswitch_enabled: RefCell<bool>,
+    is_log_enabled: RelaxedAtomicBool,
+    is_autoswitch_enabled: RelaxedAtomicBool,
     autoswitch_profiles: Rc<RefCell<HashMap<String, LayoutAutoswitchProfile>>>,
     layouts: RefCell<KeyTransformLayoutList>,
     current_profile_name: RefCell<Option<String>>,
@@ -51,10 +51,10 @@ impl App {
 
         if let Some(la_settings) = settings.layout_autoswitch {
             *self.autoswitch_profiles.borrow_mut() = la_settings.profiles.unwrap_or_default();
-            self.is_autoswitch_enabled.replace(la_settings.enabled);
+            self.is_autoswitch_enabled.store(la_settings.enabled);
         };
 
-        self.is_log_enabled.replace(settings.keys_logging_enabled);
+        self.is_log_enabled.store(settings.keys_logging_enabled);
 
         let hot_key = settings.toggle_layout_hot_key;
         if let Some(key) = &hot_key {
@@ -70,30 +70,12 @@ impl App {
 
         self.window.update_settings(&mut settings.main_window);
         settings.toggle_layout_hot_key = self.toggle_layout_hot_key.borrow().clone();
-        settings.keys_logging_enabled = *self.is_log_enabled.borrow();
+        settings.keys_logging_enabled = self.is_log_enabled.load();
         settings.last_transform_layout = Some(self.current_layout_name.borrow().clone());
 
         let autoswitch_settings = settings.layout_autoswitch.get_or_insert_default();
-        autoswitch_settings.enabled = *self.is_autoswitch_enabled.borrow();
+        autoswitch_settings.enabled = self.is_autoswitch_enabled.load();
         autoswitch_settings.profiles = Some(self.autoswitch_profiles.borrow().clone());
-
-        // let layout_name = self.current_layout_name.borrow();
-        // if let Some(profile_name) = self.current_profile_name.borrow().as_deref() {
-        //     let profiles = autoswitch_settings.profiles.get_or_insert_default();
-        //     if let Some(profile) = profiles.get_mut(profile_name) {
-        //         profile.transform_layout = layout_name.clone();
-        //     } else {
-        //         profiles.insert(
-        //             profile_name.to_string(),
-        //             LayoutAutoswitchProfile {
-        //                 transform_layout: layout_name.clone(),
-        //                 activation_rule: None,
-        //             },
-        //         );
-        //     }
-        // } else {
-        //     settings.last_transform_layout = Some(layout_name.clone());
-        // }
 
         settings.save();
     }
@@ -176,8 +158,8 @@ impl App {
 
         self.with_current_layout(|layout| {
             self.window.update_ui(
-                *self.is_autoswitch_enabled.borrow(),
-                *self.is_log_enabled.borrow(),
+                self.is_autoswitch_enabled.load(),
+                self.is_log_enabled.load(),
                 profile_name.as_deref(),
                 layout,
             );
@@ -199,7 +181,7 @@ impl App {
         self.win_watcher.setup(
             hwnd,
             self.autoswitch_profiles.borrow().clone(),
-            *self.is_autoswitch_enabled.borrow(),
+            self.is_autoswitch_enabled.load(),
         );
 
         self.update_window();
@@ -253,7 +235,7 @@ impl App {
     }
 
     pub(crate) fn on_toggle_logging_enabled(&self) {
-        self.is_log_enabled.replace_with(|b| b.not());
+        self.is_log_enabled.toggle();
         self.update_window();
         self.save_settings();
     }
@@ -265,15 +247,14 @@ impl App {
             }
         }
 
-        if *self.is_log_enabled.borrow() {
+        if self.is_log_enabled.load() {
             self.window.on_key_hook_notify(notification);
         }
     }
 
     pub(crate) fn on_toggle_auto_switch_layout(&self) {
-        self.is_autoswitch_enabled.replace_with(|b| b.not());
-        self.win_watcher
-            .enable(*self.is_autoswitch_enabled.borrow());
+        self.is_autoswitch_enabled.toggle();
+        self.win_watcher.enable(self.is_autoswitch_enabled.load());
         self.update_window();
         self.save_settings();
     }
