@@ -27,7 +27,7 @@ macro_rules! define_keys {
                 }
             }
 
-            pub const fn ext_sc(&self) -> u16 {
+            pub const fn sc_ext(&self) -> u16 {
                 match self {
                     $(Self::$variant => ext_scan_code($sc, $sc_ext)),*
                 }

@@ -162,8 +162,8 @@ impl LogView {
                 trigger.modifiers.to_string(),
                 trigger.action.key.to_string(),
                 trigger.action.transition.to_string(),
-                trigger.action.key.vk_name().to_string(),
-                trigger.action.key.sc_name().to_string(),
+                format!("0x{:02X}", trigger.action.key.vk()),
+                format!("0x{:04X}", trigger.action.key.sc_ext()),
                 event.time.to_string(),
                 format!(
                     "{:1}{:1}{:1}",

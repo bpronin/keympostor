@@ -109,7 +109,7 @@ fn build_key_input(action: &KeyAction) -> Option<INPUT> {
         Anonymous: INPUT_0 {
             ki: KEYBDINPUT {
                 wVk: VIRTUAL_KEY(action.key.vk() as u16),
-                wScan: action.key.ext_sc(),
+                wScan: action.key.sc_ext(),
                 dwFlags: flags,
                 dwExtraInfo: PRIVATE_EVENT_MARKER,
                 ..Default::default()
