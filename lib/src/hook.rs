@@ -3,7 +3,7 @@ use crate::event::KeyEvent;
 use crate::input::PRIVATE_EVENT_MARKER;
 use crate::key::Key;
 use crate::key::Key::{LeftButton, MiddleButton, RightButton, WheelX, WheelY};
-use crate::modifiers::KeyModifiers::{All};
+use crate::modifiers::KeyModifiers::All;
 use crate::notify::install_notify_listener;
 use crate::rule::{KeyTransformRule, KeyTransformRules};
 use crate::state::KeyboardState;
@@ -146,6 +146,7 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
     unsafe { CallNextHookEx(MOUSE_HOOK.get(), code, w_param, l_param) }
 }
 
+#[inline(always)]
 fn handle_event(event: &KeyEvent) -> bool {
     trace!("Processing event: {event}");
 
@@ -178,6 +179,7 @@ fn handle_event(event: &KeyEvent) -> bool {
     }
 }
 
+#[inline(always)]
 fn get_rule(event: &KeyEvent) -> Option<KeyTransformRule> {
     TRANSFOFM_MAP.with_borrow(|transform_map| {
         transform_map
@@ -186,6 +188,7 @@ fn get_rule(event: &KeyEvent) -> Option<KeyTransformRule> {
     })
 }
 
+#[inline(always)]
 fn apply_rule(rule: &KeyTransformRule) {
     unsafe {
         if SendInput(&build_input(&rule.actions), size_of::<INPUT>() as i32) == 0 {
@@ -194,6 +197,7 @@ fn apply_rule(rule: &KeyTransformRule) {
     }
 }
 
+#[inline(always)]
 fn build_key_event(input: KBDLLHOOKSTRUCT) -> KeyEvent {
     let action = build_action_from_kbd_input(input);
     KeyEvent {
@@ -207,6 +211,7 @@ fn build_key_event(input: KBDLLHOOKSTRUCT) -> KeyEvent {
     }
 }
 
+#[inline(always)]
 fn build_mouse_event(msg: u32, input: MSLLHOOKSTRUCT) -> KeyEvent {
     let action = build_action_from_mouse_input(msg, input);
     KeyEvent {
@@ -220,6 +225,7 @@ fn build_mouse_event(msg: u32, input: MSLLHOOKSTRUCT) -> KeyEvent {
     }
 }
 
+#[inline(always)]
 fn build_action_from_kbd_input(input: KBDLLHOOKSTRUCT) -> KeyAction {
     KeyAction {
         key: Key::from_code(
@@ -266,6 +272,7 @@ fn build_mouse_x_button_key(input: MSLLHOOKSTRUCT) -> Key {
     }
 }
 
+#[inline(always)]
 fn prepare_kbd_state(action: &KeyAction) -> KeyboardState {
     let mut state = KEYBOARD_STATE.get();
     state.remove(&action);
@@ -273,6 +280,7 @@ fn prepare_kbd_state(action: &KeyAction) -> KeyboardState {
     state
 }
 
+#[inline(always)]
 fn update_kbd_state(action: &KeyAction) {
     let mut state = KEYBOARD_STATE.get();
     state.update(action);
