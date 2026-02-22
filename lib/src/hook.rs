@@ -26,14 +26,26 @@ use windows::Win32::UI::WindowsAndMessaging::*;
 pub struct KeyboardHook {}
 
 impl KeyboardHook {
-    pub fn install(&self, owner: HWND) {
+    pub fn setup(&self, owner: HWND) {
         install_notify_listener(owner);
+    }
+
+    pub fn install(&self) {
+        KEYBOARD_STATE.replace(KeyboardState::default());
+        trace!("Keyboard state cleared");
+
         install_keyboard_hook();
 
         #[cfg(feature = "no_mouse")]
         warn!("Mouse hook is disabled by feature flag");
         #[cfg(not(feature = "no_mouse"))]
         install_mouse_hook();
+    }
+
+    pub fn uninstall(&self) {
+        uninstall_key_hook();
+        #[cfg(not(feature = "no_mouse"))]
+        uninstall_mouse_hook();
     }
 
     pub fn set_rules(&self, rules: Option<&KeyTransformRules>) {
@@ -48,10 +60,7 @@ impl KeyboardHook {
 
 impl Drop for KeyboardHook {
     fn drop(&mut self) {
-        uninstall_key_hook();
-
-        #[cfg(not(feature = "no_mouse"))]
-        uninstall_mouse_hook();
+        self.uninstall();
     }
 }
 

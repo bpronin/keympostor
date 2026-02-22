@@ -1,9 +1,10 @@
+use crate::app::App;
 use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
-use crate::ui::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
-use crate::ui::res::RESOURCES;
 use crate::rs;
 use crate::ui::layouts_menu::LayoutsMenu;
-use crate::app::App;
+use crate::ui::res::RESOURCES;
+use crate::ui::res_ids::IDS_PROCESSING_ENABLED;
+use crate::ui::res_ids::{IDS_CLEAR_LOG, IDS_EXIT, IDS_FILE, IDS_LOGGING_ENABLED};
 use log::warn;
 use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, NwgError, Window};
 
@@ -11,9 +12,10 @@ use native_windows_gui::{ControlHandle, Event, Menu, MenuItem, MenuSeparator, Nw
 pub(crate) struct MainMenu {
     menu: Menu,
     layout_menu: LayoutsMenu,
+    toggle_processing_enabled_item: MenuItem,
     toggle_logging_enabled_item: MenuItem,
     clear_log_item: MenuItem,
-    separator: MenuSeparator,
+    separators: [MenuSeparator; 2],
     exit_app_item: MenuItem,
 }
 
@@ -26,9 +28,14 @@ impl MainMenu {
 
         self.layout_menu.build(parent)?;
 
+        MenuItem::builder()
+            .parent(&self.menu)
+            .text(rs!(IDS_PROCESSING_ENABLED))
+            .build(&mut self.toggle_processing_enabled_item)?;
+
         MenuSeparator::builder()
             .parent(&self.menu)
-            .build(&mut self.separator)?;
+            .build(&mut self.separators[0])?;
 
         MenuItem::builder()
             .parent(&self.menu)
@@ -42,7 +49,7 @@ impl MainMenu {
 
         MenuSeparator::builder()
             .parent(&self.menu)
-            .build(&mut self.separator)?;
+            .build(&mut self.separators[1])?;
 
         MenuItem::builder()
             .parent(&self.menu)
@@ -53,9 +60,12 @@ impl MainMenu {
     pub(crate) fn update_ui(
         &self,
         is_auto_switch_layout_enabled: bool,
+        is_processing_enabled: bool,
         is_logging_enabled: bool,
         current_layout: &KeyTransformLayout,
     ) {
+        self.toggle_processing_enabled_item
+            .set_checked(is_processing_enabled);
         self.toggle_logging_enabled_item
             .set_checked(is_logging_enabled);
         self.layout_menu
@@ -75,6 +85,8 @@ impl MainMenu {
                     app.on_log_view_clear();
                 } else if &handle == &self.exit_app_item {
                     app.on_app_exit();
+                } else if &handle == &self.toggle_processing_enabled_item {
+                    app.on_toggle_processing_enabled();
                 } else if &handle == &self.toggle_logging_enabled_item {
                     app.on_toggle_logging_enabled();
                 }

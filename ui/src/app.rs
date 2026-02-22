@@ -26,6 +26,7 @@ pub(crate) struct App {
     key_hook: KeyboardHook,
     win_watcher: WindowWatcher,
     keyboard_layout_watcher: KeyboardLayoutWatcher,
+    is_processing_enabled: RelaxedAtomicBool,
     is_log_enabled: RelaxedAtomicBool,
     is_autoswitch_enabled: RelaxedAtomicBool,
     autoswitch_profiles: Rc<RefCell<HashMap<String, LayoutAutoswitchProfile>>>,
@@ -159,6 +160,7 @@ impl App {
         self.with_current_layout(|layout| {
             self.window.update_ui(
                 self.is_autoswitch_enabled.load(),
+                self.is_processing_enabled.load(),
                 self.is_log_enabled.load(),
                 profile_name.as_deref(),
                 layout,
@@ -176,7 +178,9 @@ impl App {
         self.load_settings();
 
         let hwnd = self.window.hwnd();
-        self.key_hook.install(hwnd);
+        self.key_hook.setup(hwnd);
+        self.key_hook.install();
+        self.is_processing_enabled.store(true);
         self.keyboard_layout_watcher.setup(hwnd);
         self.win_watcher.setup(
             hwnd,
@@ -234,6 +238,16 @@ impl App {
         self.on_select_layout(next_name.as_str());
     }
 
+    pub(crate) fn on_toggle_processing_enabled(&self) {
+        self.is_processing_enabled.toggle();
+        if self.is_processing_enabled.load() {
+            self.key_hook.install();
+        } else {
+            self.key_hook.uninstall();
+        }
+        self.update_window();
+    }
+
     pub(crate) fn on_toggle_logging_enabled(&self) {
         self.is_log_enabled.toggle();
         self.update_window();
@@ -266,7 +280,7 @@ impl App {
     }
 
     pub(crate) fn on_app_exit(&self) {
-        self.save_settings();
+        // self.save_settings();
         self.keyboard_layout_watcher.stop();
         self.win_watcher.enable(false);
         drain_timer_msg_queue();

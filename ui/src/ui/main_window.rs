@@ -146,12 +146,17 @@ impl MainWindow {
     pub(crate) fn update_ui(
         &self,
         is_auto_switch_layout_enabled: bool,
+        is_processing_enabled: bool,
         is_logging_enabled: bool,
         auto_switch_profile_name: Option<&str>,
         layout: &KeyTransformLayout,
     ) {
-        self.main_menu
-            .update_ui(is_auto_switch_layout_enabled, is_logging_enabled, layout);
+        self.main_menu.update_ui(
+            is_auto_switch_layout_enabled,
+            is_processing_enabled,
+            is_logging_enabled,
+            layout,
+        );
         self.tray.update_ui(layout);
 
         self.update_title(auto_switch_profile_name, layout);

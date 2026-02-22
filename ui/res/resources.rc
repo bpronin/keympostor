@@ -21,7 +21,7 @@ IDI_ICON_APP ICON "res/image/app.ico"
 #define IDS_LOGGING_ENABLED 1008
 //#define IDS_OPEN 1009
 #define IDS_LAYOUT 1010
-//#define IDS_NO_LAYOUT 1011
+#define IDS_PROCESSING_ENABLED 1011
 #define IDS_TRAY_TIP 1012
 #define IDS_ACTION 1013
 #define IDS_RULE 1014
@@ -48,7 +48,7 @@ BEGIN
     IDS_LOGGING_ENABLED "Logging enabled"
 //    IDS_OPEN "Open"
     IDS_LAYOUT "Layout"
-//    IDS_NO_LAYOUT "No layout"
+    IDS_PROCESSING_ENABLED "Processing enabled"
     IDS_TRAY_TIP "Keympostor"
     IDS_ACTION "Action"
     IDS_RULE "Rule"
