@@ -6,11 +6,11 @@ use crate::{deserialize_from_string, key_error, serialize_to_string};
 use log::warn;
 use serde::Deserializer;
 use serde::Serializer;
-use serde::{de, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de};
 use std::fmt::{Binary, Display, Formatter, UpperHex};
 use std::hash::Hash;
 use std::str::FromStr;
-use KeyTransition::{Down};
+use KeyTransition::{Down, Up};
 
 /* Using [u64; 4] because it is faster than [u128; 2] on most systems */
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
@@ -18,11 +18,14 @@ pub struct KeyboardState([u64; 4]);
 
 impl KeyboardState {
     pub(crate) fn remove(&mut self, action: &KeyAction) {
-        self.set_bit(action.key as u8, false);
+        self.clear_bit(action.key as u8);
     }
 
     pub(crate) fn update(&mut self, action: &KeyAction) {
-        self.set_bit(action.key as u8, action.transition == Down)
+        match action.transition {
+            Up => self.clear_bit(action.key as u8),
+            Down => self.set_bit(action.key as u8),
+        }
     }
 
     #[inline]
@@ -35,15 +38,20 @@ impl KeyboardState {
     }
 
     #[inline]
-    fn set_bit(&mut self, index: u8, is_set: bool) {
+    fn set_bit(&mut self, index: u8) {
         let (part_index, bit_index) = self.bit_pos(index);
         unsafe {
             let part = self.0.get_unchecked_mut(part_index);
-            if is_set {
-                *part |= 1 << bit_index;
-            } else {
-                *part &= !(1 << bit_index);
-            }
+            *part |= 1 << bit_index;
+        }
+    }
+
+    #[inline]
+    fn clear_bit(&mut self, index: u8) {
+        let (part_index, bit_index) = self.bit_pos(index);
+        unsafe {
+            let part = self.0.get_unchecked_mut(part_index);
+            *part &= !(1 << bit_index);
         }
     }
 
@@ -65,7 +73,7 @@ impl FromStr for KeyboardState {
         for part in s.split('+') {
             let name = part.trim();
             let key = Key::from_str(name).ok_or(key_error!("Invalid key name: `{}`", name))?;
-            this.set_bit(key as u8, true);
+            this.set_bit(key as u8);
         }
         Ok(this)
     }
@@ -131,6 +139,29 @@ impl<'de> Deserialize<'de> for KeyboardState {
     deserialize_from_string!();
 }
 
+// pub(crate) fn capture_keyboard_state(exclude_key: Key) -> KeyboardState {
+//     use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardState;
+//     let mut state = KeyboardState::default();
+//
+//     let mut buffer = [0u8; 256];
+//     if let Err(e) = unsafe { GetKeyboardState(&mut buffer) } {
+//         warn!("Failed to capture keyboard state: {}", e);
+//         return state;
+//     }
+//
+//     for (i, b) in buffer.iter().enumerate() {
+//         if (b & 0x80) != 0 {
+//             if let Some(key) = Key::from_vk(i as u8) {
+//                 if key != exclude_key {
+//                     state.set_bit(key as u8);
+//                 }
+//             }
+//         }
+//     }
+//
+//     state
+// }
+
 #[cfg(test)]
 pub mod tests {
     use super::*;
@@ -139,7 +170,7 @@ pub mod tests {
     pub fn kbd_state_from_keys(keys: &[Key]) -> KeyboardState {
         let mut this = KeyboardState::default();
         for key in keys {
-            this.set_bit(*key as u8, true);
+            this.set_bit(*key as u8);
         }
         this
     }
@@ -147,14 +178,14 @@ pub mod tests {
     #[test]
     fn test_keyboard_state_get_set_bit() {
         let mut state = KeyboardState::default();
-        state.set_bit(1, true);
-        state.set_bit(41, false);
+        state.set_bit(1);
+        state.clear_bit(41);
 
         assert!(state.is_bit_set(1));
         assert!(!state.is_bit_set(41));
 
-        state.set_bit(1, false);
-        state.set_bit(41, true);
+        state.clear_bit(1);
+        state.set_bit(41);
 
         assert!(!state.is_bit_set(1));
         assert!(state.is_bit_set(41));
