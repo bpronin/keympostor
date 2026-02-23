@@ -7,8 +7,8 @@ use native_windows_gui::{
 use std::mem;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
-use windows::Win32::Foundation::{HWND, RECT, WPARAM};
-use windows::Win32::UI::Controls::{LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH};
+use windows::Win32::Foundation::{HWND, LPARAM, RECT, WPARAM};
+use windows::Win32::UI::Controls::{LVIF_PARAM, LVITEMW, LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH, LVM_INSERTITEMW, LVM_SETITEMW};
 use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowRect, PeekMessageW, SendMessageW, SetWindowPos, MSG, PM_REMOVE, SWP_NOACTIVATE,
     SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER, WM_TIMER,
@@ -47,7 +47,22 @@ pub fn set_window_size(window: &Window, size: (u32, u32)) {
     }
 }
 
-/// workaround for nwg bug
+pub fn set_list_view_item_data(view: &ListView, index: usize, data: usize) {
+    let mut item = LVITEMW::default();
+    item.mask = LVIF_PARAM;
+    item.iItem = index as i32;
+    item.lParam = LPARAM(data as isize);
+
+    unsafe {
+        SendMessageW(
+            hwnd(view.handle),
+            LVM_SETITEMW,
+            None,
+            Some(LPARAM(&item as *const _ as _)),
+        );
+    }
+}
+
 pub fn get_list_view_column_width(view: &ListView, index: usize) -> isize {
     unsafe {
         SendMessageW(
