@@ -8,7 +8,7 @@ use std::mem;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use windows::Win32::Foundation::{HWND, LPARAM, RECT, WPARAM};
-use windows::Win32::UI::Controls::{LVIF_PARAM, LVITEMW, LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH, LVM_INSERTITEMW, LVM_SETITEMW};
+use windows::Win32::UI::Controls::{LVIF_PARAM, LVITEMW, LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH, LVM_SETITEMW};
 use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowRect, PeekMessageW, SendMessageW, SetWindowPos, MSG, PM_REMOVE, SWP_NOACTIVATE,
     SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER, WM_TIMER,

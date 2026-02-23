@@ -3,7 +3,7 @@ use crate::error::KeyError;
 use crate::key::Key;
 use crate::transition::KeyTransition;
 use crate::{deserialize_from_string, key_error, serialize_to_string};
-use log::{info, warn};
+use log::{warn};
 use serde::Deserializer;
 use serde::Serializer;
 use serde::{Deserialize, Serialize, de};
@@ -11,7 +11,6 @@ use std::fmt::{Binary, Display, Formatter, UpperHex};
 use std::hash::Hash;
 use std::str::FromStr;
 use KeyTransition::{Down, Up};
-use crate::key_code::virtual_key_name;
 /* Using [u64; 4] because it is faster than [u128; 2] on most systems */
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct KeyboardState([u64; 4]);
