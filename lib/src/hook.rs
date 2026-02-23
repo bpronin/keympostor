@@ -159,8 +159,14 @@ extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) 
 fn handle_event(event: &KeyEvent) -> bool {
     trace!("Processing event: {event}");
 
+    /* sometimes it happens */
+    if event.time == 0 {
+        trace!("Invalid event ignored");
+        return false;
+    }
+
     if event.is_private {
-        trace!("Event ignored");
+        trace!("Private event ignored");
         notify_key_event(event.clone(), None);
         return false;
     }
