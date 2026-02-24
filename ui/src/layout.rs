@@ -14,7 +14,7 @@ const LAYOUTS_PATH: &str = "layouts";
 pub(crate) struct KeyTransformLayout {
     #[serde(skip)]
     pub(crate) name: String,
-    pub(crate) rules: KeyTransformRules,
+    pub(crate) rules: Option<KeyTransformRules>,
     pub(crate) title: String,
     pub(crate) icon: Option<String>,
     pub(crate) sound: Option<HashMap<String, HashMap<String, String>>>,
@@ -27,7 +27,11 @@ impl KeyTransformLayout {
 
 impl Display for KeyTransformLayout {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}\n{}", self.title, self.rules)
+        let rules = match &self.rules {
+            None => "".to_string(),
+            Some(r) => r.to_string(),
+        };
+        write!(f, "{}\n{}", self.title, rules)
     }
 }
 
@@ -96,14 +100,14 @@ pub mod tests {
         KeyTransformLayout {
             name: str!("test"),
             title: str!("Test layout"),
-            rules: KeyTransformRules::from(vec![
+            rules: Some(KeyTransformRules::from(vec![
                 "[LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑"
                     .parse()
                     .unwrap(),
                 "[]CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"
                     .parse()
                     .unwrap(),
-            ]),
+            ])),
             ..Default::default()
         }
     }
@@ -200,10 +204,10 @@ pub mod tests {
                     ]),
                 ],
             ]),
-            rules: KeyTransformRules::from(vec![
+            rules: Some(KeyTransformRules::from(vec![
                 key_rule!("[LEFT_SHIFT]CAPS_LOCK↓ : CAPS_LOCK↓ → CAPS_LOCK↑"),
                 key_rule!("[]CAPS_LOCK↓ : LEFT_WIN↓ → SPACE↓ → SPACE↑ → LEFT_WIN↑"),
-            ]),
+            ])),
         };
 
         let actual = KeyTransformLayout::load_from("etc/test_data/layouts/test.toml").unwrap();

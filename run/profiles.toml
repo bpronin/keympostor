@@ -1,11 +1,11 @@
-[tc]
-activation_rule = "TOTALCMD64.EXE"
-transform_layout = "ide"
-
 [chrome]
 activation_rule = "Chrome"
 transform_layout = "default_no_lighting"
 keyboard_locale = "ru_ru"
+
+[tc]
+activation_rule = "TOTALCMD64.EXE"
+transform_layout = "ide"
 
 [ide]
 activation_rule = "rustrover64.exe"

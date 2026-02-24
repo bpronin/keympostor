@@ -30,8 +30,10 @@ impl LayoutView {
                 text.push_str(&format!("{}\r\n", l.title));
                 text.push_str(&"-".repeat(l.title.len()));
                 text.push_str("\r\n");
-                for rule in l.rules.iter() {
-                    text.push_str(&format!("{:22} : {}\r\n", rule.trigger, rule.actions));
+                if let Some(rules) = &l.rules {
+                    for rule in rules.iter() {
+                        text.push_str(&format!("{:22} : {}\r\n", rule.trigger, rule.actions));
+                    }
                 }
             }
         }

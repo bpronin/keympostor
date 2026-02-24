@@ -131,7 +131,7 @@ impl App {
         }
 
         self.with_current_transform_layout(|layout| {
-            self.key_hook.set_rules(Some(&layout.rules));
+            self.key_hook.set_rules(layout.rules.as_ref());
             self.window.on_layout_changed(Some(layout));
             notify_layout_changed(layout, &KeyboardLayoutState::capture());
         });

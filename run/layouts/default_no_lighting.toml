@@ -1,8 +1,6 @@
 title = "Default layout (no keyboard lighting)"
 icon = "image\\default.ico"
 
-[rules]
-
 [keyboard_lighting.default]
 default = ["#00000", "#000000", "#000000", "#000000"]
 
