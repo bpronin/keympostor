@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::profile::LayoutAutoswitchProfile;
+use crate::profile::Profile;
 use crate::util::{with_process_path, with_window_title};
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
@@ -16,7 +16,7 @@ const WATCH_INTERVAL: u32 = 500;
 #[derive(Default)]
 pub(crate) struct WindowWatcher {
     owner: RefCell<HWND>,
-    profiles: RefCell<Rc<HashMap<String, LayoutAutoswitchProfile>>>,
+    profiles: RefCell<Rc<HashMap<String, Profile>>>,
     last_hwnd: RefCell<Option<HWND>>,
 }
 
@@ -24,7 +24,7 @@ impl WindowWatcher {
     pub(crate) fn setup(
         &self,
         owner: HWND,
-        profiles: HashMap<String, LayoutAutoswitchProfile>,
+        profiles: HashMap<String, Profile>,
         enable: bool,
     ) {
         self.owner.replace(owner);

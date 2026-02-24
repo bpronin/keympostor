@@ -1,6 +1,5 @@
 use crate::app::App;
 use crate::{indicator, util};
-use indicator::notify_layout_changed;
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use std::cell::RefCell;
@@ -124,9 +123,8 @@ impl KeyboardLayoutWatcher {
 
         debug!("Keyboard layout state: {:?}", state);
 
-        app.with_current_layout(|layout| {
-            notify_layout_changed(layout, &state);
-        });
+        app.on_keyboard_layout_changed(&state);
+
         self.last_state.replace(state);
     }
 }

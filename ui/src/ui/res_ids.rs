@@ -8,6 +8,7 @@ pub(crate) const IDS_FILE: usize = 1005;
 pub(crate) const IDS_NO_PROFILE: usize = 1006;
 pub(crate) const IDS_LOG: usize = 1007;
 pub(crate) const IDS_LOGGING_ENABLED: usize = 1008;
+pub(crate) const IDS_FAILED_LOAD_PROFILES: usize = 1009;
 pub(crate) const IDS_LAYOUT: usize = 1010;
 pub(crate) const IDS_PROCESSING_ENABLED: usize = 1011;
 pub(crate) const IDS_TRAY_TIP: usize = 1012;

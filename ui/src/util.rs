@@ -1,5 +1,9 @@
 use log::warn;
+use serde::{de, Deserialize, Serialize};
 use std::cell::RefCell;
+use std::error::Error;
+use std::fs;
+use std::path::Path;
 use std::ptr::null_mut;
 use windows::core::{PCSTR, PCWSTR, PWSTR};
 use windows::Win32::Foundation::{CloseHandle, GetLastError, ERROR_ALREADY_EXISTS, HWND, MAX_PATH};

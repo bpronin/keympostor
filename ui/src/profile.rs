@@ -1,15 +1,23 @@
+use keympostor::{load_from_toml_file, save_to_toml_file};
+use log::debug;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::error::Error;
+use std::fs;
+use std::path::Path;
 use std::str::FromStr;
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
-#[derive(Clone)]
-pub(crate) struct LayoutAutoswitchProfile {
+const PROFILES_FILE: &str = "profiles.toml";
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
+pub(crate) struct Profile {
     pub(crate) activation_rule: Option<String>,
     pub(crate) transform_layout: String,
+    pub(crate) keyboard_locale: Option<String>,
 }
 
-impl LayoutAutoswitchProfile {
+impl Profile {
     pub(crate) fn rule_regex(&self) -> Option<Regex> {
         self.activation_rule
             .as_deref()
@@ -17,40 +25,60 @@ impl LayoutAutoswitchProfile {
     }
 }
 
-// #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-// pub(crate) struct LayoutAutoswitchProfileList(Vec<LayoutAutoswitchProfile>);
-//
-// impl LayoutAutoswitchProfileList {
-//     pub(crate) fn push(&mut self, profile: LayoutAutoswitchProfile) {
-//         self.0.push(profile);
-//     }
-//
-//     pub(crate) fn get(&self, profile_name: &str) -> Option<&LayoutAutoswitchProfile> {
-//         self.find(profile_name).and_then(|i| self.0.get(i))
-//     }
-//
-//     pub(crate) fn get_mut(&mut self, profile_name: &str) -> Option<&mut LayoutAutoswitchProfile> {
-//         self.find(profile_name).and_then(|i| self.0.get_mut(i))
-//     }
-//
-//     fn find(&self, profile_name: &str) -> Option<usize> {
-//         self.0.iter().position(|p| p.name == profile_name)
-//     }
-// }
+#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+pub(crate) struct Profiles(pub HashMap<String, Profile>);
+
+impl Profiles {
+    pub(crate) fn load() -> Result<Self, Box<dyn Error>> {
+        Self::load_from(PROFILES_FILE)
+    }
+
+    pub(crate) fn save(&self) {
+        self.save_to(PROFILES_FILE)
+            .expect("Failed to save settings");
+        debug!("Profiles saved");
+    }
+
+    load_from_toml_file!();
+
+    save_to_toml_file!();
+}
 
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::str;
+    use crate::{map, str};
 
     #[test]
     fn test_regex_parsing() {
-        let profile = LayoutAutoswitchProfile {
-            //name: str!("name"),
+        let profile = Profile {
             activation_rule: Some(str!("")),
-            transform_layout: Default::default(),
+            ..Default::default()
         };
 
         assert!(profile.rule_regex().unwrap().is_match("test"));
+    }
+
+    #[test]
+    fn test_save_load() {
+        let profiles = Profiles(map![
+            str!("chrome") => Profile {
+                activation_rule: Some(str!("Chrome")),
+                transform_layout: str!("desktop"),
+                keyboard_locale: Some(str!("ru_ru"))
+            },
+            str!("tc") => Profile {
+                activation_rule: Some(str!("TOTALCMD64.EXE")),
+                transform_layout: str!("game"),
+                keyboard_locale: Some(str!("en_en"))
+            },
+        ]);
+
+        let path = "etc/test_data/test_profiles.toml";
+
+        assert!(profiles.save_to(path).is_ok());
+
+        let loaded = Profiles::load_from(path).unwrap();
+        assert_eq!(profiles, loaded);
     }
 }

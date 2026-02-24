@@ -19,7 +19,7 @@ IDI_ICON_APP ICON "res/image/app.ico"
 #define IDS_NO_PROFILE 1006
 #define IDS_LOG 1007
 #define IDS_LOGGING_ENABLED 1008
-//#define IDS_OPEN 1009
+#define IDS_FAILED_LOAD_PROFILES 1009
 #define IDS_LAYOUT 1010
 #define IDS_PROCESSING_ENABLED 1011
 #define IDS_TRAY_TIP 1012
@@ -46,7 +46,6 @@ BEGIN
     IDS_FILE "File"
     IDS_LOG "Log"
     IDS_LOGGING_ENABLED "Logging enabled"
-//    IDS_OPEN "Open"
     IDS_LAYOUT "Layout"
     IDS_PROCESSING_ENABLED "Processing enabled"
     IDS_TRAY_TIP "Keympostor"
@@ -63,6 +62,7 @@ BEGIN
     IDS_NO_PROFILE "No profile"
     IDS_APP_ALREADY_RUNNING "Application is already running."
     IDS_FAILED_LOAD_SETTINGS "Failed to load settings"
+    IDS_FAILED_LOAD_PROFILES "Failed to load profiles"
     IDS_FAILED_LOAD_LAYOUTS "Failed to load layouts"
     IDS_SETTINGS "Settings"
 END

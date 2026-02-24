@@ -1,8 +1,10 @@
-use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
-use crate::ui::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_SETTINGS, IDS_TRAY_TIP};
-use crate::ui::res::RESOURCES;
 use crate::app::App;
+use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
+use crate::profile::Profile;
+use crate::ui::res::RESOURCES;
+use crate::ui::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_SETTINGS, IDS_TRAY_TIP};
 use crate::{r_icon, rs};
+use keympostor::utils::if_else;
 use log::warn;
 use native_windows_gui::{
     ControlHandle, Event, GlobalCursor, Icon, Menu, MenuItem, MenuSeparator, MousePressEvent,
@@ -69,11 +71,16 @@ impl Tray {
         }
 
         self.layout_items.replace(layout_items);
-
-
     }
 
-    pub(crate) fn update_ui(&self, layout: &KeyTransformLayout) {
+    pub(crate) fn update_ui(&self, profile_name: Option<&str>, layout: &KeyTransformLayout) {
+        self.notification.set_tip(&format!(
+            "{} [{} - {}]",
+            rs!(IDS_TRAY_TIP),
+            profile_name.unwrap_or("No profile"),
+            layout.title,
+        ));
+
         let mut icon = r_icon!(IDI_ICON_APP);
 
         Icon::builder()
@@ -112,7 +119,7 @@ impl Tray {
                 } else {
                     for (item, layout_name) in self.layout_items.borrow().iter() {
                         if item.handle == handle {
-                            app.on_select_layout(layout_name);
+                            app.on_select_transform_layout(layout_name);
                             break;
                         }
                     }

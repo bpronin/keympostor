@@ -1,4 +1,5 @@
 use crate::indicator::SerdeLightingColors;
+use keympostor::load_from_toml_file;
 use keympostor::rule::KeyTransformRules;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -11,6 +12,7 @@ const LAYOUTS_PATH: &str = "layouts";
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct KeyTransformLayout {
+    #[serde(skip)]
     pub(crate) name: String,
     pub(crate) rules: KeyTransformRules,
     pub(crate) title: String,
@@ -20,18 +22,7 @@ pub(crate) struct KeyTransformLayout {
 }
 
 impl KeyTransformLayout {
-    pub(crate) fn load<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
-        let text = fs::read_to_string(path)?;
-        let this = toml::from_str(&text)?;
-        Ok(this)
-    }
-
-    #[allow(dead_code)]
-    fn save<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
-        let text = toml::to_string(self)?;
-        fs::write(path, text)?;
-        Ok(())
-    }
+    load_from_toml_file!();
 }
 
 impl Display for KeyTransformLayout {
@@ -63,10 +54,13 @@ impl KeyTransformLayoutList {
         for entry in fs::read_dir(path)? {
             let path = entry?.path();
             if path.is_file() {
-                let layout = KeyTransformLayout::load(path)?;
+                let mut layout = KeyTransformLayout::load_from(&path)?;
+                layout.name = path.file_stem().unwrap().to_str().unwrap().to_string();
                 items.push(layout);
             }
         }
+
+        items.sort_by(|a, b| a.title.cmp(&b.title));
 
         Ok(Self(items))
     }
@@ -212,40 +206,40 @@ pub mod tests {
             ]),
         };
 
-        let actual = KeyTransformLayout::load("etc/test_data/layouts/test.toml").unwrap();
+        let actual = KeyTransformLayout::load_from("etc/test_data/layouts/test.toml").unwrap();
 
         assert_eq!(expected, actual);
     }
 
     #[test]
     fn test_layout_load_fails() {
-        assert!(KeyTransformLayout::load("test/layouts/bad.toml").is_err());
+        assert!(KeyTransformLayout::load_from("test/layouts/bad.toml").is_err());
     }
-
-    #[test]
-    fn test_layout_save() {
-        let layout = KeyTransformLayout {
-            name: str!("Sample layout"),
-            rules: Default::default(),
-            title: str!("Sample layout"),
-            icon: Some(str!("image\\default.ico")),
-            sound: None,
-            keyboard_lighting: Some(map![
-                str!("num") =>
-                map![
-                    str!("ru_ru") =>
-                    SerdeLightingColors::from(vec![
-                        str!("#AA0000"),
-                        str!("#BB0000"),
-                        str!(""),
-                        str!("#DD0000"),
-                    ]),
-                ],
-            ]),
-        };
-
-        layout.save("etc/test_data/tmp/saved_layout.toml").unwrap();
-    }
+    //
+    // #[test]
+    // fn test_layout_save() {
+    //     let layout = KeyTransformLayout {
+    //         name: str!("Sample layout"),
+    //         rules: Default::default(),
+    //         title: str!("Sample layout"),
+    //         icon: Some(str!("image\\default.ico")),
+    //         sound: None,
+    //         keyboard_lighting: Some(map![
+    //             str!("num") =>
+    //             map![
+    //                 str!("ru_ru") =>
+    //                 SerdeLightingColors::from(vec![
+    //                     str!("#AA0000"),
+    //                     str!("#BB0000"),
+    //                     str!(""),
+    //                     str!("#DD0000"),
+    //                 ]),
+    //             ],
+    //         ]),
+    //     };
+    //
+    //     layout.save("etc/test_data/tmp/saved_layout.toml").unwrap();
+    // }
 
     #[test]
     fn test_layouts_load() {

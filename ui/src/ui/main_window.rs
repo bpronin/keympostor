@@ -148,7 +148,7 @@ impl MainWindow {
         is_auto_switch_layout_enabled: bool,
         is_processing_enabled: bool,
         is_logging_enabled: bool,
-        auto_switch_profile_name: Option<&str>,
+        profile_name: Option<&str>,
         layout: &KeyTransformLayout,
     ) {
         self.main_menu.update_ui(
@@ -157,9 +157,9 @@ impl MainWindow {
             is_logging_enabled,
             layout,
         );
-        self.tray.update_ui(layout);
+        self.tray.update_ui(profile_name, layout);
 
-        self.update_title(auto_switch_profile_name, layout);
+        self.update_title(profile_name, layout);
     }
 
     pub(crate) fn apply_settings(&self, settings: &MainWindowSettings) {

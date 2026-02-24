@@ -1,5 +1,5 @@
-use crate::profile::LayoutAutoswitchProfile;
-use keympostor::key_trigger;
+use crate::profile::Profile;
+use keympostor::{key_trigger, load_from_toml_file, save_to_toml_file};
 use keympostor::trigger::KeyTrigger;
 use log::debug;
 use serde::{Deserialize, Serialize};
@@ -14,9 +14,9 @@ const SETTINGS_FILE: &str = "settings.toml";
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub(crate) struct AppSettings {
     pub(crate) keys_logging_enabled: bool,
+    pub(crate) layout_autoswitch_enabled: bool,
     pub(crate) last_transform_layout: Option<String>,
     pub(crate) toggle_layout_hot_key: Option<KeyTrigger>,
-    pub(crate) layout_autoswitch: Option<LayoutAutoSwitchSettings>,
     pub(crate) main_window: MainWindowSettings,
 }
 
@@ -24,9 +24,9 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             keys_logging_enabled: false,
+            layout_autoswitch_enabled: false,
             toggle_layout_hot_key: Some(key_trigger!("[]FN_LAUNCH_APP2^")),
             last_transform_layout: Default::default(),
-            layout_autoswitch: Default::default(),
             main_window: Default::default(),
         }
     }
@@ -38,27 +38,15 @@ impl AppSettings {
     }
 
     pub(crate) fn save(&self) {
-        self.save_to(SETTINGS_FILE).expect("Failed to save settings");
+        self.save_to(SETTINGS_FILE)
+            .expect("Failed to save settings");
         debug!("Settings saved");
     }
 
-    fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
-        let text = fs::read_to_string(path)?;
-        let this = toml::from_str(&text)?;
-        Ok(this)
-    }
+    load_from_toml_file!();
 
-    fn save_to<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
-        let text = toml::to_string(self)?;
-        fs::write(path, text)?;
-        Ok(())
-    }
-}
+    save_to_toml_file!();
 
-#[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct LayoutAutoSwitchSettings {
-    pub(crate) enabled: bool,
-    pub(crate) profiles: Option<HashMap<String, LayoutAutoswitchProfile>>,
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
@@ -77,13 +65,13 @@ pub(crate) struct LogViewSettings {
 #[cfg(test)]
 pub mod tests {
     use super::*;
-    use crate::profile::LayoutAutoswitchProfile;
-    use crate::{map, str};
+    use crate::str;
 
     #[test]
     fn test_save_load_settings() {
         let settings = AppSettings {
             keys_logging_enabled: false,
+            layout_autoswitch_enabled: false,
             toggle_layout_hot_key: None,
             last_transform_layout: Some(str!("test-layout")),
             main_window: MainWindowSettings {
@@ -92,26 +80,13 @@ pub mod tests {
                 selected_page: Some(0),
                 log_view: Default::default(),
             },
-            layout_autoswitch: Some(LayoutAutoSwitchSettings {
-                enabled: true,
-                profiles: Some(map![
-                    str!("chrome") => LayoutAutoswitchProfile {
-                        activation_rule: Some(str!("Chrome")),
-                        transform_layout: str!("desktop"),
-                    },
-                    str!("tc") => LayoutAutoswitchProfile {
-                        activation_rule: Some(str!("TOTALCMD64.EXE")),
-                        transform_layout: str!("game"),
-                    },
-                ])
-            }),
         };
 
-        const PATH: &'static str = "etc/test_data/test_settings.toml";
+        let path = "etc/test_data/test_settings.toml";
 
-        assert!(settings.save_to(PATH).is_ok());
+        assert!(settings.save_to(path).is_ok());
 
-        let loaded = AppSettings::load_from(PATH).unwrap();
+        let loaded = AppSettings::load_from(path).unwrap();
         assert_eq!(settings, loaded);
     }
 }
