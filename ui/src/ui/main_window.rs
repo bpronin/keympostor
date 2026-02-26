@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
+use crate::layout::{KeyTransformLayout, TransformLayouts};
 use crate::settings::MainWindowSettings;
 use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
@@ -148,7 +148,7 @@ impl MainWindow {
         is_auto_switch_layout_enabled: bool,
         is_processing_enabled: bool,
         is_logging_enabled: bool,
-        profile_name: Option<&str>,
+        profile_name: &str,
         layout: &KeyTransformLayout,
     ) {
         self.main_menu.update_ui(
@@ -182,7 +182,7 @@ impl MainWindow {
         self.log_view.update_settings(settings);
     }
 
-    pub(crate) fn set_layouts(&self, layouts: &KeyTransformLayoutList) {
+    pub(crate) fn set_layouts(&self, layouts: &TransformLayouts) {
         self.main_menu.build_layouts_menu(layouts);
         self.tray.build_layout_menu(layouts);
     }
@@ -209,11 +209,11 @@ impl MainWindow {
             .set_text(notification.event.trigger.to_string().as_str());
     }
 
-    fn update_title(&self, profile_name: Option<&str>, layout: &KeyTransformLayout) {
+    fn update_title(&self, profile_name: &str, layout: &KeyTransformLayout) {
         let title = format!(
             "{} - {} - {}",
             rs!(IDS_APP_TITLE),
-            profile_name.unwrap_or(rs!(IDS_NO_PROFILE)).to_string(),
+            profile_name,
             layout.title
         );
 

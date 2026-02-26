@@ -36,9 +36,9 @@ impl Display for KeyTransformLayout {
 }
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct KeyTransformLayoutList(Vec<KeyTransformLayout>);
+pub(crate) struct TransformLayouts(Vec<KeyTransformLayout>);
 
-impl<'a> IntoIterator for &'a KeyTransformLayoutList {
+impl<'a> IntoIterator for &'a TransformLayouts {
     type Item = &'a KeyTransformLayout;
     type IntoIter = std::slice::Iter<'a, KeyTransformLayout>;
 
@@ -47,8 +47,8 @@ impl<'a> IntoIterator for &'a KeyTransformLayoutList {
     }
 }
 
-impl KeyTransformLayoutList {
-    pub(crate) fn load() -> Result<KeyTransformLayoutList, Box<dyn Error>> {
+impl TransformLayouts {
+    pub(crate) fn load() -> Result<TransformLayouts, Box<dyn Error>> {
         Self::load_from(LAYOUTS_PATH)
     }
 
@@ -89,7 +89,7 @@ impl KeyTransformLayoutList {
 #[cfg(test)]
 pub mod tests {
     use crate::indicator::SerdeLightingColors;
-    use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
+    use crate::layout::{KeyTransformLayout, TransformLayouts};
     use crate::{map, str};
     use keympostor::key_rule;
     use keympostor::rule::KeyTransformRule;
@@ -112,8 +112,8 @@ pub mod tests {
         }
     }
 
-    fn create_test_layouts() -> KeyTransformLayoutList {
-        KeyTransformLayoutList(vec![
+    fn create_test_layouts() -> TransformLayouts {
+        TransformLayouts(vec![
             KeyTransformLayout {
                 name: str!("layout_1"),
                 ..Default::default()
@@ -247,7 +247,7 @@ pub mod tests {
 
     #[test]
     fn test_layouts_load() {
-        let result = KeyTransformLayoutList::load_from("etc/test_data/layouts/");
+        let result = TransformLayouts::load_from("etc/test_data/layouts/");
         assert!(result.is_err());
     }
 

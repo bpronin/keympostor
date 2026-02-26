@@ -57,7 +57,7 @@ impl WindowWatcher {
             }
 
             if let Some(profile_name) = self.detect_profile_change() {
-                app.on_select_profile(profile_name.as_deref())
+                app.select_profile(profile_name.as_deref())
             }
         }
     }

@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
+use crate::layout::{KeyTransformLayout, TransformLayouts};
 use crate::profile::Profile;
 use crate::ui::res::RESOURCES;
 use crate::ui::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_SETTINGS, IDS_TRAY_TIP};
@@ -56,7 +56,7 @@ impl Tray {
             .build(&mut self.exit_app_item)
     }
 
-    pub(crate) fn build_layout_menu(&self, layouts: &KeyTransformLayoutList) {
+    pub(crate) fn build_layout_menu(&self, layouts: &TransformLayouts) {
         let mut layout_items = vec![];
 
         for layout in layouts {
@@ -73,11 +73,11 @@ impl Tray {
         self.layout_items.replace(layout_items);
     }
 
-    pub(crate) fn update_ui(&self, profile_name: Option<&str>, layout: &KeyTransformLayout) {
+    pub(crate) fn update_ui(&self, profile_name: &str, layout: &KeyTransformLayout) {
         self.notification.set_tip(&format!(
             "{} [{} - {}]",
             rs!(IDS_TRAY_TIP),
-            profile_name.unwrap_or("No profile"),
+            profile_name,
             layout.title,
         ));
 
@@ -119,7 +119,7 @@ impl Tray {
                 } else {
                     for (item, layout_name) in self.layout_items.borrow().iter() {
                         if item.handle == handle {
-                            app.on_select_transform_layout(layout_name);
+                            app.select_transform_layout(layout_name);
                             break;
                         }
                     }

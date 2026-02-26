@@ -15,7 +15,6 @@ const SETTINGS_FILE: &str = "settings.toml";
 pub(crate) struct AppSettings {
     pub(crate) keys_logging_enabled: bool,
     pub(crate) layout_autoswitch_enabled: bool,
-    pub(crate) last_transform_layout: Option<String>,
     pub(crate) toggle_layout_hot_key: Option<KeyTrigger>,
     pub(crate) main_window: MainWindowSettings,
 }
@@ -26,7 +25,6 @@ impl Default for AppSettings {
             keys_logging_enabled: false,
             layout_autoswitch_enabled: false,
             toggle_layout_hot_key: Some(key_trigger!("[]FN_LAUNCH_APP2^")),
-            last_transform_layout: Default::default(),
             main_window: Default::default(),
         }
     }
@@ -73,7 +71,6 @@ pub mod tests {
             keys_logging_enabled: false,
             layout_autoswitch_enabled: false,
             toggle_layout_hot_key: None,
-            last_transform_layout: Some(str!("test-layout")),
             main_window: MainWindowSettings {
                 position: Some((0, 0)),
                 size: Some((100, 200)),

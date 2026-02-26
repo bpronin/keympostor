@@ -9,6 +9,7 @@ use std::path::Path;
 use std::str::FromStr;
 
 const PROFILES_FILE: &str = "profiles.toml";
+pub const NO_PROFILE: &str = "none";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub(crate) struct Profile {
@@ -26,17 +27,39 @@ impl Profile {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
-pub(crate) struct Profiles(pub HashMap<String, Profile>);
+pub(crate) struct Profiles(HashMap<String, Profile>);
 
 impl Profiles {
-    pub(crate) fn load() -> Result<Self, Box<dyn Error>> {
-        Self::load_from(PROFILES_FILE)
+    pub(crate) fn load() -> Self {
+        let mut this = Self::load_from(PROFILES_FILE).unwrap_or_default();
+
+        if !this.0.contains_key(NO_PROFILE) {
+            this.0.insert(
+                NO_PROFILE.to_string(),
+                Profile {
+                    transform_layout: "default".to_string(),
+                    ..Default::default()
+                },
+            );
+        }
+
+        this
     }
 
     pub(crate) fn save(&self) {
         self.save_to(PROFILES_FILE)
             .expect("Failed to save settings");
         debug!("Profiles saved");
+    }
+
+    pub(crate) fn get_mut(&mut self, name: &str) -> &mut Profile {
+        self.0
+            .get_mut(name)
+            .expect(&format!("Profile not found: `{}`", name))
+    }
+
+    pub(crate) fn to_map(&self) -> HashMap<String, Profile> {
+        self.0.clone()
     }
 
     load_from_toml_file!();

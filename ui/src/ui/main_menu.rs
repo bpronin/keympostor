@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::layout::{KeyTransformLayout, KeyTransformLayoutList};
+use crate::layout::{KeyTransformLayout, TransformLayouts};
 use crate::rs;
 use crate::ui::layouts_menu::LayoutsMenu;
 use crate::ui::res::RESOURCES;
@@ -72,7 +72,7 @@ impl MainMenu {
             .update_ui(is_auto_switch_layout_enabled, current_layout);
     }
 
-    pub(crate) fn build_layouts_menu(&self, layouts: &KeyTransformLayoutList) {
+    pub(crate) fn build_layouts_menu(&self, layouts: &TransformLayouts) {
         self.layout_menu.build_items(layouts).unwrap_or_else(|e| {
             warn!("Failed to build layouts menu: {}", e);
         });
