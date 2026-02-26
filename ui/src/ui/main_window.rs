@@ -19,6 +19,7 @@ use native_windows_gui::{
     ControlHandle, Event, FlexboxLayout, Label, NwgError, Tab, TabsContainer, Window, WindowFlags,
 };
 use windows::Win32::Foundation::HWND;
+use crate::profile::Profile;
 
 #[derive(Default)]
 pub(crate) struct MainWindow {
@@ -148,7 +149,7 @@ impl MainWindow {
         is_auto_switch_layout_enabled: bool,
         is_processing_enabled: bool,
         is_logging_enabled: bool,
-        profile_name: &str,
+        profile: &Profile,
         layout: &KeyTransformLayout,
     ) {
         self.main_menu.update_ui(
@@ -157,9 +158,9 @@ impl MainWindow {
             is_logging_enabled,
             layout,
         );
-        self.tray.update_ui(profile_name, layout);
+        self.tray.update_ui(profile, layout);
 
-        self.update_title(profile_name, layout);
+        self.update_title(profile, layout);
     }
 
     pub(crate) fn apply_settings(&self, settings: &MainWindowSettings) {
@@ -209,11 +210,11 @@ impl MainWindow {
             .set_text(notification.event.trigger.to_string().as_str());
     }
 
-    fn update_title(&self, profile_name: &str, layout: &KeyTransformLayout) {
+    fn update_title(&self, profile: &Profile, layout: &KeyTransformLayout) {
         let title = format!(
             "{} - {} - {}",
             rs!(IDS_APP_TITLE),
-            profile_name,
+            profile.title,
             layout.title
         );
 

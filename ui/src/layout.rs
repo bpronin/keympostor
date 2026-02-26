@@ -9,14 +9,15 @@ use std::fs;
 use std::path::Path;
 
 const LAYOUTS_PATH: &str = "layouts";
-const DEFAULT_LAYOUT: &str = "default";
+pub(crate) const DEFAULT_LAYOUT: &str = "default";
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct KeyTransformLayout {
     #[serde(skip)]
     pub(crate) name: String,
-    pub(crate) rules: Option<KeyTransformRules>,
+    #[serde(default = "serde_untitled")]
     pub(crate) title: String,
+    pub(crate) rules: Option<KeyTransformRules>,
     pub(crate) icon: Option<String>,
     pub(crate) sound: Option<HashMap<String, HashMap<String, String>>>,
     pub(crate) keyboard_lighting: Option<HashMap<String, HashMap<String, SerdeLightingColors>>>,
@@ -113,6 +114,10 @@ impl TransformLayouts {
             .or_else(|| self.0.first())
             .expect("Layouts cannot be empty")
     }
+}
+
+fn serde_untitled() -> String {
+    "Untitled layout".to_string()
 }
 
 #[cfg(test)]

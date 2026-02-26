@@ -1,4 +1,3 @@
-use std::alloc::Layout;
 use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, TransformLayouts};
@@ -6,7 +5,9 @@ use crate::profile::{Profile, Profiles, NO_PROFILE};
 use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
 use crate::ui::res::RESOURCES;
-use crate::ui::res_ids::{IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_PROFILES, IDS_FAILED_LOAD_SETTINGS};
+use crate::ui::res_ids::{
+    IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_PROFILES, IDS_FAILED_LOAD_SETTINGS,
+};
 use crate::ui::utils::RelaxedAtomicBool;
 use crate::win_watch::WindowWatcher;
 use crate::{rs, show_warn_message, ui};
@@ -15,6 +16,7 @@ use keympostor::notify::{KeyEventNotification, WM_KEY_HOOK_NOTIFY};
 use keympostor::trigger::KeyTrigger;
 use log::{debug, warn};
 use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
+use std::alloc::Layout;
 use std::cell::RefCell;
 use std::ops::DerefMut;
 use std::rc::Rc;
@@ -104,15 +106,17 @@ impl App {
     }
 
     fn update_window(&self) {
-        self.with_current_layout(|layout| {
-            let settings = self.settings.borrow();
-            self.window.update_ui(
-                settings.layout_autoswitch_enabled,
-                self.is_processing_enabled.load(),
-                settings.keys_logging_enabled,
-                self.current_profile_name.borrow().as_str(),
-                layout,
-            );
+        self.with_current_profile(|profile| {
+            self.with_current_layout(|layout| {
+                let settings = self.settings.borrow();
+                self.window.update_ui(
+                    settings.layout_autoswitch_enabled,
+                    self.is_processing_enabled.load(),
+                    settings.keys_logging_enabled,
+                    profile,
+                    layout,
+                );
+            })
         });
     }
 
@@ -137,18 +141,18 @@ impl App {
             AppSettings::default()
         });
         self.settings.replace(settings);
-        
+
         let layouts = TransformLayouts::load().unwrap_or_else(|e| {
             show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_LAYOUTS), e);
             TransformLayouts::default()
         });
         self.layouts.replace(layouts);
-        
+
         let profiles = Profiles::load().unwrap_or_else(|e| {
             show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_PROFILES), e);
             Profiles::default()
         });
-        self.profiles.replace(profiles); 
+        self.profiles.replace(profiles);
 
         self.with_settings(|settings| {
             if let Some(key) = &settings.toggle_layout_hot_key {
@@ -259,7 +263,7 @@ impl App {
             self.window.update_settings(&mut settings.main_window);
             settings.save();
         });
-        
+
         self.keyboard_layout_watcher.stop();
         self.win_watcher.enable(false);
         drain_timer_msg_queue();

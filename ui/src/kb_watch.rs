@@ -82,12 +82,10 @@ impl KeyboardLayoutWatcher {
     pub(crate) fn setup(&self, hwnd: HWND) {
         self.hwnd.replace(hwnd);
         self.last_state.replace(KeyboardLayoutState::capture());
-
         unsafe {
             SetTimer(Some(*self.hwnd.borrow()), TIMER_ID, WATCH_INTERVAL, None);
         }
-
-        debug!("Keyboard layout watch started");
+        debug!("Keyboard layout watch timer started");
     }
 
     pub(crate) fn stop(&self) {
@@ -98,8 +96,7 @@ impl KeyboardLayoutWatcher {
                 }
             });
         }
-
-        debug!("Keyboard layout watch stopped");
+        debug!("Keyboard layout watch timer stopped");
     }
 
     pub(crate) fn handle_event(&self, app: &App, evt: Event, handle: ControlHandle) {

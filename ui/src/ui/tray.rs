@@ -73,11 +73,11 @@ impl Tray {
         self.layout_items.replace(layout_items);
     }
 
-    pub(crate) fn update_ui(&self, profile_name: &str, layout: &KeyTransformLayout) {
+    pub(crate) fn update_ui(&self, profile: &Profile, layout: &KeyTransformLayout) {
         self.notification.set_tip(&format!(
             "{} [{} - {}]",
             rs!(IDS_TRAY_TIP),
-            profile_name,
+            profile.title,
             layout.title,
         ));
 

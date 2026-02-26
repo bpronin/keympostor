@@ -1,5 +1,4 @@
-use crate::profile::Profile;
-use keympostor::{key_trigger, save_to_toml_file};
+use keympostor::{key_trigger};
 use keympostor::trigger::KeyTrigger;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
@@ -52,7 +51,11 @@ impl AppSettings {
         Ok(this)
     }
 
-    save_to_toml_file!();
+    fn save_to<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
+        let text = toml::to_string(self)?;
+        fs::write(path, text)?;
+        Ok(())
+    }
 
 }
 

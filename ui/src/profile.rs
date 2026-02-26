@@ -1,4 +1,4 @@
-use keympostor::save_to_toml_file;
+use crate::layout::DEFAULT_LAYOUT;
 use log::{debug, warn};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -39,7 +39,8 @@ impl Profiles {
             this.0.insert(
                 NO_PROFILE.to_string(),
                 Profile {
-                    transform_layout: "default".to_string(),
+                    title: "No profile".to_string(),
+                    transform_layout: DEFAULT_LAYOUT.to_string(),
                     ..Default::default()
                 },
             );
@@ -68,18 +69,26 @@ impl Profiles {
         let this = match fs::read_to_string(&path) {
             Ok(text) => toml::from_str(&text)?,
             Err(error) => {
-                warn!("Failed to load profiles from `{:?}`: {}", path.as_ref(), error);
+                warn!(
+                    "Failed to load profiles from `{:?}`: {}",
+                    path.as_ref(),
+                    error
+                );
                 Self::default()
             }
         };
         Ok(this)
     }
 
-    save_to_toml_file!();
+    fn save_to<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
+        let text = toml::to_string(self)?;
+        fs::write(path, text)?;
+        Ok(())
+    }
 }
 
 fn serde_untitled() -> String {
-    "Untitled".to_string()
+    "Untitled profile".to_string()
 }
 
 #[cfg(test)]

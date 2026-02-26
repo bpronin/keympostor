@@ -67,17 +67,6 @@ macro_rules! deserialize_from_string {
     };
 }
 
-#[macro_export]
-macro_rules! save_to_toml_file {
-    () => {
-        fn save_to<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
-            let text = toml::to_string(self)?;
-            fs::write(path, text)?;
-            Ok(())
-        }
-    };
-}
-
 // unsafe fn format_keyboard_state() -> String {
 //     let mut s = String::new();
 //     for i in 0..256 {
