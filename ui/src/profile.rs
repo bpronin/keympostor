@@ -1,5 +1,5 @@
-use keympostor::{load_from_toml_file, save_to_toml_file};
-use log::debug;
+use keympostor::save_to_toml_file;
+use log::{debug, warn};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -13,6 +13,8 @@ pub const NO_PROFILE: &str = "none";
 
 #[derive(Debug, PartialEq, Serialize, Deserialize, Clone, Default)]
 pub(crate) struct Profile {
+    #[serde(default = "serde_untitled")]
+    pub(crate) title: String,
     pub(crate) activation_rule: Option<String>,
     pub(crate) transform_layout: String,
     pub(crate) keyboard_locale: Option<String>,
@@ -30,8 +32,8 @@ impl Profile {
 pub(crate) struct Profiles(HashMap<String, Profile>);
 
 impl Profiles {
-    pub(crate) fn load() -> Self {
-        let mut this = Self::load_from(PROFILES_FILE).unwrap_or_default();
+    pub(crate) fn load() -> Result<Self, Box<dyn Error>> {
+        let mut this = Self::load_from(PROFILES_FILE)?;
 
         if !this.0.contains_key(NO_PROFILE) {
             this.0.insert(
@@ -43,7 +45,7 @@ impl Profiles {
             );
         }
 
-        this
+        Ok(this)
     }
 
     pub(crate) fn save(&self) {
@@ -62,9 +64,22 @@ impl Profiles {
         self.0.clone()
     }
 
-    load_from_toml_file!();
+    fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let this = match fs::read_to_string(&path) {
+            Ok(text) => toml::from_str(&text)?,
+            Err(error) => {
+                warn!("Failed to load profiles from `{:?}`: {}", path.as_ref(), error);
+                Self::default()
+            }
+        };
+        Ok(this)
+    }
 
     save_to_toml_file!();
+}
+
+fn serde_untitled() -> String {
+    "Untitled".to_string()
 }
 
 #[cfg(test)]
@@ -86,11 +101,13 @@ pub mod tests {
     fn test_save_load() {
         let profiles = Profiles(map![
             str!("chrome") => Profile {
+                title: str!("Google Chrome"),
                 activation_rule: Some(str!("Chrome")),
                 transform_layout: str!("desktop"),
                 keyboard_locale: Some(str!("ru_ru"))
             },
             str!("tc") => Profile {
+                title: str!("Total Commander"),
                 activation_rule: Some(str!("TOTALCMD64.EXE")),
                 transform_layout: str!("game"),
                 keyboard_locale: Some(str!("en_en"))

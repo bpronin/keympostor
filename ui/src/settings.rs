@@ -1,7 +1,7 @@
 use crate::profile::Profile;
-use keympostor::{key_trigger, load_from_toml_file, save_to_toml_file};
+use keympostor::{key_trigger, save_to_toml_file};
 use keympostor::trigger::KeyTrigger;
-use log::debug;
+use log::{debug, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
@@ -31,8 +31,8 @@ impl Default for AppSettings {
 }
 
 impl AppSettings {
-    pub(crate) fn load() -> AppSettings {
-        Self::load_from(SETTINGS_FILE).unwrap_or_default()
+    pub(crate) fn load() -> Result<Self, Box<dyn Error>> {
+        Self::load_from(SETTINGS_FILE)
     }
 
     pub(crate) fn save(&self) {
@@ -41,7 +41,16 @@ impl AppSettings {
         debug!("Settings saved");
     }
 
-    load_from_toml_file!();
+    fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let this = match fs::read_to_string(&path) {
+            Ok(text) => toml::from_str(&text)?,
+            Err(error) => {
+                warn!("Failed to load settings from `{:?}`: {}", path.as_ref(), error);
+                Self::default()
+            }
+        };
+        Ok(this)
+    }
 
     save_to_toml_file!();
 

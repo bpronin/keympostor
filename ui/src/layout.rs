@@ -1,6 +1,6 @@
 use crate::indicator::SerdeLightingColors;
-use keympostor::load_from_toml_file;
 use keympostor::rule::KeyTransformRules;
+use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::error::Error;
@@ -23,7 +23,20 @@ pub(crate) struct KeyTransformLayout {
 }
 
 impl KeyTransformLayout {
-    load_from_toml_file!();
+    fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
+        let this = match fs::read_to_string(&path) {
+            Ok(text) => toml::from_str(&text)?,
+            Err(error) => {
+                warn!(
+                    "Failed to load layouts from `{:?}`: {}",
+                    path.as_ref(),
+                    error
+                );
+                Self::default()
+            }
+        };
+        Ok(this)
+    }
 }
 
 impl Display for KeyTransformLayout {
@@ -49,31 +62,38 @@ impl<'a> IntoIterator for &'a TransformLayouts {
 }
 
 impl TransformLayouts {
-    pub(crate) fn load() -> TransformLayouts {
-        let mut this = Self::load_from(LAYOUTS_PATH).unwrap_or_default();
+    pub(crate) fn load() -> Result<Self, Box<dyn Error>> {
+        let mut this = Self::load_from(LAYOUTS_PATH)?;
+
         if this.find(DEFAULT_LAYOUT).is_none() {
-            this.0.insert(0, KeyTransformLayout {
-                name: DEFAULT_LAYOUT.to_string(),
-                title: "Default".to_string(),
-                ..Default::default()
-            })
+            this.0.insert(
+                0,
+                KeyTransformLayout {
+                    name: DEFAULT_LAYOUT.to_string(),
+                    title: "Default".to_string(),
+                    ..Default::default()
+                },
+            )
         }
-        this
+
+        Ok(this)
     }
 
     fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
         let mut items = vec![];
 
-        for entry in fs::read_dir(path)? {
-            let path = entry?.path();
-            if path.is_file() {
-                let mut layout = KeyTransformLayout::load_from(&path)?;
-                layout.name = path.file_stem().unwrap().to_str().unwrap().to_string();
-                items.push(layout);
+        if let Ok(dir) = fs::read_dir(path) {
+            for entry in dir {
+                let path = entry?.path();
+                if path.is_file() {
+                    let mut layout = KeyTransformLayout::load_from(&path)?;
+                    layout.name = path.file_stem().unwrap().to_str().unwrap().to_string();
+                    items.push(layout);
+                }
             }
-        }
 
-        items.sort_by(|a, b| a.title.cmp(&b.title));
+            items.sort_by(|a, b| a.title.cmp(&b.title));
+        }
 
         Ok(Self(items))
     }

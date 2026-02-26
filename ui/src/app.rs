@@ -1,3 +1,4 @@
+use std::alloc::Layout;
 use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, TransformLayouts};
@@ -5,7 +6,7 @@ use crate::profile::{Profile, Profiles, NO_PROFILE};
 use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
 use crate::ui::res::RESOURCES;
-use crate::ui::res_ids::{IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_SETTINGS};
+use crate::ui::res_ids::{IDS_FAILED_LOAD_LAYOUTS, IDS_FAILED_LOAD_PROFILES, IDS_FAILED_LOAD_SETTINGS};
 use crate::ui::utils::RelaxedAtomicBool;
 use crate::win_watch::WindowWatcher;
 use crate::{rs, show_warn_message, ui};
@@ -131,9 +132,23 @@ impl App {
     }
 
     fn on_init(&self) {
-        self.settings.replace(AppSettings::load());
-        self.layouts.replace(TransformLayouts::load());
-        self.profiles.replace(Profiles::load());
+        let settings = AppSettings::load().unwrap_or_else(|e| {
+            show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_SETTINGS), e);
+            AppSettings::default()
+        });
+        self.settings.replace(settings);
+        
+        let layouts = TransformLayouts::load().unwrap_or_else(|e| {
+            show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_LAYOUTS), e);
+            TransformLayouts::default()
+        });
+        self.layouts.replace(layouts);
+        
+        let profiles = Profiles::load().unwrap_or_else(|e| {
+            show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_PROFILES), e);
+            Profiles::default()
+        });
+        self.profiles.replace(profiles); 
 
         self.with_settings(|settings| {
             if let Some(key) = &settings.toggle_layout_hot_key {

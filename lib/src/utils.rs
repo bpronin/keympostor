@@ -68,17 +68,6 @@ macro_rules! deserialize_from_string {
 }
 
 #[macro_export]
-macro_rules! load_from_toml_file {
-    () => {
-        fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
-            let text = fs::read_to_string(path)?;
-            let this = toml::from_str(&text)?;
-            Ok(this)
-        }
-    };
-}
-
-#[macro_export]
 macro_rules! save_to_toml_file {
     () => {
         fn save_to<P: AsRef<Path>>(&self, path: P) -> Result<(), Box<dyn Error>> {
