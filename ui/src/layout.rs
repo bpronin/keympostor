@@ -9,6 +9,7 @@ use std::fs;
 use std::path::Path;
 
 const LAYOUTS_PATH: &str = "layouts";
+const DEFAULT_LAYOUT: &str = "default";
 
 #[derive(Debug, Default, PartialEq, Serialize, Deserialize)]
 pub(crate) struct KeyTransformLayout {
@@ -48,8 +49,16 @@ impl<'a> IntoIterator for &'a TransformLayouts {
 }
 
 impl TransformLayouts {
-    pub(crate) fn load() -> Result<TransformLayouts, Box<dyn Error>> {
-        Self::load_from(LAYOUTS_PATH)
+    pub(crate) fn load() -> TransformLayouts {
+        let mut this = Self::load_from(LAYOUTS_PATH).unwrap_or_default();
+        if this.find(DEFAULT_LAYOUT).is_none() {
+            this.0.insert(0, KeyTransformLayout {
+                name: DEFAULT_LAYOUT.to_string(),
+                title: "Default".to_string(),
+                ..Default::default()
+            })
+        }
+        this
     }
 
     fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {

@@ -67,16 +67,6 @@ impl App {
         settings.save();
     }
 
-    fn load_transform_layouts(&self) {
-        let layouts = TransformLayouts::load().unwrap_or_else(|e| {
-            show_warn_message!("{}:\n{}", rs!(IDS_FAILED_LOAD_LAYOUTS), e);
-            TransformLayouts::default()
-        });
-
-        self.window.set_layouts(&layouts);
-        self.layouts.replace(layouts);
-    }
-
     pub(crate) fn with_current_profile<F, R>(&self, action: F) -> R
     where
         F: FnOnce(&mut Profile) -> R,
@@ -155,7 +145,7 @@ impl App {
     }
 
     fn on_init(&self) {
-        self.load_transform_layouts();
+        self.layouts.replace(TransformLayouts::load());
         self.profiles.replace(Profiles::load());
         self.load_settings();
         self.select_profile(None);
@@ -171,6 +161,7 @@ impl App {
             self.is_autoswitch_enabled.load(),
         );
 
+        self.window.set_layouts(&self.layouts.borrow());
         self.update_window();
 
         #[cfg(feature = "debug")]
@@ -194,7 +185,7 @@ impl App {
         self.profiles.borrow().save();
     }
 
-    fn on_select_next_transform_layout(&self) {
+    fn select_next_transform_layout(&self) {
         let layouts = self.layouts.borrow();
         let next_name = {
             let current = self.current_layout_name.borrow(); /* must stay exactly inside the block */
@@ -207,7 +198,7 @@ impl App {
     fn on_key_hook_notify(&self, notification: &KeyEventNotification) {
         if let Some(key) = self.toggle_layout_hot_key.borrow().as_ref() {
             if &notification.event.trigger == key {
-                self.on_select_next_transform_layout();
+                self.select_next_transform_layout();
             }
         }
 
