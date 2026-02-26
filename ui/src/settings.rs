@@ -31,8 +31,8 @@ impl Default for AppSettings {
 }
 
 impl AppSettings {
-    pub(crate) fn load() -> Result<Self, Box<dyn Error>> {
-        Self::load_from(SETTINGS_FILE)
+    pub(crate) fn load() -> AppSettings {
+        Self::load_from(SETTINGS_FILE).unwrap_or_default()
     }
 
     pub(crate) fn save(&self) {

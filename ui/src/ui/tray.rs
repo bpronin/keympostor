@@ -119,7 +119,7 @@ impl Tray {
                 } else {
                     for (item, layout_name) in self.layout_items.borrow().iter() {
                         if item.handle == handle {
-                            app.select_transform_layout(layout_name);
+                            app.on_select_layout(layout_name);
                             break;
                         }
                     }
