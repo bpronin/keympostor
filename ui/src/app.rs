@@ -1,7 +1,7 @@
 use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, TransformLayouts};
-use crate::profile::{Profile, Profiles, NO_PROFILE};
+use crate::profile::{NO_PROFILE, Profile, Profiles};
 use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
 use crate::ui::res::RESOURCES;
@@ -15,7 +15,7 @@ use keympostor::hook::KeyboardHook;
 use keympostor::notify::{KeyEventNotification, WM_KEY_HOOK_NOTIFY};
 use keympostor::trigger::KeyTrigger;
 use log::{debug, warn};
-use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
+use native_windows_gui::{ControlHandle, Event, stop_thread_dispatch};
 use std::alloc::Layout;
 use std::cell::RefCell;
 use std::ops::DerefMut;
@@ -61,20 +61,18 @@ impl App {
     {
         let layouts = self.layouts.borrow();
         let layout_name = self.current_layout_name.borrow();
-        let layout = layouts
-            .find(&layout_name)
-            .expect(&format!("Layout not found: `{}`", layout_name));
+        let layout = layouts.get(&layout_name);
         action(layout);
     }
 
     pub(crate) fn apply_layout(&self, layout_name: &str) {
-        if self.layouts.borrow().find(layout_name).is_some() {
-            self.current_layout_name.replace(layout_name.into());
-            debug!("Selected layout: `{}`", layout_name);
-        } else {
+        if !self.layouts.borrow().contains(layout_name) {
             warn!("Layout not found: `{}`", layout_name);
             return;
         }
+
+        self.current_layout_name.replace(layout_name.into());
+        debug!("Selected layout: `{}`", layout_name);
 
         self.with_current_layout(|layout| {
             self.key_hook.set_rules(layout.rules.as_ref());

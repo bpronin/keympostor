@@ -1,3 +1,13 @@
+[tc]
+title = "Total commander"
+activation_rule = "TOTALCMD64.EXE"
+transform_layout = "ide"
+
+[none]
+title = "No profile"
+transform_layout = "default"
+keyboard_locale = "ru_ru"
+
 [ide]
 title = "IDE"
 activation_rule = "rustrover64.exe"
@@ -8,14 +18,4 @@ keyboard_locale = "en_us"
 title = "Browser"
 activation_rule = "Chrome"
 transform_layout = "default_no_lighting"
-keyboard_locale = "ru_ru"
-
-[tc]
-title = "Total commander"
-activation_rule = "TOTALCMD64.EXE"
-transform_layout = "ide"
-
-[none]
-title = "No profile"
-transform_layout = "default"
 keyboard_locale = "ru_ru"

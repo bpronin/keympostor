@@ -66,7 +66,7 @@ impl TransformLayouts {
     pub(crate) fn load() -> Result<Self, Box<dyn Error>> {
         let mut this = Self::load_from(LAYOUTS_PATH)?;
 
-        if this.find(DEFAULT_LAYOUT).is_none() {
+        if !this.contains(DEFAULT_LAYOUT) {
             this.0.insert(
                 0,
                 KeyTransformLayout {
@@ -78,6 +78,27 @@ impl TransformLayouts {
         }
 
         Ok(this)
+    }
+
+    pub(crate) fn get(&self, name: &str) -> &KeyTransformLayout {
+        self.try_get(name)
+            .expect(&format!("Layout not found: `{}`", name))
+    }
+
+    pub(crate) fn contains(&self, name: &str) -> bool {
+        self.try_get(name).is_some()
+    }
+
+    pub(crate) fn cyclic_next(&self, name: &str) -> &KeyTransformLayout {
+        let mut iter = self.0.iter();
+        iter.find(|l| l.name == *name);
+        iter.next()
+            .or_else(|| self.0.first())
+            .expect("Layouts cannot be empty")
+    }
+
+    fn try_get(&self, name: &str) -> Option<&KeyTransformLayout> {
+        self.0.iter().find(|l| l.name == *name)
     }
 
     fn load_from<P: AsRef<Path>>(path: P) -> Result<Self, Box<dyn Error>> {
@@ -97,22 +118,6 @@ impl TransformLayouts {
         }
 
         Ok(Self(items))
-    }
-
-    pub(crate) fn find(&self, name: &str) -> Option<&KeyTransformLayout> {
-        self.0.iter().find(|l| l.name == *name)
-    }
-
-    pub(crate) fn first(&self) -> &KeyTransformLayout {
-        self.0.first().expect("Layouts cannot be empty")
-    }
-
-    pub(crate) fn cyclic_next(&self, name: &str) -> &KeyTransformLayout {
-        let mut iter = self.0.iter();
-        iter.find(|l| l.name == *name);
-        iter.next()
-            .or_else(|| self.0.first())
-            .expect("Layouts cannot be empty")
     }
 }
 
@@ -294,10 +299,10 @@ pub mod tests {
                 name: str!("layout_2"),
                 ..Default::default()
             }),
-            layouts.find("layout_2")
+            layouts.try_get("layout_2")
         );
-        assert_eq!(None, layouts.find("layout_4"));
-        assert_eq!(None, layouts.find(""));
+        assert_eq!(None, layouts.try_get("layout_4"));
+        assert_eq!(None, layouts.try_get(""));
     }
 
     #[test]
