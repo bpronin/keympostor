@@ -144,7 +144,7 @@ extern "system" fn key_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) ->
 
 extern "system" fn mouse_hook_proc(code: i32, w_param: WPARAM, l_param: LPARAM) -> LRESULT {
     let msg = w_param.0 as u32;
-    if msg != WM_MOUSEMOVE {
+    if msg != WM_MOUSEMOVE && msg != WM_MOUSEWHEEL && msg != WM_MOUSEHWHEEL {
         let input = unsafe { *(l_param.0 as *const MSLLHOOKSTRUCT) };
         let event = build_mouse_event(msg, input);
         if handle_event(&event) {
@@ -263,16 +263,10 @@ fn build_action_from_mouse_input(msg: u32, input: MSLLHOOKSTRUCT) -> KeyAction {
         WM_MBUTTONUP => KeyAction::new(MiddleButton, Up),
         WM_XBUTTONDOWN => KeyAction::new(build_mouse_x_button_key(input), Down),
         WM_XBUTTONUP => KeyAction::new(build_mouse_x_button_key(input), Up),
-        WM_MOUSEWHEEL => KeyAction::new(WheelY, build_mouse_wheel_transition(input)),
-        WM_MOUSEHWHEEL => KeyAction::new(WheelX, build_mouse_wheel_transition(input)),
-        _ => panic!("Illegal mouse message: `{}`", msg),
+        // WM_MOUSEWHEEL => [KeyAction::new(WheelY, Down), KeyAction::new(WheelY, Up)],
+        // WM_MOUSEHWHEEL => [KeyAction::new(WheelX, Down), KeyAction::new(WheelY, Up)],
+        _ => panic!("Unsupported mouse message: `{}`", msg),
     }
-}
-
-#[inline(always)]
-fn build_mouse_wheel_transition(input: MSLLHOOKSTRUCT) -> KeyTransition {
-    let delta = (input.mouseData >> 16) as i16;
-    if_else(delta < 0, Up, Down)
 }
 
 #[inline(always)]
