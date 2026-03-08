@@ -75,7 +75,7 @@ impl App {
         debug!("Selected layout: `{}`", layout_name);
 
         self.with_current_layout(|layout| {
-            self.key_hook.set_rules(layout.rules.as_ref());
+            self.key_hook.set_transform_rules(layout.rules.as_ref());
             self.window.on_layout_changed(Some(layout));
             notify_layout_changed(layout, &KeyboardLayoutState::capture());
         });
@@ -154,7 +154,7 @@ impl App {
 
         self.with_settings(|settings| {
             if let Some(key) = &settings.toggle_layout_hot_key {
-                self.key_hook.suppress_keys(&[key.action.key]);
+                self.key_hook.set_suppressed_keys(&[key.action.key]);
             }
             self.window.apply_settings(&settings.main_window);
         });

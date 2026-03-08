@@ -31,9 +31,6 @@ impl KeyboardHook {
     }
 
     pub fn install(&self) {
-        KEYBOARD_STATE.replace(KeyboardState::default());
-        trace!("Keyboard state cleared");
-
         install_keyboard_hook();
 
         #[cfg(feature = "no_mouse")]
@@ -48,12 +45,13 @@ impl KeyboardHook {
         uninstall_mouse_hook();
     }
 
-    pub fn set_rules(&self, rules: Option<&KeyTransformRules>) {
+    pub fn set_transform_rules(&self, rules: Option<&KeyTransformRules>) {
         let map = rules.and_then(|r| Some(KeyTransformMap::new(r.iter())));
         TRANSFOFM_MAP.replace(map);
+        KEYBOARD_STATE.replace(KeyboardState::default());
     }
 
-    pub fn suppress_keys(&self, keys: &[Key]) {
+    pub fn set_suppressed_keys(&self, keys: &[Key]) {
         SUPPRESSED_KEYS.replace(FxHashSet::from_iter(keys.iter().cloned()));
     }
 }
