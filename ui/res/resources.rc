@@ -16,7 +16,7 @@ IDI_ICON_APP ICON "res/image/app.ico"
 #define IDS_CLEAR_LOG 1002
 #define IDS_EXIT 1004
 #define IDS_FILE 1005
-#define IDS_NO_PROFILE 1006
+//#define IDS_NO_PROFILE 1006
 #define IDS_LOG 1007
 #define IDS_LOGGING_ENABLED 1008
 #define IDS_FAILED_LOAD_PROFILES 1009
@@ -59,7 +59,7 @@ BEGIN
     IDS_TIME "Time"
     IDS_VIRTUAL_KEY "Virtual key"
     IDS_SCAN_CODE "Scan code"
-    IDS_NO_PROFILE "No profile"
+//    IDS_NO_PROFILE "No profile"
     IDS_APP_ALREADY_RUNNING "Application is already running."
     IDS_FAILED_LOAD_SETTINGS "Failed to load settings"
     IDS_FAILED_LOAD_PROFILES "Failed to load profiles"

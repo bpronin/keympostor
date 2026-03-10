@@ -5,7 +5,7 @@ use crate::ui::layout_view::LayoutView;
 use crate::ui::log_view::LogView;
 use crate::ui::main_menu::MainMenu;
 use crate::ui::res::RESOURCES;
-use crate::ui::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG, IDS_NO_PROFILE};
+use crate::ui::res_ids::{IDI_ICON_APP, IDS_APP_TITLE, IDS_LAYOUT, IDS_LOG};
 use crate::ui::style::INFO_LABEL_FONT;
 use crate::ui::test_editor::TypeTestEditor;
 use crate::ui::tray::Tray;

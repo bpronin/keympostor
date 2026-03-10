@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::{indicator, util};
+use crate::{util};
 use log::{debug, warn};
 use native_windows_gui::{ControlHandle, Event};
 use std::cell::RefCell;

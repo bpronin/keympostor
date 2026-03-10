@@ -5,7 +5,6 @@ pub(crate) const IDS_APP_TITLE: usize = 1001;
 pub(crate) const IDS_CLEAR_LOG: usize = 1002;
 pub(crate) const IDS_EXIT: usize = 1004;
 pub(crate) const IDS_FILE: usize = 1005;
-pub(crate) const IDS_NO_PROFILE: usize = 1006;
 pub(crate) const IDS_LOG: usize = 1007;
 pub(crate) const IDS_LOGGING_ENABLED: usize = 1008;
 pub(crate) const IDS_FAILED_LOAD_PROFILES: usize = 1009;

@@ -3,7 +3,7 @@ use crate::layout::KeyTransformLayout;
 use crate::util::play_sound;
 use log::{debug, error};
 use lomen_core::color::LightingColors;
-use lomen_core::light_control::*;
+use lomen_core::control::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::sync::OnceLock;

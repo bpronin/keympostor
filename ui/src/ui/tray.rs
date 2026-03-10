@@ -4,7 +4,6 @@ use crate::profile::Profile;
 use crate::ui::res::RESOURCES;
 use crate::ui::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_SETTINGS, IDS_TRAY_TIP};
 use crate::{r_icon, rs};
-use keympostor::utils::if_else;
 use log::warn;
 use native_windows_gui::{
     ControlHandle, Event, GlobalCursor, Icon, Menu, MenuItem, MenuSeparator, MousePressEvent,

@@ -8,7 +8,6 @@ use crate::notify::install_notify_listener;
 use crate::rule::{KeyTransformRule, KeyTransformRules};
 use crate::state::KeyboardState;
 use crate::transform::KeyTransformMap;
-use crate::transition::KeyTransition;
 use crate::transition::KeyTransition::{Down, Up};
 use crate::trigger::KeyTrigger;
 use crate::utils::if_else;
