@@ -7,6 +7,7 @@ use lomen_core::control::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::{Display, Formatter};
 use std::sync::OnceLock;
+use std::time::Duration;
 
 static NO_LAYOUT_LIGHTING_COLORS: OnceLock<Option<LightingColors>> = OnceLock::new();
 
@@ -55,7 +56,7 @@ fn set_layout_keyboard_lighting(
                         layout.name, locks, locale
                     );
 
-                    set_colors(&colors.0)
+                    transit_colors(&colors.0, Duration::from_millis(500), 50)
                         .unwrap_or_else(|e| error!("Failed to set keyboard lighting: {e}"));
                 }
             }

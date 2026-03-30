@@ -1,3 +1,8 @@
+[none]
+title = "No profile"
+transform_layout = "default"
+keyboard_locale = "en_us"
+
 [chrome]
 title = "Browser"
 activation_rule = "Chrome"
@@ -14,8 +19,3 @@ keyboard_locale = "en_us"
 title = "Total commander"
 activation_rule = "TOTALCMD64.EXE"
 transform_layout = "ide"
-
-[none]
-title = "No profile"
-transform_layout = "default"
-keyboard_locale = "ru_ru"
