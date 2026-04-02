@@ -2,7 +2,7 @@ use crate::app::App;
 use crate::layout::{KeyTransformLayout, TransformLayouts};
 use crate::profile::Profile;
 use crate::ui::res::RESOURCES;
-use crate::ui::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_SETTINGS, IDS_TRAY_TIP};
+use crate::ui::res_ids::{IDI_ICON_APP, IDS_EXIT, IDS_LAYOUT, IDS_RESET, IDS_SETTINGS, IDS_TRAY_TIP};
 use crate::{r_icon, rs};
 use log::warn;
 use native_windows_gui::{
@@ -17,6 +17,7 @@ pub(crate) struct Tray {
     menu: Menu,
     open_app_item: MenuItem,
     exit_app_item: MenuItem,
+    reset_item: MenuItem,
     layouts_item: Menu,
     separator: MenuSeparator,
     layout_items: RefCell<Vec<(MenuItem, String)>>,
@@ -48,6 +49,11 @@ impl Tray {
             .text(rs!(IDS_SETTINGS))
             .parent(&self.menu)
             .build(&mut self.open_app_item)?;
+
+        MenuItem::builder()
+            .text(rs!(IDS_RESET))
+            .parent(&self.menu)
+            .build(&mut self.reset_item)?;
 
         MenuItem::builder()
             .text(rs!(IDS_EXIT))
@@ -115,6 +121,8 @@ impl Tray {
                     app.on_show_main_window();
                 } else if &handle == &self.exit_app_item {
                     app.on_app_exit();
+                } else if &handle == &self.reset_item {
+                    app.on_reset_keyboard_state();
                 } else {
                     for (item, layout_name) in self.layout_items.borrow().iter() {
                         if item.handle == handle {

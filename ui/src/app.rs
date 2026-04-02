@@ -277,4 +277,8 @@ impl App {
     pub(crate) fn on_log_view_clear(&self) {
         self.window.clear_log();
     }
+    
+    pub(crate) fn on_reset_keyboard_state(&self) {
+        self.key_hook.reset()
+    }
 }

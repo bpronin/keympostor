@@ -25,3 +25,4 @@ pub(crate) const IDS_APP_ALREADY_RUNNING: usize = 1023;
 pub(crate) const IDS_FAILED_LOAD_SETTINGS: usize = 1024;
 pub(crate) const IDS_FAILED_LOAD_LAYOUTS: usize = 1025;
 pub(crate) const IDS_SETTINGS: usize = 1026;
+pub(crate) const IDS_RESET: usize = 1027;

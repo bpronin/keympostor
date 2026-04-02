@@ -37,6 +37,7 @@ IDI_ICON_APP ICON "res/image/app.ico"
 #define IDS_FAILED_LOAD_SETTINGS 1024
 #define IDS_FAILED_LOAD_LAYOUTS 1025
 #define IDS_SETTINGS 1026
+#define IDS_RESET 1027
 
 STRINGTABLE
 BEGIN
@@ -65,4 +66,5 @@ BEGIN
     IDS_FAILED_LOAD_PROFILES "Failed to load profiles"
     IDS_FAILED_LOAD_LAYOUTS "Failed to load layouts"
     IDS_SETTINGS "Settings"
+    IDS_RESET "Reset"
 END

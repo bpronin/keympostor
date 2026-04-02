@@ -53,6 +53,10 @@ impl KeyboardHook {
     pub fn set_suppressed_keys(&self, keys: &[Key]) {
         SUPPRESSED_KEYS.replace(FxHashSet::from_iter(keys.iter().cloned()));
     }
+
+    pub fn reset(&self) {
+        KEYBOARD_STATE.replace(KeyboardState::default());
+    }
 }
 
 impl Drop for KeyboardHook {
