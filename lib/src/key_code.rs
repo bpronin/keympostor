@@ -14,7 +14,7 @@ pub(crate) const fn ext_scan_code(code: u8, is_ext: bool) -> u16 {
     }
 }
 
-const UNASSIGNED: &str = "UNASSIGNED";
+static UNASSIGNED: &str = "UNASSIGNED";
 
 static VIRTUAL_KEY_NAME: [&str; 256] = [
     UNASSIGNED,

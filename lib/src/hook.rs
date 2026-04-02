@@ -6,7 +6,7 @@ use crate::key::Key::{LeftButton, MiddleButton, RightButton, WheelX, WheelY};
 use crate::modifiers::KeyModifiers::All;
 use crate::notify::install_notify_listener;
 use crate::rule::{KeyTransformRule, KeyTransformRules};
-use crate::state::KeyboardState;
+use crate::state::{capture_keyboard_state, KeyboardState};
 use crate::transform::KeyTransformMap;
 use crate::transition::KeyTransition::{Down, Up};
 use crate::trigger::KeyTrigger;
@@ -14,7 +14,7 @@ use crate::utils::if_else;
 use crate::{input, notify};
 use fxhash::FxHashSet;
 use input::build_input;
-use log::{debug, trace, warn};
+use log::{debug, info, trace, warn};
 use notify::notify_key_event;
 use std::cell::{Cell, RefCell};
 use windows::Win32::Foundation::*;
@@ -30,6 +30,7 @@ impl KeyboardHook {
     }
 
     pub fn install(&self) {
+        KEYBOARD_STATE.replace(KeyboardState::default());
         install_keyboard_hook();
 
         #[cfg(feature = "no_mouse")]
@@ -47,7 +48,6 @@ impl KeyboardHook {
     pub fn set_transform_rules(&self, rules: Option<&KeyTransformRules>) {
         let map = rules.and_then(|r| Some(KeyTransformMap::new(r.iter())));
         TRANSFOFM_MAP.replace(map);
-        KEYBOARD_STATE.replace(KeyboardState::default());
     }
 
     pub fn set_suppressed_keys(&self, keys: &[Key]) {
@@ -280,6 +280,9 @@ fn build_mouse_x_button_key(input: MSLLHOOKSTRUCT) -> Key {
 
 #[inline(always)]
 fn prepare_kbd_state(action: &KeyAction) -> KeyboardState {
+    // let vk_list = capture_keyboard_state();
+    // info!("CAPTURED: {}", vk_list.join(" +"));
+
     let mut state = KEYBOARD_STATE.get();
     state.remove(&action);
     KEYBOARD_STATE.set(state);

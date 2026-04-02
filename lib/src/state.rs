@@ -3,14 +3,15 @@ use crate::error::KeyError;
 use crate::key::Key;
 use crate::transition::KeyTransition;
 use crate::{deserialize_from_string, key_error, serialize_to_string};
-use log::{warn};
+use log::warn;
 use serde::Deserializer;
 use serde::Serializer;
-use serde::{Deserialize, Serialize, de};
+use serde::{de, Deserialize, Serialize};
 use std::fmt::{Binary, Display, Formatter, UpperHex};
 use std::hash::Hash;
 use std::str::FromStr;
 use KeyTransition::{Down, Up};
+
 /* Using [u64; 4] because it is faster than [u128; 2] on most systems */
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub struct KeyboardState([u64; 4]);
@@ -29,7 +30,7 @@ impl KeyboardState {
 
     #[inline]
     fn is_bit_set(&self, index: u8) -> bool {
-        let (part_index, bit_index) = self.bit_pos(index);
+        let (part_index, bit_index) = self.bit_position(index);
         unsafe {
             let part = self.0.get_unchecked(part_index);
             (*part >> bit_index) & 1 == 1
@@ -38,7 +39,7 @@ impl KeyboardState {
 
     #[inline]
     fn set_bit(&mut self, index: u8) {
-        let (part_index, bit_index) = self.bit_pos(index);
+        let (part_index, bit_index) = self.bit_position(index);
         unsafe {
             let part = self.0.get_unchecked_mut(part_index);
             *part |= 1 << bit_index;
@@ -47,7 +48,7 @@ impl KeyboardState {
 
     #[inline]
     fn clear_bit(&mut self, index: u8) {
-        let (part_index, bit_index) = self.bit_pos(index);
+        let (part_index, bit_index) = self.bit_position(index);
         unsafe {
             let part = self.0.get_unchecked_mut(part_index);
             *part &= !(1 << bit_index);
@@ -55,7 +56,7 @@ impl KeyboardState {
     }
 
     #[inline]
-    fn bit_pos(&self, index: u8) -> (usize, u8) {
+    fn bit_position(&self, index: u8) -> (usize, u8) {
         ((index / 64) as usize, index % 64)
     }
 }
@@ -138,24 +139,24 @@ impl<'de> Deserialize<'de> for KeyboardState {
     deserialize_from_string!();
 }
 
-// pub(crate) fn capture_keyboard_state() {
-//     use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardState;
-//
-//     let mut v:Vec<&str> = vec![];
-//
-//     let mut buffer = [0u8; 256];
-//     if let Err(e) = unsafe { GetKeyboardState(&mut buffer) } {
-//         warn!("Failed to capture keyboard state: {}", e);
-//     }
-//
-//     for (i, b) in buffer.iter().enumerate() {
-//         if (b & 0x80) != 0 {
-//             v.push(virtual_key_name(i as u8));
-//         }
-//     }
-//
-//     info!("{}", v.join(" + "));
-// }
+pub(crate) fn capture_keyboard_state() -> Vec<&'static str> {
+    use crate::key_code::virtual_key_name;
+    use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyboardState;
+
+    let mut result = vec![];
+
+    let mut buffer = [0u8; 256];
+    if let Err(e) = unsafe { GetKeyboardState(&mut buffer) } {
+        warn!("Failed to capture keyboard state: {}", e);
+    }
+
+    for (i, b) in buffer.iter().enumerate() {
+        if (b & 0x80) != 0 {
+            result.push(virtual_key_name(i as u8));
+        }
+    }
+    result
+}
 
 #[cfg(test)]
 pub mod tests {
