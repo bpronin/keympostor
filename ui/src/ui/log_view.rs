@@ -5,7 +5,7 @@ use crate::ui::res_ids::{
     IDS_ACTION, IDS_KEY, IDS_MODIFIERS, IDS_RULE, IDS_SCAN_CODE, IDS_STATUS, IDS_TIME,
     IDS_TRANSITION, IDS_VIRTUAL_KEY,
 };
-use crate::ui::utils::get_list_view_column_width;
+use crate::ui::utils::{get_list_view_column_width, handle_list_view_custom_draw};
 use crate::ui::utils::{scroll_list_view_to_end, set_list_view_item_data};
 use keympostor::notify::KeyEventNotification;
 use keympostor::utils::if_else;
@@ -15,11 +15,6 @@ use native_windows_gui::{
 };
 use std::collections::HashMap;
 use windows::Win32::Foundation::COLORREF;
-use windows::Win32::UI::Controls::{
-    CDDS_ITEMPREPAINT, CDDS_PREPAINT, CDRF_DODEFAULT, CDRF_NEWFONT, CDRF_NOTIFYITEMDRAW,
-    NMHDR, NMLVCUSTOMDRAW, NM_CUSTOMDRAW,
-};
-use windows::Win32::UI::WindowsAndMessaging::WM_NOTIFY;
 
 const MAX_LOG_ITEMS: usize = 256;
 
@@ -104,7 +99,16 @@ impl LogView {
         bind_raw_event_handler(
             &parent.handle,
             0x10001,
-            move |_hwnd, msg, _w_param, l_param| Self::handle_custom_draw(msg, l_param),
+            move |_hwnd, msg, _w_param, l_param| {
+                handle_list_view_custom_draw(msg, l_param, |cd| {
+                    let item_color = cd.nmcd.lItemlParam.0 as u32;
+                    if item_color != 0 {
+                        cd.clrText = COLORREF(item_color);
+                        return true;
+                    }
+                    return false;
+                })
+            },
         )?;
 
         Ok(())
@@ -184,33 +188,5 @@ impl LogView {
 
     pub(crate) fn clear(&self) {
         self.list_view.clear()
-    }
-
-    fn handle_custom_draw(msg: u32, l_param: isize) -> Option<isize> {
-        if msg != WM_NOTIFY {
-            return None;
-        }
-
-        let hdr = unsafe { &*(l_param as *const NMHDR) };
-        if hdr.code != NM_CUSTOMDRAW {
-            return None;
-        }
-
-        let cd = unsafe { &mut *(l_param as *mut NMLVCUSTOMDRAW) };
-        let stage = cd.nmcd.dwDrawStage;
-
-        if stage == CDDS_PREPAINT {
-            return Some(CDRF_NOTIFYITEMDRAW as isize);
-        }
-
-        if stage == CDDS_ITEMPREPAINT {
-            let item_color = cd.nmcd.lItemlParam.0 as u32;
-            if item_color != 0 {
-                cd.clrText = COLORREF(item_color);
-                return Some(CDRF_NEWFONT as isize);
-            }
-        }
-
-        Some(CDRF_DODEFAULT as isize)
     }
 }

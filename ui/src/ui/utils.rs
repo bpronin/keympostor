@@ -8,11 +8,8 @@ use std::mem;
 use std::sync::atomic::AtomicBool;
 use std::sync::atomic::Ordering::Relaxed;
 use windows::Win32::Foundation::{HWND, LPARAM, RECT, WPARAM};
-use windows::Win32::UI::Controls::{LVIF_PARAM, LVITEMW, LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH, LVM_SETITEMW};
-use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowRect, PeekMessageW, SendMessageW, SetWindowPos, MSG, PM_REMOVE, SWP_NOACTIVATE,
-    SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER, WM_TIMER,
-};
+use windows::Win32::UI::Controls::{CDDS_ITEMPREPAINT, CDDS_PREPAINT, CDRF_DODEFAULT, CDRF_NEWFONT, CDRF_NOTIFYITEMDRAW, LVIF_PARAM, LVITEMW, LVM_ENSUREVISIBLE, LVM_GETCOLUMNWIDTH, LVM_SETITEMW, NMHDR, NMLVCUSTOMDRAW, NM_CUSTOMDRAW};
+use windows::Win32::UI::WindowsAndMessaging::{GetWindowRect, PeekMessageW, SendMessageW, SetWindowPos, MSG, PM_REMOVE, SWP_NOACTIVATE, SWP_NOCOPYBITS, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOZORDER, WM_NOTIFY, WM_TIMER};
 
 pub fn try_hwnd(handle: ControlHandle) -> Option<HWND> {
     handle.hwnd().map(|h| HWND(h as _))
@@ -47,11 +44,11 @@ pub fn set_window_size(window: &Window, size: (u32, u32)) {
     }
 }
 
-pub fn set_list_view_item_data(view: &ListView, index: usize, data: usize) {
+pub fn set_list_view_item_data(view: &ListView, index: usize, data: isize) {
     let mut item = LVITEMW::default();
     item.mask = LVIF_PARAM;
     item.iItem = index as i32;
-    item.lParam = LPARAM(data as isize);
+    item.lParam = LPARAM(data);
 
     unsafe {
         SendMessageW(
@@ -87,6 +84,35 @@ pub fn scroll_list_view_to_end(view: &ListView) {
             );
         }
     }
+}
+
+pub fn handle_list_view_custom_draw<F>(msg: u32, l_param: isize, on_draw_item: F) -> Option<isize>
+where
+    F: Fn(&mut NMLVCUSTOMDRAW) -> bool,
+{
+    if msg != WM_NOTIFY {
+        return None;
+    }
+
+    let hdr = unsafe { &*(l_param as *const NMHDR) };
+    if hdr.code != NM_CUSTOMDRAW {
+        return None;
+    }
+
+    let cd = unsafe { &mut *(l_param as *mut NMLVCUSTOMDRAW) };
+    let stage = cd.nmcd.dwDrawStage;
+
+    if stage == CDDS_PREPAINT {
+        return Some(CDRF_NOTIFYITEMDRAW as isize);
+    }
+
+    if stage == CDDS_ITEMPREPAINT {
+        if on_draw_item(cd) {
+            return Some(CDRF_NEWFONT as isize);
+        }
+    }
+
+    Some(CDRF_DODEFAULT as isize)
 }
 
 pub(crate) fn show_warn_message(text: &str) {

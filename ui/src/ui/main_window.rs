@@ -206,6 +206,7 @@ impl MainWindow {
 
     pub(crate) fn on_key_hook_notify(&self, notification: &KeyEventNotification) {
         self.log_view.append(notification);
+        self.layout_view.on_key_event(notification);
         self.key_event_label
             .set_text(notification.event.trigger.to_string().as_str());
     }

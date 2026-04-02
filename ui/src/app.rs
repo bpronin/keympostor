@@ -96,8 +96,8 @@ impl App {
 
     pub(crate) fn handle_raw_event(&self, msg: u32, l_param: isize) {
         if msg == WM_KEY_HOOK_NOTIFY {
-            let param = unsafe { &*(l_param as *const KeyEventNotification) };
-            self.on_key_hook_notify(param);
+            let notification = unsafe { &*(l_param as *const KeyEventNotification) };
+            self.on_key_hook_notify(notification);
         }
     }
 
@@ -277,7 +277,7 @@ impl App {
     pub(crate) fn on_log_view_clear(&self) {
         self.window.clear_log();
     }
-    
+
     pub(crate) fn on_reset_keyboard_state(&self) {
         self.key_hook.reset()
     }
