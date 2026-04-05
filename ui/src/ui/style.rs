@@ -12,8 +12,6 @@ pub static INFO_LABEL_FONT: LazyLock<Font> = LazyLock::new(|| {
     font
 });
 
-pub static SMALL_MONO_FONT: LazyLock<Font> = LazyLock::new(|| mono_font(15));
-
 pub static BIG_MONO_FONT: LazyLock<Font> = LazyLock::new(|| mono_font(18));
 
 pub(crate) fn display_font(size: u32) -> Font {

@@ -12,6 +12,9 @@ use native_windows_gui::{
 use std::cell::RefCell;
 use windows::Win32::Foundation::COLORREF;
 
+const COLOR_ACTIVE: isize = 0x0000CC;
+const COLOR_DEFAULT: isize = 0x000000;
+
 #[derive(Default)]
 pub(crate) struct LayoutView {
     list_view: ListView,
@@ -54,9 +57,10 @@ impl LayoutView {
                     let item_color = cd.nmcd.lItemlParam.0 as u32;
                     if item_color != 0 {
                         cd.clrText = COLORREF(item_color);
-                        return true;
+                        true
+                    } else {
+                        false
                     }
-                    return false;
                 })
             },
         )?;
@@ -69,34 +73,37 @@ impl LayoutView {
 
         let mut data = self.data.borrow_mut();
         data.clear();
-        if let Some(layout) = layout {
-            if let Some(rules) = &layout.rules {
-                for (i, rule) in rules.iter().enumerate() {
-                    data.push(rule.clone());
-                    self.list_view.insert_items_row(
-                        Some(i as i32),
-                        &[rule.trigger.to_string(), rule.actions.to_string()],
-                    );
-                }
-            }
+
+        let Some(rules) = layout.and_then(|l| l.rules.as_ref()) else {
+            return;
+        };
+
+        for (i, rule) in rules.iter().enumerate() {
+            data.push(rule.clone());
+            self.list_view.insert_items_row(
+                Some(i as i32),
+                &[rule.trigger.to_string(), rule.actions.to_string()],
+            );
         }
     }
 
     pub(crate) fn on_key_event(&self, notification: &KeyEventNotification) {
-        if let Some(rule) = &notification.rule {
-            self.list_view.set_redraw(false);
+        let Some(rule) = &notification.rule else {
+            return;
+        };
 
-            for (i, item_rule) in self.data.borrow().iter().enumerate() {
-                /* set color (encoded as BGR) for custom item drawing */
-                let color = if rule == item_rule {
-                    0x0000CC
-                } else {
-                    0x000000
-                };
-                set_list_view_item_data(&self.list_view, i, color)
-            }
+        self.list_view.set_redraw(false);
 
-            self.list_view.set_redraw(true);
+        for (i, item_rule) in self.data.borrow().iter().enumerate() {
+            /* set color (encoded as BGR) for custom item drawing */
+            let color = if rule == item_rule {
+                COLOR_ACTIVE
+            } else {
+                COLOR_DEFAULT
+            };
+            set_list_view_item_data(&self.list_view, i, color);
         }
+
+        self.list_view.set_redraw(true);
     }
 }
