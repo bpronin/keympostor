@@ -24,7 +24,13 @@ impl Profile {
     pub(crate) fn rule_regex(&self) -> Option<Regex> {
         self.activation_rule
             .as_deref()
-            .and_then(|r| Regex::from_str(r).ok())
+            .and_then(|s| match Regex::from_str(s) {
+                Ok(r) => Some(r),
+                Err(e) => {
+                    warn!("Failed to parse rule regex: `{s}` - {e}");
+                    None
+                }
+            })
     }
 }
 
@@ -115,9 +121,9 @@ pub mod tests {
                 transform_layout: str!("desktop"),
                 keyboard_locale: Some(str!("ru_ru"))
             },
-            str!("tc") => Profile {
-                title: str!("Total Commander"),
-                activation_rule: Some(str!("TOTALCMD64.EXE")),
+            str!("game") => Profile {
+                title: str!("Games"),
+                activation_rule: Some(str!(r"C:\\Games\\")),
                 transform_layout: str!("game"),
                 keyboard_locale: Some(str!("en_en"))
             },
@@ -127,7 +133,10 @@ pub mod tests {
 
         assert!(profiles.save_to(path).is_ok());
 
-        let loaded = Profiles::load_from(path).unwrap();
+        let mut loaded = Profiles::load_from(path).unwrap();
         assert_eq!(profiles, loaded);
+
+        let regex = loaded.get_mut("game").rule_regex().unwrap();
+        assert!(regex.is_match("C:\\Games\\games.exe"));
     }
 }

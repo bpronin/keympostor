@@ -1,7 +1,7 @@
 use crate::app::App;
 use crate::profile::Profile;
 use crate::util::{with_process_path, with_window_title};
-use log::{debug, warn};
+use log::{debug, info, warn};
 use native_windows_gui::{ControlHandle, Event};
 use regex::Regex;
 use std::cell::RefCell;
