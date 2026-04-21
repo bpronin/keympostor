@@ -117,6 +117,7 @@ impl App {
     }
 
     fn show_window(&self, show: bool) {
+        self.key_hook.reset();
         self.update_window();
         self.window.set_visible(show);
     }
