@@ -981,7 +981,6 @@ dependencies = [
  "regex",
  "serde",
  "toml",
- "winapi",
  "windows",
 ]
 

@@ -55,6 +55,7 @@ impl KeyboardHook {
     }
 
     pub fn reset(&self) {
+        trace!("Resetting keyboard state");
         KEYBOARD_STATE.replace(KeyboardState::default());
     }
 }
