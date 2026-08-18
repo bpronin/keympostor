@@ -1,11 +1,13 @@
 use keympostor::hook::KeyboardHook;
-use log::debug;
+use log::trace;
 use std::cell::RefCell;
 use windows::Win32::Foundation::{HANDLE, HWND};
 use windows::Win32::System::Power::{
     HPOWERNOTIFY, RegisterSuspendResumeNotification, UnregisterSuspendResumeNotification,
 };
-use windows::Win32::UI::WindowsAndMessaging::{DEVICE_NOTIFY_WINDOW_HANDLE, WM_POWERBROADCAST};
+use windows::Win32::UI::WindowsAndMessaging::{
+    DEVICE_NOTIFY_WINDOW_HANDLE, PBT_APMRESUMEAUTOMATIC, PBT_APMRESUMESUSPEND, WM_POWERBROADCAST,
+};
 
 #[derive(Default)]
 pub(crate) struct PowerWatcher {
@@ -21,11 +23,14 @@ impl PowerWatcher {
         self.power_handle.replace(handle);
     }
 
-    pub(crate) fn handle_raw_event(&self, msg: u32, key_hook: &KeyboardHook) {
+    pub(crate) fn handle_raw_event(&self, msg: u32, w_param: usize, key_hook: &KeyboardHook) {
         match msg {
             WM_POWERBROADCAST => {
-                debug!("Power event received");
-                key_hook.reset();
+                trace!("Power event received: {:#x}", w_param);
+
+                if matches!(w_param as u32, PBT_APMRESUMESUSPEND | PBT_APMRESUMEAUTOMATIC) {
+                    key_hook.reset();
+                }
             }
             _ => {}
         }
@@ -36,6 +41,10 @@ impl Drop for PowerWatcher {
     fn drop(&mut self) {
         unsafe {
             let handle = self.power_handle.take();
+            if handle.is_invalid() {
+                return;
+            }
+
             UnregisterSuspendResumeNotification(handle)
         }
         .expect("Failed to unregister suspend/resume notification");

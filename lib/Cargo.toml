@@ -1,6 +1,6 @@
 [package]
 name = "lib"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 resolver = "3"
 
@@ -11,17 +11,15 @@ name = "keympostor"
 [dependencies]
 windows = { version = "0.62.2", features = ["Win32_Foundation", "Win32_UI_Input_KeyboardAndMouse", "Win32_UI_WindowsAndMessaging", "Win32_System", "Win32_System_Threading"] }
 serde = { version = "1", features = ["derive"] }
-toml = "0.9.8"
+toml = "1.1.4+spec-1.1.0"
 fxhash = "0.2"
 log = "0.4"
-phf = { version = "0.13.1", features = ["macros"] }
-base64 = "0.22.1"
 
 [features]
 no_mouse = []
 
 [dev-dependencies]
-criterion = "0.7.0"
+criterion = "0.8.2"
 
 [[bench]]
 name = "benchmarks"

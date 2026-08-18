@@ -96,8 +96,8 @@ impl App {
         self.window.handle_event(&self, evt, handle);
     }
 
-    pub(crate) fn handle_raw_event(&self, msg: u32, l_param: isize) {
-        self.power_watcher.handle_raw_event(msg, &self.key_hook);
+    pub(crate) fn handle_raw_event(&self, msg: u32, w_param: usize, l_param: isize) {
+        self.power_watcher.handle_raw_event(msg, w_param, &self.key_hook);
         
         match msg {
             WM_KEY_HOOK_NOTIFY => {

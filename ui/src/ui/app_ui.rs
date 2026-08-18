@@ -46,9 +46,9 @@ impl AppUI {
         nwg::bind_raw_event_handler(
             &self.app.window.handle(),
             0x10000,
-            move |_hwnd, msg, _w_param, l_param| {
+            move |_hwnd, msg, w_param, l_param| {
                 if let Some(app) = app_rc.upgrade() {
-                    app.handle_raw_event(msg, l_param);
+                    app.handle_raw_event(msg, w_param, l_param);
                 }
                 None
             },
