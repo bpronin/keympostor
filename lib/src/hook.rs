@@ -33,15 +33,15 @@ impl KeyboardHook {
         KEYBOARD_STATE.replace(KeyboardState::default());
         install_keyboard_hook();
 
-        #[cfg(feature = "no_mouse")]
-        warn!("Mouse hook is disabled by feature flag");
-        #[cfg(not(feature = "no_mouse"))]
+        #[cfg(feature = "process_mouse")]
         install_mouse_hook();
+        #[cfg(not(feature = "process_mouse"))]
+        warn!("Mouse hook is disabled by feature flag");
     }
 
     pub fn uninstall(&self) {
         uninstall_key_hook();
-        #[cfg(not(feature = "no_mouse"))]
+        #[cfg(feature = "process_mouse")]
         uninstall_mouse_hook();
     }
 

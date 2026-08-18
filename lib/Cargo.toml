@@ -16,7 +16,7 @@ fxhash = "0.2"
 log = "0.4"
 
 [features]
-no_mouse = []
+process_mouse = []
 
 [dev-dependencies]
 criterion = "0.8.2"
