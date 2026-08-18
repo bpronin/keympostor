@@ -1,18 +1,7 @@
-[none]
-title = "No profile"
-transform_layout = "default"
-keyboard_locale = "ru_ru"
-
 [ide]
 title = "IDE"
 activation_rule = "rustrover64.exe"
 transform_layout = "default"
-keyboard_locale = "en_us"
-
-[game]
-title = "Games"
-activation_rule = 'D:\\Games'
-transform_layout = "game"
 keyboard_locale = "en_us"
 
 [chrome]
@@ -20,3 +9,14 @@ title = "Browser"
 activation_rule = "Chrome"
 transform_layout = "default_no_lighting"
 keyboard_locale = "ru_ru"
+
+[game]
+title = "Games"
+activation_rule = 'D:\\Games'
+transform_layout = "game"
+keyboard_locale = "en_us"
+
+[none]
+title = "No profile"
+transform_layout = "default"
+keyboard_locale = "en_us"

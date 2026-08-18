@@ -19,6 +19,7 @@ mod settings;
 mod ui;
 mod util;
 mod win_watch;
+mod power_watch;
 
 fn main() {
     log_panics::init();

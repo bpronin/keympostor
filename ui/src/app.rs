@@ -1,7 +1,8 @@
 use crate::indicator::notify_layout_changed;
 use crate::kb_watch::{KeyboardLayoutState, KeyboardLayoutWatcher};
 use crate::layout::{KeyTransformLayout, TransformLayouts};
-use crate::profile::{Profile, Profiles, NO_PROFILE};
+use crate::power_watch::PowerWatcher;
+use crate::profile::{NO_PROFILE, Profile, Profiles};
 use crate::settings::AppSettings;
 use crate::ui::main_window::MainWindow;
 use crate::ui::res::RESOURCES;
@@ -13,20 +14,20 @@ use crate::win_watch::WindowWatcher;
 use crate::{rs, show_warn_message, ui};
 use keympostor::hook::KeyboardHook;
 use keympostor::notify::{KeyEventNotification, WM_KEY_HOOK_NOTIFY};
-use log::{debug, trace, warn};
-use native_windows_gui::{stop_thread_dispatch, ControlHandle, Event};
+use log::{debug, warn};
+use native_windows_gui::{ControlHandle, Event, stop_thread_dispatch};
 use std::cell::RefCell;
 use std::ops::DerefMut;
 use std::rc::Rc;
 use ui::utils;
 use utils::drain_timer_msg_queue;
-use windows::Win32::UI::WindowsAndMessaging::WM_POWERBROADCAST;
 
 #[derive(Default)]
 pub(crate) struct App {
     pub(crate) window: MainWindow,
     key_hook: KeyboardHook,
     win_watcher: WindowWatcher,
+    power_watcher: PowerWatcher,
     keyboard_layout_watcher: KeyboardLayoutWatcher,
     settings: RefCell<AppSettings>,
     profiles: Rc<RefCell<Profiles>>,
@@ -96,14 +97,12 @@ impl App {
     }
 
     pub(crate) fn handle_raw_event(&self, msg: u32, l_param: isize) {
+        self.power_watcher.handle_raw_event(msg, &self.key_hook);
+        
         match msg {
             WM_KEY_HOOK_NOTIFY => {
                 let notification = unsafe { &*(l_param as *const KeyEventNotification) };
                 self.on_key_hook_notify(notification)
-            }
-            WM_POWERBROADCAST => {
-                trace!("Power broadcast received.");
-                self.key_hook.reset();
             }
             _ => {}
         }
@@ -125,7 +124,6 @@ impl App {
     }
 
     fn show_window(&self, show: bool) {
-        // self.key_hook.reset();
         self.update_window();
         self.window.set_visible(show);
     }
@@ -174,11 +172,14 @@ impl App {
         let settings = self.settings.borrow();
         self.is_processing_enabled.store(true);
         self.keyboard_layout_watcher.setup(hwnd);
+        self.power_watcher.setup(hwnd);
+
         self.win_watcher.setup(
             hwnd,
             self.profiles.borrow().to_map(),
             settings.layout_autoswitch_enabled,
         );
+
 
         self.window.set_layouts(&self.layouts.borrow());
         self.update_window();
